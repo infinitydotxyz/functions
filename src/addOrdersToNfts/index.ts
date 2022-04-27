@@ -7,7 +7,7 @@ import {getNftRef} from "./getNftRef";
 import {getRelevantOrderItemSnippet} from "./getRelevantOrderItemsSnippet";
 
 export const addOrdersToNfts = functions.region('us-east1').firestore
-    .document(`${firestoreConstants.ORDER_ITEMS_SUB_COLL}/{orderItemId}`)
+    .document(`${firestoreConstants.ORDERS_COLL}/{orderId}/${firestoreConstants.ORDER_ITEMS_SUB_COLL}/{orderItemId}`)
     .onWrite(async (change) => {
       try {
         const db = getDb();

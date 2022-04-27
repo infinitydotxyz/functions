@@ -8,7 +8,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions --project nftc-dev",
     "logs": "firebase functions:log",
-    "update:lib": "npm install @infinityxyz/lib@latest"
+    "update:lib": "npm install @infinityxyz/lib@latest",
+    "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts"
   },
   "engines": {
     "node": "16"
@@ -29,6 +30,7 @@
     "eslint-plugin-import": "^2.22.0",
     "firebase-functions-test": "^0.2.0",
     "prettier": "^2.6.2",
+    "ts-node": "^10.7.0",
     "typescript": "^3.8.0"
   },
   "private": true

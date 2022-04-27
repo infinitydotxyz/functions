@@ -6,7 +6,8 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions --project nftc-dev",
+    "deploy:dev": "firebase deploy --only functions --project nftc-dev",
+    "deploy:prod": "firebase deploy --only functions --project nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts"

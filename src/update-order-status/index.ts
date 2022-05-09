@@ -1,9 +1,10 @@
+import { REGION } from "../utils/constants";
 import * as functions from "firebase-functions";
 import { markExpiredOrdersInvalid } from "./mark-expired-orders-invalid";
 import { markOrdersValidActive } from "./mark-orders-valid-active";
 
 export const updateOrderStatus = functions
-  .region("us-east1")
+  .region(REGION)
   .pubsub.schedule("every 1 minutes")
   .onRun(async () => {
     try {

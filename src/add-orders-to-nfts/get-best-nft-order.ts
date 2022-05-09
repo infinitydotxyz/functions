@@ -6,7 +6,7 @@ import {
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
 import { getDb } from "../firestore";
 
-export async function getBestOrder(
+export async function getBestNftOrder(
   nft: { collectionAddress: string; chainId: string; tokenId: string },
   isSellOrder: boolean,
   tx?: FirebaseFirestore.Transaction

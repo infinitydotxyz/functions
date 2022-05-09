@@ -2,7 +2,7 @@ import * as Emitter from "events";
 import { FirestoreOrderItem } from "@infinityxyz/lib/types/core/OBOrder";
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
 import { OrderItemSnippet, Token } from "@infinityxyz/lib/types/core/Token";
-import { getBestOrder } from "../add-orders-to-nfts/get-best-order";
+import { getBestNftOrder } from "../add-orders-to-nfts/get-best-nft-order";
 import { getNftRef } from "../add-orders-to-nfts/get-nft-ref";
 import { getRelevantOrderItemSnippet } from "../add-orders-to-nfts/get-relevant-order-item-snippet";
 import { getDb } from "../firestore";
@@ -50,7 +50,7 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
       snap as unknown as FirebaseFirestore.QueryDocumentSnapshot<FirestoreOrderItem>;
     const orderItem = orderItemSnap.data();
 
-    const bestOrderDoc = await getBestOrder(
+    const bestOrderDoc = await getBestNftOrder(
       {
         collectionAddress: orderItem.collectionAddress,
         chainId: orderItem.chainId,

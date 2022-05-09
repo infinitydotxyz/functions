@@ -2,9 +2,9 @@ import * as Emitter from "events";
 import {FirestoreOrderItem} from "@infinityxyz/lib/types/core/OBOrder";
 import {firestoreConstants} from "@infinityxyz/lib/utils/constants";
 import {OrderItemSnippet, Token} from "@infinityxyz/lib/types/core/Token";
-import {getBestOrder} from "../addOrdersToNfts/getBestOrder";
-import {getNftRef} from "../addOrdersToNfts/getNftRef";
-import {getRelevantOrderItemSnippet} from "../addOrdersToNfts/getRelevantOrderItemsSnippet";
+import {getBestOrder} from "../add-orders-to-nfts/getBestOrder";
+import {getNftRef} from "../add-orders-to-nfts/getNftRef";
+import {getRelevantOrderItemSnippet} from "../add-orders-to-nfts/getRelevantOrderItemsSnippet";
 import {getDb} from "../firestore";
 
 async function main() {

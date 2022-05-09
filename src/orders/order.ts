@@ -4,7 +4,7 @@ import {
   FirestoreOrderItem,
 } from "@infinityxyz/lib/types/core/OBOrder";
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
-import { getDb } from "firestore";
+import { getDb } from "../firestore";
 import { FirestoreOrderMatch } from "./orders.types";
 
 export class Order {

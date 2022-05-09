@@ -1,6 +1,6 @@
 import { FirestoreOrderItem } from "@infinityxyz/lib/types/core/OBOrder";
+import { OrderItemPrice } from "./orders.types";
 
-type OrderItemPrice = Pick<FirestoreOrderItem, 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'>;
 
 export class OrderItem {
     constructor(private firestoreOrderItem: FirestoreOrderItem) {}

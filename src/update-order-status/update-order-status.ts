@@ -1,6 +1,6 @@
 import { FirestoreOrder, OBOrderStatus } from "@infinityxyz/lib/types/core";
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
-import { getDb } from "firestore";
+import { getDb } from "../firestore";
 
 export const updateOrderStatus = async (
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>,

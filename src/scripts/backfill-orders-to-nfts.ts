@@ -1,11 +1,11 @@
 import * as Emitter from "events";
-import {FirestoreOrderItem} from "@infinityxyz/lib/types/core/OBOrder";
-import {firestoreConstants} from "@infinityxyz/lib/utils/constants";
-import {OrderItemSnippet, Token} from "@infinityxyz/lib/types/core/Token";
-import {getBestOrder} from "../add-orders-to-nfts/getBestOrder";
-import {getNftRef} from "../add-orders-to-nfts/getNftRef";
-import {getRelevantOrderItemSnippet} from "../add-orders-to-nfts/getRelevantOrderItemsSnippet";
-import {getDb} from "../firestore";
+import { FirestoreOrderItem } from "@infinityxyz/lib/types/core/OBOrder";
+import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
+import { OrderItemSnippet, Token } from "@infinityxyz/lib/types/core/Token";
+import { getBestOrder } from "../add-orders-to-nfts/getBestOrder";
+import { getNftRef } from "../add-orders-to-nfts/getNftRef";
+import { getRelevantOrderItemSnippet } from "../add-orders-to-nfts/getRelevantOrderItemsSnippet";
+import { getDb } from "../firestore";
 
 async function main() {
   console.log("Backfilling orders...");
@@ -41,7 +41,7 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
   const db = getDb();
 
   const orderItemsQuery = db.collectionGroup(
-      firestoreConstants.ORDER_ITEMS_SUB_COLL
+    firestoreConstants.ORDER_ITEMS_SUB_COLL
   );
   const orderItems = orderItemsQuery.stream();
 
@@ -51,12 +51,12 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
     const orderItem = orderItemSnap.data();
 
     const bestOrderDoc = await getBestOrder(
-        {
-          collectionAddress: orderItem.collectionAddress,
-          chainId: orderItem.chainId,
-          tokenId: orderItem.tokenId,
-        },
-        orderItem.isSellOrder
+      {
+        collectionAddress: orderItem.collectionAddress,
+        chainId: orderItem.chainId,
+        tokenId: orderItem.tokenId,
+      },
+      orderItem.isSellOrder
     );
 
     const bestOrder = bestOrderDoc?.data();
@@ -82,9 +82,9 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
           };
           console.log(updatedOrderSnippet);
           await nftRef.set(
-              {...updatedOrderSnippet},
-              {mergeFields: [`ordersSnippet.${fieldToUpdate}`]}
-          ); 
+            { ...updatedOrderSnippet },
+            { mergeFields: [`ordersSnippet.${fieldToUpdate}`] }
+          );
         }
       }
     }

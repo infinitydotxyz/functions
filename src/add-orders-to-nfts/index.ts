@@ -6,9 +6,9 @@ import {
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
 import * as functions from "firebase-functions";
 import { getDb } from "../firestore";
-import { getBestOrder } from "./getBestOrder";
-import { getNftRef } from "./getNftRef";
-import { getRelevantOrderItemSnippet } from "./getRelevantOrderItemsSnippet";
+import { getBestOrder } from "./get-best-order";
+import { getNftRef } from "./get-nft-ref";
+import { getRelevantOrderItemSnippet } from "./get-relevant-order-item-snippet";
 
 export const addOrdersToNfts = functions
   .region("us-east1")

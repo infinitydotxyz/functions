@@ -53,15 +53,22 @@ export type LineSegment = {
 export function getIntersection(one: LineSegment, two: LineSegment): Point | null { 
     const numerator = ((one.start.x - two.start.x) * (two.start.y - two.end.y)) - ((one.start.y - two.start.y) * (two.start.x - two.end.x));
     const denominator = ((one.start.x - one.end.x) * (two.start.y - two.end.y)) - ((one.start.y - one.end.y) * (two.start.x - two.end.x));
-    let bezierParam = numerator / denominator;
+    const bezierParam = numerator / denominator;
 
     if(bezierParam < 0 || bezierParam > 1) {
         return null; // no intersection
     }
 
-    if(Number.isNaN(bezierParam)) { // lines are parallel and overlap
-        bezierParam = 0;
+    if(Number.isNaN(bezierParam)) { // line intersection is a line segment
+        const intersectionX = one.start.x < two.start.x ? two.start.x : one.start.x;
+        const intersectionY = one.start.y < two.start.y ? two.start.y : one.start.y;
+        return {
+            x: intersectionX,
+            y: intersectionY,
+        }
     }
+
+    // line intersection is a point
     const intersectionX = one.start.x + (bezierParam * (one.end.x - one.start.x));
     const intersectionY = one.start.y + (bezierParam * (one.end.y - one.start.y));
 

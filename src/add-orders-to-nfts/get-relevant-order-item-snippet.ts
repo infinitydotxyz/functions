@@ -1,8 +1,4 @@
-import {
-  FirestoreOrderItem,
-  OrderItemSnippet,
-  Token,
-} from "@infinityxyz/lib/types/core";
+import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
 
 export function getRelevantOrderItemSnippet(
   orderItem: FirestoreOrderItem,

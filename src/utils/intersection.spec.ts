@@ -1,7 +1,7 @@
-import { getOrderIntersection } from "./intersection";
+import { getOrderIntersection } from './intersection';
 
-describe("intersection", () => {
-  it("should be defined", () => {
+describe('intersection', () => {
+  it('should be defined', () => {
     expect(getOrderIntersection).toBeDefined();
   });
 
@@ -10,14 +10,14 @@ describe("intersection", () => {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
 
     const orderTwoPrice = {
       startTimeMs: 300_000,
       endTimeMs: 400_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
 
     const intersection = getOrderIntersection(orderOnePrice, orderTwoPrice);
@@ -29,33 +29,33 @@ describe("intersection", () => {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
 
     const orderTwo = {
       startTimeMs: orderOne.startTimeMs,
       endTimeMs: orderOne.endTimeMs,
       startPriceEth: 3,
-      endPriceEth: 4,
+      endPriceEth: 4
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);
     expect(intersection).toBeNull();
   });
 
-  it("should handle lines the barely overlap", () => {
+  it('should handle lines the barely overlap', () => {
     const orderOne = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
 
     const orderTwo = {
       startTimeMs: orderOne.endTimeMs,
       endTimeMs: orderOne.endTimeMs + 100_000,
       startPriceEth: orderOne.endPriceEth,
-      endPriceEth: orderOne.startPriceEth,
+      endPriceEth: orderOne.startPriceEth
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);
@@ -73,26 +73,26 @@ describe("intersection", () => {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 1,
+      endPriceEth: 1
     };
 
     const orderTwo = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 2,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);
     expect(intersection).toBeNull();
   });
 
-  it("should return the first intersection point if the intersection forms a line. orderOne === orderTwo", () => {
+  it('should return the first intersection point if the intersection forms a line. orderOne === orderTwo', () => {
     const orderOne = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 1,
+      endPriceEth: 1
     };
 
     const intersection = getOrderIntersection(orderOne, orderOne);
@@ -104,18 +104,18 @@ describe("intersection", () => {
     expect(intersection.price).toBeCloseTo(orderOne.startPriceEth);
   });
 
-  it("should return the first intersection point if the intersection forms a line. orderTwo is a subset of orderOne", () => {
+  it('should return the first intersection point if the intersection forms a line. orderTwo is a subset of orderOne', () => {
     const orderOne = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
     const orderTwo = {
       startTimeMs: 125_000,
       endTimeMs: 175_000,
       startPriceEth: 1.25,
-      endPriceEth: 1.75,
+      endPriceEth: 1.75
     };
     const intersection = getOrderIntersection(orderOne, orderTwo);
     if (intersection == null) {
@@ -126,18 +126,18 @@ describe("intersection", () => {
     expect(intersection.price).toBeCloseTo(orderTwo.startPriceEth);
   });
 
-  it("should return the first intersection point if the intersection forms a line. orderOne is a subset of orderTwo", () => {
+  it('should return the first intersection point if the intersection forms a line. orderOne is a subset of orderTwo', () => {
     const orderOne = {
       startTimeMs: 125_000,
       endTimeMs: 175_000,
       startPriceEth: 1.25,
-      endPriceEth: 1.75,
+      endPriceEth: 1.75
     };
     const orderTwo = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
     const intersection = getOrderIntersection(orderOne, orderTwo);
     if (intersection == null) {
@@ -148,19 +148,19 @@ describe("intersection", () => {
     expect(intersection.price).toBeCloseTo(orderOne.startPriceEth);
   });
 
-  it("should return the correct intersection point for a basic intersection", () => {
+  it('should return the correct intersection point for a basic intersection', () => {
     const orderOne = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
-      endPriceEth: 2,
+      endPriceEth: 2
     };
 
     const orderTwo = {
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 2,
-      endPriceEth: 1,
+      endPriceEth: 1
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);

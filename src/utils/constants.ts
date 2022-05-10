@@ -1,2 +1,1 @@
-export const REGION = "us-east1";
-
+export const REGION = 'us-east1';

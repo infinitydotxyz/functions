@@ -1,19 +1,19 @@
-import * as Emitter from "events";
-import { FirestoreOrderItem } from "@infinityxyz/lib/types/core/OBOrder";
-import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
-import { OrderItemSnippet, Token } from "@infinityxyz/lib/types/core/Token";
-import { getBestNftOrder } from "../add-orders-to-nfts/get-best-nft-order";
-import { getNftRef } from "../add-orders-to-nfts/get-nft-ref";
-import { getRelevantOrderItemSnippet } from "../add-orders-to-nfts/get-relevant-order-item-snippet";
-import { getDb } from "../firestore";
+import * as Emitter from 'events';
+import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+import { OrderItemSnippet, Token } from '@infinityxyz/lib/types/core/Token';
+import { getBestNftOrder } from '../add-orders-to-nfts/get-best-nft-order';
+import { getNftRef } from '../add-orders-to-nfts/get-nft-ref';
+import { getRelevantOrderItemSnippet } from '../add-orders-to-nfts/get-relevant-order-item-snippet';
+import { getDb } from '../firestore';
 
 async function main() {
-  console.log("Backfilling orders...");
+  console.log('Backfilling orders...');
   const emitter = new Emitter();
   try {
     registerLogger(emitter);
     await backfillOrders(emitter);
-    console.log("Backfilled orders");
+    console.log('Backfilled orders');
   } catch (err) {
     console.error(err);
   }
@@ -29,7 +29,7 @@ function registerLogger(emitter: Emitter) {
     }
   };
 
-  emitter.on("order", () => {
+  emitter.on('order', () => {
     totalOrders += 1;
     log();
   });
@@ -40,21 +40,18 @@ void main();
 export async function backfillOrders(emitter: Emitter): Promise<void> {
   const db = getDb();
 
-  const orderItemsQuery = db.collectionGroup(
-    firestoreConstants.ORDER_ITEMS_SUB_COLL
-  );
+  const orderItemsQuery = db.collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL);
   const orderItems = orderItemsQuery.stream();
 
   for await (const snap of orderItems) {
-    const orderItemSnap =
-      snap as unknown as FirebaseFirestore.QueryDocumentSnapshot<FirestoreOrderItem>;
+    const orderItemSnap = snap as unknown as FirebaseFirestore.QueryDocumentSnapshot<FirestoreOrderItem>;
     const orderItem = orderItemSnap.data();
 
     const bestOrderDoc = await getBestNftOrder(
       {
         collectionAddress: orderItem.collectionAddress,
         chainId: orderItem.chainId,
-        tokenId: orderItem.tokenId,
+        tokenId: orderItem.tokenId
       },
       orderItem.isSellOrder
     );
@@ -69,25 +66,22 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
         if (bestOrderSaved?.orderItemId !== bestOrderDoc.id) {
           const updatedOrderItemSnippet: OrderItemSnippet = {
             hasOrder: !!bestOrder,
-            orderItemId: bestOrder?.id ?? "",
-            orderItem: bestOrder,
+            orderItemId: bestOrder?.id ?? '',
+            orderItem: bestOrder
           };
 
-          const fieldToUpdate = orderItem.isSellOrder ? "listing" : "offer";
+          const fieldToUpdate = orderItem.isSellOrder ? 'listing' : 'offer';
 
-          const updatedOrderSnippet: Pick<Token, "ordersSnippet"> = {
+          const updatedOrderSnippet: Pick<Token, 'ordersSnippet'> = {
             ordersSnippet: {
-              [fieldToUpdate]: updatedOrderItemSnippet,
-            },
+              [fieldToUpdate]: updatedOrderItemSnippet
+            }
           };
           console.log(updatedOrderSnippet);
-          await nftRef.set(
-            { ...updatedOrderSnippet },
-            { mergeFields: [`ordersSnippet.${fieldToUpdate}`] }
-          );
+          await nftRef.set({ ...updatedOrderSnippet }, { mergeFields: [`ordersSnippet.${fieldToUpdate}`] });
         }
       }
     }
-    emitter.emit("order");
+    emitter.emit('order');
   }
 }

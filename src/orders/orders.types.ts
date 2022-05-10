@@ -1,4 +1,4 @@
-import { FirestoreOrderItem } from "@infinityxyz/lib/types/core/OBOrder";
+import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 
 export interface FirestoreOrderMatch {
   /**
@@ -18,9 +18,4 @@ export interface FirestoreOrderMatch {
   price: number;
 }
 
-export type OrderItemPrice = Pick<
-  FirestoreOrderItem,
-  "startTimeMs" | "endTimeMs" | "startPriceEth" | "endPriceEth"
->;
-
-
+export type OrderItemPrice = Pick<FirestoreOrderItem, 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'>;

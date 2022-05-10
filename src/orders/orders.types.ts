@@ -1,5 +1,5 @@
-import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
-
+import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { OrderItemConstraint as AbstractOrderItemConstraint } from './constraints/order-item-constraint.abstract';
 export interface FirestoreOrderMatch {
   /**
    * id of the firestore order that is a match
@@ -28,9 +28,15 @@ export interface OrderItem {
 
   firestoreOrderItem: FirestoreOrderItem;
 
+  orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;
+
+  db: FirebaseFirestore.Firestore;
+
+  firestoreQueryOrderByConstraint: typeof AbstractOrderItemConstraint;
+
   isMatch(orderItem: FirestoreOrderItem): boolean;
 
-  getPossibleMatches(queryWithConstraints: FirebaseFirestore.Query<FirestoreOrderItem>): AsyncGenerator<FirestoreOrderItem>;
+  getPossibleMatches(queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>): AsyncGenerator<FirestoreOrderItem>;
 
   getNumConstraints(): number;
 }

@@ -1,9 +1,20 @@
-import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { streamQuery } from '../firestore';
+import { OrderItemStartTimeConstraint } from './constraints/start-time-constraint';
 import { OrderItem as IOrderItem } from './orders.types';
+import { Constraint, constraints } from './constraints/constraint.types';
 
 export class OrderItem implements IOrderItem {
-  constructor(public readonly firestoreOrderItem: FirestoreOrderItem, private db: FirebaseFirestore.Firestore) {}
+  orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;
+
+  constructor(public readonly firestoreOrderItem: FirestoreOrderItem, public db: FirebaseFirestore.Firestore) {
+    this.orderRef = this.db
+      .collection(firestoreConstants.ORDERS_COLL)
+      .doc(this.firestoreOrderItem.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
+  }
+
+  public firestoreQueryOrderByConstraint: Constraint = OrderItemStartTimeConstraint;
 
   public get isAuction(): boolean {
     return this.firestoreOrderItem.startPriceEth !== this.firestoreOrderItem.endPriceEth;
@@ -13,33 +24,18 @@ export class OrderItem implements IOrderItem {
     return 0;
   }
 
+  public applyConstraints(): IOrderItem {
+    let orderItem: IOrderItem | undefined = undefined;
+    for (const Constraint of constraints) {
+      orderItem = new Constraint(orderItem ?? this);
+    }
+    return orderItem ?? this;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public isMatch(_orderItem: FirestoreOrderItem): boolean {
     return true;
   }
-
-  //   public isMatch(orderItem: FirestoreOrderItem): boolean {
-  //     const chainIdMatches = this.firestoreOrderItem.chainId === orderItem.chainId;
-  //     const addressMatches = this.firestoreOrderItem.collectionAddress === orderItem.collectionAddress;
-  //     const tokenIdMatches = this.firestoreOrderItem.tokenId
-  //       ? this.firestoreOrderItem.tokenId === orderItem.tokenId
-  //       : true;
-  //     const orderSideValid = this.firestoreOrderItem.isSellOrder !== orderItem.isSellOrder;
-
-  //     const offer = this.firestoreOrderItem.isSellOrder ? orderItem : this.firestoreOrderItem;
-  //     const listing = this.firestoreOrderItem.isSellOrder ? this.firestoreOrderItem : orderItem;
-
-  //     const maxTokensToSell = listing.numTokens;
-  //     const minTokensToBuy = offer.numTokens;
-  //     const numTokensValid = maxTokensToSell >= minTokensToBuy;
-
-  //     const intersection = this.getIntersection(orderItem);
-  //     if (intersection === null) {
-  //       return false;
-  //     }
-
-  //     return chainIdMatches && addressMatches && tokenIdMatches && orderSideValid && numTokensValid;
-  //   }
 
   /**
    * getPossibleMatches queries for valid active orders that might be a match
@@ -49,48 +45,15 @@ export class OrderItem implements IOrderItem {
    *  if they are a match
    */
   public getPossibleMatches(
-    queryWithConstraints: FirebaseFirestore.Query<FirestoreOrderItem>
+    queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>
   ): AsyncGenerator<FirestoreOrderItem> {
-    // let orders = this.db
-    //   .collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL)
-    //   .where('chainId', '==', this.firestoreOrderItem.chainId)
-    //   .where('collectionAddress', '==', this.firestoreOrderItem.collectionAddress)
-    //   .where('isSellOrder', '==', !this.firestoreOrderItem.isSellOrder)
-    //   .where('orderStatus', '==', OBOrderStatus.ValidActive);
+    if (!queryWithConstraints) {
+        throw new Error('queryWithConstraints is required');
+    }
+    const orderByConstraint = new this.firestoreQueryOrderByConstraint(this);
+    const { query, getStartAfter } = orderByConstraint.addOrderByToQuery(queryWithConstraints);
 
-    // if (this.firestoreOrderItem.tokenId) {
-    //   orders = orders.where('tokenId', '==', this.firestoreOrderItem.tokenId);
-    // }
-
-    // /**
-    //  * numTokens is min for buy and max for sell
-    //  */
-    // if (this.firestoreOrderItem.isSellOrder) {
-    //   /**
-    //    * this order is a listing
-    //    * numTokens is the max number to sell
-    //    */
-    //   orders = orders.where('numTokens', '<=', this.firestoreOrderItem.numTokens);
-    // } else {
-    //   /**
-    //    * this order is an offer
-    //    * numTokens is the min number to buy
-    //    */
-    //   orders = orders.where('numTokens', '>=', this.firestoreOrderItem.numTokens);
-    // }
-    let orders = queryWithConstraints;
-
-    /**
-     * get the orders
-     */
-    orders = orders.where('startTimeMs', '<=', this.firestoreOrderItem.endTimeMs);
-    orders = orders.orderBy('startTimeMs', 'asc');
-
-    const getStartAfterField = (order: FirestoreOrderItem) => {
-      return order.startTimeMs;
-    };
-
-    return streamQuery<FirestoreOrderItem>(orders, getStartAfterField, {
+    return streamQuery<FirestoreOrderItem>(query, getStartAfter, {
       pageSize: 10
     });
   }

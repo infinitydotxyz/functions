@@ -3,7 +3,7 @@ import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb, streamQuery } from '../firestore';
 import { OrderItem } from './order-item';
-import { FirestoreOrderMatch } from './orders.types';
+import { FirestoreOrderMatch, OrderItem as IOrderItem } from './orders.types';
 
 export class Order {
   public get ref(): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -19,31 +19,38 @@ export class Order {
   }
 
   public async searchForMatches(): Promise<FirestoreOrderMatch[]> {
-    /**
-     * get order items
-     */
     const orderItems = await this.getOrderItems();
+    const firstItem = orderItems[0];
+    if (!firstItem) {
+      throw new Error('invalid order, no order items found');
+    }
+    const possibleMatches = firstItem.getPossibleMatches();
 
-    /**
-     * search for an orders that fulfill all order items
-     *
-     * pick the most restrictive order item, search for order items that fulfill that order item
-     * for each order that fulfills the order item, check if all other order items can be fulfilled by that order
-     */
+    for await (const possibleMatch of possibleMatches) {
+      /**
+       * check if match is valid for the first item
+       * if not, continue
+       * if so, get the rest of the order and attempt to match it with other items
+       */
+      if (firstItem.isMatch(possibleMatch)) {
+        // TODO check the rest of the order
+      }
+    }
     // TODO
     throw new Error('not yet implemented');
   }
 
-  private async getOrderItems(): Promise<OrderItem[]> {
+  private async getOrderItems(): Promise<IOrderItem[]> {
     const firestoreOrderItems = await this.getFirestoreOrderItems();
 
-    const orderItems = firestoreOrderItems.map((firestoreOrderItem) => {
-      return new OrderItem(firestoreOrderItem, this.db);
-    });
+    const orderItems = firestoreOrderItems
+      .map((firestoreOrderItem) => {
+        return new OrderItem(firestoreOrderItem, this.db).applyConstraints();
+      })
+      .sort((itemA, itemB) => itemB.constraintScore - itemA.constraintScore);
 
     return orderItems;
   }
-
 
   private async getFirestoreOrderItems(): Promise<FirestoreOrderItem[]> {
     const docs = await this.getFirestoreOrderItemDocs();
@@ -73,7 +80,7 @@ export class Order {
       return [];
     };
 
-    const getStartAfterField = (item: FirestoreOrderMatch) => item.timestamp;
+    const getStartAfterField = (item: FirestoreOrderMatch) => [item.timestamp];
     return streamQuery<FirestoreOrderMatch, FirestoreOrder>(matches, getStartAfterField, {
       pageSize: 10,
       transformPage

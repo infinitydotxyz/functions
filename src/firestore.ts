@@ -23,15 +23,15 @@ interface StreamQueryOptions<DocumentData, TransformedPage = DocumentData, Trans
 
 export async function* streamQuery<DocumentData, TransformedPage = DocumentData, TransformedItem = TransformedPage>(
   query: FirebaseFirestore.Query<DocumentData>,
-  getStartAfterField: (item: DocumentData) => string | number,
+  getStartAfterField: (item: DocumentData) => (string | number)[],
   options: StreamQueryOptions<DocumentData, TransformedPage, TransformedItem>
 ): AsyncGenerator<TransformedItem> {
   let hasNextPage = true;
-  let startAfter;
+  let startAfter: (string | number)[] | undefined = undefined;
   while (hasNextPage) {
     let pageQuery = query;
     if (startAfter !== undefined) {
-      pageQuery = pageQuery.startAfter(startAfter);
+      pageQuery = pageQuery.startAfter(...startAfter);
     }
     const pageSnapshot = await pageQuery.limit(options.pageSize).get();
     const pageData = pageSnapshot.docs.map((item) => item.data());

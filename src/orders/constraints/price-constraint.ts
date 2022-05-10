@@ -1,4 +1,4 @@
-import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+import { FirestoreOrderItem, OrderDirection } from '@infinityxyz/lib/types/core';
 import { getOrderIntersection } from '../../utils/intersection';
 import { OrderPriceIntersection } from '../../utils/intersection.types';
 import { OrderItemPrice } from '../orders.types';
@@ -23,7 +23,20 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
   protected addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem> {
-    return query; // cannot sort by both price
-    // TODO handle this dynamically
+    return query; 
+  }
+
+  addOrderByToQuery(
+    query: FirebaseFirestore.Query<FirestoreOrderItem>,
+    orderDirection?: OrderDirection
+  ): {
+    query: FirebaseFirestore.Query<FirestoreOrderItem>;
+    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+  } {
+    query = query.orderBy('startPriceEth', orderDirection ?? OrderDirection.Ascending).orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
+    return {
+      query,
+      getStartAfter: (item: FirestoreOrderItem) => [item.startPriceEth, item.collectionAddress]
+    };
   }
 }

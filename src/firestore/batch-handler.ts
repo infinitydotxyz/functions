@@ -1,4 +1,4 @@
-import { getDb } from "firestore";
+import { getDb } from "../firestore";
 import { sleep } from "utils";
 
 const MAX_SIZE = 500;

@@ -4,10 +4,10 @@ import {
   Token,
 } from "@infinityxyz/lib/types/core";
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
-import { getDb } from "firestore";
-import { streamQuery } from "firestore/stream-query";
+import { getDb } from "../firestore";
+import { streamQuery } from "../firestore/stream-query";
 import PQueue from "p-queue";
-import { updateNftsWithCollection } from "syncNftCollectionData/update-nfts-with-collection";
+import { updateNftsWithCollection } from "../syncNftCollectionData/update-nfts-with-collection";
 
 export async function backfillCollectionDataToNfts(): Promise<void> {
   const db = getDb();

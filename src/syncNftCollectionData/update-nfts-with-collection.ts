@@ -1,6 +1,6 @@
 import { Collection } from "@infinityxyz/lib/types/core";
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
-import FirestoreBatchHandler from "firestore/batch-handler";
+import FirestoreBatchHandler from "../firestore/batch-handler";
 
 export async function updateNftsWithCollection(
   collection: Partial<Collection>,

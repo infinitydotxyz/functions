@@ -19,3 +19,18 @@ export interface FirestoreOrderMatch {
 }
 
 export type OrderItemPrice = Pick<FirestoreOrderItem, 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'>;
+
+
+export interface OrderItem {
+  isAuction: boolean;
+
+  constraintScore: number;
+
+  firestoreOrderItem: FirestoreOrderItem;
+
+  isMatch(orderItem: FirestoreOrderItem): boolean;
+
+  getPossibleMatches(queryWithConstraints: FirebaseFirestore.Query<FirestoreOrderItem>): AsyncGenerator<FirestoreOrderItem>;
+
+  getNumConstraints(): number;
+}

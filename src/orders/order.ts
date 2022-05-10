@@ -2,6 +2,7 @@ import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb, streamQuery } from '../firestore';
+import { OrderItem } from './order-item';
 import { FirestoreOrderMatch } from './orders.types';
 
 export class Order {
@@ -21,7 +22,7 @@ export class Order {
     /**
      * get order items
      */
-    await this.getFirestoreOrderItems();
+    const orderItems = await this.getOrderItems();
 
     /**
      * search for an orders that fulfill all order items
@@ -32,6 +33,17 @@ export class Order {
     // TODO
     throw new Error('not yet implemented');
   }
+
+  private async getOrderItems(): Promise<OrderItem[]> {
+    const firestoreOrderItems = await this.getFirestoreOrderItems();
+
+    const orderItems = firestoreOrderItems.map((firestoreOrderItem) => {
+      return new OrderItem(firestoreOrderItem, this.db);
+    });
+
+    return orderItems;
+  }
+
 
   private async getFirestoreOrderItems(): Promise<FirestoreOrderItem[]> {
     const docs = await this.getFirestoreOrderItemDocs();

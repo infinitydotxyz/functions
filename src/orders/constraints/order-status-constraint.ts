@@ -1,5 +1,5 @@
-import { FirestoreOrderItem, OBOrderStatus, OrderDirection } from "@infinityxyz/lib/types/core";
-import { OrderItemConstraint } from "./order-item-constraint.abstract";
+import { FirestoreOrderItem, OBOrderStatus, OrderDirection } from '@infinityxyz/lib/types/core';
+import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
   protected score = 0;
@@ -21,7 +21,9 @@ export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {
-    query = query.orderBy('orderStatus', orderDirection ?? OrderDirection.Ascending).orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
+    query = query
+      .orderBy('orderStatus', orderDirection ?? OrderDirection.Ascending)
+      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
       getStartAfter: (item: FirestoreOrderItem) => [item.orderStatus, item.collectionAddress]

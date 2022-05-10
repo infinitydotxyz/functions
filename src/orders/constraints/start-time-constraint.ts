@@ -1,5 +1,5 @@
-import { FirestoreOrderItem, OrderDirection } from "@infinityxyz/lib/types/core";
-import { OrderItemConstraint } from "./order-item-constraint.abstract";
+import { FirestoreOrderItem, OrderDirection } from '@infinityxyz/lib/types/core';
+import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemStartTimeConstraint extends OrderItemConstraint {
   protected score = 0;
@@ -16,7 +16,7 @@ export class OrderItemStartTimeConstraint extends OrderItemConstraint {
     }
     return query;
   }
-  
+
   addOrderByToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>,
     orderDirection?: OrderDirection
@@ -24,7 +24,9 @@ export class OrderItemStartTimeConstraint extends OrderItemConstraint {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {
-    query = query.orderBy('startTimeMs', orderDirection ?? OrderDirection.Ascending).orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
+    query = query
+      .orderBy('startTimeMs', orderDirection ?? OrderDirection.Ascending)
+      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
       getStartAfter: (item: FirestoreOrderItem) => [item.startTimeMs, item.collectionAddress]

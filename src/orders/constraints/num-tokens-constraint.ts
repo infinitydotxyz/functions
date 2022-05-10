@@ -1,5 +1,5 @@
-import { FirestoreOrderItem, OrderDirection } from "@infinityxyz/lib/types/core";
-import { OrderItemConstraint } from "./order-item-constraint.abstract";
+import { FirestoreOrderItem, OrderDirection } from '@infinityxyz/lib/types/core';
+import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemNumTokensConstraint extends OrderItemConstraint {
   protected score = 0;
@@ -18,7 +18,7 @@ export class OrderItemNumTokensConstraint extends OrderItemConstraint {
   protected addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem> {
-    if(this instanceof this.firestoreQueryOrderByConstraint) {
+    if (this instanceof this.firestoreQueryOrderByConstraint) {
       if (this.isNumTokensUpperBound) {
         return query.where('numTokens', '<=', this.firestoreOrderItem.numTokens);
       }
@@ -35,7 +35,9 @@ export class OrderItemNumTokensConstraint extends OrderItemConstraint {
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {
     const defaultOrderDirection = this.isNumTokensUpperBound ? OrderDirection.Descending : OrderDirection.Ascending;
-    query = query.orderBy('numTokens', orderDirection ?? defaultOrderDirection).orderBy('collectionAddress', orderDirection ?? defaultOrderDirection);
+    query = query
+      .orderBy('numTokens', orderDirection ?? defaultOrderDirection)
+      .orderBy('collectionAddress', orderDirection ?? defaultOrderDirection);
     return {
       query,
       getStartAfter: (item: FirestoreOrderItem) => [item.numTokens, item.collectionAddress]

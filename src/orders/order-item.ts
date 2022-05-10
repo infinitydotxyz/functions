@@ -48,7 +48,7 @@ export class OrderItem implements IOrderItem {
     queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>
   ): AsyncGenerator<FirestoreOrderItem> {
     if (!queryWithConstraints) {
-        throw new Error('queryWithConstraints is required');
+      throw new Error('queryWithConstraints is required');
     }
     const orderByConstraint = new this.firestoreQueryOrderByConstraint(this);
     const { query, getStartAfter } = orderByConstraint.addOrderByToQuery(queryWithConstraints);

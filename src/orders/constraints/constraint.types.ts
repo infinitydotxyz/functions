@@ -9,25 +9,24 @@ import { OrderItemStartTimeConstraint } from './start-time-constraint';
 import { OrderItemTokenIdConstraint } from './token-id-constraint';
 
 export type Constraint =
-  typeof OrderItemOrderStatusConstraint |
-  typeof OrderItemOrderSideConstraint |
-  typeof OrderItemChainIdConstraint |
-  typeof OrderItemCollectionAddressConstraint |
-  typeof OrderItemTokenIdConstraint |
-  typeof OrderItemNumTokensConstraint |
-  typeof OrderItemEndTimeConstraint |
-  typeof OrderItemStartTimeConstraint |
-  typeof OrderItemPriceConstraint;
-
+  | typeof OrderItemOrderStatusConstraint
+  | typeof OrderItemOrderSideConstraint
+  | typeof OrderItemChainIdConstraint
+  | typeof OrderItemCollectionAddressConstraint
+  | typeof OrderItemTokenIdConstraint
+  | typeof OrderItemNumTokensConstraint
+  | typeof OrderItemEndTimeConstraint
+  | typeof OrderItemStartTimeConstraint
+  | typeof OrderItemPriceConstraint;
 
 export const constraints = [
-    OrderItemOrderStatusConstraint,
-    OrderItemOrderSideConstraint,
-    OrderItemChainIdConstraint,
-    OrderItemCollectionAddressConstraint,
-    OrderItemTokenIdConstraint,
-    OrderItemNumTokensConstraint,
-    OrderItemEndTimeConstraint,
-    OrderItemStartTimeConstraint,
-    OrderItemPriceConstraint
-]
+  OrderItemOrderStatusConstraint,
+  OrderItemOrderSideConstraint,
+  OrderItemChainIdConstraint,
+  OrderItemCollectionAddressConstraint,
+  OrderItemTokenIdConstraint,
+  OrderItemNumTokensConstraint,
+  OrderItemEndTimeConstraint,
+  OrderItemStartTimeConstraint,
+  OrderItemPriceConstraint
+];

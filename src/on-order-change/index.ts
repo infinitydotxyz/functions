@@ -10,14 +10,6 @@ export const onOrderChange = functions
     // const prevOrder = change.before.data() as FirestoreOrder | undefined;
     const updatedOrder = change.after.data() as FirestoreOrder | undefined;
 
-    /**
-     * if now valid
-     * - find best order, attempt to fulfill, save as trigger
-     * else if no longer valid
-     * - clean up: remove triggers for this order
-     */
-    // const orderItems = await change.after.ref.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
-
     switch (updatedOrder?.orderStatus) {
       case OBOrderStatus.ValidActive:
         /**

@@ -23,7 +23,7 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
   protected addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem> {
-    return query; 
+    return query;
   }
 
   addOrderByToQuery(
@@ -33,7 +33,9 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {
-    query = query.orderBy('startPriceEth', orderDirection ?? OrderDirection.Ascending).orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
+    query = query
+      .orderBy('startPriceEth', orderDirection ?? OrderDirection.Ascending)
+      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
       getStartAfter: (item: FirestoreOrderItem) => [item.startPriceEth, item.collectionAddress]

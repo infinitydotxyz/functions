@@ -22,7 +22,9 @@ export class OrderItemChainIdConstraint extends OrderItemConstraint {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {
-    query = query.orderBy('chainId', orderDirection ?? OrderDirection.Ascending).orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
+    query = query
+      .orderBy('chainId', orderDirection ?? OrderDirection.Ascending)
+      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
       getStartAfter: (item: FirestoreOrderItem) => [item.chainId, item.collectionAddress]

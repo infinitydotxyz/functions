@@ -1,59 +1,119 @@
 import { FirestoreOrderItem } from "@infinityxyz/lib/types/core/OBOrder";
+import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
+import { streamQuery } from "../firestore";
+import { getOrderIntersection } from "../utils/intersection";
+import { OrderPriceIntersection } from "../utils/intersection.types";
 import { OrderItemPrice } from "./orders.types";
 
-
 export class OrderItem {
-    constructor(private firestoreOrderItem: FirestoreOrderItem) {}
+  constructor(
+    private firestoreOrderItem: FirestoreOrderItem,
+    private db: FirebaseFirestore.Firestore
+  ) {}
 
-    public isMatch(orderItem: FirestoreOrderItem): boolean {
-        const chainIdMatches = this.firestoreOrderItem.chainId === orderItem.chainId
-        const addressMatches = this.firestoreOrderItem.collectionAddress === orderItem.collectionAddress;
-        const tokenIdMatches = this.firestoreOrderItem.tokenId ? this.firestoreOrderItem.tokenId === orderItem.tokenId : true;
-        const orderSideValid = this.firestoreOrderItem.isSellOrder !== orderItem.isSellOrder;
+  public isMatch(orderItem: FirestoreOrderItem): boolean {
+    const chainIdMatches =
+      this.firestoreOrderItem.chainId === orderItem.chainId;
+    const addressMatches =
+      this.firestoreOrderItem.collectionAddress === orderItem.collectionAddress;
+    const tokenIdMatches = this.firestoreOrderItem.tokenId
+      ? this.firestoreOrderItem.tokenId === orderItem.tokenId
+      : true;
+    const orderSideValid =
+      this.firestoreOrderItem.isSellOrder !== orderItem.isSellOrder;
 
-        /**
-         * we might be okay with taking more/less
-         */
-        const numTokensMatches = this.firestoreOrderItem.numTokens === orderItem.numTokens;
+    /**
+     * we might be okay with taking more/less
+     */
+    const numTokensMatches =
+      this.firestoreOrderItem.numTokens === orderItem.numTokens;
 
-        const intersection = this.getIntersection(this.firestoreOrderItem, orderItem);
-        if(intersection === null) {
-            return false;
-        }
-        return chainIdMatches && addressMatches && tokenIdMatches && orderSideValid && numTokensMatches;
+    const intersection = this.getIntersection(orderItem);
+    if (intersection === null) {
+      return false;
     }
 
-    public getIntersection(one: OrderItemPrice, two: OrderItemPrice): { timestamp: number, price: number} | null {
-        const x = {
-            '1': one.startTimeMs,
-            '2': one.endTimeMs,
-            '3': two.startTimeMs,
-            '4': two.endTimeMs,
-        };
-        const y = {
-            '1': one.startPriceEth,
-            '2': one.endPriceEth,
-            '3': two.startPriceEth,
-            '4': two.endPriceEth,
-        };
+    return (
+      chainIdMatches &&
+      addressMatches &&
+      tokenIdMatches &&
+      orderSideValid &&
+      numTokensMatches
+    );
+  }
 
-        const numerator = ((x['1'] - x['3']) * (y['3'] - y['4'])) - ((y['1'] - y['3']) * (x['3'] - x['4']));
-        const denominator = ((x['1'] - x['2']) * (y['3'] - y['4'])) - ((y['1'] - y['2']) * (x['3'] - x['4']));
-        const bezierParam = numerator / denominator;
+  public getMatches(): AsyncGenerator<FirestoreOrderItem> {
+    const ordersInCollection = this.db
+      .collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL)
+      .where("chainId", "==", this.firestoreOrderItem.chainId)
+      .where(
+        "collectionAddress",
+        "==",
+        this.firestoreOrderItem.collectionAddress
+      );
 
-        if(bezierParam < 0 || bezierParam > 1) {
-            return null; // no intersection
-        }
+    const opposingOrdersInCollection = ordersInCollection.where(
+      "isSellOrder",
+      "==",
+      !this.firestoreOrderItem.isSellOrder
+    );
 
-        const intersectionX = x['1'] + (bezierParam * (x['2'] - x['1']));
-        const nearestSecond = Math.ceil(intersectionX / 1000) * 1000;
-        const slope = (y['2'] - y['1']) / (x['2'] - x['1']);
-        const yIntercept = y['1'] - (slope * x['1']);
-        const priceAtNearestSecond = slope * nearestSecond + yIntercept;
+    let orders = this.firestoreOrderItem.tokenId
+      ? opposingOrdersInCollection.where(
+          "tokenId",
+          "==",
+          this.firestoreOrderItem.tokenId
+        )
+      : opposingOrdersInCollection;
 
-        return {
-            timestamp: nearestSecond,
-            price: priceAtNearestSecond,
-        }
+    /**
+     * numTokens is min for buy and max for sell
+     */
+    if (this.firestoreOrderItem.isSellOrder) {
+      /**
+       * this order is a listing
+       * numTokens is the max number to sell
+       */
+      orders = orders.where(
+        "numTokens",
+        "<=",
+        this.firestoreOrderItem.numTokens
+      );
+    } else {
+      /**
+       * this order is an offer
+       * numTokens is the min number to buy
+       */
+      orders = orders.where(
+        "numTokens",
+        ">=",
+        this.firestoreOrderItem.numTokens
+      );
     }
+
+    /**
+     * get the orders
+     */
+    orders = orders.where(
+      "startTimeMs",
+      "<=",
+      this.firestoreOrderItem.endTimeMs
+    );
+    orders = orders.orderBy("startTimeMs", "asc");
+
+    const getStartAfterField = (order: FirestoreOrderItem) => {
+      return order.startTimeMs;
+    };
+
+    return streamQuery<FirestoreOrderItem>(
+      orders as FirebaseFirestore.Query<FirestoreOrderItem>,
+      getStartAfterField,
+      { pageSize: 10 }
+    );
+  }
+
+  public getIntersection(order: OrderItemPrice): OrderPriceIntersection {
+    const intersection = getOrderIntersection(this.firestoreOrderItem, order);
+    return intersection;
+  }
 }

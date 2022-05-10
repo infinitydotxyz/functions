@@ -18,5 +18,9 @@ export interface FirestoreOrderMatch {
   price: number;
 }
 
+export type OrderItemPrice = Pick<
+  FirestoreOrderItem,
+  "startTimeMs" | "endTimeMs" | "startPriceEth" | "endPriceEth"
+>;
 
-export type OrderItemPrice = Pick<FirestoreOrderItem, 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'>;
+

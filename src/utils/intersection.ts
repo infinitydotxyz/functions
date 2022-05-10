@@ -1,6 +1,9 @@
 import { OrderItemPrice } from "../orders/orders.types";
+import { LineSegment, OrderPriceIntersection, Point } from "./intersection.types";
 
-export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): { timestamp: number, price: number} | null {
+
+
+export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): OrderPriceIntersection {
     const segmentOne: LineSegment = {
         start: {
             x: one.startTimeMs,
@@ -40,15 +43,6 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
     }
 }
 
-export type Point = {
-    x: number;
-    y: number;
-}
-
-export type LineSegment = {
-    start: Point;
-    end: Point;
-}
 
 export function getIntersection(one: LineSegment, two: LineSegment): Point | null { 
     const numerator = ((one.start.x - two.start.x) * (two.start.y - two.end.y)) - ((one.start.y - two.start.y) * (two.start.x - two.end.x));

@@ -12,13 +12,19 @@ import { updateNftsWithCollection } from "../syncNftCollectionData/update-nfts-w
 export async function backfillCollectionDataToNfts(): Promise<void> {
   const db = getDb();
 
-  const query = db.collection(firestoreConstants.COLLECTIONS_COLL) as unknown as FirebaseFirestore.Query<Collection>;
+  // order by clause is required to support pagination
+  const query = db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .orderBy(
+      "__name__",
+      OrderDirection.Ascending
+    ) as FirebaseFirestore.Query<Collection>;
 
   const startAfter = (collection: Collection, ref: FirebaseFirestore.DocumentReference) => {
     return [ref.id];
   };
 
-  const pageSize = 10;
+  const pageSize = 100;
   const collectionsStream = streamQuery(query, startAfter, { pageSize });
   const queue = new PQueue({ concurrency: pageSize });
 

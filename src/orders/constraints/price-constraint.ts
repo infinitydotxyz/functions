@@ -13,7 +13,7 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
   }
 
   // note this does not check if the price is currently valid
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean { 
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
     const intersection = this.getIntersection(orderItem);
     if (intersection === null) {
       return false;

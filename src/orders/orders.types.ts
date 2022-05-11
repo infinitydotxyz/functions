@@ -43,5 +43,4 @@ export interface OrderItem {
   getNumConstraints(): number;
 }
 
-
 export type OrderItemMatch = { order: OrderItem; opposingOrder: OrderItem };

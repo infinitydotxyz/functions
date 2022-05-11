@@ -36,7 +36,7 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
 
   const getPriceAtTime = (timestamp: number) => {
     return segmentOneSlope * timestamp + yIntercept;
-  }
+  };
 
   return {
     timestamp: nearestSecond,

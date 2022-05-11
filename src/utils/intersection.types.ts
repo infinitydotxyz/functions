@@ -1,7 +1,7 @@
 export type OrderPriceIntersection = {
   timestamp: number;
   price: number;
-  getPriceAtTime: (timestamp: number) => number
+  getPriceAtTime: (timestamp: number) => number;
 } | null;
 
 export type Point = {

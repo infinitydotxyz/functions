@@ -2,6 +2,7 @@ import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
+import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
 import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
@@ -158,6 +159,51 @@ export class Order {
     return orderItems;
   }
 
+  getExistingMatches(validOnly: boolean): AsyncGenerator<FirestoreOrder> {
+    const matchesWithTimestampBefore = validOnly ? Date.now() : Number.MAX_SAFE_INTEGER;
+
+    const matches = this.ref
+      .collection('orderMatches')
+      .where('timestamp', '<=', matchesWithTimestampBefore)
+      .orderBy('timestamp', OrderDirection.Ascending) as FirebaseFirestore.Query<FirestoreOrderMatch>;
+
+    const transformPage = async (page: FirestoreOrderMatch[]): Promise<FirestoreOrder[]> => {
+      const firestoreOrderRefs = page.map((match) => this.db.collection(firestoreConstants.ORDERS_COLL).doc(match.id));
+      if (firestoreOrderRefs.length > 0) {
+        const firestoreOrders = await this.db.getAll(...firestoreOrderRefs);
+        return firestoreOrders.map((item) => item.data() as FirestoreOrder);
+      }
+      return [];
+    };
+
+    const getStartAfterField = (item: FirestoreOrderMatch) => [item.timestamp];
+    return streamQuery<FirestoreOrderMatch, FirestoreOrder>(matches, getStartAfterField, {
+      pageSize: 10,
+      transformPage
+    });
+  }
+
+  async saveMatches(matches: FirestoreOrderMatch[]): Promise<void> {
+    const matchesCollection = this.ref.collection('orderMatches');
+    const batchHandler = new FirestoreBatchHandler();
+
+    const matchIds = new Set<string>();
+    matches = matches.filter((item) => {
+      if(!matchIds.has(item.id)) {
+        matchIds.add(item.id)
+        return true;
+      }
+      return false;
+    });
+
+    for(const match of matches) {
+      const doc = matchesCollection.doc(match.id);
+      batchHandler.add(doc, match, {merge: false});
+    }
+
+    await batchHandler.flush();
+  }
+
   private async getOrder(orderId: string): Promise<{ order: Order; orderItems: IOrderItem[] } | null> {
     const orderSnap = await Order.getRef(orderId).get();
     const orderData = orderSnap.data();
@@ -181,29 +227,5 @@ export class Order {
   private async getFirestoreOrderItemDocs(): Promise<FirebaseFirestore.QueryDocumentSnapshot<FirestoreOrderItem>[]> {
     const orderItems = await this.ref.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
     return orderItems.docs as FirebaseFirestore.QueryDocumentSnapshot<FirestoreOrderItem>[];
-  }
-
-  getExistingMatches(validOnly: boolean): AsyncGenerator<FirestoreOrder> {
-    const matchesWithTimestampBefore = validOnly ? Date.now() : Number.MAX_SAFE_INTEGER;
-
-    const matches = this.ref
-      .collection('orderMatches')
-      .where('timestamp', '<=', matchesWithTimestampBefore)
-      .orderBy('timestamp', OrderDirection.Ascending) as FirebaseFirestore.Query<FirestoreOrderMatch>;
-
-    const transformPage = async (page: FirestoreOrderMatch[]): Promise<FirestoreOrder[]> => {
-      const firestoreOrderRefs = page.map((match) => this.db.collection(firestoreConstants.ORDERS_COLL).doc(match.id));
-      if (firestoreOrderRefs.length > 0) {
-        const firestoreOrders = await this.db.getAll(...firestoreOrderRefs);
-        return firestoreOrders.map((item) => item.data() as FirestoreOrder);
-      }
-      return [];
-    };
-
-    const getStartAfterField = (item: FirestoreOrderMatch) => [item.timestamp];
-    return streamQuery<FirestoreOrderMatch, FirestoreOrder>(matches, getStartAfterField, {
-      pageSize: 10,
-      transformPage
-    });
   }
 }

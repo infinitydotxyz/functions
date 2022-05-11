@@ -13,47 +13,39 @@ export const onOrderChange = functions
   .onUpdate(async (change) => {
     const prevOrder = change.before.data() as FirestoreOrder | undefined;
     const updatedOrder = change.after.data() as FirestoreOrder | undefined;
-
-    switch (updatedOrder?.orderStatus) {
-      case OBOrderStatus.ValidActive: {
-        /**
-         * attempt to find a match
-         * if match is found
-         *  - fulfill
-         *  - save as trigger
-         */
-        try {
+    try {
+      switch (updatedOrder?.orderStatus) {
+        case OBOrderStatus.ValidActive: {
           const order = new Order(updatedOrder);
           const matches = await order.searchForMatches();
-          // sort matches by timestamp ascending
           matches.sort((a, b) => a.timestamp - b.timestamp);
           if (matches?.[0] && matches[0].timestamp <= Date.now()) {
             // TODO fulfill order
           } else {
             await order.saveMatches(matches);
           }
-        } catch (err) {
-          console.error(err);
+          break;
         }
-        break;
-      }
-      case OBOrderStatus.ValidInactive:
-      case OBOrderStatus.Invalid:
-      default:
-        try {
+        case OBOrderStatus.ValidInactive:
+        case OBOrderStatus.Invalid:
+        default: {
           const db = getDb();
           const id = updatedOrder?.id ?? prevOrder?.id;
-          if(id) {
-            const triggers = db.collectionGroup('orderMatches').where('id', '==', updatedOrder?.id).stream() as  AsyncIterable<FirebaseFirestore.DocumentSnapshot<FirestoreOrderMatch>>;
+          if (id) {
+            const triggers = db
+              .collectionGroup('orderMatches')
+              .where('id', '==', updatedOrder?.id)
+              .stream() as AsyncIterable<FirebaseFirestore.DocumentSnapshot<FirestoreOrderMatch>>;
             const batchHandler = new FirestoreBatchHandler();
             for await (const trigger of triggers) {
               batchHandler.delete(trigger.ref);
             }
             await batchHandler.flush();
           }
-        } catch (err) {
-          console.error(err);
+          break;
         }
-        break;
+      }
+    } catch (err) {
+      console.error(err);
     }
   });

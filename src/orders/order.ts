@@ -103,7 +103,7 @@ export class Order {
     const pathsSortedByMostMatches = paths
       .sort((itemA, itemB) => itemA.matches.length - itemB.matches.length)
       .filter((path) => {
-        return this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
+        return path.matches.length >= minOrderItemsToFulfill && this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
       });
 
     const mostMatches = pathsSortedByMostMatches[0];

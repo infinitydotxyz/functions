@@ -5,6 +5,7 @@ import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { Order } from '../orders/order';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
+import { FirestoreOrderMatch } from '../orders/orders.types';
 
 export const onOrderChange = functions
   .region(REGION)
@@ -40,11 +41,15 @@ export const onOrderChange = functions
       case OBOrderStatus.Invalid:
       default:
         try {
-          // const db = getDb();
+          const db = getDb();
           const id = updatedOrder?.id ?? prevOrder?.id;
           if(id) {
-            // const triggers = db.collectionGroup('orderMatches').where('id', '==', updatedOrder?.id).stream();
-            // TODO delete all triggers
+            const triggers = db.collectionGroup('orderMatches').where('id', '==', updatedOrder?.id).stream() as  AsyncIterable<FirebaseFirestore.DocumentSnapshot<FirestoreOrderMatch>>;
+            const batchHandler = new FirestoreBatchHandler();
+            for await (const trigger of triggers) {
+              batchHandler.delete(trigger.ref);
+            }
+            await batchHandler.flush();
           }
         } catch (err) {
           console.error(err);

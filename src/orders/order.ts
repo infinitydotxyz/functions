@@ -44,7 +44,7 @@ export class Order {
       if (firstItem.isMatch(possibleMatch)) {
         const opposingOrder = await this.getOrder(possibleMatch.id);
         if (opposingOrder?.order && opposingOrder?.orderItems) {
-          const result = this.checkMatch(orderItems, opposingOrder);
+          const result = this.checkForMatch(orderItems, opposingOrder);
           if (result.isMatch) {
             const match: FirestoreOrderMatch = {
               id: opposingOrder.order.firestoreOrder.id,
@@ -59,7 +59,7 @@ export class Order {
     return matches;
   }
 
-  public checkMatch(
+  public checkForMatch(
     orderItems: IOrderItem[],
     opposingOrder: { order: Order; orderItems: IOrderItem[] }
   ): { isMatch: false } | { isMatch: true; match: OrderItemMatch[]; price: number; timestamp: number } {
@@ -184,6 +184,7 @@ export class Order {
   }
 
   async saveMatches(matches: FirestoreOrderMatch[]): Promise<void> {
+    // TODO save under listings or offers so we don't have duplicates
     const matchesCollection = this.ref.collection('orderMatches');
     const batchHandler = new FirestoreBatchHandler();
 

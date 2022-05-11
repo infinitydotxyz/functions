@@ -12,12 +12,7 @@ import { updateNftsWithCollection } from "../syncNftCollectionData/update-nfts-w
 export async function backfillCollectionDataToNfts(): Promise<void> {
   const db = getDb();
 
-  const query = db
-    .collection(firestoreConstants.COLLECTIONS_COLL)
-    .orderBy(
-      "__name__",
-      OrderDirection.Ascending
-    ) as FirebaseFirestore.Query<Collection>;
+  const query = db.collection(firestoreConstants.COLLECTIONS_COLL) as unknown as FirebaseFirestore.Query<Collection>;
 
   const startAfter = (collection: Collection, ref: FirebaseFirestore.DocumentReference) => {
     return [ref.id];
@@ -44,12 +39,7 @@ export async function backfillCollectionDataToNfts(): Promise<void> {
           .get(); 
           
         const nft = sampleNft.docs.map((item) => item.data())?.[0] as
-          | (Partial<Token> & {
-              collectionAddress?: string;
-              collectionName?: string;
-              collectionSlug?: string;
-              hasBlueCheck?: boolean;
-            })
+          | Partial<Token> 
           | undefined;
 
         const addressRequiresUpdate =

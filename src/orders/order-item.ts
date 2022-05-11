@@ -1,9 +1,9 @@
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { streamQuery } from '../firestore';
 import { OrderItemStartTimeConstraint } from './constraints/start-time-constraint';
 import { OrderItem as IOrderItem } from './orders.types';
 import { Constraint, constraints } from './constraints/constraint.types';
+import { streamQuery } from '../firestore/stream-query';
 
 export class OrderItem implements IOrderItem {
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;

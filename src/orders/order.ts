@@ -1,7 +1,8 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb, streamQuery } from '../firestore';
+import { getDb } from '../firestore';
+import { streamQuery } from '../firestore/stream-query';
 import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
 import { FirestoreOrderMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';

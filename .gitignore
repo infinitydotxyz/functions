@@ -5,3 +5,6 @@ dist/**/*
 node_modules/
 
 src/creds/**/*
+
+# logs
+firebase-debug.log

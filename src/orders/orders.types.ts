@@ -1,5 +1,6 @@
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { OrderItemConstraint as AbstractOrderItemConstraint } from './constraints/order-item-constraint.abstract';
+
 export interface FirestoreOrderMatch {
   /**
    * id of the firestore order that is a match
@@ -41,3 +42,6 @@ export interface OrderItem {
 
   getNumConstraints(): number;
 }
+
+
+export type OrderItemMatch = { order: OrderItem; opposingOrder: OrderItem };

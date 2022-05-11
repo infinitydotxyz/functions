@@ -33,11 +33,15 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
   const nearestSecond = Math.ceil(intersection.x / 1000) * 1000;
   const segmentOneSlope = (segmentOne.end.y - segmentOne.start.y) / (segmentOne.end.x - segmentOne.start.x);
   const yIntercept = segmentOne.start.y - segmentOneSlope * segmentOne.start.x;
-  const priceAtNearestSecond = segmentOneSlope * nearestSecond + yIntercept;
+
+  const getPriceAtTime = (timestamp: number) => {
+    return segmentOneSlope * timestamp + yIntercept;
+  }
 
   return {
     timestamp: nearestSecond,
-    price: priceAtNearestSecond
+    price: getPriceAtTime(nearestSecond),
+    getPriceAtTime
   };
 }
 

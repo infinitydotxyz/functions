@@ -1,7 +1,7 @@
 import { getDb } from "../firestore";
 import { sleep } from "../utils";
 
-const MAX_SIZE = 500;
+const MAX_BATCH_SIZE = 300;
 
 interface Batch {
   batch: FirebaseFirestore.WriteBatch;
@@ -27,7 +27,7 @@ export default class FirestoreBatchHandler {
     object: Partial<FirebaseFirestore.DocumentData>,
     options: FirebaseFirestore.SetOptions
   ): void {
-    if (this.currentBatch.size >= MAX_SIZE) {
+    if (this.currentBatch.size >= MAX_BATCH_SIZE) {
       this.flush().catch((err) => {
         console.error(err);
         throw err;

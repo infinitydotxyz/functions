@@ -3,9 +3,7 @@ import * as functions from 'firebase-functions';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { Order } from '../orders/order';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
-import { FirestoreOrderMatch } from '../orders/orders.types';
+import { deleteOrderMatches } from './delete-order-matches';
 
 export const onOrderChange = functions
   .region(REGION)
@@ -29,18 +27,9 @@ export const onOrderChange = functions
         case OBOrderStatus.ValidInactive:
         case OBOrderStatus.Invalid:
         default: {
-          const db = getDb();
           const id = updatedOrder?.id ?? prevOrder?.id;
           if (id) {
-            const triggers = db
-              .collectionGroup('orderMatches')
-              .where('id', '==', updatedOrder?.id)
-              .stream() as AsyncIterable<FirebaseFirestore.DocumentSnapshot<FirestoreOrderMatch>>;
-            const batchHandler = new FirestoreBatchHandler();
-            for await (const trigger of triggers) {
-              batchHandler.delete(trigger.ref);
-            }
-            await batchHandler.flush();
+            await deleteOrderMatches(id);
           }
           break;
         }

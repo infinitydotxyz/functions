@@ -103,7 +103,10 @@ export class Order {
     const pathsSortedByMostMatches = paths
       .sort((itemA, itemB) => itemA.matches.length - itemB.matches.length)
       .filter((path) => {
-        return path.matches.length >= minOrderItemsToFulfill && this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
+        return (
+          path.matches.length >= minOrderItemsToFulfill &&
+          this.validateMatchForOpposingOrder(path.matches, opposingOrder.order)
+        );
       });
 
     const mostMatches = pathsSortedByMostMatches[0];
@@ -190,16 +193,16 @@ export class Order {
 
     const matchIds = new Set<string>();
     matches = matches.filter((item) => {
-      if(!matchIds.has(item.id)) {
-        matchIds.add(item.id)
+      if (!matchIds.has(item.id)) {
+        matchIds.add(item.id);
         return true;
       }
       return false;
     });
 
-    for(const match of matches) {
+    for (const match of matches) {
       const doc = matchesCollection.doc(match.id);
-      batchHandler.add(doc, match, {merge: false});
+      batchHandler.add(doc, match, { merge: false });
     }
 
     await batchHandler.flush();

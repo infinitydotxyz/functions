@@ -3,6 +3,7 @@
   "scripts": {
     "clean": "rimraf ./dist",
     "lint": "eslint \"{src,apps}/**/*.ts\" --fix",
+    "pre:push": "npm run format && npm run lint && npm run build",
     "build": "tsc -b ./tsconfig.build.json",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

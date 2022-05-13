@@ -1,6 +1,5 @@
 import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { REGION } from '../utils/constants';
 import * as functions from 'firebase-functions';
 import { getDb } from '../firestore';
 import { getBestNftOrder } from './get-best-nft-order';
@@ -8,19 +7,22 @@ import { getNftRef } from './get-nft-ref';
 import { getRelevantOrderItemSnippet } from './get-relevant-order-item-snippet';
 
 export const addOrdersToNfts = functions
-  .region(REGION)
+  .region('us-east1')
   .firestore.document(
     `${firestoreConstants.ORDERS_COLL}/{orderId}/${firestoreConstants.ORDER_ITEMS_SUB_COLL}/{orderItemId}`
   )
   .onWrite(async (change) => {
     try {
       const db = getDb();
-      await db.runTransaction(async (tx) => {
-        const before = change.before.data() as FirestoreOrderItem;
-        const after = change.after.data() as FirestoreOrderItem;
-        const orderWasDeleted = !change.after.exists;
-        const orderItem = orderWasDeleted ? before : after;
+      const before = change.before.data() as FirestoreOrderItem;
+      const after = change.after.data() as FirestoreOrderItem;
+      const orderWasDeleted = !change.after.exists;
+      const orderItem = orderWasDeleted ? before : after;
+      if (!orderItem.tokenId) {
+        return; // TODO should we also add collection offers/listings to nfts?
+      }
 
+      await db.runTransaction(async (tx) => {
         const nftRef = getNftRef(orderItem);
 
         const nftSnap = await tx.get(nftRef);

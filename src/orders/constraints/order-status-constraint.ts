@@ -23,7 +23,9 @@ export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
   } {
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [
+        lastItem
+      ]
     };
   }
 }

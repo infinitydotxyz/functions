@@ -1,4 +1,3 @@
-import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
@@ -24,7 +23,9 @@ export class OrderItemCollectionAddressConstraint extends OrderItemConstraint {
   } {
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [
+        lastItem
+      ]
     };
   }
 }

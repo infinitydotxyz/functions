@@ -49,7 +49,8 @@ export class Order {
             const match: FirestoreOrderMatch = {
               id: opposingOrder.order.firestoreOrder.id,
               price: result.price,
-              timestamp: result.timestamp
+              timestamp: result.timestamp,
+              status: result.timestamp > Date.now() ? 'inactive' : 'active'
             };
             matches.push(match);
           }

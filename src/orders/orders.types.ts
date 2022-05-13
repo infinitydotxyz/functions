@@ -17,6 +17,12 @@ export interface FirestoreOrderMatch {
    * the price of the match
    */
   price: number;
+
+  /**
+   * whether the match is active or not
+   * timestamp >= Date.now()
+   */
+  status: 'inactive' | 'active';
 }
 
 export type OrderItemPrice = Pick<FirestoreOrderItem, 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'>;

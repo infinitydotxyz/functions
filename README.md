@@ -8,6 +8,6 @@ orders
     <order id>: FirestoreOrder
         orderItems
             <random id>: FirestoreOrderItem
-        orderMatches (only present for listings)
-            <order id>: FirestoreOrderMatch (matches are always offers)
+orderMatches (only present for listings)
+    <listingId:offerId>: FirestoreOrderMatch (matches are always offers)
 ```

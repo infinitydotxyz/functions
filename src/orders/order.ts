@@ -1,12 +1,17 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
-import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import {
+  FirestoreOrder,
+  FirestoreOrderItem,
+  FirestoreOrderMatch,
+  FirestoreOrderMatchStatus
+} from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
 import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
-import { FirestoreOrderMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
+import { OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -46,11 +51,16 @@ export class Order {
         if (opposingOrder?.order && opposingOrder?.orderItems) {
           const result = this.checkForMatch(orderItems, opposingOrder);
           if (result.isMatch) {
+            const ids = [this.firestoreOrder.id, opposingOrder.order.firestoreOrder.id];
+            const [listingId, offerId] = this.firestoreOrder.isSellOrder ? ids : ids.reverse();
             const match: FirestoreOrderMatch = {
-              id: opposingOrder.order.firestoreOrder.id,
+              ids: [offerId, listingId],
+              offerId,
+              listingId,
               price: result.price,
               timestamp: result.timestamp,
-              status: result.timestamp > Date.now() ? 'inactive' : 'active'
+              status:
+                result.timestamp > Date.now() ? FirestoreOrderMatchStatus.Inactive : FirestoreOrderMatchStatus.Active
             };
             matches.push(match);
           }
@@ -165,14 +175,18 @@ export class Order {
 
   getExistingMatches(validOnly: boolean): AsyncGenerator<FirestoreOrder> {
     const matchesWithTimestampBefore = validOnly ? Date.now() : Number.MAX_SAFE_INTEGER;
+    const orderMatches = this.db.collection(firestoreConstants.ORDER_MATCHES_COLL);
+    const matchesQuery = orderMatches.where('ids', 'array-contains', this.firestoreOrder.id);
 
-    const matches = this.ref
-      .collection('orderMatches')
+    const matches = matchesQuery
       .where('timestamp', '<=', matchesWithTimestampBefore)
       .orderBy('timestamp', OrderDirection.Ascending) as FirebaseFirestore.Query<FirestoreOrderMatch>;
 
     const transformPage = async (page: FirestoreOrderMatch[]): Promise<FirestoreOrder[]> => {
-      const firestoreOrderRefs = page.map((match) => this.db.collection(firestoreConstants.ORDERS_COLL).doc(match.id));
+      const firestoreOrderRefs = page.map((match) => {
+        const matchId = this.firestoreOrder.isSellOrder ? match.offerId : match.listingId;
+        return this.db.collection(firestoreConstants.ORDERS_COLL).doc(matchId);
+      });
       if (firestoreOrderRefs.length > 0) {
         const firestoreOrders = await this.db.getAll(...firestoreOrderRefs);
         return firestoreOrders.map((item) => item.data() as FirestoreOrder);
@@ -188,22 +202,19 @@ export class Order {
   }
 
   async saveMatches(matches: FirestoreOrderMatch[]): Promise<void> {
-    // TODO save under listings or offers so we don't have duplicates
-    const matchesCollection = this.ref.collection('orderMatches');
+    const getMatchRef = (match: FirestoreOrderMatch) => {
+      return this.db.collection(firestoreConstants.ORDER_MATCHES_COLL).doc(`${match.listingId}:${match.offerId}`);
+    };
     const batchHandler = new FirestoreBatchHandler();
 
     const matchIds = new Set<string>();
-    matches = matches.filter((item) => {
-      if (!matchIds.has(item.id)) {
-        matchIds.add(item.id);
-        return true;
-      }
-      return false;
-    });
-
     for (const match of matches) {
-      const doc = matchesCollection.doc(match.id);
-      batchHandler.add(doc, match, { merge: false });
+      const doc = getMatchRef(match);
+      const id = doc.path;
+      if (!matchIds.has(id)) {
+        batchHandler.add(doc, match, { merge: false });
+        matchIds.add(id);
+      }
     }
 
     await batchHandler.flush();

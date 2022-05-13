@@ -17,11 +17,7 @@ export const onOrderChange = functions
           const order = new Order(updatedOrder);
           const matches = await order.searchForMatches();
           matches.sort((a, b) => a.timestamp - b.timestamp);
-          if (matches?.[0] && matches[0].timestamp <= Date.now()) {
-            // TODO fulfill order
-          } else {
-            await order.saveMatches(matches);
-          }
+          await order.saveMatches(matches);
           break;
         }
         case OBOrderStatus.ValidInactive:

@@ -9,11 +9,11 @@ export async function* streamQuery<DocumentData, TransformedPage = DocumentData,
   getStartAfterField: (
     item: DocumentData,
     ref: FirebaseFirestore.DocumentReference<DocumentData>
-  ) => (string | number)[],
+  ) => (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[],
   options: StreamQueryOptions<DocumentData, TransformedPage, TransformedItem>
 ): AsyncGenerator<TransformedItem> {
   let hasNextPage = true;
-  let startAfter: (string | number)[] | undefined = undefined;
+  let startAfter: (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[] | undefined = undefined;
   while (hasNextPage) {
     let pageQuery = query;
     if (startAfter !== undefined) {

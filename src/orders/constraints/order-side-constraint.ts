@@ -18,17 +18,16 @@ export class OrderItemOrderSideConstraint extends OrderItemConstraint {
     return query.where('isSellOrder', '==', this.expectedOrderSide);
   }
 
-  addOrderByToQuery(
-    query: FirebaseFirestore.Query<FirestoreOrderItem>,
-    orderDirection?: OrderDirection
-  ): {
+  addOrderByToQuery(query: FirebaseFirestore.Query<FirestoreOrderItem>): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
-    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+    getStartAfter: (
+      item: FirestoreOrderItem,
+      ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    ) => (string | number | FirebaseFirestore.DocumentReference<FirestoreOrderItem>)[];
   } {
-    query = query.orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem) => [item.collectionAddress]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
     };
   }
 }

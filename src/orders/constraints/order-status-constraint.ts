@@ -1,4 +1,4 @@
-import { FirestoreOrderItem, OBOrderStatus, OrderDirection } from '@infinityxyz/lib/types/core';
+import { FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
@@ -14,19 +14,16 @@ export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
     return query.where('orderStatus', '==', OBOrderStatus.ValidActive);
   }
 
-  addOrderByToQuery(
-    query: FirebaseFirestore.Query<FirestoreOrderItem>,
-    orderDirection?: OrderDirection
-  ): {
+  addOrderByToQuery(query: FirebaseFirestore.Query<FirestoreOrderItem>): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
-    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+    getStartAfter: (
+      item: FirestoreOrderItem,
+      ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    ) => (string | number | FirebaseFirestore.DocumentReference<FirestoreOrderItem>)[];
   } {
-    query = query
-      .orderBy('orderStatus', orderDirection ?? OrderDirection.Ascending)
-      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem) => [item.orderStatus, item.collectionAddress]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
     };
   }
 }

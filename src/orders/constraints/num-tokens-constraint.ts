@@ -14,19 +14,16 @@ export class OrderItemNumTokensConstraint extends OrderItemConstraint {
     return query.where('numTokens', '==', this.firestoreOrderItem.numTokens);
   }
 
-  addOrderByToQuery(
-    query: FirebaseFirestore.Query<FirestoreOrderItem>,
-    orderDirection?: OrderDirection
-  ): {
+  addOrderByToQuery(query: FirebaseFirestore.Query<FirestoreOrderItem>): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
-    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+    getStartAfter: (
+      item: FirestoreOrderItem,
+      ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    ) => (string | number | FirebaseFirestore.DocumentReference<FirestoreOrderItem>)[];
   } {
-    const defaultOrderDirection = OrderDirection.Descending;
-    query = query
-      .orderBy('collectionAddress', orderDirection ?? defaultOrderDirection);
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem) => [item.collectionAddress]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
     };
   }
 }

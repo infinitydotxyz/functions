@@ -1,5 +1,4 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
-import { OrderDirection } from '@infinityxyz/lib/types/core/Queries';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemChainIdConstraint extends OrderItemConstraint {
@@ -15,19 +14,16 @@ export class OrderItemChainIdConstraint extends OrderItemConstraint {
     return query.where('chainId', '==', this.component.firestoreOrderItem.chainId);
   }
 
-  addOrderByToQuery(
-    query: FirebaseFirestore.Query<FirestoreOrderItem>,
-    orderDirection?: OrderDirection
-  ): {
+  addOrderByToQuery(query: FirebaseFirestore.Query<FirestoreOrderItem>): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
-    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+    getStartAfter: (
+      item: FirestoreOrderItem,
+      ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    ) => (string | number | FirebaseFirestore.DocumentReference<FirestoreOrderItem>)[];
   } {
-    query = query
-      .orderBy('chainId', orderDirection ?? OrderDirection.Ascending)
-      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem) => [item.chainId, item.collectionAddress]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
     };
   }
 }

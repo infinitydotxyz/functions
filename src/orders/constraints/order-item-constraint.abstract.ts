@@ -62,7 +62,10 @@ export abstract class OrderItemConstraint implements IOrderItem {
     orderDirection?: OrderDirection
   ): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
-    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+    getStartAfter: (
+      item: FirestoreOrderItem,
+      ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    ) => (string | number | FirebaseFirestore.DocumentReference)[];
   };
 
   protected abstract score: number;

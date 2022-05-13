@@ -1,4 +1,4 @@
-import { OrderItemCollectionAddressConstraint } from './address-constraint';
+import { OrderItemCollectionAddressConstraint } from './collection-address-constraint';
 import { OrderItemChainIdConstraint } from './chain-id-constraint';
 import { OrderItemEndTimeConstraint } from './end-time-constraint';
 import { OrderItemNumTokensConstraint } from './num-tokens-constraint';
@@ -7,6 +7,7 @@ import { OrderItemOrderStatusConstraint } from './order-status-constraint';
 import { OrderItemPriceConstraint } from './price-constraint';
 import { OrderItemStartTimeConstraint } from './start-time-constraint';
 import { OrderItemTokenIdConstraint } from './token-id-constraint';
+import { TakerAddressConstraint } from './taker-address-constraint';
 
 export type Constraint =
   | typeof OrderItemOrderStatusConstraint
@@ -17,7 +18,8 @@ export type Constraint =
   | typeof OrderItemNumTokensConstraint
   | typeof OrderItemEndTimeConstraint
   | typeof OrderItemStartTimeConstraint
-  | typeof OrderItemPriceConstraint;
+  | typeof OrderItemPriceConstraint
+  | typeof TakerAddressConstraint;
 
 export const constraints = [
   OrderItemOrderStatusConstraint,
@@ -28,5 +30,6 @@ export const constraints = [
   OrderItemNumTokensConstraint,
   OrderItemEndTimeConstraint,
   OrderItemStartTimeConstraint,
-  OrderItemPriceConstraint
+  OrderItemPriceConstraint,
+  TakerAddressConstraint
 ];

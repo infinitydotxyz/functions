@@ -24,12 +24,10 @@ export class OrderItemEndTimeConstraint extends OrderItemConstraint {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {
-    query = query
-      .orderBy('endTimeMs', orderDirection ?? OrderDirection.Ascending)
-      .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
+    query = query.orderBy('endTimeMs', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem) => [item.endTimeMs, item.collectionAddress]
+      getStartAfter: (item: FirestoreOrderItem) => [item.endTimeMs]
     };
   }
 }

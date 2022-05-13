@@ -1,22 +1,13 @@
-import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
-import { getOrderIntersection } from '../../utils/intersection';
-import { OrderPriceIntersection } from '../../utils/intersection.types';
-import { OrderItemPrice } from '../orders.types';
+import { OrderDirection } from '@infinityxyz/lib/types/core';
+import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
-export class OrderItemPriceConstraint extends OrderItemConstraint {
+export class TakerAddressConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  public getIntersection(order: OrderItemPrice): OrderPriceIntersection {
-    const intersection = getOrderIntersection(this.firestoreOrderItem, order);
-    return intersection;
-  }
-
-  // note this does not check if the price is currently valid
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    const intersection = this.getIntersection(orderItem);
-    if (intersection === null) {
-      return false;
+    if (this.firestoreOrderItem.takerAddress) {
+      return orderItem.takerAddress === this.firestoreOrderItem.takerAddress;
     }
     return true;
   }
@@ -24,6 +15,9 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
   protected addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem> {
+    if (this.firestoreOrderItem.takerAddress) {
+      return query.where('makerAddress', '==', this.firestoreOrderItem.takerAddress);
+    }
     return query;
   }
 

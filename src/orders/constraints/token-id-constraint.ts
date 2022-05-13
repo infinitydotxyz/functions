@@ -48,27 +48,16 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
     return query;
   }
 
-  addOrderByToQuery(
-    query: FirebaseFirestore.Query<FirestoreOrderItem>,
-    orderDirection?: OrderDirection
-  ): {
+  addOrderByToQuery(query: FirebaseFirestore.Query<FirestoreOrderItem>): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
-    getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
+    getStartAfter: (
+      item: FirestoreOrderItem,
+      ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    ) => (string | number | FirebaseFirestore.DocumentReference<FirestoreOrderItem>)[];
   } {
-    if (this.component.firestoreOrderItem.tokenId) {
-      query = query
-        .orderBy('tokenId', orderDirection ?? OrderDirection.Ascending)
-        .orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
-      return {
-        query,
-        getStartAfter: (item: FirestoreOrderItem) => [item.tokenId, item.collectionAddress]
-      };
-    }
-
-    query = query.orderBy('collectionAddress', orderDirection ?? OrderDirection.Ascending);
     return {
       query,
-      getStartAfter: (item: FirestoreOrderItem) => [item.collectionAddress]
+      getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [lastItem]
     };
   }
 }

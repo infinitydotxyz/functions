@@ -51,6 +51,15 @@ export class Order {
         if (opposingOrder?.order && opposingOrder?.orderItems) {
           const result = this.checkForMatch(orderItems, opposingOrder);
           if (result.isMatch) {
+            const firestoreOrderItemMatches = result.match.map((item) => {
+              const one = item.order.firestoreOrderItem;
+              const two = item.opposingOrder.firestoreOrderItem;
+              const [listing, offer] = one.isSellOrder ? [one, two] : [two, one];
+              return {
+                listing,
+                offer
+              };
+            });
             const ids = [this.firestoreOrder.id, opposingOrder.order.firestoreOrder.id];
             const [listingId, offerId] = this.firestoreOrder.isSellOrder ? ids : ids.reverse();
             const match: FirestoreOrderMatch = {
@@ -59,6 +68,7 @@ export class Order {
               listingId,
               price: result.price,
               timestamp: result.timestamp,
+              matches: firestoreOrderItemMatches,
               status:
                 result.timestamp > Date.now() ? FirestoreOrderMatchStatus.Inactive : FirestoreOrderMatchStatus.Active
             };

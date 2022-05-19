@@ -16,14 +16,17 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts"
+    "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts",
+    "create-order":  "npx cross-env NODE_PATH=./src ts-node ./src/scripts/create-order.ts",
+    "search-for-matches":  "npx cross-env NODE_PATH=./src ts-node ./src/scripts/search-for-matches.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.58.0",
+    "@infinityxyz/lib": "^1.61.0",
+    "ethers": "^5.6.6",
     "firebase-admin": "^10.2.0",
     "firebase-functions": "^3.21.0",
     "p-queue": "^6.6.2"

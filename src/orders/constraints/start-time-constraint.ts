@@ -1,4 +1,4 @@
-import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+import { FirestoreOrderItem, OrderDirection } from '@infinityxyz/lib/types/core';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemStartTimeConstraint extends OrderItemConstraint {
@@ -24,6 +24,7 @@ export class OrderItemStartTimeConstraint extends OrderItemConstraint {
       ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
     ) => (string | number | FirebaseFirestore.DocumentReference<FirestoreOrderItem>)[];
   } {
+    query = query.orderBy('startTimeMs', OrderDirection.Ascending);
     return {
       query,
       getStartAfter: (item: FirestoreOrderItem, lastItem: FirebaseFirestore.DocumentReference<FirestoreOrderItem>) => [

@@ -1,10 +1,11 @@
 import { Collection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import * as functions from 'firebase-functions';
+import { REGION } from '../utils/constants';
 import { updateNftsWithCollection } from './update-nfts-with-collection';
 
 export const syncNftCollectionData = functions
-  .region('us-east1')
+  .region(REGION)
   .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}`)
   .onWrite(async (change) => {
     const before = (change.before.data() ?? {}) as Partial<Collection>;

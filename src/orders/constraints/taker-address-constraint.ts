@@ -6,7 +6,7 @@ export class TakerAddressConstraint extends OrderItemConstraint {
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
     if (this.firestoreOrderItem.takerAddress) {
-      return orderItem.takerAddress === this.firestoreOrderItem.takerAddress;
+      return this.firestoreOrderItem.takerAddress === orderItem.makerAddress;
     }
     return true;
   }

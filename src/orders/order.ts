@@ -105,15 +105,15 @@ export class Order {
           const subPathsWithMatch = sub.map(({ matches }) => {
             return { matches: [match, ...matches] };
           });
-          subPaths = [...subPaths, ...subPathsWithMatch];
+          subPaths = [...subPaths, { matches: [match] }, ...subPathsWithMatch];
         }
 
         const unclaimedOpposingOrders = [...opposingOrderItemsCopy];
         const sub = search([...orderItemsCopy], unclaimedOpposingOrders);
-        const subPathsWithMatch = sub.map(({ matches }) => {
+        const subPathsWithoutMatch = sub.map(({ matches }) => {
           return { matches: [...matches] };
         });
-        subPaths = [...subPaths, ...subPathsWithMatch];
+        subPaths = [...subPaths, ...subPathsWithoutMatch];
 
         return subPaths;
       });

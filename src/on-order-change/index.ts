@@ -8,7 +8,7 @@ import { deleteOrderMatches } from './delete-order-matches';
 export const onOrderChange = functions
   .region(REGION)
   .firestore.document(`${firestoreConstants.ORDERS_COLL}/{orderId}`)
-  .onUpdate(async (change) => {
+  .onWrite(async (change) => {
     const prevOrder = change.before.data() as FirestoreOrder | undefined;
     const updatedOrder = change.after.data() as FirestoreOrder | undefined;
     try {

@@ -17,8 +17,7 @@ async function searchForMatch(orderId: string) {
   const matches = await order.searchForMatches();
   matches.sort((a, b) => a.timestamp - b.timestamp);
   console.log(JSON.stringify(matches, null, 2));
-//   await order.saveMatches(matches);
+  //   await order.saveMatches(matches);
 }
-
 
 void searchForMatch('0xb10cd1b9cc489c4d44ed688a1f60cc32aa9d86162b67c4aa2230c60ba5de49dd');

@@ -1,4 +1,4 @@
-import { BigNumber } from "ethers/lib/ethers";
+import { BigNumber } from 'ethers/lib/ethers';
 
 export const REGION = 'us-east1';
 

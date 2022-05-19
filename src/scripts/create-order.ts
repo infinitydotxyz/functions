@@ -1,4 +1,4 @@
-import { ChainId, ChainNFTs, ChainOBOrder, OBOrderItem } from '@infinityxyz/lib/types/core';
+import { ChainId, ChainNFTs, ChainOBOrder } from '@infinityxyz/lib/types/core';
 import { ethers } from 'ethers';
 import { Wallet } from 'ethers/lib/ethers';
 import { getExchangeAddress, getOBComplicationAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
@@ -28,8 +28,6 @@ const nfts: ChainNFTs[] = [
 
 // two days from now
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;
-
-
 
 async function createOrder() {
   const startPrice = ethers.utils.parseEther(`${startPriceEth}`);
@@ -62,7 +60,7 @@ async function createOrder() {
       constraints: [numItems, startPrice, endPrice, startTime, endTime, minBpsToSeller, nonce],
       nfts,
       execParams: [complicationAddress, currencyAddress],
-      extraParams: "0x0000000000000000000000000000000000000000000000000000000000000000",
+      extraParams: '0x0000000000000000000000000000000000000000000000000000000000000000',
       sig: ''
     } as ChainOBOrder
   };

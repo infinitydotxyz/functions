@@ -2,7 +2,7 @@ import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemTokenIdConstraint extends OrderItemConstraint {
-  protected score = 100;
+  protected score = 1;
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
     /**

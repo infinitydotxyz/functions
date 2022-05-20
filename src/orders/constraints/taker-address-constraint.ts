@@ -2,7 +2,7 @@ import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class TakerAddressConstraint extends OrderItemConstraint {
-  protected score = 0;
+  protected score = 1;
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
     if (this.firestoreOrderItem.takerAddress) {

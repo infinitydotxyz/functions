@@ -2,12 +2,13 @@ import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/ty
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import * as functions from 'firebase-functions';
 import { getDb } from '../firestore';
+import { REGION } from '../utils/constants';
 import { getBestNftOrder } from './get-best-nft-order';
 import { getNftRef } from './get-nft-ref';
 import { getRelevantOrderItemSnippet } from './get-relevant-order-item-snippet';
 
 export const addOrdersToNfts = functions
-  .region('us-east1')
+  .region(REGION)
   .firestore.document(
     `${firestoreConstants.ORDERS_COLL}/{orderId}/${firestoreConstants.ORDER_ITEMS_SUB_COLL}/{orderItemId}`
   )

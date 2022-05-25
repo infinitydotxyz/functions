@@ -22,6 +22,12 @@ export const onOrderTrigger = functions
        */
       const batchHandler = new FirestoreBatchHandler();
       for await (const orderMatch of orderMatches) {
+        const matchOrderItems = await orderMatch.ref
+          .collection(firestoreConstants.ORDER_MATCH_ITEMS_SUB_COLL)
+          .listDocuments();
+        for (const matchOrderItem of matchOrderItems) {
+          batchHandler.add(matchOrderItem, { status: FirestoreOrderMatchStatus.Active }, { merge: true });
+        }
         batchHandler.add(orderMatch.ref, { status: FirestoreOrderMatchStatus.Active }, { merge: true });
       }
       await batchHandler.flush();

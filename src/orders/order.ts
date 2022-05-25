@@ -123,7 +123,10 @@ export class Order {
   ): { isMatch: false } | { isMatch: true; match: OrderItemMatch[]; price: number; timestamp: number } {
     const minOrderItemsToFulfill = this.firestoreOrder.numItems;
 
-    const search = (orderItems: IOrderItem[], opposingOrderItems: IOrderItem[]): { matches: OrderItemMatch[] }[] => {
+    const generateMatchCombinations = (
+      orderItems: IOrderItem[],
+      opposingOrderItems: IOrderItem[]
+    ): { matches: OrderItemMatch[] }[] => {
       const orderItemsCopy = [...orderItems];
       const opposingOrderItemsCopy = [...opposingOrderItems];
       const orderItem = orderItemsCopy.shift();
@@ -137,7 +140,7 @@ export class Order {
 
         if (orderItem.isMatch(opposingOrderItem.firestoreOrderItem)) {
           const unclaimedOpposingOrders = [...opposingOrderItemsCopy].splice(index, 1);
-          const sub = search([...orderItemsCopy], unclaimedOpposingOrders);
+          const sub = generateMatchCombinations([...orderItemsCopy], unclaimedOpposingOrders);
           const match: OrderItemMatch = { order: orderItem, opposingOrder: opposingOrderItem };
           const subPathsWithMatch = sub.map(({ matches }) => {
             return { matches: [match, ...matches] };
@@ -146,7 +149,7 @@ export class Order {
         }
 
         const unclaimedOpposingOrders = [...opposingOrderItemsCopy];
-        const sub = search([...orderItemsCopy], unclaimedOpposingOrders);
+        const sub = generateMatchCombinations([...orderItemsCopy], unclaimedOpposingOrders);
         const subPathsWithoutMatch = sub.map(({ matches }) => {
           return { matches: [...matches] };
         });
@@ -157,47 +160,49 @@ export class Order {
       return paths;
     };
 
-    const paths = search(orderItems, opposingOrder.orderItems);
-    const pathsSortedByMostMatches = paths
-      .sort((itemA, itemB) => itemA.matches.length - itemB.matches.length)
-      .filter((path) => {
-        return (
-          path.matches.length >= minOrderItemsToFulfill &&
-          this.validateMatchForOpposingOrder(path.matches, opposingOrder.order)
-        );
-      });
+    const combinations = generateMatchCombinations(orderItems, opposingOrder.orderItems);
+    const validCombinations = combinations.filter((path) => {
+      return (
+        path.matches.length >= minOrderItemsToFulfill &&
+        this.validateMatchForOpposingOrder(path.matches, opposingOrder.order)
+      );
+    });
 
-    const mostMatches = pathsSortedByMostMatches[0];
-    if (!mostMatches || mostMatches.matches.length < minOrderItemsToFulfill) {
+    const validCombinationsSortedByNumMatches = validCombinations.sort(
+      (itemA, itemB) => itemA.matches.length - itemB.matches.length
+    );
+
+    const bestMatch = validCombinationsSortedByNumMatches[0];
+    if (!bestMatch || bestMatch.matches.length < minOrderItemsToFulfill) {
       return {
         isMatch: false
       };
     }
 
-    const intersection = getOrderIntersection(this.firestoreOrder, opposingOrder.order.firestoreOrder);
-    if (!intersection) {
+    const priceIntersection = getOrderIntersection(this.firestoreOrder, opposingOrder.order.firestoreOrder);
+    if (!priceIntersection) {
       return {
         isMatch: false
       };
     }
 
-    const validAfter = intersection.timestamp;
+    const validAfter = priceIntersection.timestamp;
     const isFutureMatch = validAfter > Date.now();
 
     if (isFutureMatch) {
       return {
         isMatch: true,
-        match: mostMatches.matches,
-        price: intersection.price,
-        timestamp: intersection.timestamp
+        match: bestMatch.matches,
+        price: priceIntersection.price,
+        timestamp: priceIntersection.timestamp
       };
     }
 
     const now = Date.now();
     return {
       isMatch: true,
-      match: mostMatches.matches,
-      price: intersection.getPriceAtTime(now),
+      match: bestMatch.matches,
+      price: priceIntersection.getPriceAtTime(now),
       timestamp: now
     };
   }

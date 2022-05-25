@@ -3,7 +3,7 @@ import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemTokenIdConstraint extends OrderItemConstraint {
   protected get score() {
-    if(this.firestoreOrderItem.tokenId) {
+    if (this.firestoreOrderItem.tokenId) {
       return 1;
     }
     return 0;

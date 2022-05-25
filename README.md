@@ -10,4 +10,6 @@ orders
             <random id>: FirestoreOrderItem
 orderMatches
     <listingId:offerId>: FirestoreOrderMatch
+        orderMatchItems
+            <listingOrderItemId:offerOrderItemId>: FirestoreOrderItemMatch
 ```

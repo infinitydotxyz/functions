@@ -91,7 +91,8 @@ async function createOrder() {
     ]
   };
 
-  const signer = Wallet.createRandom();
+  const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
+  const signer = signerPrivateKey ? new Wallet(signerPrivateKey) : Wallet.createRandom();
   const orderToSign = {
     isSellOrder: order.signedOrder.isSellOrder,
     signer: signer.address,

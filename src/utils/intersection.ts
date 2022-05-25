@@ -1,3 +1,5 @@
+import { getOBOrderPrice } from '@infinityxyz/lib/utils';
+import { ethers } from 'ethers';
 import { OrderItemPrice } from '../orders/orders.types';
 import { LineSegment, OrderPriceIntersection, Point } from './intersection.types';
 
@@ -27,6 +29,28 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
   const intersection = getIntersection(segmentOne, segmentTwo);
 
   if (intersection === null) {
+    const [listing, offer] = one.isSellOrder ? [one, two] : [two, one];
+    const timestampsOverlap = listing.startTimeMs <= offer.endTimeMs && listing.endTimeMs >= offer.startTimeMs;
+    if (timestampsOverlap) {
+      const timeValid = Math.max(listing.startTimeMs, offer.startTimeMs);
+      const listingOrderPrice = getOBOrderPrice(listing, timeValid);
+      const offerOrderPrice = getOBOrderPrice(offer, timeValid);
+      const offerPriceIsGreaterThanListingPrice = offerOrderPrice.gte(listingOrderPrice);
+
+      if (offerPriceIsGreaterThanListingPrice) {
+        const nearestSecond = Math.ceil(timeValid / 1000) * 1000;
+        const getPriceAtTime = (timestamp: number) => {
+          const listingPrice = getOBOrderPrice(listing, timestamp);
+          return parseFloat(ethers.utils.formatEther(listingPrice));
+        }
+        return {
+          timestamp: nearestSecond,
+          price: getPriceAtTime(nearestSecond),
+          getPriceAtTime
+        };
+      }
+    }
+
     return null;
   }
 

@@ -35,6 +35,6 @@ export async function* streamQuery<DocumentData, TransformedPage = DocumentData,
     }
 
     hasNextPage = pageSnapshot.docs.length >= options.pageSize;
-    startAfter = getStartAfterField(pageData[pageData.length - 1], pageSnapshot.docs[pageSnapshot.docs.length - 1].ref);
+    startAfter = getStartAfterField(pageData?.[pageData.length - 1], pageSnapshot.docs?.[pageSnapshot.docs.length - 1]?.ref);
   }
 }

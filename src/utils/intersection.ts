@@ -42,7 +42,7 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
         const getPriceAtTime = (timestamp: number) => {
           const listingPrice = getOBOrderPrice(listing, timestamp);
           return parseFloat(ethers.utils.formatEther(listingPrice));
-        }
+        };
         return {
           timestamp: nearestSecond,
           price: getPriceAtTime(nearestSecond),

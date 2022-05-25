@@ -1,7 +1,10 @@
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { OrderItemConstraint as AbstractOrderItemConstraint } from './constraints/order-item-constraint.abstract';
 
-export type OrderItemPrice = Pick<FirestoreOrderItem, 'isSellOrder' | 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'>;
+export type OrderItemPrice = Pick<
+  FirestoreOrderItem,
+  'isSellOrder' | 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'
+>;
 
 export interface OrderItem {
   isAuction: boolean;

@@ -72,14 +72,17 @@ export class Order {
 
             const rawId = ids.sort().join(':').trim().toLowerCase();
             const id = createHash('sha256').update(rawId).digest('hex');
+
+            const matchStatus =
+              result.timestamp > Date.now() ? FirestoreOrderMatchStatus.Inactive : FirestoreOrderMatchStatus.Active;
             const match: FirestoreOrderMatch = {
               id,
               ids: [offerId, listingId],
               usersInvolved,
               price: result.price,
               timestamp: result.timestamp,
-              status:
-                result.timestamp > Date.now() ? FirestoreOrderMatchStatus.Inactive : FirestoreOrderMatchStatus.Active
+              status: matchStatus,
+              createdAt: Date.now()
             };
 
             const matchItems: FirestoreOrderItemMatch[] = firestoreOrderItemMatches.map((item) => {
@@ -105,7 +108,9 @@ export class Order {
                 tokenImage: (item.listing.tokenImage || item.offer.tokenImage) ?? '',
                 tokenSlug: (item.listing.tokenSlug || item.offer.tokenSlug) ?? '',
                 listing: item.listing,
-                offer: item.offer
+                offer: item.offer,
+                status: matchStatus,
+                createdAt: Date.now()
               };
               return orderItemMatch;
             });

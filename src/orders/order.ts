@@ -2,7 +2,6 @@ import { OrderDirection } from '@infinityxyz/lib/types/core';
 import {
   FirestoreOrder,
   FirestoreOrderItem,
-  FirestoreOrderItemMatch,
   FirestoreOrderMatch,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken
@@ -294,27 +293,22 @@ export class Order {
     });
   }
 
-  async saveMatches(matches: { match: FirestoreOrderMatch; matchItems: FirestoreOrderItemMatch[] }[]): Promise<void> {
+  async saveMatches(matches: FirestoreOrderMatch[]): Promise<void> {
     const getMatchRef = (match: FirestoreOrderMatch) => {
       return this.db.collection(firestoreConstants.ORDER_MATCHES_COLL).doc(`${match.id}`);
     };
     const batchHandler = new FirestoreBatchHandler();
 
     const matchIds = new Set<string>();
-    for (const { match, matchItems } of matches) {
+    for (const match of matches) {
       const doc = getMatchRef(match);
       const id = doc.path;
       if (!matchIds.has(id)) {
         batchHandler.add(doc, match, { merge: false });
         matchIds.add(id);
       }
-      for (const matchItem of matchItems) {
-        const id = `${matchItem.listing.id}:${matchItem.offer.id}`;
-        const matchItemDoc = doc.collection(firestoreConstants.ORDER_MATCH_ITEMS_SUB_COLL).doc(id);
-        batchHandler.add(matchItemDoc, matchItem, { merge: false });
-      }
     }
-
+    
     await batchHandler.flush();
   }
 

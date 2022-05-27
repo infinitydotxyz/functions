@@ -8,6 +8,7 @@ import { OrderItemPriceConstraint } from './price-constraint';
 import { OrderItemStartTimeConstraint } from './start-time-constraint';
 import { OrderItemTokenIdConstraint } from './token-id-constraint';
 import { TakerAddressConstraint } from './taker-address-constraint';
+import { DifferentWalletConstraint } from './different-wallet-constraint';
 
 export type Constraint =
   | typeof OrderItemOrderStatusConstraint
@@ -19,6 +20,7 @@ export type Constraint =
   | typeof OrderItemEndTimeConstraint
   | typeof OrderItemStartTimeConstraint
   | typeof OrderItemPriceConstraint
+  | typeof DifferentWalletConstraint
   | typeof TakerAddressConstraint;
 
 export const constraints = [
@@ -31,5 +33,6 @@ export const constraints = [
   OrderItemEndTimeConstraint,
   OrderItemStartTimeConstraint,
   OrderItemPriceConstraint,
+  DifferentWalletConstraint,
   TakerAddressConstraint
 ];

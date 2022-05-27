@@ -67,16 +67,16 @@ export class Order {
       order.firestoreOrderItem.id,
       opposingOrder.firestoreOrderItem.id
     ]);
+
     const rawId = match
       .map(({ order, opposingOrder }) => {
-        `${order.firestoreOrderItem.id}:${opposingOrder.firestoreOrderItem}`;
+        return `${order.firestoreOrderItem.id}:${opposingOrder.firestoreOrderItem.id}`;
       })
       .sort()
       .join('-')
       .trim()
       .toLowerCase();
     const id = createHash('sha256').update(rawId).digest('hex');
-
     const createdAt = Date.now();
 
     const collectionAddresses: string[] = [];

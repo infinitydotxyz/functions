@@ -8,8 +8,8 @@ async function scanForMatches() {
   const db = getDb();
   const query = db
     .collection(firestoreConstants.ORDERS_COLL)
-    .where('orderStatus', '==', OBOrderStatus.ValidActive).orderBy('__name__') as FirebaseFirestore.Query<FirestoreOrder>;
-  const orders = streamQuery(query, (order, ref) => [ref.id], { pageSize: 50 });
+    .where('orderStatus', '==', OBOrderStatus.ValidActive) as FirebaseFirestore.Query<FirestoreOrder>;
+  const orders = streamQuery(query, (order, ref) => [ref], { pageSize: 50 });
 
   let orderNum = 0;
   for await (const orderData of orders) {

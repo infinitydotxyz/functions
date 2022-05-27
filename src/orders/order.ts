@@ -139,7 +139,7 @@ export class Order {
         };
       }
 
-      if (!firestoreOrderMatch.collections?.[collectionAddress]?.tokens?.[tokenId]) {
+      if (tokenId && !firestoreOrderMatch.collections?.[collectionAddress]?.tokens?.[tokenId]) {
         firestoreOrderMatch.collections[collectionAddress].tokens[tokenId] = token;
       }
     }
@@ -308,7 +308,7 @@ export class Order {
         matchIds.add(id);
       }
     }
-    
+
     await batchHandler.flush();
   }
 

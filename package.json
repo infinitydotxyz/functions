@@ -18,7 +18,7 @@
     "test:watch": "jest --watch",
     "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts",
     "create-order": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/create-order.ts",
-    "search-for-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/search-for-matches.ts"
+    "scan-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/scan-for-matches.ts"
   },
   "engines": {
     "node": "16"

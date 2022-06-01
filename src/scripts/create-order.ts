@@ -19,7 +19,7 @@ const nfts: ChainNFTs[] = [
     collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
     tokens: [
       {
-        tokenId: '1',
+        tokenId: '4',
         numTokens: 1
       }
     ]

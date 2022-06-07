@@ -6,7 +6,8 @@ import {
   FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken,
-  OrderDirection
+  OrderDirection,
+  UserOrderRole
 } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
@@ -124,7 +125,7 @@ export class Order {
           offerId: sampleOffer.id,
           orderItems: {}
         },
-        usersInvolved: [], // TODO
+        usersInvolved: this.getUsersInvolved(match),
         state: {
           status: createdAt > timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
           priceValid: price,
@@ -182,8 +183,31 @@ export class Order {
 
       return firestoreOrderMatch;
     }
-    // TODO: handle one to many
+    // TODO: handle one to many, including searching for one to many matches
     throw new Error('One to many matching not implemented yet');
+  }
+
+  public getUsersInvolved(match: OneToManyOrderItemMatch | OrderItemMatch[]): string[] {
+    const usersAndRoles: Set<string> = new Set();
+    const addUser = (firestoreOrderItem: FirestoreOrderItem) => {
+      const orderSideRole = firestoreOrderItem.isSellOrder ? UserOrderRole.Lister : UserOrderRole.Offerer;
+      usersAndRoles.add(firestoreOrderItem.makerAddress);
+      usersAndRoles.add(`${firestoreOrderItem.makerAddress}:${orderSideRole}`);
+    }
+
+    if(Array.isArray(match)) {
+      for(const {order, opposingOrder} of match) {  
+        addUser(order.firestoreOrderItem);
+        addUser(opposingOrder.firestoreOrderItem);
+      }
+    } else {
+      const {order, opposingOrders} = match;
+      for(const o of [order, ...opposingOrders]) {
+        addUser(o.firestoreOrderItem);
+      }
+    }
+
+    return [...usersAndRoles];
   }
 
   public checkForMatch(

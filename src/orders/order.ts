@@ -193,16 +193,16 @@ export class Order {
       const orderSideRole = firestoreOrderItem.isSellOrder ? UserOrderRole.Lister : UserOrderRole.Offerer;
       usersAndRoles.add(firestoreOrderItem.makerAddress);
       usersAndRoles.add(`${firestoreOrderItem.makerAddress}:${orderSideRole}`);
-    }
+    };
 
-    if(Array.isArray(match)) {
-      for(const {order, opposingOrder} of match) {  
+    if (Array.isArray(match)) {
+      for (const { order, opposingOrder } of match) {
         addUser(order.firestoreOrderItem);
         addUser(opposingOrder.firestoreOrderItem);
       }
     } else {
-      const {order, opposingOrders} = match;
-      for(const o of [order, ...opposingOrders]) {
+      const { order, opposingOrders } = match;
+      for (const o of [order, ...opposingOrders]) {
         addUser(o.firestoreOrderItem);
       }
     }

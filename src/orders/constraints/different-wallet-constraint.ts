@@ -1,10 +1,8 @@
-
-
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 /**
- * require that the lister and offerer are different 
+ * require that the lister and offerer are different
  */
 export class DifferentWalletConstraint extends OrderItemConstraint {
   protected score = 0;
@@ -19,9 +17,7 @@ export class DifferentWalletConstraint extends OrderItemConstraint {
     return query;
   }
 
-  addOrderByToQuery(
-    query: FirebaseFirestore.Query<FirestoreOrderItem>,
-  ): {
+  addOrderByToQuery(query: FirebaseFirestore.Query<FirestoreOrderItem>): {
     query: FirebaseFirestore.Query<FirestoreOrderItem>;
     getStartAfter: (item: FirestoreOrderItem) => (string | number)[];
   } {

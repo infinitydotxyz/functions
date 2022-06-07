@@ -1,4 +1,4 @@
-import { FirestoreOrderMatch } from '@infinityxyz/lib/types/core/OBOrder';
+import { FirestoreOrderMatch } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';

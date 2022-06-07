@@ -1,19 +1,24 @@
-import { OrderDirection } from '@infinityxyz/lib/types/core';
 import {
-  FirestoreOrder,
-  FirestoreOrderItem,
+  ChainId,
   FirestoreOrderMatch,
+  FirestoreOrderMatchMethod,
+  FirestoreOrderMatchOneToMany,
+  FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
-  FirestoreOrderMatchToken
-} from '@infinityxyz/lib/types/core/OBOrder';
+  FirestoreOrderMatchToken,
+  OrderDirection
+} from '@infinityxyz/lib/types/core';
+import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
 import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
-import { OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
+import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
+
+type FirestoreOrderMatchTypes = FirestoreOrderMatch | FirestoreOrderMatchOneToOne | FirestoreOrderMatchOneToMany;
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -22,19 +27,19 @@ export class Order {
       .doc(id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
   }
 
-  public get ref(): FirebaseFirestore.DocumentReference<FirestoreOrder> {
-    return this.db
-      .collection(firestoreConstants.ORDERS_COLL)
-      .doc(this.firestoreOrder.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
-  }
-
   private db: FirebaseFirestore.Firestore;
 
   constructor(public readonly firestoreOrder: FirestoreOrder) {
     this.db = getDb();
   }
 
-  public async searchForMatches(): Promise<FirestoreOrderMatch[]> {
+  public get ref(): FirebaseFirestore.DocumentReference<FirestoreOrder> {
+    return this.db
+      .collection(firestoreConstants.ORDERS_COLL)
+      .doc(this.firestoreOrder.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
+  }
+
+  public async searchForMatches<T extends FirestoreOrderMatchTypes>(): Promise<T[]> {
     const orderItems = await this.getOrderItems();
     const firstItem = orderItems[0];
     if (!firstItem) {
@@ -42,7 +47,7 @@ export class Order {
     }
     const possibleMatches = firstItem.getPossibleMatches();
 
-    const matches: FirestoreOrderMatch[] = [];
+    const matches: T[] = [];
     for await (const possibleMatch of possibleMatches) {
       /**
        * check if match is valid for the first item
@@ -53,7 +58,7 @@ export class Order {
         if (opposingOrder?.order && opposingOrder?.orderItems) {
           const result = this.checkForMatch(orderItems, opposingOrder);
           if (result.isMatch) {
-            const match = this.getFirestoreOrderMatch(result.match, result.price, result.timestamp);
+            const match = this.getFirestoreOrderMatch(result.match, result.price, result.timestamp) as T;
             matches.push(match);
           }
         }
@@ -62,94 +67,124 @@ export class Order {
     return matches;
   }
 
-  private getFirestoreOrderMatch(match: OrderItemMatch[], price: number, timestamp: number): FirestoreOrderMatch {
-    const ids = match.flatMap(({ order, opposingOrder }) => [
-      order.firestoreOrderItem.id,
-      opposingOrder.firestoreOrderItem.id
-    ]);
+  private getFirestoreOrderMatch(
+    match: OrderItemMatch[],
+    price: number,
+    timestamp: number
+  ): FirestoreOrderMatch | FirestoreOrderMatchOneToOne;
+  private getFirestoreOrderMatch(
+    match: OneToManyOrderItemMatch,
+    price: number,
+    timestamp: number
+  ): FirestoreOrderMatchOneToMany;
+  private getFirestoreOrderMatch(
+    match: OrderItemMatch[] | OneToManyOrderItemMatch,
+    price: number,
+    timestamp: number
+  ): FirestoreOrderMatchTypes {
+    if (Array.isArray(match)) {
+      const ids = match.flatMap(({ order, opposingOrder }) => [
+        order.firestoreOrderItem.id,
+        opposingOrder.firestoreOrderItem.id
+      ]);
 
-    const rawId = match
-      .map(({ order, opposingOrder }) => {
-        return `${order.firestoreOrderItem.id}:${opposingOrder.firestoreOrderItem.id}`;
-      })
-      .sort()
-      .join('-')
-      .trim()
-      .toLowerCase();
-    const id = createHash('sha256').update(rawId).digest('hex');
-    const createdAt = Date.now();
+      const rawId = match
+        .map(({ order, opposingOrder }) => {
+          return `${order.firestoreOrderItem.id}:${opposingOrder.firestoreOrderItem.id}`;
+        })
+        .sort()
+        .join('-')
+        .trim()
+        .toLowerCase();
+      const id = createHash('sha256').update(rawId).digest('hex');
+      const createdAt = Date.now();
 
-    const collectionAddresses: string[] = [];
-    const tokenStrings: string[] = [];
+      const collectionAddresses: string[] = [];
+      const tokenStrings: string[] = [];
 
-    const firstOrder = match[0].order;
-    const firstOpposingOrder = match[0].opposingOrder;
-    const [sampleListing, sampleOffer] = firstOrder.firestoreOrderItem.isSellOrder ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem] : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
-    const firestoreOrderMatch: FirestoreOrderMatch = {
-      id,
-      ids,
-      listerAddress: sampleListing.makerAddress,
-      offererAddress: sampleOffer.makerAddress,
-      price,
-      collectionAddresses: [],
-      chainId: sampleListing.chainId,
-      tokens: [],
-      createdAt,
-      timestamp,
-      status: createdAt > timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
-      currencyAddress: sampleListing.currencyAddress,
-      collections: {}
-    };
+      const firstOrder = match[0].order;
+      const firstOpposingOrder = match[0].opposingOrder;
+      const [sampleListing, sampleOffer] = firstOrder.firestoreOrderItem.isSellOrder
+        ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
+        : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
 
-    for (const { order, opposingOrder } of match) {
-      const collectionAddress =
-        order.firestoreOrderItem.collectionAddress || opposingOrder.firestoreOrderItem.collectionAddress;
-      const tokenId = order.firestoreOrderItem.tokenId || opposingOrder.firestoreOrderItem.tokenId;
-      const collectionName = order.firestoreOrderItem.collectionName || opposingOrder.firestoreOrderItem.collectionName;
-      const collectionImage =
-        order.firestoreOrderItem.collectionImage || opposingOrder.firestoreOrderItem.collectionImage;
-      const collectionSlug = order.firestoreOrderItem.collectionSlug || opposingOrder.firestoreOrderItem.collectionSlug;
-      const hasBlueCheck = order.firestoreOrderItem.hasBlueCheck ?? opposingOrder.firestoreOrderItem.hasBlueCheck;
-      const tokenName = order.firestoreOrderItem.tokenName || opposingOrder.firestoreOrderItem.tokenName;
-      const tokenImage = order.firestoreOrderItem.tokenImage || opposingOrder.firestoreOrderItem.tokenImage;
-      const tokenSlug = order.firestoreOrderItem.tokenSlug || opposingOrder.firestoreOrderItem.tokenSlug;
-      const numTokens = order.firestoreOrderItem.numTokens ?? opposingOrder.firestoreOrderItem.numTokens;
+      const isOneToOne = match.length === 1;
 
-      const token: FirestoreOrderMatchToken = {
-        tokenId,
-        tokenName,
-        tokenImage,
-        tokenSlug,
-        numTokens
+      const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
+        id,
+        ids,
+        collectionAddresses: [],
+        tokens: [],
+        chainId: sampleListing.chainId as ChainId,
+        createdAt,
+        currencyAddress: sampleListing.currencyAddress,
+        type: isOneToOne ? FirestoreOrderMatchMethod.MatchOneToOneOrders : FirestoreOrderMatchMethod.MatchOrders,
+        matchData: {
+          listingId: sampleListing.id,
+          offerId: sampleOffer.id,
+          orderItems: {}
+        },
+        usersInvolved: [], // TODO
+        state: {
+          status: createdAt > timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
+          priceValid: price,
+          timestampValid: timestamp
+        }
       };
 
-      collectionAddresses.push(collectionAddress);
-      if (tokenId) {
-        tokenStrings.push(`${collectionAddress}:${tokenId}`);
-      }
+      for (const { order, opposingOrder } of match) {
+        const collectionAddress =
+          order.firestoreOrderItem.collectionAddress || opposingOrder.firestoreOrderItem.collectionAddress;
+        const tokenId = order.firestoreOrderItem.tokenId || opposingOrder.firestoreOrderItem.tokenId;
+        const collectionName =
+          order.firestoreOrderItem.collectionName || opposingOrder.firestoreOrderItem.collectionName;
+        const collectionImage =
+          order.firestoreOrderItem.collectionImage || opposingOrder.firestoreOrderItem.collectionImage;
+        const collectionSlug =
+          order.firestoreOrderItem.collectionSlug || opposingOrder.firestoreOrderItem.collectionSlug;
+        const hasBlueCheck = order.firestoreOrderItem.hasBlueCheck ?? opposingOrder.firestoreOrderItem.hasBlueCheck;
+        const tokenName = order.firestoreOrderItem.tokenName || opposingOrder.firestoreOrderItem.tokenName;
+        const tokenImage = order.firestoreOrderItem.tokenImage || opposingOrder.firestoreOrderItem.tokenImage;
+        const tokenSlug = order.firestoreOrderItem.tokenSlug || opposingOrder.firestoreOrderItem.tokenSlug;
+        const numTokens = order.firestoreOrderItem.numTokens ?? opposingOrder.firestoreOrderItem.numTokens;
 
-      if (!firestoreOrderMatch.collections[collectionAddress]) {
-        firestoreOrderMatch.collections[collectionAddress] = {
-          collectionAddress,
-          collectionName,
-          collectionImage,
-          collectionSlug,
-          hasBlueCheck,
-          tokens: {}
+        const token: FirestoreOrderMatchToken = {
+          tokenId,
+          tokenName,
+          tokenImage,
+          tokenSlug,
+          numTokens
         };
+
+        collectionAddresses.push(collectionAddress);
+        if (tokenId) {
+          tokenStrings.push(`${collectionAddress}:${tokenId}`);
+        }
+
+        if (!firestoreOrderMatch.matchData.orderItems[collectionAddress]) {
+          firestoreOrderMatch.matchData.orderItems[collectionAddress] = {
+            collectionAddress,
+            collectionName,
+            collectionImage,
+            collectionSlug,
+            hasBlueCheck,
+            tokens: {}
+          };
+        }
+
+        if (tokenId && !firestoreOrderMatch.matchData?.orderItems?.[collectionAddress]?.tokens?.[tokenId]) {
+          firestoreOrderMatch.matchData.orderItems[collectionAddress].tokens[tokenId] = token;
+        }
       }
 
-      if (tokenId && !firestoreOrderMatch.collections?.[collectionAddress]?.tokens?.[tokenId]) {
-        firestoreOrderMatch.collections[collectionAddress].tokens[tokenId] = token;
-      }
+      firestoreOrderMatch.tokens = [...new Set(tokenStrings)];
+      firestoreOrderMatch.collectionAddresses = [...new Set(collectionAddresses)];
+
+      return firestoreOrderMatch;
     }
-
-    firestoreOrderMatch.tokens = [...new Set(tokenStrings)];
-    firestoreOrderMatch.collectionAddresses = [...new Set(collectionAddresses)];
-
-    return firestoreOrderMatch;
+    // TODO: handle one to many
+    throw new Error('One to many matching not implemented yet');
   }
-
 
   public checkForMatch(
     orderItems: IOrderItem[],
@@ -249,10 +284,9 @@ export class Order {
 
   async getOrderItems(): Promise<IOrderItem[]> {
     const firestoreOrderItems = await this.getFirestoreOrderItems();
-
     const orderItems = firestoreOrderItems
       .map((firestoreOrderItem) => {
-        return new OrderItem(firestoreOrderItem, this.db).applyConstraints();
+        return new OrderItem(firestoreOrderItem, this.db, this.firestoreOrder, firestoreOrderItems).applyConstraints();
       })
       .sort((itemA, itemB) => itemB.constraintScore - itemA.constraintScore);
 
@@ -265,8 +299,8 @@ export class Order {
     const matchesQuery = orderMatches.where('ids', 'array-contains', this.firestoreOrder.id);
 
     const matches = matchesQuery
-      .where('timestamp', '<=', matchesWithTimestampBefore)
-      .orderBy('timestamp', OrderDirection.Ascending) as FirebaseFirestore.Query<FirestoreOrderMatch>;
+      .where('state.timestampValid', '<=', matchesWithTimestampBefore)
+      .orderBy('state.timestampValid', OrderDirection.Ascending) as FirebaseFirestore.Query<FirestoreOrderMatch>;
 
     const transformPage = async (page: FirestoreOrderMatch[]): Promise<FirestoreOrder[]> => {
       const firestoreOrderRefs = page
@@ -286,15 +320,15 @@ export class Order {
       return [];
     };
 
-    const getStartAfterField = (item: FirestoreOrderMatch) => [item.timestamp];
+    const getStartAfterField = (item: FirestoreOrderMatch) => [item.state.timestampValid];
     return streamQuery<FirestoreOrderMatch, FirestoreOrder>(matches, getStartAfterField, {
       pageSize: 10,
       transformPage
     });
   }
 
-  async saveMatches(matches: FirestoreOrderMatch[]): Promise<void> {
-    const getMatchRef = (match: FirestoreOrderMatch) => {
+  async saveMatches(matches: FirestoreOrderMatchTypes[]): Promise<void> {
+    const getMatchRef = (match: FirestoreOrderMatchTypes) => {
       return this.db.collection(firestoreConstants.ORDER_MATCHES_COLL).doc(`${match.id}`);
     };
     const batchHandler = new FirestoreBatchHandler();

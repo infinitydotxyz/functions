@@ -16,7 +16,7 @@ export const onOrderChange = functions
         case OBOrderStatus.ValidActive: {
           const order = new Order(updatedOrder);
           const matches = await order.searchForMatches();
-          matches.sort((a, b) => a.timestamp - b.timestamp);
+          matches.sort((a, b) => a.state.timestampValid - b.state.timestampValid);
           await order.saveMatches(matches);
           break;
         }

@@ -1,4 +1,4 @@
-import { FirestoreOrderMatch, FirestoreOrderMatchStatus } from '@infinityxyz/lib/types/core/OBOrder';
+import { FirestoreOrderMatch, FirestoreOrderMatchStatus } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import * as functions from 'firebase-functions';
 import { getDb } from '../firestore';
@@ -14,7 +14,7 @@ export const onOrderTrigger = functions
       const orderMatches = db
         .collection(firestoreConstants.ORDER_MATCHES_COLL)
         .where('status', '==', FirestoreOrderMatchStatus.Inactive)
-        .where('timestamp', '<=', Date.now())
+        .where('state.timestampValid', '<=', Date.now())
         .stream() as AsyncIterable<FirebaseFirestore.DocumentSnapshot<FirestoreOrderMatch>>;
 
       /**

@@ -8,10 +8,10 @@ import { defaultAbiCoder } from '@ethersproject/abi';
 const chainId = ChainId.Goerli;
 const isSellOrder = true;
 const numItems = 1;
-const startPriceEth = 0.1;
-const endPriceEth = 0.1;
+const startPriceEth = 0.01;
+const endPriceEth = 0.01;
 const startTimeMs = Date.now();
-const minBpsToSeller = 10000;
+const minBpsToSeller = 9000;
 const nonce = 0;
 
 const nfts: ChainNFTs[] = [
@@ -19,7 +19,7 @@ const nfts: ChainNFTs[] = [
     collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
     tokens: [
       {
-        tokenId: '4',
+        tokenId: '9',
         numTokens: 1
       }
     ]
@@ -30,6 +30,12 @@ const nfts: ChainNFTs[] = [
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;
 
 async function createOrder() {
+  const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
+  if (!signerPrivateKey) {
+    throw new Error('CREATE_ORDER_PRIVATE_KEY is required');
+  }
+  const signer = new Wallet(signerPrivateKey);
+
   const startPrice = ethers.utils.parseEther(`${startPriceEth}`);
   const endPrice = ethers.utils.parseEther(`${endPriceEth}`);
   const startTime = Math.floor(startTimeMs / 1000);
@@ -56,7 +62,7 @@ async function createOrder() {
     },
     signedOrder: {
       isSellOrder,
-      signer: '',
+      signer: signer.address,
       constraints: [numItems, startPrice, endPrice, startTime, endTime, minBpsToSeller, nonce],
       nfts,
       execParams: [complicationAddress, currencyAddress],
@@ -91,8 +97,6 @@ async function createOrder() {
     ]
   };
 
-  const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
-  const signer = signerPrivateKey ? new Wallet(signerPrivateKey) : Wallet.createRandom();
   const orderToSign = {
     isSellOrder: order.signedOrder.isSellOrder,
     signer: signer.address,

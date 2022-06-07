@@ -29,3 +29,4 @@ export interface OrderItem {
 }
 
 export type OrderItemMatch = { order: OrderItem; opposingOrder: OrderItem };
+export type OneToManyOrderItemMatch = { order: OrderItem; opposingOrders: OrderItem[] };

@@ -44,7 +44,7 @@ describe('intersection', () => {
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);
-    if(intersection == null) {
+    if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
     }
@@ -139,7 +139,7 @@ describe('intersection', () => {
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);
-    if(intersection == null) {
+    if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
     }

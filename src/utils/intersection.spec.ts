@@ -7,6 +7,7 @@ describe('intersection', () => {
 
   it("should return null if timestamps don't overlap", () => {
     const orderOnePrice = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
@@ -14,6 +15,7 @@ describe('intersection', () => {
     };
 
     const orderTwoPrice = {
+      isSellOrder: false,
       startTimeMs: 300_000,
       endTimeMs: 400_000,
       startPriceEth: 1,
@@ -24,8 +26,9 @@ describe('intersection', () => {
     expect(intersection).toBeNull();
   });
 
-  it("should return null if prices don't overlap", () => {
+  it("should return an intersection if prices don't overlap and the buy order has a higher price than the sell order", () => {
     const orderOne = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
@@ -33,6 +36,33 @@ describe('intersection', () => {
     };
 
     const orderTwo = {
+      isSellOrder: false,
+      startTimeMs: orderOne.startTimeMs,
+      endTimeMs: orderOne.endTimeMs,
+      startPriceEth: 3,
+      endPriceEth: 4
+    };
+
+    const intersection = getOrderIntersection(orderOne, orderTwo);
+    if(intersection == null) {
+      expect(intersection).toBeTruthy();
+      return;
+    }
+    expect(intersection.price).toBe(orderOne.startPriceEth);
+    expect(intersection.timestamp).toBe(orderOne.startTimeMs);
+  });
+
+  it("should return null if prices don't overlap and the sell order has a higher price than the buy order", () => {
+    const orderOne = {
+      isSellOrder: false,
+      startTimeMs: 100_000,
+      endTimeMs: 200_000,
+      startPriceEth: 1,
+      endPriceEth: 2
+    };
+
+    const orderTwo = {
+      isSellOrder: true,
       startTimeMs: orderOne.startTimeMs,
       endTimeMs: orderOne.endTimeMs,
       startPriceEth: 3,
@@ -45,6 +75,7 @@ describe('intersection', () => {
 
   it('should handle lines the barely overlap', () => {
     const orderOne = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
@@ -52,6 +83,7 @@ describe('intersection', () => {
     };
 
     const orderTwo = {
+      isSellOrder: false,
       startTimeMs: orderOne.endTimeMs,
       endTimeMs: orderOne.endTimeMs + 100_000,
       startPriceEth: orderOne.endPriceEth,
@@ -68,8 +100,30 @@ describe('intersection', () => {
     expect(intersection.timestamp).toEqual(orderOne.endTimeMs);
   });
 
-  it("should return null for parallel lines that don't overlap", () => {
+  it("should return null for parallel lines that don't overlap and the listing is priced above the offer", () => {
     const orderOne = {
+      isSellOrder: true,
+      startTimeMs: 100_000,
+      endTimeMs: 200_000,
+      startPriceEth: 2,
+      endPriceEth: 2
+    };
+
+    const orderTwo = {
+      isSellOrder: false,
+      startTimeMs: 100_000,
+      endTimeMs: 200_000,
+      startPriceEth: 1,
+      endPriceEth: 1
+    };
+
+    const intersection = getOrderIntersection(orderOne, orderTwo);
+    expect(intersection).toBeNull();
+  });
+
+  it("should return an intersection for parallel lines that don't overlap and the offer is priced above the listing", () => {
+    const orderOne = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
@@ -77,6 +131,7 @@ describe('intersection', () => {
     };
 
     const orderTwo = {
+      isSellOrder: false,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 2,
@@ -84,18 +139,24 @@ describe('intersection', () => {
     };
 
     const intersection = getOrderIntersection(orderOne, orderTwo);
-    expect(intersection).toBeNull();
+    if(intersection == null) {
+      expect(intersection).toBeTruthy();
+      return;
+    }
+    expect(intersection.price).toBe(orderOne.startPriceEth);
+    expect(intersection.timestamp).toBe(orderOne.startTimeMs);
   });
 
   it('should return the first intersection point if the intersection forms a line. orderOne === orderTwo', () => {
     const orderOne = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
       endPriceEth: 1
     };
 
-    const intersection = getOrderIntersection(orderOne, orderOne);
+    const intersection = getOrderIntersection(orderOne, { ...orderOne, isSellOrder: false });
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -106,12 +167,14 @@ describe('intersection', () => {
 
   it('should return the first intersection point if the intersection forms a line. orderTwo is a subset of orderOne', () => {
     const orderOne = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
       endPriceEth: 2
     };
     const orderTwo = {
+      isSellOrder: false,
       startTimeMs: 125_000,
       endTimeMs: 175_000,
       startPriceEth: 1.25,
@@ -128,12 +191,14 @@ describe('intersection', () => {
 
   it('should return the first intersection point if the intersection forms a line. orderOne is a subset of orderTwo', () => {
     const orderOne = {
+      isSellOrder: true,
       startTimeMs: 125_000,
       endTimeMs: 175_000,
       startPriceEth: 1.25,
       endPriceEth: 1.75
     };
     const orderTwo = {
+      isSellOrder: false,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
@@ -150,6 +215,7 @@ describe('intersection', () => {
 
   it('should return the correct intersection point for a basic intersection', () => {
     const orderOne = {
+      isSellOrder: true,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 1,
@@ -157,6 +223,7 @@ describe('intersection', () => {
     };
 
     const orderTwo = {
+      isSellOrder: false,
       startTimeMs: 100_000,
       endTimeMs: 200_000,
       startPriceEth: 2,

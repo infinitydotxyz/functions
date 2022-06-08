@@ -27,7 +27,7 @@ export async function getBestOrder(
 
   const bestOrderQuery = activeOrderItemsForNftQuery
       .orderBy("startPriceEth", directionForBestOrder) // TODO how do we handle auctions?
-      .orderBy("endTimeMs", OrderDirection.Descending) // break ties by the order that is valid until the latest date
+      .orderBy("endTimeMs", OrderDirection.Descending) // todo: this should be ascending; break ties by the order that is valid until the latest date
       .limit(1) as FirebaseFirestore.Query<FirestoreOrderItem>;
 
   let bestOrdersSnap: FirebaseFirestore.QuerySnapshot<FirestoreOrderItem>;

@@ -127,7 +127,7 @@ export class Order {
         },
         usersInvolved: this.getUsersInvolved(match),
         state: {
-          status: createdAt > timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
+          status: createdAt >= timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
           priceValid: price,
           timestampValid: timestamp
         }

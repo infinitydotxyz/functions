@@ -19,7 +19,8 @@
     "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts",
     "create-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/create-order.ts",
     "scan-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/scan-for-matches.ts",
-    "clear-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-matches.ts"
+    "clear-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-matches.ts",
+    "clear-users-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-users-orders.ts"
   },
   "engines": {
     "node": "16"

@@ -14,7 +14,6 @@ const startPriceEth = 0.01;
 const endPriceEth = 0.01;
 const startTimeMs = Date.now();
 const minBpsToSeller = 9000;
-const nonce = 0;
 
 const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
 if (!signerPrivateKey) {
@@ -47,6 +46,7 @@ const nfts: ChainNFTs[] = [
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;
 
 async function createOrder(): Promise<void> {
+  const nonce = await getNonce(signer.address);
   const startPrice = ethers.utils.parseEther(`${startPriceEth}`);
   const endPrice = ethers.utils.parseEther(`${endPriceEth}`);
   const startTime = Math.floor(startTimeMs / 1000);
@@ -128,7 +128,6 @@ async function createOrder(): Promise<void> {
 
 async function postOrder(order: CreateOrderDto) {
   const sig = await getSignedAuthMessage();
-  console.log(sig);
   const response = await phin({
     url: `http://localhost:9090/orders/${signer.address}`,
     method: 'POST',
@@ -142,10 +141,24 @@ async function postOrder(order: CreateOrderDto) {
   });
 
   if (response.statusCode === 201) {
-    console.log('Order created successfully');
+    console.log(`Order created for wallet ${signer.address} successfully`);
     return;
   }
   console.log(`Error creating order: ${response.statusCode} ${response.body.toString()}`);
+}
+
+async function getNonce(user: string): Promise<number> {
+  const response = await phin({
+    url: `http://localhost:9090/orders/${user}/nonce`,
+    method: 'GET',
+  });
+
+  if (response.statusCode === 200) {
+    const nonce = parseInt(response.body.toString(), 10);
+    return nonce;
+  }
+
+  throw new Error(`Error while getting nonce ${response.statusCode} ${response.body.toString()}`);
 }
 
 void createOrder();

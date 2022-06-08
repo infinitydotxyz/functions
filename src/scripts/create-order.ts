@@ -4,15 +4,31 @@ import { Wallet } from 'ethers/lib/ethers';
 import { getExchangeAddress, getOBComplicationAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
 import { splitSignature } from '@ethersproject/bytes';
 import { defaultAbiCoder } from '@ethersproject/abi';
+import { CreateOrderDto } from '@infinityxyz/lib/types/dto/orders'
+import * as phin from 'phin';
 
 const chainId = ChainId.Goerli;
-const isSellOrder = true;
+const isSellOrder = false;
 const numItems = 1;
 const startPriceEth = 0.01;
 const endPriceEth = 0.01;
 const startTimeMs = Date.now();
 const minBpsToSeller = 9000;
 const nonce = 0;
+
+const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
+if (!signerPrivateKey) {
+  throw new Error('CREATE_ORDER_PRIVATE_KEY is required');
+}
+const signer = new Wallet(signerPrivateKey);
+
+const XAuthMessage = 'Welcome to Infinity. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.';
+
+const getSignedAuthMessage = async (): Promise<string> => {
+  const res = await signer.signMessage(XAuthMessage);
+  const sig = splitSignature(res);
+  return JSON.stringify(sig);
+}
 
 const nfts: ChainNFTs[] = [
   {
@@ -29,13 +45,7 @@ const nfts: ChainNFTs[] = [
 // two days from now
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;
 
-async function createOrder() {
-  const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
-  if (!signerPrivateKey) {
-    throw new Error('CREATE_ORDER_PRIVATE_KEY is required');
-  }
-  const signer = new Wallet(signerPrivateKey);
-
+async function createOrder(): Promise<void> {
   const startPrice = ethers.utils.parseEther(`${startPriceEth}`);
   const endPrice = ethers.utils.parseEther(`${endPriceEth}`);
   const startTime = Math.floor(startTimeMs / 1000);
@@ -112,9 +122,29 @@ async function createOrder() {
   const signedOrder: ChainOBOrder = { ...orderToSign, sig: encodedSig };
   order.signedOrder = signedOrder;
 
-  console.log(JSON.stringify(order, null, 2));
+  await postOrder(order);
+}
 
-  return order;
+async function postOrder(order: CreateOrderDto) {
+  const sig = await getSignedAuthMessage();
+  console.log(sig);
+  const response = await phin({
+    url: `http://localhost:9090/orders/${signer.address}`,
+    method: 'POST',
+    data: {
+      "orders": [order]
+    },
+    headers: {
+      'x-auth-message': XAuthMessage,
+      'x-auth-signature': sig
+    }
+  });
+
+  if(response.statusCode === 201) {
+    console.log('Order created successfully');
+    return;
+  }
+  console.log(`Error creating order: ${response.statusCode} ${response.body.toString()}`);
 }
 
 void createOrder();

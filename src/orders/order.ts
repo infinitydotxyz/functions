@@ -1,6 +1,7 @@
 import {
   ChainId,
   FirestoreOrderMatch,
+  FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
   FirestoreOrderMatchOneToMany,
   FirestoreOrderMatchOneToOne,
@@ -18,8 +19,6 @@ import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
 import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
-
-type FirestoreOrderMatchTypes = FirestoreOrderMatch | FirestoreOrderMatchOneToOne | FirestoreOrderMatchOneToMany;
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -40,7 +39,7 @@ export class Order {
       .doc(this.firestoreOrder.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
   }
 
-  public async searchForMatches<T extends FirestoreOrderMatchTypes>(): Promise<T[]> {
+  public async searchForMatches<T extends FirestoreOrderMatches>(): Promise<T[]> {
     const orderItems = await this.getOrderItems();
     const firstItem = orderItems[0];
     if (!firstItem) {
@@ -82,7 +81,7 @@ export class Order {
     match: OrderItemMatch[] | OneToManyOrderItemMatch,
     price: number,
     timestamp: number
-  ): FirestoreOrderMatchTypes {
+  ): FirestoreOrderMatches {
     if (Array.isArray(match)) {
       const ids = match.flatMap(({ order, opposingOrder }) => [
         order.firestoreOrderItem.id,
@@ -109,7 +108,7 @@ export class Order {
         ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
         : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
 
-      const isOneToOne = match.length === 1;
+      // const isOneToOne = match.length === 1;
 
       const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
         id,
@@ -119,7 +118,8 @@ export class Order {
         chainId: sampleListing.chainId as ChainId,
         createdAt,
         currencyAddress: sampleListing.currencyAddress,
-        type: isOneToOne ? FirestoreOrderMatchMethod.MatchOneToOneOrders : FirestoreOrderMatchMethod.MatchOrders,
+        // type: isOneToOne ? FirestoreOrderMatchMethod.MatchOneToOneOrders : FirestoreOrderMatchMethod.MatchOrders, // TODO update this
+        type: FirestoreOrderMatchMethod.MatchOrders,
         matchData: {
           listingId: sampleListing.id,
           offerId: sampleOffer.id,
@@ -351,8 +351,8 @@ export class Order {
     });
   }
 
-  async saveMatches(matches: FirestoreOrderMatchTypes[]): Promise<void> {
-    const getMatchRef = (match: FirestoreOrderMatchTypes) => {
+  async saveMatches(matches: FirestoreOrderMatches[]): Promise<void> {
+    const getMatchRef = (match: FirestoreOrderMatches) => {
       return this.db.collection(firestoreConstants.ORDER_MATCHES_COLL).doc(`${match.id}`);
     };
     const batchHandler = new FirestoreBatchHandler();

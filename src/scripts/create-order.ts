@@ -4,7 +4,7 @@ import { Wallet } from 'ethers/lib/ethers';
 import { getExchangeAddress, getOBComplicationAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
 import { splitSignature } from '@ethersproject/bytes';
 import { defaultAbiCoder } from '@ethersproject/abi';
-import { CreateOrderDto } from '@infinityxyz/lib/types/dto/orders'
+import { CreateOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import * as phin from 'phin';
 
 const chainId = ChainId.Goerli;
@@ -22,13 +22,14 @@ if (!signerPrivateKey) {
 }
 const signer = new Wallet(signerPrivateKey);
 
-const XAuthMessage = 'Welcome to Infinity. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.';
+const XAuthMessage =
+  'Welcome to Infinity. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.';
 
 const getSignedAuthMessage = async (): Promise<string> => {
   const res = await signer.signMessage(XAuthMessage);
   const sig = splitSignature(res);
   return JSON.stringify(sig);
-}
+};
 
 const nfts: ChainNFTs[] = [
   {
@@ -132,7 +133,7 @@ async function postOrder(order: CreateOrderDto) {
     url: `http://localhost:9090/orders/${signer.address}`,
     method: 'POST',
     data: {
-      "orders": [order]
+      orders: [order]
     },
     headers: {
       'x-auth-message': XAuthMessage,
@@ -140,7 +141,7 @@ async function postOrder(order: CreateOrderDto) {
     }
   });
 
-  if(response.statusCode === 201) {
+  if (response.statusCode === 201) {
     console.log('Order created successfully');
     return;
   }

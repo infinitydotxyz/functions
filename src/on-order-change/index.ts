@@ -3,7 +3,7 @@ import * as functions from 'firebase-functions';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { Order } from '../orders/order';
-import { deleteOrderMatches } from './delete-order-matches';
+import { invalidatePendingOrderMatches } from './invalidate-pending-order-matches';
 
 export const onOrderChange = functions
   .region(REGION)
@@ -24,8 +24,9 @@ export const onOrderChange = functions
         case OBOrderStatus.Invalid:
         default: {
           const id = updatedOrder?.id ?? prevOrder?.id;
-          if (id) {
-            await deleteOrderMatches(id);
+          const requiresUpdate = prevOrder?.orderStatus !== updatedOrder?.orderStatus;
+          if (id && requiresUpdate) {
+            await invalidatePendingOrderMatches(id, updatedOrder?.orderStatus ?? OBOrderStatus.Invalid);
           }
           break;
         }

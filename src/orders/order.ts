@@ -118,6 +118,7 @@ export class Order {
         chainId: sampleListing.chainId as ChainId,
         createdAt,
         currencyAddress: sampleListing.currencyAddress,
+        complicationAddress: sampleListing.complicationAddress,
         // type: isOneToOne ? FirestoreOrderMatchMethod.MatchOneToOneOrders : FirestoreOrderMatchMethod.MatchOrders, // TODO update this
         type: FirestoreOrderMatchMethod.MatchOrders,
         matchData: {

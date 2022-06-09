@@ -8,7 +8,7 @@ import { CreateOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import * as phin from 'phin';
 
 const chainId = ChainId.Goerli;
-const isSellOrder = false;
+const isSellOrder = true;
 const numItems = 1;
 const startPriceEth = 0.01;
 const endPriceEth = 0.01;
@@ -150,7 +150,7 @@ async function postOrder(order: CreateOrderDto) {
 async function getNonce(user: string): Promise<number> {
   const response = await phin({
     url: `http://localhost:9090/orders/${user}/nonce`,
-    method: 'GET',
+    method: 'GET'
   });
 
   if (response.statusCode === 200) {

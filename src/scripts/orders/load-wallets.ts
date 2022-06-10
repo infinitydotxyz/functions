@@ -15,7 +15,7 @@ export async function loadWallets(
     walletFiles.map(async (walletFileName) => {
       const walletFilePath = join(`${walletsDir}/${walletFileName}`);
       const privateKey = await readFile(walletFilePath, 'utf8');
-      const wallet = new ethers.Wallet(privateKey);
+      const wallet = new ethers.Wallet(privateKey, provider);
       const walletWithBalances = await getWalletWithBalances(wallet, provider, wethAddress);
       return walletWithBalances;
     })

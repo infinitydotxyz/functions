@@ -10,7 +10,7 @@ config();
 
 const network = 5;
 const numTestWallets = 6;
-const fundingAmount = ethers.utils.parseEther('0.1');
+const fundingAmount = 0.1;
 const goerliDoodles = '0x142c5b3a5689ba0871903c53dacf235a28cb21f0';
 const currencyAddress = getTxnCurrencyAddress(`${network}`);
 const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL_GOERLI);
@@ -39,7 +39,7 @@ beforeAll(async () => {
   const res = await fundTestWallets(
     testWallets,
     fundingWallet,
-    { amount: fundingAmount, wethAddress: currencyAddress },
+    { amountEth: fundingAmount, wethAddress: currencyAddress },
     provider
   );
   testWallets = res.testWallets;

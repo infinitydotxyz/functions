@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ethers } from 'ethers';
+import { BigNumberish, ethers } from 'ethers';
 import { getWalletWithBalances } from './load-wallets';
 import { WalletWithBalances } from './types';
 
@@ -7,15 +7,16 @@ export async function fundTestWallets(
   testWallets: WalletWithBalances[],
   fundingWallet: ethers.Wallet,
   fund: {
-    amount: ethers.BigNumber;
+    amountEth: BigNumberish;
     wethAddress: string;
   },
   provider: ethers.providers.JsonRpcProvider
 ): Promise<{ testWallets: WalletWithBalances[]; fundingWallet: WalletWithBalances }> {
+  const amount = ethers.utils.parseEther(fund.amountEth.toString());
   const fundingWalletEthBalance = await fundingWallet.getBalance();
 
   const testBalance = testWallets.reduce((sum, wallet) => sum.add(wallet.ethBalance), ethers.BigNumber.from(0));
-  const amountToFund = fund.amount.mul(testWallets.length).sub(testBalance);
+  const amountToFund = amount.mul(testWallets.length).sub(testBalance);
   const fundingBalance = fundingWalletEthBalance;
 
   console.log(`Funding wallets with ${amountToFund.toString()}`);
@@ -31,7 +32,7 @@ export async function fundTestWallets(
     await Promise.all(
       testWallets.map(async (wallet) => {
         const walletBalance = wallet.ethBalance;
-        const amountToSend = fund.amount.sub(walletBalance);
+        const amountToSend = amount.sub(walletBalance);
         if (amountToSend.lte(0)) {
           return null;
         }

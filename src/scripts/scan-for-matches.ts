@@ -18,7 +18,11 @@ async function scanForMatches() {
     const matches = await order.searchForMatches();
     if (matches.length > 0) {
       console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
-      await order.saveMatches(matches);
+      try{
+        await order.saveMatches(matches);
+      }catch(err) {
+        console.error(err);
+      }
     }
   }
 }

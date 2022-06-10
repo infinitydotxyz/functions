@@ -5,15 +5,14 @@ import { getAuthHeaders } from "./get-auth-headers";
 
 export async function postOrder(signer: ethers.Wallet, order: CreateOrderDto) {
     const authHeaders = await getAuthHeaders(signer);
+    console.log(authHeaders);
     const response = await phin({
       url: `http://localhost:9090/orders/${signer.address}`,
       method: 'POST',
       data: {
         orders: [order]
       },
-      headers: {
-        ...authHeaders,
-      }
+      headers: authHeaders,
     });
   
     if (response.statusCode === 201) {

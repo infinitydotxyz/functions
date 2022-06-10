@@ -3,7 +3,7 @@ import { erc721Abi } from "../../tests/abi/erc721";
 import { WalletWithBalances } from "./types";
 
 
-export async function mintTokens(wallet: WalletWithBalances, tokenAddress: string, payableAmount: string, numTokens: number) { 
+export async function mintTokens(wallet: WalletWithBalances, tokenAddress: string, payableAmount: string, numTokens: number): Promise<{ tokenId: string}[]> { 
     const iface = new ethers.utils.Interface(erc721Abi);
     const mint = iface.getFunction('mint');
     const data = iface.encodeFunctionData(mint, [numTokens]);
@@ -22,9 +22,8 @@ export async function mintTokens(wallet: WalletWithBalances, tokenAddress: strin
     for(const log of logs) {
         const parsed = iface.parseLog(log);
         const [, , tokenId] = parsed.args;
-
         parsed.name === 'Transfer' && tokens.push({ tokenId: BigNumber.from(tokenId).toString() });
-    } 
+    }
 
-    return tokens;
+    return tokens; 
 }

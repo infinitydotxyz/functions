@@ -4,13 +4,18 @@ import { getDb } from '../firestore';
 import { streamQuery } from '../firestore/stream-query';
 import { Order } from '../orders/order';
 
-async function scanForMatches() {
+async function scanForMatches(id?: string) {
   const db = getDb();
-  const query = db
-    .collection(firestoreConstants.ORDERS_COLL)
-    .where('orderStatus', '==', OBOrderStatus.ValidActive) as FirebaseFirestore.Query<FirestoreOrder>;
-  const orders = streamQuery(query, (order, ref) => [ref], { pageSize: 50 });
+  let query = db
+    .collection(firestoreConstants.ORDERS_COLL) as unknown as FirebaseFirestore.Query<FirestoreOrder>;
+  if(id) {
+    query = query.where('id', '==', id)
+  } else {
+    query = query.where('orderStatus', '==', OBOrderStatus.ValidActive);
+  }
 
+    
+  const orders = streamQuery(query, (order, ref) => [ref], { pageSize: 50 });
   let orderNum = 0;
   for await (const orderData of orders) {
     console.log(`Scanning order ${++orderNum}`);
@@ -27,4 +32,4 @@ async function scanForMatches() {
   }
 }
 
-void scanForMatches();
+void scanForMatches('0xad17d5d74bbe889d67495d857cdf58f05680d6b50cc260f3361ace5cdb9777ab');

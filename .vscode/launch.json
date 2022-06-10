@@ -5,7 +5,7 @@
         "type": "node-terminal",
         "name": "Run Script: search for matches",
         "request": "launch",
-        "command": "npm run search-for-matches",
+        "command": "npm run scan-matches",
         "cwd": "${workspaceFolder}"
       }
     ]

@@ -233,7 +233,8 @@ export class Order {
         let subPaths: { matches: OrderItemMatch[] }[] = [];
 
         if (orderItem.isMatch(opposingOrderItem.firestoreOrderItem)) {
-          const unclaimedOpposingOrders = [...opposingOrderItemsCopy].splice(index, 1);
+          const unclaimedOpposingOrders = [...opposingOrderItemsCopy];
+          unclaimedOpposingOrders.splice(index, 1);
           const sub = generateMatchCombinations([...orderItemsCopy], unclaimedOpposingOrders);
           const match: OrderItemMatch = { order: orderItem, opposingOrder: opposingOrderItem };
           const subPathsWithMatch = sub.map(({ matches }) => {

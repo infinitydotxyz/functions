@@ -1,5 +1,5 @@
 import { ChainNFTs, ChainId, ChainOBOrder } from '@infinityxyz/lib/types/core';
-import { CreateOrderDto } from '@infinityxyz/lib/types/dto/orders';
+import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import { getOBComplicationAddress, getTxnCurrencyAddress, getExchangeAddress } from '@infinityxyz/lib/utils';
 import { Wallet, ethers } from 'ethers';
 import { splitSignature, defaultAbiCoder } from 'ethers/lib/utils';
@@ -17,7 +17,7 @@ export async function signOrder(
     startTimeMs: number;
     endTimeMs: number;
   }
-): Promise<CreateOrderDto> {
+): Promise<SignedOBOrderDto> {
   const { nfts, chainId, isSellOrder, numItems, startPriceEth, endPriceEth, startTimeMs, endTimeMs } = orderDescription;
   const minBpsToSeller = 9000;
   const nonce = await getOrderNonce(signer);
@@ -29,14 +29,13 @@ export async function signOrder(
   const currencyAddress = getTxnCurrencyAddress(chainId);
   const exchangeAddress = getExchangeAddress(chainId);
 
-  const order = {
+  const order: SignedOBOrderDto = {
     chainId,
     numItems,
     startPriceEth,
     endPriceEth,
     startTimeMs,
     endTimeMs,
-    minBpsToSeller,
     nonce,
     execParams: {
       complicationAddress,
@@ -53,7 +52,12 @@ export async function signOrder(
       execParams: [complicationAddress, currencyAddress],
       extraParams: '0x0000000000000000000000000000000000000000000000000000000000000000',
       sig: ''
-    } as ChainOBOrder
+    } as ChainOBOrder,
+    id: '',
+    isSellOrder,
+    makerUsername: '',
+    makerAddress: signer.address.toLowerCase(),
+    nfts: []
   };
 
   const domain = {

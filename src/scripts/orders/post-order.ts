@@ -1,11 +1,10 @@
-import { CreateOrderDto } from '@infinityxyz/lib/types/dto/orders';
+import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import { ethers } from 'ethers';
 import * as phin from 'phin';
 import { getAuthHeaders } from './get-auth-headers';
 
-export async function postOrder(signer: ethers.Wallet, order: CreateOrderDto) {
+export async function postOrder(signer: ethers.Wallet, order: SignedOBOrderDto) {
   const authHeaders = await getAuthHeaders(signer);
-  console.log(authHeaders);
   const response = await phin({
     url: `http://localhost:9090/orders/${signer.address}`,
     method: 'POST',

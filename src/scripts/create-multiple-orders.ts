@@ -23,7 +23,7 @@ export async function createOrders() {
   const signer = getFundingWallet(provider);
   const weth = getTxnCurrencyAddress(chainId);
   const exchange = getExchangeAddress(chainId);
-  const numTokens = 3;
+  const numTokens = 3; // TODO test one to one
   const goerliDoodles = {
     address: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
     costPerToken: ethers.utils.parseEther('0.01')

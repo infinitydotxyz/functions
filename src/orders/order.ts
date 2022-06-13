@@ -112,9 +112,10 @@ export class Order {
         ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
         : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
 
-      // const isOneToOne = match.length === 1;
+      const isOneToOne = match.length === 1; // TODO does this still work for one to many?
+      // TODO handle one to many
 
-      const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
+      const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = { 
         id,
         ids,
         collectionAddresses: [],
@@ -123,8 +124,7 @@ export class Order {
         createdAt,
         currencyAddress: sampleListing.currencyAddress,
         complicationAddress: sampleListing.complicationAddress,
-        // type: isOneToOne ? FirestoreOrderMatchMethod.MatchOneToOneOrders : FirestoreOrderMatchMethod.MatchOrders, // TODO update this
-        type: FirestoreOrderMatchMethod.MatchOrders,
+        type: isOneToOne ? FirestoreOrderMatchMethod.MatchOneToOneOrders : FirestoreOrderMatchMethod.MatchOrders,
         matchData: {
           listingId: sampleListing.id,
           offerId: sampleOffer.id,

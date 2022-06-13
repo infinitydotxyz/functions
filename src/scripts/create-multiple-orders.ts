@@ -39,7 +39,6 @@ export async function createOrders() {
 
   const walletsWithTokens: WalletWithTokens[] = await Promise.all(
     testWallets.map(async (wallet) => {
-      
       console.log(`Minting token for: ${wallet.wallet.address}`);
       const tokens = await mintTokens(
         wallet,
@@ -74,13 +73,13 @@ export async function createOrders() {
     };
     console.log(`Creating orders for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);
     // create listings
-    for(const collection of orderDescription.nfts) {
-        collection.collection
-        await setApprovalForAll(collection.collection, exchange, true, wallet.wallet);
+    for (const collection of orderDescription.nfts) {
+      collection.collection;
+      await setApprovalForAll(collection.collection, exchange, true, wallet.wallet);
     }
     const signedOrder = await signOrder(wallet.wallet, orderDescription);
     await postOrder(wallet.wallet, signedOrder);
-    console.log(`Created listing for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);    
+    console.log(`Created listing for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);
 
     // create offers
     const offer = {

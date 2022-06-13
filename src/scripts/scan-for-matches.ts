@@ -6,15 +6,13 @@ import { Order } from '../orders/order';
 
 async function scanForMatches(id?: string) {
   const db = getDb();
-  let query = db
-    .collection(firestoreConstants.ORDERS_COLL) as unknown as FirebaseFirestore.Query<FirestoreOrder>;
-  if(id) {
-    query = query.where('id', '==', id)
+  let query = db.collection(firestoreConstants.ORDERS_COLL) as unknown as FirebaseFirestore.Query<FirestoreOrder>;
+  if (id) {
+    query = query.where('id', '==', id);
   } else {
     query = query.where('orderStatus', '==', OBOrderStatus.ValidActive);
   }
 
-    
   const orders = streamQuery(query, (order, ref) => [ref], { pageSize: 50 });
   let orderNum = 0;
   for await (const orderData of orders) {
@@ -23,9 +21,9 @@ async function scanForMatches(id?: string) {
     const matches = await order.searchForMatches();
     if (matches.length > 0) {
       console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
-      try{
+      try {
         await order.saveMatches(matches);
-      }catch(err) {
+      } catch (err) {
         console.error(err);
       }
     }

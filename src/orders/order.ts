@@ -83,10 +83,14 @@ export class Order {
     timestamp: number
   ): FirestoreOrderMatches {
     if (Array.isArray(match)) {
-      const ids = [...new Set(match.flatMap(({ order, opposingOrder }) => [
-        order.firestoreOrderItem.id,
-        opposingOrder.firestoreOrderItem.id
-      ]))];
+      const ids = [
+        ...new Set(
+          match.flatMap(({ order, opposingOrder }) => [
+            order.firestoreOrderItem.id,
+            opposingOrder.firestoreOrderItem.id
+          ])
+        )
+      ];
 
       const rawId = match
         .map(({ order, opposingOrder }) => {

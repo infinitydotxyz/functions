@@ -3,14 +3,11 @@ import { Wallet } from 'ethers/lib/ethers';
 import { signOrder } from './orders/sign-order';
 import { postOrder } from './orders/post-order';
 
-
-
 const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
 if (!signerPrivateKey) {
   throw new Error('CREATE_ORDER_PRIVATE_KEY is required');
 }
 const signer = new Wallet(signerPrivateKey);
-
 
 const nfts: ChainNFTs[] = [
   {
@@ -33,15 +30,14 @@ const startTimeMs = Date.now();
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;
 const defaultOrderDescription = {
   nfts,
-  chainId, 
-  isSellOrder, 
+  chainId,
+  isSellOrder,
   numItems,
   startPriceEth,
   endPriceEth,
   startTimeMs,
   endTimeMs
-}
-
+};
 
 async function createOrder() {
   const order = await signOrder(signer, defaultOrderDescription);

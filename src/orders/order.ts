@@ -1,6 +1,7 @@
 import {
   ChainId,
   FirestoreOrderMatch,
+  FirestoreOrderMatchCollection,
   FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
   FirestoreOrderMatchOneToMany,
@@ -82,7 +83,9 @@ export class Order {
     price: number,
     timestamp: number
   ): FirestoreOrderMatches {
-    if (Array.isArray(match)) {
+    const isOneToMany = !Array.isArray(match);
+
+    if (!isOneToMany) {
       const ids = [
         ...new Set(
           match.flatMap(({ order, opposingOrder }) => [
@@ -112,10 +115,9 @@ export class Order {
         ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
         : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
 
-      const isOneToOne = match.length === 1; // TODO does this still work for one to many?
-      // TODO handle one to many
+      const isOneToOne = match.length === 1;
 
-      const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = { 
+      const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
         id,
         ids,
         collectionAddresses: [],
@@ -188,8 +190,84 @@ export class Order {
 
       return firestoreOrderMatch;
     }
-    // TODO: handle one to many, including searching for one to many matches
-    throw new Error('One to many matching not implemented yet');
+
+    const mainOrderId = match.order.firestoreOrderItem.id;
+    const opposingOrderIds = match.opposingOrders.map(({ firestoreOrderItem }) => firestoreOrderItem.id);
+    const ids = [...new Set([mainOrderId, ...opposingOrderIds])];
+
+    const orderIds = [[mainOrderId], opposingOrderIds];
+    const [listingIds, offerIds] = match.order.firestoreOrderItem.isSellOrder ? orderIds : orderIds.reverse();
+
+    type OrderItems = {
+      [collectionAddress: string]: FirestoreOrderMatchCollection;
+    };
+
+    const orderItems: OrderItems = match.opposingOrders.reduce((acc: OrderItems, item) => {
+      const collectionAddress = item.firestoreOrderItem.collectionAddress;
+      const tokenId = item.firestoreOrderItem.tokenId;
+      const collectionName = item.firestoreOrderItem.collectionName;
+      const collectionImage = item.firestoreOrderItem.collectionImage;
+      const collectionSlug = item.firestoreOrderItem.collectionSlug;
+      const hasBlueCheck = item.firestoreOrderItem.hasBlueCheck;
+
+      const tokens = acc[collectionAddress]?.tokens ?? {};
+      return {
+        ...acc,
+        [collectionAddress]: {
+          collectionAddress,
+          collectionName,
+          collectionImage,
+          collectionSlug,
+          hasBlueCheck,
+          tokens: {
+            ...tokens,
+            [tokenId]: {
+              tokenId,
+              tokenName: item.firestoreOrderItem.tokenName,
+              tokenImage: item.firestoreOrderItem.tokenImage,
+              tokenSlug: item.firestoreOrderItem.tokenSlug,
+              numTokens: item.firestoreOrderItem.numTokens
+            }
+          }
+        }
+      };
+    }, {});
+
+    const collectionAddresses = Object.keys(orderItems);
+    const tokenStrings = collectionAddresses.reduce((acc: string[], collectionAddress) => {
+      const tokens = orderItems[collectionAddress].tokens;
+      const tokenStrings = Object.values(tokens).map((item) => `${collectionAddress}:${item.tokenId}`)
+      return [...new Set([...acc, ...tokenStrings])];
+    }, []);
+
+
+    const rawId = ids.sort().join('-').trim().toLowerCase();
+    const id = createHash('sha256').update(rawId).digest('hex');
+
+    const createdAt = Date.now();
+    const firestoreOrderMatch: FirestoreOrderMatchOneToMany = {
+      type: FirestoreOrderMatchMethod.MatchOneToManyOrders,
+      usersInvolved: this.getUsersInvolved(match),
+      id,
+      ids,
+      collectionAddresses,
+      chainId: match.order.firestoreOrderItem.chainId as ChainId,
+      complicationAddress: match.order.firestoreOrderItem.complicationAddress,
+      tokens: tokenStrings,
+      currencyAddress: match.order.firestoreOrderItem.currencyAddress,
+      createdAt,
+      state: {
+        status: createdAt >= timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
+        priceValid: price,
+        timestampValid: timestamp
+      },
+      matchData: {
+        listingIds,
+        offerIds,
+        orderItems: orderItems 
+      }
+    };
+    return firestoreOrderMatch;
   }
 
   public getUsersInvolved(match: OneToManyOrderItemMatch | OrderItemMatch[]): string[] {

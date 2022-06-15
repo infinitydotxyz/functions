@@ -18,7 +18,7 @@ async function scanForMatches(id?: string) {
   for await (const orderData of orders) {
     console.log(`Scanning order ${++orderNum}`);
     const order = new Order(orderData);
-    const matches = await order.searchForMatches();
+    const { matches } = await order.searchForMatches();
     if (matches.length > 0) {
       console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
       try {

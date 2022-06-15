@@ -38,40 +38,40 @@ export class Order {
       .doc(this.firestoreOrder.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
   }
 
-  public async searchForMatches<T extends FirestoreOrderMatches>(): Promise<T[]> {
-    const orderItems = await this.getOrderItems();
-    const firstItem = orderItems[0];
-    if (!firstItem) {
-      throw new Error('invalid order, no order items found');
-    }
-    const possibleMatches = firstItem.getPossibleMatches(); // TODO what if this order item isn't required for the order to be fulfilled?
+  // public async searchForMatches<T extends FirestoreOrderMatches>(): Promise<T[]> {
+  //   const orderItems = await this.getOrderItems();
+  //   const firstItem = orderItems[0];
+  //   if (!firstItem) {
+  //     throw new Error('invalid order, no order items found');
+  //   }
+  //   const possibleMatches = firstItem.getPossibleMatches(); // TODO what if this order item isn't required for the order to be fulfilled?
 
-    const matches: T[] = [];
-    for await (const possibleMatch of possibleMatches) {
-      /**
-       * check if match is valid for the first item
-       * if so, get the rest of the order and attempt to match it with the rest of the order
-       */
-      if (firstItem.isMatch(possibleMatch)) {
-        const opposingOrder = await this.getOrder(possibleMatch.id);
-        if (opposingOrder?.order && opposingOrder?.orderItems) {
-          /**
-           * TODO check if the opposing order can be fulfilled by this order and if so trigger scan for opposing order
-           * required so that if this order is a many order
-           */
+  //   const matches: T[] = [];
+  //   for await (const possibleMatch of possibleMatches) {
+  //     /**
+  //      * check if match is valid for the first item
+  //      * if so, get the rest of the order and attempt to match it with the rest of the order
+  //      */
+  //     if (firstItem.isMatch(possibleMatch)) {
+  //       const opposingOrder = await this.getOrder(possibleMatch.id);
+  //       if (opposingOrder?.order && opposingOrder?.orderItems) {
+  //         /**
+  //          * TODO check if the opposing order can be fulfilled by this order and if so trigger scan for opposing order
+  //          * required so that if this order is a many order
+  //          */
 
-          const result = this.checkForMatch(orderItems, opposingOrder, this.firestoreOrder.numItems);
-          if (result.isMatch) {
-            const match = this.getFirestoreOrderMatch(result.match, result.price, result.timestamp) as T;
-            matches.push(match);
-          }
-        }
-      }
-    }
-    return matches;
-  }
+  //         const result = this.checkForMatch(orderItems, opposingOrder, this.firestoreOrder.numItems);
+  //         if (result.isMatch) {
+  //           const match = this.getFirestoreOrderMatch(result.match, result.price, result.timestamp) as T;
+  //           matches.push(match);
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return matches;
+  // }
 
-  public async searchForOneToManyMatches(): Promise<{ matches: FirestoreOrderMatches[] }> {
+  public async searchForMatches(): Promise<{ matches: FirestoreOrderMatches[] }> {
     /**
      * get the order items for this order
      */

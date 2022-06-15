@@ -184,13 +184,74 @@ describe('one to many intersection', () => {
     };
 
     const orderThree = {
-        ...orderTwo,
-        startTimeMs: orderOne.endTimeMs + 1,
-        endTimeMs: orderOne.endTimeMs + 2
-    }
+      ...orderTwo,
+      startTimeMs: orderOne.endTimeMs + 1,
+      endTimeMs: orderOne.endTimeMs + 2
+    };
     const many = [orderTwo, orderThree];
     const intersection = getOneToManyOrderIntersection(orderOne, many);
 
     expect(intersection).toBe(null);
+  });
+
+  it("Many order timestamps overlap, but don't overlap with single order", () => {
+    const orderOne = {
+      isSellOrder: LISTING,
+      startTimeMs: 100_000,
+      endTimeMs: 200_000,
+      startPriceEth: 1,
+      endPriceEth: 1
+    };
+
+    const orderTwo = {
+      isSellOrder: !orderOne.isSellOrder,
+      startTimeMs: orderOne.endTimeMs + 1,
+      endTimeMs: orderOne.endTimeMs + 2,
+      startPriceEth: 1,
+      endPriceEth: 1
+    };
+
+    const many = [orderTwo, orderTwo];
+    const intersection = getOneToManyOrderIntersection(orderOne, many);
+
+    expect(intersection).toBe(null);
+  });
+
+  it('Many order timestamps partially overlap to form sub segment that overlaps with single order', () => {
+    const orderOne = {
+      isSellOrder: LISTING,
+      startTimeMs: 100_000,
+      endTimeMs: 200_000,
+      startPriceEth: 1,
+      endPriceEth: 1
+    };
+
+    const orderTwo = {
+      isSellOrder: !orderOne.isSellOrder,
+      startTimeMs: 125_000,
+      endTimeMs: 175_000,
+      startPriceEth: 1,
+      endPriceEth: 1
+    };
+
+    const orderThree = {
+      isSellOrder: !orderOne.isSellOrder,
+      startTimeMs: 150_000,
+      endTimeMs: 190_000,
+      startPriceEth: 1,
+      endPriceEth: 1
+    };
+
+    const many = [orderTwo, orderThree];
+    const intersection = getOneToManyOrderIntersection(orderOne, many);
+
+    expect(intersection?.price).toBe(orderOne.startPriceEth);
+    expect(intersection?.timestamp).toBe(orderThree.startTimeMs);
+    expect(intersection?.getPriceAtTime(orderOne.startTimeMs)).toBe(null);
+    expect(intersection?.getPriceAtTime(orderOne.endTimeMs)).toBe(null);
+    expect(intersection?.getPriceAtTime(orderTwo.startTimeMs)).toBe(null);
+    expect(intersection?.getPriceAtTime(orderThree.endTimeMs)).toBe(null);
+    expect(intersection?.getPriceAtTime(orderThree.startTimeMs)).toBe(orderOne.startPriceEth);
+    expect(intersection?.getPriceAtTime(orderTwo.endTimeMs)).toBe(orderOne.startPriceEth);
   });
 });

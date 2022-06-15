@@ -124,6 +124,9 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
     }
   };
 
+  const minTimestamp = Math.max(segmentOne.start.x, segmentTwo.start.x);
+  const maxTimestamp = Math.min(segmentOne.end.x, segmentTwo.end.x);
+
   const intersection = getIntersection(segmentOne, segmentTwo);
 
   if (intersection === null) {
@@ -138,12 +141,19 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
       if (offerPriceIsGreaterThanListingPrice) {
         const nearestSecond = Math.ceil(timeValid / 1000) * 1000;
         const getPriceAtTime = (timestamp: number) => {
+          if(timestamp < minTimestamp || timestamp > maxTimestamp) {
+            return null;
+          }
           const listingPrice = getOBOrderPrice(listing, timestamp);
           return parseFloat(ethers.utils.formatEther(listingPrice));
         };
+        const price = getPriceAtTime(nearestSecond);
+        if(price === null) {
+          return null;
+        }
         return {
           timestamp: nearestSecond,
-          price: getPriceAtTime(nearestSecond),
+          price,
           getPriceAtTime
         };
       }
@@ -157,12 +167,20 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
   const yIntercept = segmentOne.start.y - segmentOneSlope * segmentOne.start.x;
 
   const getPriceAtTime = (timestamp: number) => {
+    if(timestamp < minTimestamp || timestamp > maxTimestamp) {
+      return null;
+    }
     return segmentOneSlope * timestamp + yIntercept;
   };
 
+  const price = getPriceAtTime(nearestSecond);
+  if(price === null) {
+    return null;
+  }
+
   return {
     timestamp: nearestSecond,
-    price: getPriceAtTime(nearestSecond),
+    price,
     getPriceAtTime
   };
 }

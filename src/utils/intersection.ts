@@ -11,7 +11,7 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
     return null;
   };
 
-  const equationsOfMany = many.map((segment) => {
+  const equationsOfMany: LineSegmentEquation[] = many.map((segment) => {
     const start = {
       x: segment.startTimeMs,
       y: segment.startPriceEth
@@ -32,7 +32,12 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
     };
   });
 
-  const combinedEquation = equationsOfMany.reduce((acc: LineSegmentEquation, curr) => {
+  type CombinedEquation = LineSegmentEquation & { valid: boolean, invalidEquation?: LineSegmentEquation}
+  const combinedEquation = equationsOfMany.reduce((acc: CombinedEquation, curr) => {
+    if(!acc.valid) {
+      return acc;
+    }
+
     const slope = acc.slope + curr.slope;
     const yIntercept = acc.yIntercept + curr.yIntercept;
 
@@ -58,10 +63,16 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
     const endY = getPriceAtTime(endX, updatedEquation);
 
     if(startY === null || endY === null) {
-      throw new Error('Unexpected condition. startY or endY is null');
+      return {
+        ...acc,
+        valid: false,
+        invalidEquation: curr
+      }
     }
 
     return {
+      valid: true, 
+      invalidEquation: undefined,
       ...updatedEquation,
       start: {
         x: startX,
@@ -72,7 +83,11 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
         y: endY
       }
     }
-  }, { slope: 0, yIntercept: 0, start: { x: NaN, y: NaN }, end: { x: NaN, y: NaN } });
+  }, { valid: true, invalidEquation: undefined, slope: 0, yIntercept: 0, start: { x: NaN, y: NaN }, end: { x: NaN, y: NaN } });
+
+  if(!combinedEquation.valid) {
+    return null;
+  }
 
   const combinedLineSegment: OrderItemPrice = {
     isSellOrder: !one.isSellOrder,

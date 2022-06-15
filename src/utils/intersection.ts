@@ -1,7 +1,90 @@
 import { getOBOrderPrice } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
 import { OrderItemPrice } from '../orders/orders.types';
-import { LineSegment, OrderPriceIntersection, Point } from './intersection.types';
+import { GetPriceAtTimeForEquation, LineSegment, LineSegmentEquation, OrderPriceIntersection, Point } from './intersection.types';
+
+export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderItemPrice[]) {
+  const getPriceAtTime = (timestamp: number, equation: GetPriceAtTimeForEquation) => {
+    if (timestamp >= equation.start.x && timestamp <= equation.end.x) {
+      return equation.slope * timestamp + equation.yIntercept;
+    }
+    return null;
+  };
+
+  const equationsOfMany = many.map((segment) => {
+    const start = {
+      x: segment.startTimeMs,
+      y: segment.startPriceEth
+    };
+    const end = {
+      x: segment.endTimeMs,
+      y: segment.endPriceEth
+    };
+
+    const slope = (end.y - start.y) / (end.x - start.x);
+    const yIntercept = start.y - slope * start.x;
+
+    return {
+      slope,
+      yIntercept,
+      start,
+      end
+    };
+  });
+
+  const combinedEquation = equationsOfMany.reduce((acc: LineSegmentEquation, curr) => {
+    const slope = acc.slope + curr.slope;
+    const yIntercept = acc.yIntercept + curr.yIntercept;
+
+    const getCoordinate = (accCoord: number, currCoord: number, isStart: boolean) => {
+      const select = isStart ? Math.max : Math.min;
+      return Number.isNaN(accCoord) ? currCoord : select(accCoord, currCoord);
+    }
+    const startX = getCoordinate(acc.start.x, curr.start.x, true);
+    const endX = getCoordinate(acc.end.x, curr.end.x, false);
+
+    const updatedEquation: GetPriceAtTimeForEquation = {
+      slope,
+      yIntercept,
+      start: {
+        x: startX,
+      },
+      end: {
+        x: endX,
+      }
+    }
+
+    const startY = getPriceAtTime(startX, updatedEquation);
+    const endY = getPriceAtTime(endX, updatedEquation);
+
+    if(startY === null || endY === null) {
+      throw new Error('Unexpected condition. startY or endY is null');
+    }
+
+    return {
+      ...updatedEquation,
+      start: {
+        x: startX,
+        y: startY
+      },
+      end: {
+        x: endX,
+        y: endY
+      }
+    }
+  }, { slope: 0, yIntercept: 0, start: { x: NaN, y: NaN }, end: { x: NaN, y: NaN } });
+
+  const combinedLineSegment: OrderItemPrice = {
+    isSellOrder: !one.isSellOrder,
+    startTimeMs: combinedEquation.start.x,
+    endTimeMs: combinedEquation.end.x,
+    startPriceEth: combinedEquation.start.y,
+    endPriceEth: combinedEquation.end.y
+  }
+
+  const intersection = getOrderIntersection(one, combinedLineSegment);
+  return intersection;
+}
 
 export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): OrderPriceIntersection {
   const segmentOne: LineSegment = {

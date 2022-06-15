@@ -1,8 +1,10 @@
+import { OrderItemPrice } from '../orders/orders.types';
 import { getOrderIntersection } from './intersection';
+import { OrderPriceIntersection } from './intersection.types';
 
-describe('intersection', () => {
+export const testOrderIntersection = (fn: (one: OrderItemPrice, two: OrderItemPrice) => OrderPriceIntersection) => {
   it('should be defined', () => {
-    expect(getOrderIntersection).toBeDefined();
+    expect(fn).toBeDefined();
   });
 
   it("should return null if timestamps don't overlap", () => {
@@ -22,7 +24,7 @@ describe('intersection', () => {
       endPriceEth: 2
     };
 
-    const intersection = getOrderIntersection(orderOnePrice, orderTwoPrice);
+    const intersection = fn(orderOnePrice, orderTwoPrice);
     expect(intersection).toBeNull();
   });
 
@@ -43,7 +45,7 @@ describe('intersection', () => {
       endPriceEth: 4
     };
 
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -69,7 +71,7 @@ describe('intersection', () => {
       endPriceEth: 4
     };
 
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     expect(intersection).toBeNull();
   });
 
@@ -90,7 +92,7 @@ describe('intersection', () => {
       endPriceEth: orderOne.startPriceEth
     };
 
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     expect(intersection).not.toBeNull();
     if (intersection == null) {
       expect(intersection).toBeTruthy();
@@ -117,7 +119,7 @@ describe('intersection', () => {
       endPriceEth: 1
     };
 
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     expect(intersection).toBeNull();
   });
 
@@ -138,7 +140,7 @@ describe('intersection', () => {
       endPriceEth: 2
     };
 
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -156,7 +158,7 @@ describe('intersection', () => {
       endPriceEth: 1
     };
 
-    const intersection = getOrderIntersection(orderOne, { ...orderOne, isSellOrder: false });
+    const intersection = fn(orderOne, { ...orderOne, isSellOrder: false });
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -180,7 +182,7 @@ describe('intersection', () => {
       startPriceEth: 1.25,
       endPriceEth: 1.75
     };
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -204,7 +206,7 @@ describe('intersection', () => {
       startPriceEth: 1,
       endPriceEth: 2
     };
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -230,7 +232,7 @@ describe('intersection', () => {
       endPriceEth: 1
     };
 
-    const intersection = getOrderIntersection(orderOne, orderTwo);
+    const intersection = fn(orderOne, orderTwo);
     if (intersection == null) {
       expect(intersection).toBeTruthy();
       return;
@@ -238,4 +240,8 @@ describe('intersection', () => {
     expect(intersection.timestamp).toBeCloseTo(150_000);
     expect(intersection.price).toBeCloseTo(1.5);
   });
+}
+
+describe('intersection', () => {
+  testOrderIntersection(getOrderIntersection);
 });

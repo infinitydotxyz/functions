@@ -19,11 +19,11 @@ export type LineSegmentEquation = {
   yIntercept: number;
   start: Point;
   end: Point;
-}
+};
 
 export type GetPriceAtTimeForEquation = {
   slope: number;
   yIntercept: number;
-  start: Pick<Point, 'x'>,
-  end: Pick<Point, 'x'>,
-}
+  start: Pick<Point, 'x'>;
+  end: Pick<Point, 'x'>;
+};

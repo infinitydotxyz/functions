@@ -23,17 +23,21 @@ export async function loadWallets(
 
   const walletsToCreate = numWallets - existingWallets.length;
   const items = walletsToCreate > 0 ? [...Array(walletsToCreate).keys()] : [];
-  const newWallets: ethers.Wallet[] = await Promise.all(items.map(async () => {
-    const wallet = ethers.Wallet.createRandom();
-    await writeFile(join(`${walletsDir}/${wallet.address.toLowerCase()}.txt`), wallet.privateKey);
-    return wallet;
-  }));
+  const newWallets: ethers.Wallet[] = await Promise.all(
+    items.map(async () => {
+      const wallet = ethers.Wallet.createRandom();
+      await writeFile(join(`${walletsDir}/${wallet.address.toLowerCase()}.txt`), wallet.privateKey);
+      return wallet;
+    })
+  );
 
   const wallets = [...existingWallets, ...newWallets].splice(0, numWallets);
-  return await Promise.all(wallets.map(async (wallet) => {
-    const walletWithBalances = await getWalletWithBalances(wallet, provider, wethAddress);
-    return walletWithBalances;
-  }));
+  return await Promise.all(
+    wallets.map(async (wallet) => {
+      const walletWithBalances = await getWalletWithBalances(wallet, provider, wethAddress);
+      return walletWithBalances;
+    })
+  );
 }
 
 export async function getWalletWithBalances(

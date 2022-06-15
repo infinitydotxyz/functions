@@ -1,7 +1,13 @@
 import { getOBOrderPrice } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
 import { OrderItemPrice } from '../orders/orders.types';
-import { GetPriceAtTimeForEquation, LineSegment, LineSegmentEquation, OrderPriceIntersection, Point } from './intersection.types';
+import {
+  GetPriceAtTimeForEquation,
+  LineSegment,
+  LineSegmentEquation,
+  OrderPriceIntersection,
+  Point
+} from './intersection.types';
 
 export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderItemPrice[]) {
   const getPriceAtTime = (timestamp: number, equation: GetPriceAtTimeForEquation) => {
@@ -32,60 +38,70 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
     };
   });
 
-  type CombinedEquation = LineSegmentEquation & { valid: boolean, invalidEquation?: LineSegmentEquation}
-  const combinedEquation = equationsOfMany.reduce((acc: CombinedEquation, curr) => {
-    if(!acc.valid) {
-      return acc;
-    }
-
-    const slope = acc.slope + curr.slope;
-    const yIntercept = acc.yIntercept + curr.yIntercept;
-
-    const getCoordinate = (accCoord: number, currCoord: number, isStart: boolean) => {
-      const select = isStart ? Math.max : Math.min;
-      return Number.isNaN(accCoord) ? currCoord : select(accCoord, currCoord);
-    }
-    const startX = getCoordinate(acc.start.x, curr.start.x, true);
-    const endX = getCoordinate(acc.end.x, curr.end.x, false);
-
-    const updatedEquation: GetPriceAtTimeForEquation = {
-      slope,
-      yIntercept,
-      start: {
-        x: startX,
-      },
-      end: {
-        x: endX,
+  type CombinedEquation = LineSegmentEquation & { valid: boolean; invalidEquation?: LineSegmentEquation };
+  const combinedEquation = equationsOfMany.reduce(
+    (acc: CombinedEquation, curr) => {
+      if (!acc.valid) {
+        return acc;
       }
-    }
 
-    const startY = getPriceAtTime(startX, updatedEquation);
-    const endY = getPriceAtTime(endX, updatedEquation);
+      const slope = acc.slope + curr.slope;
+      const yIntercept = acc.yIntercept + curr.yIntercept;
 
-    if(startY === null || endY === null) {
+      const getCoordinate = (accCoord: number, currCoord: number, isStart: boolean) => {
+        const select = isStart ? Math.max : Math.min;
+        return Number.isNaN(accCoord) ? currCoord : select(accCoord, currCoord);
+      };
+      const startX = getCoordinate(acc.start.x, curr.start.x, true);
+      const endX = getCoordinate(acc.end.x, curr.end.x, false);
+
+      const updatedEquation: GetPriceAtTimeForEquation = {
+        slope,
+        yIntercept,
+        start: {
+          x: startX
+        },
+        end: {
+          x: endX
+        }
+      };
+
+      const startY = getPriceAtTime(startX, updatedEquation);
+      const endY = getPriceAtTime(endX, updatedEquation);
+
+      if (startY === null || endY === null) {
+        return {
+          ...acc,
+          valid: false,
+          invalidEquation: curr
+        };
+      }
+
       return {
-        ...acc,
-        valid: false,
-        invalidEquation: curr
-      }
-    }
-
-    return {
-      valid: true, 
+        valid: true,
+        invalidEquation: undefined,
+        ...updatedEquation,
+        start: {
+          x: startX,
+          y: startY
+        },
+        end: {
+          x: endX,
+          y: endY
+        }
+      };
+    },
+    {
+      valid: true,
       invalidEquation: undefined,
-      ...updatedEquation,
-      start: {
-        x: startX,
-        y: startY
-      },
-      end: {
-        x: endX,
-        y: endY
-      }
+      slope: 0,
+      yIntercept: 0,
+      start: { x: NaN, y: NaN },
+      end: { x: NaN, y: NaN }
     }
-  }, { valid: true, invalidEquation: undefined, slope: 0, yIntercept: 0, start: { x: NaN, y: NaN }, end: { x: NaN, y: NaN } });
+  );
 
-  if(!combinedEquation.valid) {
+  if (!combinedEquation.valid) {
     return null;
   }
 
@@ -95,7 +111,7 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
     endTimeMs: combinedEquation.end.x,
     startPriceEth: combinedEquation.start.y,
     endPriceEth: combinedEquation.end.y
-  }
+  };
 
   const intersection = getOrderIntersection(one, combinedLineSegment);
   return intersection;
@@ -141,14 +157,14 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
       if (offerPriceIsGreaterThanListingPrice) {
         const nearestSecond = Math.ceil(timeValid / 1000) * 1000;
         const getPriceAtTime = (timestamp: number) => {
-          if(timestamp < minTimestamp || timestamp > maxTimestamp) {
+          if (timestamp < minTimestamp || timestamp > maxTimestamp) {
             return null;
           }
           const listingPrice = getOBOrderPrice(listing, timestamp);
           return parseFloat(ethers.utils.formatEther(listingPrice));
         };
         const price = getPriceAtTime(nearestSecond);
-        if(price === null) {
+        if (price === null) {
           return null;
         }
         return {
@@ -167,14 +183,14 @@ export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): 
   const yIntercept = segmentOne.start.y - segmentOneSlope * segmentOne.start.x;
 
   const getPriceAtTime = (timestamp: number) => {
-    if(timestamp < minTimestamp || timestamp > maxTimestamp) {
+    if (timestamp < minTimestamp || timestamp > maxTimestamp) {
       return null;
     }
     return segmentOneSlope * timestamp + yIntercept;
   };
 
   const price = getPriceAtTime(nearestSecond);
-  if(price === null) {
+  if (price === null) {
     return null;
   }
 

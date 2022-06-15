@@ -1,4 +1,4 @@
-import * as Emitter from 'events';
+import Emitter from 'events';
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { OrderItemSnippet, Token } from '@infinityxyz/lib/types/core/Token';

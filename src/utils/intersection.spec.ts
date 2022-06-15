@@ -240,7 +240,7 @@ export const testOrderIntersection = (fn: (one: OrderItemPrice, two: OrderItemPr
     expect(intersection.timestamp).toBeCloseTo(150_000);
     expect(intersection.price).toBeCloseTo(1.5);
   });
-}
+};
 
 describe('intersection', () => {
   testOrderIntersection(getOrderIntersection);

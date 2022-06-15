@@ -1,6 +1,6 @@
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import { ethers } from 'ethers';
-import * as phin from 'phin';
+import phin from 'phin';
 import { getAuthHeaders } from './get-auth-headers';
 
 export async function postOrder(signer: ethers.Wallet, order: SignedOBOrderDto) {

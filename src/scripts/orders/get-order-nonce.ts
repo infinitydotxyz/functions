@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import * as phin from 'phin';
+import phin from 'phin';
 
 export async function getOrderNonce(wallet: ethers.Wallet): Promise<number> {
   const response = await phin({

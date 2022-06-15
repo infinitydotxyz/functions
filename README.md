@@ -31,4 +31,12 @@ orderMatches
     * order matches are marked `matched` by the transaction broadcaster 
     * order matches are marked `invalid` anytime at least one of the orders contained are marked `invalid` or `validInactive`
 
+## Order Match Types
+#### Order Match 
+* A match between two orders
+* Each order specifies some order items (containing specific collection/token constraints) and a `numItems` that need to be fulfilled for a match to be created
 
+#### One to one order match 
+* A subset of the Order Match order type that occurs when the following is true
+    * Both orders specify a `numItems` of 1
+    * The match results in a single nft being transferred

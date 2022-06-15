@@ -5,20 +5,20 @@ export class OrderItemCollectionAddressConstraint extends OrderItemConstraint {
   protected score = 0;
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    if(this.component.firestoreOrderItem.collectionAddress) {
+    if (this.component.firestoreOrderItem.collectionAddress) {
       return orderItem.collectionAddress === this.component.firestoreOrderItem.collectionAddress;
     }
     /**
      * if the order item doesn't specify a collection address
      * then it can be matched with any collection address
-     */ 
+     */
     return true;
   }
 
   protected addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem> {
-    if(this.component.firestoreOrderItem.collectionAddress) {
+    if (this.component.firestoreOrderItem.collectionAddress) {
       return query.where('collectionAddress', '==', this.component.firestoreOrderItem.collectionAddress);
     }
     return query;

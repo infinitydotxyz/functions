@@ -10,6 +10,10 @@ export abstract class OrderItemConstraint implements IOrderItem {
     this.component = orderItem;
   }
 
+  get id() {
+    return this.component.id;
+  }
+
   get orderRef(): FirebaseFirestore.DocumentReference<FirestoreOrder> {
     return this.component.orderRef;
   }

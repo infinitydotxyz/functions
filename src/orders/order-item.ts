@@ -4,11 +4,14 @@ import { OrderItemStartTimeConstraint } from './constraints/start-time-constrain
 import { OrderItem as IOrderItem } from './orders.types';
 import { Constraint, constraints } from './constraints/constraint.types';
 import { streamQuery } from '../firestore/stream-query';
+import { nanoid } from 'nanoid';
 
 export class OrderItem implements IOrderItem {
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;
 
   public firestoreQueryOrderByConstraint: Constraint = OrderItemStartTimeConstraint;
+
+  public readonly id: string;
 
   constructor(
     public readonly firestoreOrderItem: FirestoreOrderItem,
@@ -19,23 +22,7 @@ export class OrderItem implements IOrderItem {
     this.orderRef = this.db
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(this.firestoreOrderItem.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
-  }
-
-  /**
-   * whether the underlying order supports being matched with multiple orders
-   */
-  public get canMatchWithMany() {
-    const requiresMany = this.firestoreOrder.numItems > 1;
-    /**
-     * if the order specifies token ids then numTokens must match the matching order
-     * i.e. we can only use one to many if the order does not specify tokens
-     */
-    for (const orderItem of this.orderItems) {
-      if (orderItem.tokenId !== '') {
-        return false;
-      }
-    }
-    return requiresMany;
+    this.id = nanoid();
   }
 
   public get isAuction(): boolean {

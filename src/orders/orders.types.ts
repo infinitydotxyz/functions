@@ -9,6 +9,12 @@ export type OrderItemPrice = Pick<
 export interface OrderItem {
   isAuction: boolean;
 
+  /**
+   * a randomly generated id for the order item
+   * - generated when class is constructed and is not deterministic
+   */
+  id: string;
+
   constraintScore: number;
 
   firestoreOrderItem: FirestoreOrderItem;

@@ -3,6 +3,7 @@ import {
   FirestoreOrderMatch,
   FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
+  FirestoreOrderMatchOneToMany,
   FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken,
@@ -14,11 +15,16 @@ import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
-import { getOrderIntersection } from '../utils/intersection';
+import { getOneToManyOrderIntersection, getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
 import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
 
+type OrderMatch = {
+  order: Order;
+  orderItems: IOrderItem[];
+  matches: OrderItemMatch[];
+};
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
     return getDb()
@@ -93,7 +99,7 @@ export class Order {
           if (!orderSubsetMatches.has(orderId)) {
             const opposingOrder = await this.getOrder(orderId); // TODO optimize with a getAll
             if (opposingOrder?.orderItems && opposingOrder?.order) {
-              const minOrderItemsToFulfill = 1; // require the opposing order to fulfill at least one item in this order
+              const minOrderItemsToFulfill = 1; // TODO require the opposing order to fulfill at least one item in this order
               const opposingOrderMatch = this.checkForMatch(
                 opposingOrder?.orderItems,
                 {
@@ -115,7 +121,7 @@ export class Order {
     }
     // TODO handle many order matches
     const { singleOrderMatches, manyOrderMatches } = this.generateMatches(orderItems, [...orderSubsetMatches.values()]);
-    const orderMatches = singleOrderMatches.reduce(
+    const singleMatches = singleOrderMatches.reduce(
       (acc: (FirestoreOrderMatch | FirestoreOrderMatchOneToOne)[], item) => {
         const intersection = getOrderIntersection(this.firestoreOrder, item.order.firestoreOrder);
         if (intersection !== null) {
@@ -126,7 +132,22 @@ export class Order {
       },
       []
     );
-    return { matches: orderMatches };
+
+    // const manyMatches = manyOrderMatches.reduce(
+    //   (acc: (FirestoreOrderMatchOneToMany)[], item) => {
+    //     item.matches.map((match) => {
+    //       match.opposingOrder.o
+    //     })
+    //     const intersection = getOneToManyOrderIntersection(this.firestoreOrder, item.matches.map((item) => item.order.fire));
+    //     if (intersection !== null) {
+    //       const orderMatch = this.getFirestoreOrderMatch(item., intersection.price, intersection.timestamp);
+    //       return [...acc, orderMatch];
+    //     }
+    //     return acc;
+    //   },
+    //   []
+    // );
+    return { matches: singleMatches };
   }
 
   /**
@@ -140,7 +161,7 @@ export class Order {
   private generateMatches(
     orderItems: IOrderItem[],
     orderSubsetMatches: { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }[]
-  ) {
+  ): { singleOrderMatches: OrderMatch[]; manyOrderMatches: OrderMatch[] } {
     const orderItemIds = [...new Set(orderItems.map((item) => item.id))];
 
     const getComplementaryOrderItemIds = (orderIds: string[]) => {
@@ -148,11 +169,7 @@ export class Order {
       const complementaryOrderItemIds = orderItemIds.filter((id) => !orderIdSet.has(id));
       return complementaryOrderItemIds;
     };
-    type OrderMatch = {
-      order: Order;
-      orderItems: IOrderItem[];
-      matches: OrderItemMatch[];
-    };
+
 
     /**
      * full order matches are can fulfill the full order on their own
@@ -364,7 +381,8 @@ export class Order {
 
     const rawId = match
       .map(({ order, opposingOrder }) => {
-        return `${order.firestoreOrderItem.id}:${opposingOrder.firestoreOrderItem.id}`;
+        const [listing, offer] = order.firestoreOrderItem.isSellOrder ? [order.firestoreOrderItem, opposingOrder.firestoreOrderItem] : [opposingOrder.firestoreOrderItem, order.firestoreOrderItem];
+        return `${listing.id}:${offer.id}`;
       })
       .sort()
       .join('-')
@@ -615,7 +633,7 @@ export class Order {
     });
 
     const validCombinationsSortedByNumMatches = validCombinations.sort(
-      (itemA, itemB) => itemA.matches.length - itemB.matches.length
+      (itemA, itemB) => itemB.matches.length - itemA.matches.length
     );
 
     const bestMatch = validCombinationsSortedByNumMatches[0];

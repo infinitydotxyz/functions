@@ -30,6 +30,7 @@ export async function createOrders(oneToOne = false) {
   };
 
   const wallets = await loadWallets(provider, weth, 7);
+  console.log(`Funding test wallets...`);
   const { testWallets, fundingWallet } = await fundTestWallets(
     wallets,
     signer,
@@ -60,54 +61,47 @@ export async function createOrders(oneToOne = false) {
     })
   );
 
-  await Promise.all(
-    walletsWithTokens.map(async (wallet) => {
-      try {
-        const orderDescription = {
-          chainId,
-          isSellOrder: true,
-          numItems: numTokens,
-          startPriceEth: 0.01,
-          endPriceEth: 0.01,
-          startTimeMs: Date.now(),
-          endTimeMs: Date.now() + 1000 * 60 * 60 * 24 * 7,
-          nfts: wallet.nfts
-        };
-        console.log(
-          `Creating orders for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`
-        );
-        // create listings
-        for (const collection of orderDescription.nfts) {
-          collection.collection;
-          await setApprovalForAll(collection.collection, exchange, true, wallet.wallet);
-        }
-        const signedOrder = await signOrder(wallet.wallet, orderDescription);
-        await postOrder(wallet.wallet, signedOrder);
-        console.log(
-          `Created listing for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`
-        );
-
-        // create offers
-        const offer = {
-          chainId,
-          isSellOrder: false,
-          numItems: numTokens,
-          startPriceEth: 0.02,
-          endPriceEth: 0.02,
-          startTimeMs: Date.now(),
-          endTimeMs: Date.now() + 1000 * 60 * 60 * 24 * 7,
-          nfts: wallet.nfts
-        };
-
-        const signedOffer = await signOrder(fundingWallet.wallet, offer);
-        await postOrder(fundingWallet.wallet, signedOffer);
-        console.log(`Created offer for ${fundingWallet.wallet.address} token: ${offer.nfts[0].tokens[0].tokenId}`);
-        return;
-      } catch (err) {
-        console.error(err);
+  for (const wallet of walletsWithTokens) {
+    try {
+      const orderDescription = {
+        chainId,
+        isSellOrder: true,
+        numItems: numTokens,
+        startPriceEth: 0.01,
+        endPriceEth: 0.01,
+        startTimeMs: Date.now(),
+        endTimeMs: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        nfts: wallet.nfts
+      };
+      console.log(`Creating orders for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);
+      // create listings
+      for (const collection of orderDescription.nfts) {
+        collection.collection;
+        await setApprovalForAll(collection.collection, exchange, true, wallet.wallet);
       }
-    })
-  );
+      const signedOrder = await signOrder(wallet.wallet, orderDescription);
+      await postOrder(wallet.wallet, signedOrder);
+      console.log(`Created listing for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);
+
+      // create offers
+      const offer = {
+        chainId,
+        isSellOrder: false,
+        numItems: numTokens,
+        startPriceEth: 0.02,
+        endPriceEth: 0.02,
+        startTimeMs: Date.now(),
+        endTimeMs: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        nfts: wallet.nfts
+      };
+
+      const signedOffer = await signOrder(fundingWallet.wallet, offer);
+      await postOrder(fundingWallet.wallet, signedOffer);
+      console.log(`Created offer for ${fundingWallet.wallet.address} token: ${offer.nfts[0].tokens[0].tokenId}`);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 }
 
-void createOrders(true);
+void createOrders(false);

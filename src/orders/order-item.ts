@@ -14,6 +14,8 @@ export class OrderItem implements IOrderItem {
 
   public readonly id: string;
 
+  public wrapper: IOrderItem;
+
   constructor(
     public readonly firestoreOrderItem: FirestoreOrderItem,
     public readonly db: FirebaseFirestore.Firestore,
@@ -39,7 +41,9 @@ export class OrderItem implements IOrderItem {
     for (const Constraint of constraints) {
       orderItem = new Constraint(orderItem ?? this);
     }
-    return orderItem ?? this;
+    orderItem = orderItem ?? this;
+    this.wrapper = orderItem;
+    return this.wrapper;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -51,7 +55,7 @@ export class OrderItem implements IOrderItem {
     orderItems: IOrderItem[]
   ): { isValid: false } | { isValid: true; numItems: number; tokenIds: Set<string>; price: number; timestamp: number } {
     const allMatch = orderItems.every(
-      (orderItem) => this.isMatch(orderItem.firestoreOrderItem) && orderItem.isMatch(this.firestoreOrderItem)
+      (orderItem) => this.wrapper.isMatch(orderItem.firestoreOrderItem) && orderItem.isMatch(this.firestoreOrderItem)
     );
     const tokenIdsValid = this.checkTokenIds(orderItems);
     if (!tokenIdsValid.isValid) {

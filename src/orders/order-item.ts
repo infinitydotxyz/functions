@@ -5,6 +5,7 @@ import { OrderItem as IOrderItem } from './orders.types';
 import { Constraint, constraints } from './constraints/constraint.types';
 import { streamQuery } from '../firestore/stream-query';
 import { nanoid } from 'nanoid';
+import { getOneToManyOrderIntersection } from '../utils/intersection';
 
 export class OrderItem implements IOrderItem {
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;
@@ -46,6 +47,41 @@ export class OrderItem implements IOrderItem {
     return true;
   }
 
+  public areMatches(
+    orderItems: IOrderItem[]
+  ): { isValid: false } | { isValid: true; numItems: number; tokenIds: Set<string>; price: number; timestamp: number } {
+    const allMatch = orderItems.every(
+      (orderItem) => this.isMatch(orderItem.firestoreOrderItem) && orderItem.isMatch(this.firestoreOrderItem)
+    );
+    const tokenIdsValid = this.checkTokenIds(orderItems);
+    if (!tokenIdsValid.isValid) {
+      return { isValid: false };
+    }
+
+    const numItemsValid = this.checkNumItems(tokenIdsValid.tokenIds);
+    if (!numItemsValid.isValid) {
+      return { isValid: false };
+    }
+
+    const uniqueOrders = this.getUniqueOrders(orderItems);
+    const sampleOrderItems = [...uniqueOrders.values()].map((item) => item[0].firestoreOrderItem);
+    const priceIntersection = getOneToManyOrderIntersection(this.firestoreOrderItem, sampleOrderItems);
+
+    if (!allMatch || !priceIntersection) {
+      return {
+        isValid: false
+      };
+    }
+
+    return {
+      isValid: true,
+      numItems: numItemsValid.numItems,
+      tokenIds: tokenIdsValid.tokenIds,
+      price: priceIntersection.price,
+      timestamp: priceIntersection.timestamp
+    };
+  }
+
   /**
    * getPossibleMatches queries for valid active orders that might be a match
    *
@@ -69,5 +105,71 @@ export class OrderItem implements IOrderItem {
 
   getNumConstraints(): number {
     return 0;
+  }
+
+  private checkNumItems(tokenIds: Set<string>): { isValid: boolean; numItems: number } {
+    if (this.firestoreOrder.isSellOrder) {
+      /**
+       * num items is a maximum
+       */
+      const isValid = tokenIds.size <= this.firestoreOrderItem.numItems;
+      return { isValid, numItems: tokenIds.size };
+    }
+    /**
+     * num items is a minimum for the full order
+     */
+    return { isValid: true, numItems: tokenIds.size };
+  }
+
+  private checkTokenIds(orderItems: IOrderItem[]): { isValid: false } | { isValid: true; tokenIds: Set<string> } {
+    const tokenIds = new Set<string>();
+    /**
+     * if this order item specifies a token id then
+     * the order item can be matched with one other order item
+     * and the token id must match
+     */
+    const expectSingleOrderItem = !!this.firestoreOrderItem.tokenId;
+
+    if (expectSingleOrderItem && orderItems.length > 1) {
+      return {
+        isValid: false
+      };
+    } else if (expectSingleOrderItem) {
+      const tokenId = this.firestoreOrderItem.tokenId;
+      tokenIds.add(tokenId);
+      return {
+        isValid: true,
+        tokenIds
+      };
+    }
+
+    /**
+     * if this order item does not specify a token id then
+     * the order item can be matches with multiple other order
+     * items as long as they specify different token ids
+     */
+
+    for (const orderItem of orderItems) {
+      const tokenId = orderItem.firestoreOrderItem.tokenId;
+      if (!tokenId || tokenIds.has(tokenId)) {
+        return {
+          isValid: false
+        };
+      }
+    }
+
+    return { isValid: true, tokenIds };
+  }
+
+  private getUniqueOrders(orderItems: IOrderItem[]): Map<string, IOrderItem[]> {
+    const uniqueOrders = new Map<string, IOrderItem[]>();
+    for (const orderItem of orderItems) {
+      const orderId = orderItem.firestoreOrderItem.id;
+      const orderItemsByOrderId = uniqueOrders.get(orderId) ?? [];
+      orderItemsByOrderId.push(orderItem);
+      uniqueOrders.set(orderId, orderItemsByOrderId);
+    }
+
+    return uniqueOrders;
   }
 }

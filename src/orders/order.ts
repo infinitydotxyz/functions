@@ -3,7 +3,6 @@ import {
   FirestoreOrderMatch,
   FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
-  FirestoreOrderMatchOneToMany,
   FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken,
@@ -15,7 +14,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
-import { getOneToManyOrderIntersection, getOrderIntersection } from '../utils/intersection';
+import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
 import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
@@ -65,7 +64,6 @@ export class Order {
   //          * TODO check if the opposing order can be fulfilled by this order and if so trigger scan for opposing order
   //          * required so that if this order is a many order
   //          */
-
   //         const result = this.checkForMatch(orderItems, opposingOrder, this.firestoreOrder.numItems);
   //         if (result.isMatch) {
   //           const match = this.getFirestoreOrderMatch(result.match, result.price, result.timestamp) as T;
@@ -87,7 +85,9 @@ export class Order {
       throw new Error('invalid order, no order items found');
     }
 
-    const orderSubsetMatches = new Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }>();
+    const orderSubsetMatches = new Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number }[]>();
+    const fullMatches: { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number  }[] = [];
+
     /**
      * get the possible matches for every order item in the order
      */
@@ -99,19 +99,32 @@ export class Order {
           if (!orderSubsetMatches.has(orderId)) {
             const opposingOrder = await this.getOrder(orderId); // TODO optimize with a getAll
             if (opposingOrder?.orderItems && opposingOrder?.order) {
-              const minOrderItemsToFulfill = 1; // TODO require the opposing order to fulfill at least one item in this order
-              const opposingOrderMatch = this.checkForMatch(
+              const matches = this.checkForMatches(
                 opposingOrder?.orderItems,
                 {
                   order: this,
-                  orderItems: orderItems
+                  orderItems
                 },
-                minOrderItemsToFulfill
-              );
-              if (opposingOrderMatch.isMatch) {
-                orderSubsetMatches.set(opposingOrder.order.firestoreOrder.id, {
+                1
+              ); // 1 to get all partial matches 
+
+              const opposingOrderPartialMatches = matches.map(({match, price, timestamp}) => {
+                return {
                   ...opposingOrder,
-                  matches: opposingOrderMatch.match
+                  matches: match,
+                  price, 
+                  timestamp
+                }
+              }).filter((item) => item.matches.length < this.firestoreOrder.numItems); // filter out full matches 
+              orderSubsetMatches.set(orderId, opposingOrderPartialMatches);
+
+              const bestFullMatch = this.getBestMatch(matches, this.firestoreOrder.numItems);
+              if (bestFullMatch.isMatch) {
+                fullMatches.push({
+                  ...opposingOrder,
+                  matches: bestFullMatch.match,
+                  price: bestFullMatch.price,
+                  timestamp: bestFullMatch.timestamp
                 });
               }
             }
@@ -119,19 +132,20 @@ export class Order {
         }
       }
     }
-    // TODO handle many order matches
-    const { singleOrderMatches, manyOrderMatches } = this.generateMatches(orderItems, [...orderSubsetMatches.values()]);
-    const singleMatches = singleOrderMatches.reduce(
+
+    const singleMatches = fullMatches.reduce(
       (acc: (FirestoreOrderMatch | FirestoreOrderMatchOneToOne)[], item) => {
-        const intersection = getOrderIntersection(this.firestoreOrder, item.order.firestoreOrder);
-        if (intersection !== null) {
-          const orderMatch = this.getFirestoreOrderMatch(item.matches, intersection.price, intersection.timestamp);
+          const orderMatch = this.getFirestoreOrderMatch(item.matches, item.price, item.timestamp);
           return [...acc, orderMatch];
-        }
-        return acc;
       },
       []
     );
+
+    // combine subset matches to form full matches
+    // for(const [, opposingOrderSubsetMatch] of orderSubsetMatches) {
+
+    // }
+
 
     // const manyMatches = manyOrderMatches.reduce(
     //   (acc: (FirestoreOrderMatchOneToMany)[], item) => {
@@ -150,6 +164,31 @@ export class Order {
     return { matches: singleMatches };
   }
 
+
+
+  private generateFullMatches(partialMatchesByOrder: Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number }[]>) {
+    /**
+     * matches are conflicting if 
+     * 1. they are from the same order
+     * 2. two of their 
+     */
+    // const generateNonConflictingMatches = (remainingOrders: Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number }[]>, matchesByOrderItemFulfilled: Map<string, OrderItemMatch[]>) => {
+    //   const orderMatches = [...remainingOrders.values()][0];
+    //   if(!orderMatches) {
+    //     return matchesByOrderItemFulfilled;
+    //   }
+    //   for(const { order, orderItems, matches, price, timestamp } of orderMatches) {
+    //   }
+    // }
+    // for(const [, orderMatches] of partialMatchesByOrder) {
+    //   for(const { order, orderItems, matches, price, timestamp} of orderMatches) {
+        
+    //   }
+    // }
+
+
+  }
+
   /**
    * takes an array of orders with their corresponding order items and an array of matches
    * that they fulfill within this order. each order can be fully fulfilled by this order
@@ -157,6 +196,8 @@ export class Order {
    * goal is to find the shortest paths that fulfill the order up to some max depth (i.e. number of orders)
    *
    * TODO how do we determine max depth? how will gas be affected?
+   *
+   * @param orderItems - the order items in the order that we are attempting to fulfill
    */
   private generateMatches(
     orderItems: IOrderItem[],
@@ -169,7 +210,6 @@ export class Order {
       const complementaryOrderItemIds = orderItemIds.filter((id) => !orderIdSet.has(id));
       return complementaryOrderItemIds;
     };
-
 
     /**
      * full order matches are can fulfill the full order on their own
@@ -193,6 +233,9 @@ export class Order {
 
     const orderItemsById = new Map<string, IOrderItem>(orderItems.map((item) => [item.id, item]));
 
+    /**
+     * provide
+     */
     const ordersByMatch = new Map<
       OrderItemMatch,
       { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }
@@ -203,14 +246,10 @@ export class Order {
       }
     }
 
-    /**
-     * create unique ids for each order item in this order
-     * store matches in a map with the id as the key
-     */
     const matchesByOrderItemFulfilled = new Map<string, OrderItemMatch[]>();
     for (const orderSubsetMatch of partialOrderMatches) {
       for (const match of orderSubsetMatch.matches) {
-        const id = match.order.id;
+        const id = match.orderItem.id;
         const existingMatches = matchesByOrderItemFulfilled.get(id) ?? [];
         existingMatches.push(match);
         matchesByOrderItemFulfilled.set(id, existingMatches);
@@ -218,11 +257,11 @@ export class Order {
     }
 
     for (const subsetMatch of partialOrderMatches) {
-      const opposingOrder = subsetMatch.order;
-      const opposingOrderItems = subsetMatch.orderItems;
-      const matches = subsetMatch.matches;
-      const orderIdsInMatches = matches.map((item) => item.order.id);
-      const complementaryOrderItemIds = getComplementaryOrderItemIds(orderIdsInMatches);
+      const partialOpposingOrder = subsetMatch.order;
+      const partialOpposingOrderItems = subsetMatch.orderItems;
+      const partialMatches = subsetMatch.matches;
+      const orderIdsInPartialMatches = partialMatches.map((item) => item.orderItem.id);
+      const complementaryOrderItemIds = getComplementaryOrderItemIds(orderIdsInPartialMatches);
       const unmatchedOrderItems = complementaryOrderItemIds.map((id) => {
         const matchesForOrderItem = matchesByOrderItemFulfilled.get(id) ?? [];
         const orderItem = orderItemsById.get(id);
@@ -231,142 +270,51 @@ export class Order {
           matches: matchesForOrderItem
         };
       });
-
-      // const nonConflictingUnmatchedOrderItems = unmatchedOrderItems.filter(()
-
-      /**
-       * how do we generate combinations of order items such that
-       * the combinations are not conflicting (i.e. no order items are matched by multiple orders)
-       * the number of order items is constraint is fulfilled
-       * the price/time is fulfilled
-       */
     }
+
+    /**
+     * how do we generate combinations of order items such that
+     * the combinations are not conflicting (i.e. no order items are matched by multiple orders)
+     * the number of order items constraint is fulfilled
+     * the price/time constraint is fulfilled
+     *
+     *
+     * create a recursive function that takes an array of matches containing a
+     */
+    // const numItems = this.firestoreOrder.numItems;
+    // const maxDepth = 5;
+    // const combinePartialMatches = (
+    //   unfulfilledOrder: { orderItems: IOrderItem[] },
+    //   remainingPartialOrders: Set<string>
+    // ) => {};
+
+    // combinePartialMatches({orderItems}, remainingPartialOrders: )
+
+    // const generateFullMatches = (orderItemMatches: OrderItemMatch[], unfulfilledOrderItems: { unfulfilledOrderItem: IOrderItem, possibleMatches: IOrderItem[] }[], depth = 0) => {
+    // if(depth >= maxDepth) {
+    //     return [];
+    //   }
+
+    //   const orderIdsInMatches = orderItemMatches.map((item) => item.orderItem.id);
+    //   const complimentaryOrderItemIds = getComplementaryOrderItemIds(orderIdsInMatches);
+    //   // const unfulfilledOrderItemIds = unfulfilledOrderItems.map((orderItem) => orderItem.id);
+
+    //   for(const unfulfilledOrderItem of unfulfilledOrderItems) {
+    //     const id = unfulfilledOrderItem.id;
+    //     const possibleMatches = matchesByOrderItemFulfilled.get(id) ?? [];
+
+    //     for(const possibleMatch of possibleMatches) {
+
+    //     }
+    //   }
+
+    // }
 
     return {
       singleOrderMatches: fullOrderMatches,
       manyOrderMatches: [] // TODO
     };
   }
-
-  //   /**
-  //    * order item match := an order that fulfills a subset of the order items for the order
-  //    *
-  //    * use the order item matches we just found to attempt to create order matches for this order
-  //    * - we attempt to do this by generating combinations of order item matches and seeing if they
-  //    *  can be used to fulfill the order
-  //    */
-  //   const combineOrderItemMatchesToSatisfyOrder = (
-  //     orderItemMatches: {
-  //       order: Order;
-  //       orderItems: IOrderItem[];
-  //     }[]
-  //   ): { matches: OneToManyOrderItemMatch[] }[] => {
-  //     const orderItemMatchesCopy = [...orderItemMatches];
-  //     const orderItem = orderItemMatchesCopy.shift();
-  //     if (!orderItem) {
-  //       return [];
-  //     }
-
-  //     const;
-
-  //     const paths = opposingOrderItemsCopy.flatMap((opposingOrderItem, index) => {
-  //       let subPaths: { matches: OrderItemMatch[] }[] = [];
-
-  //       if (orderItem.isMatch(opposingOrderItem.firestoreOrderItem)) {
-  //         const unclaimedOpposingOrders = [...opposingOrderItemsCopy];
-  //         unclaimedOpposingOrders.splice(index, 1);
-  //         const sub = generateMatchCombinations([...orderItemsCopy], unclaimedOpposingOrders);
-  //         const match: OrderItemMatch = { order: orderItem, opposingOrder: opposingOrderItem };
-  //         const subPathsWithMatch = sub.map(({ matches }) => {
-  //           return { matches: [match, ...matches] };
-  //         });
-  //         subPaths = [...subPaths, { matches: [match] }, ...subPathsWithMatch];
-  //       }
-
-  //       const unclaimedOpposingOrders = [...opposingOrderItemsCopy];
-  //       const sub = generateMatchCombinations([...orderItemsCopy], unclaimedOpposingOrders);
-  //       const subPathsWithoutMatch = sub.map(({ matches }) => {
-  //         return { matches: [...matches] };
-  //       });
-  //       subPaths = [...subPaths, ...subPathsWithoutMatch];
-
-  //       return subPaths;
-  //     });
-  //     return paths;
-  //   };
-  // }
-
-  // public async searchForOneToManyMatches(
-  //   orderItemsToFulfill: OrderItem[],
-  //   ordersTaken: Set<string>,
-  //   depth: number
-  // ): Promise<OneToManyOrderItemMatch[]> {
-  //   const firstItem = orderItemsToFulfill[0];
-  //   if (!firstItem) {
-  //     throw new Error('invalid order, no order items found');
-  //   }
-  //   const possibleMatches = firstItem.getPossibleMatches();
-
-  //   const matches: OneToManyOrderItemMatch[] = [];
-  //   for await (const possibleMatch of possibleMatches) {
-  //     const isMatch = firstItem.isMatch(possibleMatch);
-  //     const notTaken = !ordersTaken.has(possibleMatch.id);
-  //     if (isMatch && notTaken) {
-  //       const opposingOrder = await this.getOrder(possibleMatch.id);
-  //       if (opposingOrder?.order && opposingOrder?.orderItems) {
-  //         const result = this.checkForSubSetMatch(orderItemsToFulfill, opposingOrder);
-  //         if (result.isMatch) {
-  //           const fulfilledOrderItems = result.fulfilledOrderItems;
-  //           const remainingOrderItems = result.unfulfilledOrderItems;
-  //           const updatedOrdersTaken = new Set([...ordersTaken, possibleMatch.id]);
-  //           const updatedDepth = depth + 1;
-  //           if (depth < Order.MAX_ONE_TO_MANY_DEPTH && remainingOrderItems.length > 0) {
-  //             const subMatches = await this.searchForOneToManyMatches(
-  //               remainingOrderItems,
-  //               updatedOrdersTaken,
-  //               updatedDepth
-  //             );
-  //             for (const match of subMatches) {
-  //               matches.push({ orders: [...match.orders, ...fulfilledOrderItems], opposingOrders: [...match.opposingOrders, ...opposingOrder?.orderItems] });
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-  // public async searchForOneToManyMatches<T extends FirestoreOrderMatches>(): Promise<T[]> {
-  //   const orderItems = await this.getOrderItems();
-  //   const firstItem = orderItems[0];
-  //   if (!firstItem) {
-  //     throw new Error('invalid order, no order items found');
-  //   }
-  //   const possibleMatches = firstItem.getPossibleMatches();
-
-  //   const matches: T[] = [];
-  //   for await (const possibleMatch of possibleMatches) {
-  //     /**
-  //      * check if match is valid for the first item
-  //      * if so, get the rest of the order and attempt to match it
-  //      * with a subset of the order items.
-  //      * repeat this process for an augmented order containing
-  //      * the subset of the order items that were not matched
-  //      * until we reach some max depth or the order is fully matched.
-  //      */
-  //     if (firstItem.isMatch(possibleMatch)) {
-  //       const opposingOrder = await this.getOrder(possibleMatch.id);
-  //       if (opposingOrder?.order && opposingOrder?.orderItems) {
-  //         const result = this.checkForMatch(orderItems, opposingOrder);
-  //         if (result.isMatch) {
-  //           const match = this.getFirestoreOrderMatch(result.match, result.price, result.timestamp) as T;
-  //           matches.push(match);
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return matches;
-  // }
 
   private getFirestoreOrderMatch(
     match: OrderItemMatch[],
@@ -375,13 +323,18 @@ export class Order {
   ): FirestoreOrderMatch | FirestoreOrderMatchOneToOne {
     const ids = [
       ...new Set(
-        match.flatMap(({ order, opposingOrder }) => [order.firestoreOrderItem.id, opposingOrder.firestoreOrderItem.id])
+        match.flatMap(({ orderItem, opposingOrderItem }) => [
+          orderItem.firestoreOrderItem.id,
+          opposingOrderItem.firestoreOrderItem.id
+        ])
       )
     ];
 
     const rawId = match
-      .map(({ order, opposingOrder }) => {
-        const [listing, offer] = order.firestoreOrderItem.isSellOrder ? [order.firestoreOrderItem, opposingOrder.firestoreOrderItem] : [opposingOrder.firestoreOrderItem, order.firestoreOrderItem];
+      .map(({ orderItem, opposingOrderItem }) => {
+        const [listing, offer] = orderItem.firestoreOrderItem.isSellOrder
+          ? [orderItem.firestoreOrderItem, opposingOrderItem.firestoreOrderItem]
+          : [opposingOrderItem.firestoreOrderItem, orderItem.firestoreOrderItem];
         return `${listing.id}:${offer.id}`;
       })
       .sort()
@@ -394,8 +347,8 @@ export class Order {
     const collectionAddresses: string[] = [];
     const tokenStrings: string[] = [];
 
-    const firstOrder = match[0].order;
-    const firstOpposingOrder = match[0].opposingOrder;
+    const firstOrder = match[0].orderItem;
+    const firstOpposingOrder = match[0].opposingOrderItem;
     const [sampleListing, sampleOffer] = firstOrder.firestoreOrderItem.isSellOrder
       ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
       : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
@@ -425,19 +378,22 @@ export class Order {
       }
     };
 
-    for (const { order, opposingOrder } of match) {
+    for (const { orderItem, opposingOrderItem } of match) {
       const collectionAddress =
-        order.firestoreOrderItem.collectionAddress || opposingOrder.firestoreOrderItem.collectionAddress;
-      const tokenId = order.firestoreOrderItem.tokenId || opposingOrder.firestoreOrderItem.tokenId;
-      const collectionName = order.firestoreOrderItem.collectionName || opposingOrder.firestoreOrderItem.collectionName;
+        orderItem.firestoreOrderItem.collectionAddress || opposingOrderItem.firestoreOrderItem.collectionAddress;
+      const tokenId = orderItem.firestoreOrderItem.tokenId || opposingOrderItem.firestoreOrderItem.tokenId;
+      const collectionName =
+        orderItem.firestoreOrderItem.collectionName || opposingOrderItem.firestoreOrderItem.collectionName;
       const collectionImage =
-        order.firestoreOrderItem.collectionImage || opposingOrder.firestoreOrderItem.collectionImage;
-      const collectionSlug = order.firestoreOrderItem.collectionSlug || opposingOrder.firestoreOrderItem.collectionSlug;
-      const hasBlueCheck = order.firestoreOrderItem.hasBlueCheck ?? opposingOrder.firestoreOrderItem.hasBlueCheck;
-      const tokenName = order.firestoreOrderItem.tokenName || opposingOrder.firestoreOrderItem.tokenName;
-      const tokenImage = order.firestoreOrderItem.tokenImage || opposingOrder.firestoreOrderItem.tokenImage;
-      const tokenSlug = order.firestoreOrderItem.tokenSlug || opposingOrder.firestoreOrderItem.tokenSlug;
-      const numTokens = order.firestoreOrderItem.numTokens ?? opposingOrder.firestoreOrderItem.numTokens;
+        orderItem.firestoreOrderItem.collectionImage || opposingOrderItem.firestoreOrderItem.collectionImage;
+      const collectionSlug =
+        orderItem.firestoreOrderItem.collectionSlug || opposingOrderItem.firestoreOrderItem.collectionSlug;
+      const hasBlueCheck =
+        orderItem.firestoreOrderItem.hasBlueCheck ?? opposingOrderItem.firestoreOrderItem.hasBlueCheck;
+      const tokenName = orderItem.firestoreOrderItem.tokenName || opposingOrderItem.firestoreOrderItem.tokenName;
+      const tokenImage = orderItem.firestoreOrderItem.tokenImage || opposingOrderItem.firestoreOrderItem.tokenImage;
+      const tokenSlug = orderItem.firestoreOrderItem.tokenSlug || opposingOrderItem.firestoreOrderItem.tokenSlug;
+      const numTokens = orderItem.firestoreOrderItem.numTokens ?? opposingOrderItem.firestoreOrderItem.numTokens;
 
       const token: FirestoreOrderMatchToken = {
         tokenId,
@@ -567,12 +523,12 @@ export class Order {
     };
 
     for (const item of match) {
-      if ('opposingOrder' in item) {
-        addUser(item.order.firestoreOrderItem);
-        addUser(item.opposingOrder.firestoreOrderItem);
+      if ('opposingOrderItem' in item) {
+        addUser(item.orderItem.firestoreOrderItem);
+        addUser(item.opposingOrderItem.firestoreOrderItem);
       } else {
-        addUser(item.order.firestoreOrderItem);
-        for (const opposingOrder of item.opposingOrders) {
+        addUser(item.orderItem.firestoreOrderItem);
+        for (const opposingOrder of item.opposingOrderItems) {
           addUser(opposingOrder.firestoreOrderItem);
         }
       }
@@ -581,11 +537,33 @@ export class Order {
     return [...usersAndRoles];
   }
 
-  public checkForMatch(
+  public getBestMatch(
+    matches: { match: OrderItemMatch[]; price: number; timestamp: number }[],
+    minOrderItemsToFulfill: number
+  ): { isMatch: false } | { isMatch: true; match: OrderItemMatch[]; price: number; timestamp: number } {
+    const validCombinationsSortedByNumMatches = matches.sort((itemA, itemB) => itemB.match.length - itemA.match.length);
+
+    /**
+     * prefer the combination that fulfills the maximum number of order items
+     */
+    const bestMatch = validCombinationsSortedByNumMatches[0];
+    if (!bestMatch || bestMatch.match.length < minOrderItemsToFulfill) {
+      return {
+        isMatch: false
+      };
+    }
+
+    return {
+      isMatch: true,
+      ...bestMatch
+    };
+  }
+
+  public checkForMatches(
     orderItems: IOrderItem[],
     opposingOrder: { order: Order; orderItems: IOrderItem[] },
     minOrderItemsToFulfill: number
-  ): { isMatch: false } | { isMatch: true; match: OrderItemMatch[]; price: number; timestamp: number } {
+  ): { match: OrderItemMatch[]; price: number; timestamp: number }[] {
     const generateMatchCombinations = (
       orderItems: IOrderItem[],
       opposingOrderItems: IOrderItem[]
@@ -605,7 +583,7 @@ export class Order {
           const unclaimedOpposingOrders = [...opposingOrderItemsCopy];
           unclaimedOpposingOrders.splice(index, 1);
           const sub = generateMatchCombinations([...orderItemsCopy], unclaimedOpposingOrders);
-          const match: OrderItemMatch = { order: orderItem, opposingOrder: opposingOrderItem };
+          const match: OrderItemMatch = { orderItem: orderItem, opposingOrderItem: opposingOrderItem };
           const subPathsWithMatch = sub.map(({ matches }) => {
             return { matches: [match, ...matches] };
           });
@@ -624,6 +602,11 @@ export class Order {
       return paths;
     };
 
+    const priceIntersection = getOrderIntersection(this.firestoreOrder, opposingOrder.order.firestoreOrder);
+    if (priceIntersection === null) {
+      return [];
+    }
+
     const combinations = generateMatchCombinations(orderItems, opposingOrder.orderItems);
     const validCombinations = combinations.filter((path) => {
       return (
@@ -632,54 +615,36 @@ export class Order {
       );
     });
 
-    const validCombinationsSortedByNumMatches = validCombinations.sort(
-      (itemA, itemB) => itemB.matches.length - itemA.matches.length
-    );
-
-    const bestMatch = validCombinationsSortedByNumMatches[0];
-    if (!bestMatch || bestMatch.matches.length < minOrderItemsToFulfill) {
-      return {
-        isMatch: false
-      };
-    }
-
-    const priceIntersection = getOrderIntersection(this.firestoreOrder, opposingOrder.order.firestoreOrder);
-    if (!priceIntersection) {
-      return {
-        isMatch: false
-      };
-    }
-
     const validAfter = priceIntersection.timestamp;
     const isFutureMatch = validAfter > Date.now();
 
     if (isFutureMatch) {
-      return {
-        isMatch: true,
-        match: bestMatch.matches,
-        price: priceIntersection.price,
-        timestamp: priceIntersection.timestamp
-      };
+      return validCombinations.map((item) => {
+        return {
+          match: item.matches,
+          price: priceIntersection.price,
+          timestamp: priceIntersection.timestamp
+        };
+      });
     }
 
     const now = Date.now();
     const currentPrice = priceIntersection.getPriceAtTime(now);
     if (currentPrice === null) {
-      return {
-        isMatch: false
-      };
+      return [];
     }
 
-    return {
-      isMatch: true,
-      match: bestMatch.matches,
-      price: currentPrice,
-      timestamp: now
-    };
+    return validCombinations.map((item) => {
+      return {
+        match: item.matches,
+        price: currentPrice,
+        timestamp: now
+      };
+    });
   }
 
   public validateMatchForOpposingOrder(matches: OrderItemMatch[], opposingOrder: Order): boolean {
-    const matchesValid = matches.every((match) => match.opposingOrder.isMatch(match.order.firestoreOrderItem));
+    const matchesValid = matches.every((match) => match.opposingOrderItem.isMatch(match.orderItem.firestoreOrderItem));
     const isNumItemsValid = this.isNumItemsValid(opposingOrder.firestoreOrder.numItems, matches.length);
     return isNumItemsValid && matchesValid;
   }

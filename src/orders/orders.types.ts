@@ -32,7 +32,11 @@ export interface OrderItem {
   ): AsyncGenerator<FirestoreOrderItem>;
 
   getNumConstraints(): number;
+
+  areMatches(
+    orderItems: OrderItem[]
+  ): { isValid: false } | { isValid: true; numItems: number; tokenIds: Set<string>; price: number; timestamp: number };
 }
 
-export type OrderItemMatch = { order: OrderItem; opposingOrder: OrderItem };
-export type OneToManyOrderItemMatch = { order: OrderItem; opposingOrders: OrderItem[] };
+export type OrderItemMatch = { orderItem: OrderItem; opposingOrderItem: OrderItem };
+export type OneToManyOrderItemMatch = { orderItem: OrderItem; opposingOrderItems: OrderItem[] };

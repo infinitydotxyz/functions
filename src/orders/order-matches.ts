@@ -2,7 +2,7 @@ import { getOneToManyOrderIntersection } from '../utils/intersection';
 import { Order } from './order';
 import { OrderItem as IOrderItem } from './orders.types';
 
-export class OrderMatch {
+export class OrderMatches {
   public get numItems() {
     return this.order.firestoreOrder.numItems;
   }
@@ -57,7 +57,9 @@ export class OrderMatch {
     const now = Date.now();
     const currentPrice = priceIntersection.getPriceAtTime(now);
     if (currentPrice === null) {
-      return [];
+      return {
+        isValid: false
+      }
     }
 
     return {

@@ -3,6 +3,7 @@ import {
   FirestoreOrderMatch,
   FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
+  FirestoreOrderMatchOneToMany,
   FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken,
@@ -18,6 +19,7 @@ import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
 import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
+import { OrderMatches } from './order-matches';
 
 type OrderMatch = {
   order: Order;
@@ -85,8 +87,14 @@ export class Order {
       throw new Error('invalid order, no order items found');
     }
 
-    const orderSubsetMatches = new Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number }[]>();
-    const fullMatches: { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number  }[] = [];
+    const orderSubsetMatches = new Map<string, { matches: OrderItemMatch[] }[]>();
+    const fullMatches: {
+      order: Order;
+      orderItems: IOrderItem[];
+      matches: OrderItemMatch[];
+      price: number;
+      timestamp: number;
+    }[] = [];
 
     /**
      * get the possible matches for every order item in the order
@@ -95,9 +103,9 @@ export class Order {
       const possibleMatches = orderItem.getPossibleMatches(); // TODO should erc1155 use the num tokens constraint?
       for await (const possibleMatch of possibleMatches) {
         if (orderItem.isMatch(possibleMatch)) {
-          const orderId = possibleMatch.id;
-          if (!orderSubsetMatches.has(orderId)) {
-            const opposingOrder = await this.getOrder(orderId); // TODO optimize with a getAll
+          const possibleMatchOrderItemId = possibleMatch.id;
+          if (!orderSubsetMatches.has(possibleMatchOrderItemId)) {
+            const opposingOrder = await this.getOrder(possibleMatchOrderItemId); // TODO optimize with a getAll
             if (opposingOrder?.orderItems && opposingOrder?.order) {
               const matches = this.checkForMatches(
                 opposingOrder?.orderItems,
@@ -106,17 +114,18 @@ export class Order {
                   orderItems
                 },
                 1
-              ); // 1 to get all partial matches 
-
-              const opposingOrderPartialMatches = matches.map(({match, price, timestamp}) => {
-                return {
-                  ...opposingOrder,
-                  matches: match,
-                  price, 
-                  timestamp
-                }
-              }).filter((item) => item.matches.length < this.firestoreOrder.numItems); // filter out full matches 
-              orderSubsetMatches.set(orderId, opposingOrderPartialMatches);
+              ); // 1 to get all partial matches
+              const opposingOrderPartialMatches = matches
+                .map(({ match, price, timestamp }) => {
+                  return {
+                    ...opposingOrder,
+                    matches: match,
+                    price,
+                    timestamp
+                  };
+                })
+                .filter((item) => item.matches.length < this.firestoreOrder.numItems); // filter out full matches
+              orderSubsetMatches.set(possibleMatchOrderItemId, opposingOrderPartialMatches);
 
               const bestFullMatch = this.getBestMatch(matches, this.firestoreOrder.numItems);
               if (bestFullMatch.isMatch) {
@@ -133,19 +142,17 @@ export class Order {
       }
     }
 
-    const singleMatches = fullMatches.reduce(
-      (acc: (FirestoreOrderMatch | FirestoreOrderMatchOneToOne)[], item) => {
-          const orderMatch = this.getFirestoreOrderMatch(item.matches, item.price, item.timestamp);
-          return [...acc, orderMatch];
-      },
-      []
-    );
+    const singleMatches = fullMatches.reduce((acc: (FirestoreOrderMatch | FirestoreOrderMatchOneToOne)[], item) => {
+      const orderMatch = this.getFirestoreOrderMatch(item.matches, item.price, item.timestamp);
+      return [...acc, orderMatch];
+    }, []);
+
+    // orderMatches.checkMatch()
 
     // combine subset matches to form full matches
     // for(const [, opposingOrderSubsetMatch] of orderSubsetMatches) {
 
     // }
-
 
     // const manyMatches = manyOrderMatches.reduce(
     //   (acc: (FirestoreOrderMatchOneToMany)[], item) => {
@@ -164,13 +171,16 @@ export class Order {
     return { matches: singleMatches };
   }
 
-
-
-  private generateFullMatches(partialMatchesByOrder: Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number }[]>) {
+  private generateFullMatches(
+    partialMatchesByOrder: Map<
+      string,
+      { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[]; price: number; timestamp: number }[]
+    >
+  ) {
     /**
-     * matches are conflicting if 
+     * matches are conflicting if
      * 1. they are from the same order
-     * 2. two of their 
+     * 2. two of their
      */
     // const generateNonConflictingMatches = (remainingOrders: Map<string, { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[], price: number, timestamp: number }[]>, matchesByOrderItemFulfilled: Map<string, OrderItemMatch[]>) => {
     //   const orderMatches = [...remainingOrders.values()][0];
@@ -182,11 +192,8 @@ export class Order {
     // }
     // for(const [, orderMatches] of partialMatchesByOrder) {
     //   for(const { order, orderItems, matches, price, timestamp} of orderMatches) {
-        
     //   }
     // }
-
-
   }
 
   /**
@@ -203,12 +210,63 @@ export class Order {
     orderItems: IOrderItem[],
     orderSubsetMatches: { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }[]
   ): { singleOrderMatches: OrderMatch[]; manyOrderMatches: OrderMatch[] } {
-    const orderItemIds = [...new Set(orderItems.map((item) => item.id))];
+        const orderItemIds = [...new Set(orderItems.map((item) => item.id))];
+    const orderItemsById = new Map(orderItems.map((item) => [item.id, item]));
+    const matchesByOrderItem = new Map<
+      IOrderItem,
+      { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }[]
+    >();
+    for (const subsetMatches of orderSubsetMatches) {
+      const subsetMatchesByOrderItem = subsetMatches.matches.map((match) => {
+        return { orderItem: match.orderItem, subsetMatches };
+      });
+      for (const match of subsetMatchesByOrderItem) {
+        const matchesForOrderItem: {
+          order: Order;
+          orderItems: IOrderItem[];
+          matches: OrderItemMatch[];
+        }[] = matchesByOrderItem.get(match.orderItem) ?? [];
+        matchesForOrderItem.push(match.subsetMatches);
+        matchesByOrderItem.set(match.orderItem, matchesForOrderItem);
+      }
+    }
 
     const getComplementaryOrderItemIds = (orderIds: string[]) => {
       const orderIdSet = new Set(orderIds);
       const complementaryOrderItemIds = orderItemIds.filter((id) => !orderIdSet.has(id));
       return complementaryOrderItemIds;
+    };
+
+
+
+    const getUnmatchedOrderItems = (match: OneToManyOrderItemMatch[], exclude: Set<string>): IOrderItem[] => {
+      const matchedOrderItemIds = match.map((item) => item.orderItem.id).filter((id) => exclude.has(id));
+      const complimentaryOrderItemIds = getComplementaryOrderItemIds(matchedOrderItemIds);
+      const unmatchedOrderItems = complimentaryOrderItemIds
+        .map((id) => orderItemsById.get(id))
+        .filter((item) => !item) as IOrderItem[];
+      return unmatchedOrderItems;
+    };
+
+    const getMatchesByOrderItem = (orderItem: IOrderItem) => {
+      return matchesByOrderItem.get(orderItem);
+    };
+
+    const orderMatches = new OrderMatches(this, orderItems);
+    const helper = (matches: OneToManyOrderItemMatch[], excluded: Set<string>) => {
+      const unmatchedItems = getUnmatchedOrderItems(matches, excluded);
+
+      const exclude = new Set([...excluded]);
+      for (const unmatchedItem of unmatchedItems) {
+        exclude.add(unmatchedItem.firestoreOrderItem.id);
+
+        const matchesForUnmatchedItem = getMatchesByOrderItem(unmatchedItem);
+        if (!matchesForUnmatchedItem) {
+          continue;
+        }
+
+
+      }
     };
 
     /**
@@ -231,46 +289,46 @@ export class Order {
       { fullOrderMatches: [], partialOrderMatches: [] }
     );
 
-    const orderItemsById = new Map<string, IOrderItem>(orderItems.map((item) => [item.id, item]));
+    // const orderItemsById = new Map<string, IOrderItem>(orderItems.map((item) => [item.id, item]));
 
-    /**
-     * provide
-     */
-    const ordersByMatch = new Map<
-      OrderItemMatch,
-      { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }
-    >();
-    for (const orderSubsetMatch of partialOrderMatches) {
-      for (const match of orderSubsetMatch.matches) {
-        ordersByMatch.set(match, orderSubsetMatch);
-      }
-    }
+    // /**
+    //  * provide
+    //  */
+    // const ordersByMatch = new Map<
+    //   OrderItemMatch,
+    //   { order: Order; orderItems: IOrderItem[]; matches: OrderItemMatch[] }
+    // >();
+    // for (const orderSubsetMatch of partialOrderMatches) {
+    //   for (const match of orderSubsetMatch.matches) {
+    //     ordersByMatch.set(match, orderSubsetMatch);
+    //   }
+    // }
 
-    const matchesByOrderItemFulfilled = new Map<string, OrderItemMatch[]>();
-    for (const orderSubsetMatch of partialOrderMatches) {
-      for (const match of orderSubsetMatch.matches) {
-        const id = match.orderItem.id;
-        const existingMatches = matchesByOrderItemFulfilled.get(id) ?? [];
-        existingMatches.push(match);
-        matchesByOrderItemFulfilled.set(id, existingMatches);
-      }
-    }
+    // const matchesByOrderItemFulfilled = new Map<string, OrderItemMatch[]>();
+    // for (const orderSubsetMatch of partialOrderMatches) {
+    //   for (const match of orderSubsetMatch.matches) {
+    //     const id = match.orderItem.id;
+    //     const existingMatches = matchesByOrderItemFulfilled.get(id) ?? [];
+    //     existingMatches.push(match);
+    //     matchesByOrderItemFulfilled.set(id, existingMatches);
+    //   }
+    // }
 
-    for (const subsetMatch of partialOrderMatches) {
-      const partialOpposingOrder = subsetMatch.order;
-      const partialOpposingOrderItems = subsetMatch.orderItems;
-      const partialMatches = subsetMatch.matches;
-      const orderIdsInPartialMatches = partialMatches.map((item) => item.orderItem.id);
-      const complementaryOrderItemIds = getComplementaryOrderItemIds(orderIdsInPartialMatches);
-      const unmatchedOrderItems = complementaryOrderItemIds.map((id) => {
-        const matchesForOrderItem = matchesByOrderItemFulfilled.get(id) ?? [];
-        const orderItem = orderItemsById.get(id);
-        return {
-          orderItem,
-          matches: matchesForOrderItem
-        };
-      });
-    }
+    // for (const subsetMatch of partialOrderMatches) {
+    //   const partialOpposingOrder = subsetMatch.order;
+    //   const partialOpposingOrderItems = subsetMatch.orderItems;
+    //   const partialMatches = subsetMatch.matches;
+    //   const orderIdsInPartialMatches = partialMatches.map((item) => item.orderItem.id);
+    //   const complementaryOrderItemIds = getComplementaryOrderItemIds(orderIdsInPartialMatches);
+    //   const unmatchedOrderItems = complementaryOrderItemIds.map((id) => {
+    //     const matchesForOrderItem = matchesByOrderItemFulfilled.get(id) ?? [];
+    //     const orderItem = orderItemsById.get(id);
+    //     return {
+    //       orderItem,
+    //       matches: matchesForOrderItem
+    //     };
+    //   });
+    // }
 
     /**
      * how do we generate combinations of order items such that

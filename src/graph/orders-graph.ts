@@ -6,6 +6,7 @@ import { getDb } from '../firestore';
 import { OrderItem } from '../orders/order-item';
 import { Edge } from './edge';
 import { FirestoreOrder } from '@infinityxyz/lib/types/core';
+import { OrderNodeCollection } from './order-node-collection';
 
 export class OrdersGraph extends Graph<Order> {
   graph: Graph<Order>;
@@ -17,40 +18,38 @@ export class OrdersGraph extends Graph<Order> {
   async buildGraph() {
     const orderItems = await this.root.data.getOrderItems();
     const db = getDb();
-    const orders = new Set();
+    const orderIds = new Set<string>();
+
+    // const orderNodes: OrderNodeCollection[] = [];
+
+    const rootOrderNode = await this.getOrderNode(this.root.data.firestoreOrder);
+
+    // for(const orderItemNode of rootOrderNode.nodes) {
+    //   orderItemNode.
+    // }
 
     for (const orderItem of orderItems) {
-      const node = new Node(orderItem);
-      const orderItemGraph = new Graph(node);
       const matches = orderItem.getPossibleMatches();
       for await (const match of matches) {
-        if (!orders.has(match.id)) {
+        if (!orderIds.has(match.id)) {
           const orderItem = new OrderItem(match, db);
           const firestoreOrder = (await orderItem.orderRef.get()).data();
           if (firestoreOrder) {
-            const order = new Order(firestoreOrder);
-            const orderNode = new Node(order);
-            orders.add(order.firestoreOrder.id);
-            const orderItems = await order.getOrderItems();
-            for(const orderItem of orderItems) {
-                const edge = new Edge<IOrder>();
-                const outputNode = new Node(orderItem);
-                edge.link(node, outputNode);
-                orderItemGraph.add(edge);
-            }
+            const orderNode = await this.getOrderNode(firestoreOrder);
+            // orderNodes.push(orderNode);
           }
         }
-        const matchNode = new Node(match);
       }
     }
+
+    ;
   }
+
   
-  async function getOrderNode(firestoreOrder: FirestoreOrder) {
+  private async getOrderNode(firestoreOrder: FirestoreOrder) {
     const order = new Order(firestoreOrder);
-    const orderNodeData = {
-        order,
-        orderItems: []
-    }
-    const orderNode = new Node()
+    const orderItems = await order.getOrderItems();
+    const orderNodeCollection = new OrderNodeCollection(order, orderItems);
+    return orderNodeCollection;
   }
 }

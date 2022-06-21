@@ -6,6 +6,7 @@ import { OrderItem } from '../orders/order-item';
 import { Edge } from './edge';
 import { FirestoreOrder } from '@infinityxyz/lib/types/core';
 import { OrderNodeCollection } from './order-node-collection';
+import { getOrderIntersection } from '../utils/intersection';
 
 export class OrdersGraph extends Graph<Order> {
   graph: Graph<Order>;
@@ -14,11 +15,18 @@ export class OrdersGraph extends Graph<Order> {
     super(root);
   }
 
-  async buildGraph() {
+
+
+  private async buildGraph() {
     const db = getDb();
     const orderIds = new Set<string>();
 
     const rootOrderNode = await this.getOrderNode(this.root.data.firestoreOrder);
+    const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
+    if(!isFullySpecified) {
+      throw new Error(`Attempted to build graph for order that is not fully specified. Order: ${this.root.data.firestoreOrder.id}`);
+    }
+
     const orderNodes: OrderNodeCollection[] = [];
 
     /**
@@ -33,7 +41,11 @@ export class OrdersGraph extends Graph<Order> {
           const firestoreOrder = (await orderItem.orderRef.get()).data();
           if (firestoreOrder) {
             const orderNode = await this.getOrderNode(firestoreOrder);
-            orderNodes.push(orderNode);
+            const isFullySpecified = Order.isFullySpecified(orderNode.data.orderItems);
+            const doIntersect = getOrderIntersection(rootOrderNode.data.order.firestoreOrder, orderNode.data.order.firestoreOrder) !== null;
+            if(isFullySpecified && doIntersect) {
+              orderNodes.push(orderNode);
+            }
           }
         }
       }
@@ -57,6 +69,8 @@ export class OrdersGraph extends Graph<Order> {
         }
       }
     }
+
+    return rootOrderNode;
   }
 
   

@@ -38,6 +38,12 @@ export class Order {
       .doc(this.firestoreOrder.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
   }
 
+  public static isFullySpecified(orderItems: IOrderItem[]) {
+    return orderItems.reduce((fullySpecified, orderItem) => {
+      return fullySpecified && !!orderItem.firestoreOrderItem.tokenId;
+    }, orderItems.length > 0)
+  }
+
   public async searchForMatches(): Promise<{ matches: FirestoreOrderMatches[] }> {
     /**
      * get the order items for this order

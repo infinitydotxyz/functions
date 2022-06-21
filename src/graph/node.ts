@@ -6,7 +6,6 @@ export class Node<T> {
   private _inputEdges: Set<Edge<T>>;
   private _outputEdges: Set<Edge<T>>;
 
-
   public get edges(): Edge<T>[] {
     return [...this._edges];
   }
@@ -19,7 +18,7 @@ export class Node<T> {
     return [...this._outputEdges];
   }
 
-  constructor() {
+  constructor(public data: T) {
     this._edges = new Set();
     this._inputEdges = new Set();
     this._outputEdges = new Set();

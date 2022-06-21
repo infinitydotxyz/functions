@@ -23,8 +23,8 @@ const nfts: ChainNFTs[] = [
 const chainId = ChainId.Goerli;
 const isSellOrder = false;
 const numItems = 1;
-const startPriceEth = 0.01;
-const endPriceEth = 0.01;
+const startPriceEth = 3;
+const endPriceEth = 3;
 const startTimeMs = Date.now();
 // two days from now
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;

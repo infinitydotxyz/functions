@@ -448,7 +448,7 @@ export class Order {
 
     const orderItems = firestoreOrderItems
       .map((firestoreOrderItem) => {
-        return new OrderItem(firestoreOrderItem, this.db, this.firestoreOrder, firestoreOrderItems).applyConstraints();
+        return new OrderItem(firestoreOrderItem, this.db).applyConstraints();
       })
       .sort((itemA, itemB) => itemB.constraintScore - itemA.constraintScore);
 

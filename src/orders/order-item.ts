@@ -19,8 +19,8 @@ export class OrderItem implements IOrderItem {
   constructor(
     public readonly firestoreOrderItem: FirestoreOrderItem,
     public readonly db: FirebaseFirestore.Firestore,
-    public readonly firestoreOrder: FirestoreOrder,
-    public readonly orderItems: FirestoreOrderItem[]
+    // public readonly firestoreOrder: FirestoreOrder,
+    // public readonly orderItems: FirestoreOrderItem[]
   ) {
     this.orderRef = this.db
       .collection(firestoreConstants.ORDERS_COLL)
@@ -112,7 +112,7 @@ export class OrderItem implements IOrderItem {
   }
 
   private checkNumItems(tokenIds: Set<string>): { isValid: boolean; numItems: number } {
-    if (this.firestoreOrder.isSellOrder) {
+    if (this.firestoreOrderItem.isSellOrder) {
       /**
        * num items is a maximum
        */

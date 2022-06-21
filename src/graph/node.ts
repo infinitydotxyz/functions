@@ -1,7 +1,7 @@
 import { Edge } from './edge';
 import { EdgeType } from './graph.types';
-
-export class Node<T> {
+import { Node as INode } from './graph.types';
+export class Node<T> implements INode<T> {
   private _edges: Set<Edge<T>>;
   private _inputEdges: Set<Edge<T>>;
   private _outputEdges: Set<Edge<T>>;
@@ -16,6 +16,22 @@ export class Node<T> {
 
   public get outputEdges(): Edge<T>[] {
     return [...this._outputEdges];
+  }
+
+  get inputEdgeWeight(): number {
+    let sum = 0;
+    for(const edge of this.inputEdges) {
+        sum += edge.weight;
+    }
+    return sum
+  }
+
+  get outputEdgeWeight(): number {
+    let sum = 0;
+    for(const edge of this.outputEdges) {
+        sum += edge.weight;
+    }
+    return sum
   }
 
   constructor(public data: T) {

@@ -1,24 +1,24 @@
-import { Edge } from "./edge";
+import { Edge } from './edge';
 
 export enum EdgeType {
-    Input,
-    Output
+  Input,
+  Output
 }
 
 export interface Node<T> {
-    edges: Edge<T>[];
+  edges: Edge<T>[];
 
-    inputEdges: Edge<T>[];
+  inputEdges: Edge<T>[];
 
-    outputEdges: Edge<T>[];
+  outputEdges: Edge<T>[];
 
-    inputEdgeWeight: number;
+  inputEdgeWeight: number;
 
-    outputEdgeWeight: number;
+  outputEdgeWeight: number;
 
-    unlink(): void;
+  unlink(): void;
 
-    add(edge: Edge<T>, type: EdgeType): void;
+  add(edge: Edge<T>, type: EdgeType): void;
 
-    remove(edge: Edge<T>): void;
+  remove(edge: Edge<T>): void;
 }

@@ -85,5 +85,4 @@ export abstract class OrderItemConstraint implements IOrderItem {
   protected abstract addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem>;
-
 }

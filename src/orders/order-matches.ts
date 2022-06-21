@@ -59,7 +59,7 @@ export class OrderMatches {
     if (currentPrice === null) {
       return {
         isValid: false
-      }
+      };
     }
 
     return {

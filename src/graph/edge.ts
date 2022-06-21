@@ -20,17 +20,17 @@ export class Edge<T> {
     this.inputNode.add(this, EdgeType.Input);
     this.outputNode.add(this, EdgeType.Output);
   }
- 
+
   unlink() {
-    if(this.inputNode) {
-        this.inputNode.remove(this);
+    if (this.inputNode) {
+      this.inputNode.remove(this);
     }
 
-    if(this.outputNode) {
-        this.outputNode.remove(this);
+    if (this.outputNode) {
+      this.outputNode.remove(this);
     }
 
-    this.inputNode = undefined; 
+    this.inputNode = undefined;
     this.outputNode = undefined;
   }
 }

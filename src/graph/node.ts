@@ -20,18 +20,18 @@ export class Node<T> implements INode<T> {
 
   get inputEdgeWeight(): number {
     let sum = 0;
-    for(const edge of this.inputEdges) {
-        sum += edge.weight;
+    for (const edge of this.inputEdges) {
+      sum += edge.weight;
     }
-    return sum
+    return sum;
   }
 
   get outputEdgeWeight(): number {
     let sum = 0;
-    for(const edge of this.outputEdges) {
-        sum += edge.weight;
+    for (const edge of this.outputEdges) {
+      sum += edge.weight;
     }
-    return sum
+    return sum;
   }
 
   constructor(public data: T) {
@@ -41,17 +41,17 @@ export class Node<T> implements INode<T> {
   }
 
   unlink() {
-    for(const edge of this._edges) {
-        edge.unlink();
+    for (const edge of this._edges) {
+      edge.unlink();
     }
   }
 
   add(edge: Edge<T>, type: EdgeType) {
     this._edges.add(edge);
-    if(type === EdgeType.Input) {
-        this._inputEdges.add(edge);
+    if (type === EdgeType.Input) {
+      this._inputEdges.add(edge);
     } else {
-        this._outputEdges.add(edge);
+      this._outputEdges.add(edge);
     }
   }
 

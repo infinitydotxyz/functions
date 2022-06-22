@@ -2,35 +2,42 @@ import { EdgeType } from './graph.types';
 import { Node } from './node';
 
 export class Edge<T> {
-  public inputNode?: Node<T>;
-  public outputNode?: Node<T>;
+  public incomingNode?: Node<T>;
+  public outgoingNode?: Node<T>;
+  
+  constructor(public flow = 0) {}
 
-  public weight: number;
-
-  constructor() {
-    this.weight = 0;
+  public get maxFlow() {
+    return Math.min(this.incomingNode?.maxFlow ?? 0, this.outgoingNode?.maxFlow ?? 0);
   }
 
-  link(inputNode: Node<T>, outputNode: Node<T>) {
+  link(incomingNode: Node<T>, outputNode: Node<T>) {
     this.unlink();
 
-    this.inputNode = inputNode;
-    this.outputNode = outputNode;
+    this.incomingNode = incomingNode;
+    this.outgoingNode = outputNode;
 
-    this.inputNode.add(this, EdgeType.Input);
-    this.outputNode.add(this, EdgeType.Output);
+    this.incomingNode.add(this, EdgeType.Incoming);
+    this.outgoingNode.add(this, EdgeType.Outgoing);
   }
 
   unlink() {
-    if (this.inputNode) {
-      this.inputNode.remove(this);
+    if (this.incomingNode) {
+      this.incomingNode.remove(this);
     }
 
-    if (this.outputNode) {
-      this.outputNode.remove(this);
+    if (this.outgoingNode) {
+      this.outgoingNode.remove(this);
     }
 
-    this.inputNode = undefined;
-    this.outputNode = undefined;
+    this.incomingNode = undefined;
+    this.outgoingNode = undefined;
+  }
+
+  pushFlow(flow: number) {
+    if(flow > this.maxFlow) {
+      throw new Error('Flow exceeds max flow');
+    }
+
   }
 }

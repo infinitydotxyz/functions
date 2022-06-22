@@ -1,4 +1,3 @@
-import { Graph } from './graph';
 import { Order } from '../orders/order';
 import { Node } from './node';
 import { getDb } from '../firestore';
@@ -8,72 +7,67 @@ import { FirestoreOrder } from '@infinityxyz/lib/types/core';
 import { OrderNodeCollection } from './order-node-collection';
 import { getOrderIntersection } from '../utils/intersection';
 
-export class OrdersGraph extends Graph<Order> {
-  graph: Graph<Order>;
+export class OrdersGraph {
+  constructor(public root: Node<Order>) {}
 
-  constructor(root: Node<Order>) {
-    super(root);
-  }
-
-
-
-  private async buildGraph() {
-    const db = getDb();
-    const orderIds = new Set<string>();
-
+  public async getOneToManyGraph(): Promise<OrderNodeCollection> {
+    this.root.unlink();
     const rootOrderNode = await this.getOrderNode(this.root.data.firestoreOrder);
     const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
-    if(!isFullySpecified) {
-      throw new Error(`Attempted to build graph for order that is not fully specified. Order: ${this.root.data.firestoreOrder.id}`);
+    if (!isFullySpecified) {
+      throw new Error(
+        `Attempted to build graph for order that is not fully specified. Order: ${this.root.data.firestoreOrder.id}`
+      );
     }
 
-    const orderNodes: OrderNodeCollection[] = [];
+    const root = await this.buildOneToManyGraph(rootOrderNode);
+    return root;
+  }
 
-    /**
-     * get all orders that can fulfill at least a subset of order
-     */
-    for(const orderItemNode of rootOrderNode.nodes) {
-      const possibleMatches = orderItemNode.data.getPossibleMatches();
+  private async getMatches(rootOrderNode: OrderNodeCollection): Promise<OrderNodeCollection[]> {
+    const orderNodes: OrderNodeCollection[] = [];
+    const db = getDb();
+    const orderIds = new Set<string>();
+    for (const orderItemNode of rootOrderNode.nodes) {
+      const possibleMatches = orderItemNode.data.orderItem.getPossibleMatches();
       for await (const match of possibleMatches) {
-        if (!orderIds.has(match.id) && orderItemNode.data.isMatch(match)) {
+        if (!orderIds.has(match.id) && orderItemNode.data.orderItem.isMatch(match)) {
           orderIds.add(match.id);
           const orderItem = new OrderItem(match, db);
           const firestoreOrder = (await orderItem.orderRef.get()).data();
-          if (firestoreOrder) {
+          if (firestoreOrder && getOrderIntersection(rootOrderNode.data.order.firestoreOrder, firestoreOrder) !== null) {
             const orderNode = await this.getOrderNode(firestoreOrder);
-            const isFullySpecified = Order.isFullySpecified(orderNode.data.orderItems);
-            const doIntersect = getOrderIntersection(rootOrderNode.data.order.firestoreOrder, orderNode.data.order.firestoreOrder) !== null;
-            if(isFullySpecified && doIntersect) {
-              orderNodes.push(orderNode);
-            }
+            orderNodes.push(orderNode);
           }
         }
       }
-    };
+    }
+    return orderNodes;
+  }
+
+  private async buildOneToManyGraph(root: OrderNodeCollection) {
+    const matchingOrderNodes = await this.getMatches(root);
 
     /**
      * sort order nodes by increasing start time
      */
-    orderNodes.sort((a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs);
+    matchingOrderNodes.sort(
+      (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
+    );
 
-    /**
-     * build edges between order items that can fulfill each other
-     */
-    for(const orderNode of orderNodes) {
-      for(const orderItemNode of orderNode.nodes) {
-        for(const rootOrderItemNode of rootOrderNode.nodes) {
-          if(rootOrderItemNode.data.isMatch(orderItemNode.data.firestoreOrderItem)) {
+    for (const orderNode of matchingOrderNodes) {
+      for (const orderItemNode of orderNode.nodes) {
+        for (const rootOrderItemNode of root.nodes) {
+          if (rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem)) {
             const edge = new Edge();
             edge.link(rootOrderItemNode, orderItemNode);
           }
         }
       }
     }
-
-    return rootOrderNode;
+    return root;
   }
 
-  
   private async getOrderNode(firestoreOrder: FirestoreOrder) {
     const order = new Order(firestoreOrder);
     const orderItems = await order.getOrderItems();

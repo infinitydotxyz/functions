@@ -36,6 +36,14 @@ export class OrderItem implements IOrderItem {
     return 0;
   }
 
+  public get maxNumItemsContribution(): number {
+    const isFullySpecified = !!this.firestoreOrderItem.tokenId;
+    if(isFullySpecified) {
+      return 1;
+    }
+    return this.firestoreOrderItem.numItems;
+  }
+
   public applyConstraints(): IOrderItem {
     let orderItem: IOrderItem | undefined = undefined;
     for (const Constraint of constraints) {

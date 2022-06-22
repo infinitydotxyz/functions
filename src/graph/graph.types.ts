@@ -1,20 +1,22 @@
 import { Edge } from './edge';
 
 export enum EdgeType {
-  Input,
-  Output
+  Incoming,
+  Outgoing
 }
 
 export interface Node<T> {
   edges: Edge<T>[];
 
-  inputEdges: Edge<T>[];
+  incomingEdges: Edge<T>[];
 
-  outputEdges: Edge<T>[];
+  outgoingEdges: Edge<T>[];
 
-  inputEdgeWeight: number;
+  incomingEdgeFlow: number;
 
-  outputEdgeWeight: number;
+  outgoingEdgeFlow: number;
+
+  maxFlow: number;
 
   unlink(): void;
 

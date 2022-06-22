@@ -23,6 +23,8 @@ export interface OrderItem {
 
   db: FirebaseFirestore.Firestore;
 
+  maxNumItemsContribution: number;
+
   firestoreQueryOrderByConstraint: typeof AbstractOrderItemConstraint;
 
   isMatch(orderItem: FirestoreOrderItem): boolean;

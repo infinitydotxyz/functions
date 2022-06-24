@@ -47,7 +47,10 @@ async function scanForMatch(id: string) {
     const order = new Order(orderData);
     const node = new Node(order, order.firestoreOrder.numItems);
     const graph = new OrdersGraph(node);
-    await graph.search();
+    const matches = await graph.search();
+    await graph.root.data.saveMatches(matches);
+    console.log(matches);
+    console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
   }
 }
 

@@ -1,8 +1,10 @@
 import {
   ChainId,
   FirestoreOrderMatch,
+  FirestoreOrderMatchCollection,
   FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
+  FirestoreOrderMatchOneToMany,
   FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken,
@@ -231,91 +233,92 @@ export class Order {
     return firestoreOrderMatch;
   }
 
-  // private getFirestoreOrderMatchOneToMany(
-  //   match: OneToManyOrderItemMatch[],
-  //   price: number,
-  //   timestamp: number
-  // ): FirestoreOrderMatchOneToMany {
-  //   const mainOrderId = match[0].order.firestoreOrderItem.id;
-  //   // const mainOrderId = match.order.firestoreOrderItem.id;
-  //   const opposingOrderIds = match.opposingOrders.map(({ firestoreOrderItem }) => firestoreOrderItem.id);
-  //   const ids = [...new Set([mainOrderId, ...opposingOrderIds])];
+  public getFirestoreOrderMatchOneToMany(
+    matches: {orderItem: FirestoreOrderItem, opposingOrderItem: FirestoreOrderItem}[],
+    price: number,
+    timestamp: number
+  ): FirestoreOrderMatchOneToMany {
+    const mainOrderId = matches[0].orderItem.id;
+    const opposingOrderIds = matches.map(({ opposingOrderItem }) => opposingOrderItem.id);
+    const ids = [...new Set([mainOrderId, ...opposingOrderIds])];
 
-  //   const orderIds = [[mainOrderId], opposingOrderIds];
-  //   const [listingIds, offerIds] = match.order.firestoreOrderItem.isSellOrder ? orderIds : orderIds.reverse();
+    const orderIds = [[mainOrderId], opposingOrderIds];
+    const [listingIds, offerIds] = this.firestoreOrder.isSellOrder ? orderIds : orderIds.reverse();
 
-  //   type OrderItems = {
-  //     [collectionAddress: string]: FirestoreOrderMatchCollection;
-  //   };
+    type OrderItems = {
+      [collectionAddress: string]: FirestoreOrderMatchCollection;
+    };
 
-  //   const orderItems: OrderItems = match.opposingOrders.reduce((acc: OrderItems, item) => {
-  //     const collectionAddress = item.firestoreOrderItem.collectionAddress;
-  //     const tokenId = item.firestoreOrderItem.tokenId;
-  //     const collectionName = item.firestoreOrderItem.collectionName;
-  //     const collectionImage = item.firestoreOrderItem.collectionImage;
-  //     const collectionSlug = item.firestoreOrderItem.collectionSlug;
-  //     const hasBlueCheck = item.firestoreOrderItem.hasBlueCheck;
+    const orderItems: OrderItems = matches.reduce((acc: OrderItems, item) => {
+      const collectionAddress = item.opposingOrderItem.collectionAddress;
+      const tokenId = item.opposingOrderItem.tokenId;
+      const collectionName = item.opposingOrderItem.collectionName;
+      const collectionImage = item.opposingOrderItem.collectionImage;
+      const collectionSlug = item.opposingOrderItem.collectionSlug;
+      const hasBlueCheck = item.opposingOrderItem.hasBlueCheck;
 
-  //     const tokens = acc[collectionAddress]?.tokens ?? {};
-  //     return {
-  //       ...acc,
-  //       [collectionAddress]: {
-  //         collectionAddress,
-  //         collectionName,
-  //         collectionImage,
-  //         collectionSlug,
-  //         hasBlueCheck,
-  //         tokens: {
-  //           ...tokens,
-  //           [tokenId]: {
-  //             tokenId,
-  //             tokenName: item.firestoreOrderItem.tokenName,
-  //             tokenImage: item.firestoreOrderItem.tokenImage,
-  //             tokenSlug: item.firestoreOrderItem.tokenSlug,
-  //             numTokens: item.firestoreOrderItem.numTokens
-  //           }
-  //         }
-  //       }
-  //     };
-  //   }, {});
+      const tokens = acc[collectionAddress]?.tokens ?? {};
+      const orderItems: OrderItems = {
+        ...acc,
+        [collectionAddress]: {
+          collectionAddress,
+          collectionName,
+          collectionImage,
+          collectionSlug,
+          hasBlueCheck,
+          chainId: item.opposingOrderItem.chainId as ChainId,
+          tokens: {
+            ...tokens,
+            [tokenId]: {
+              tokenId,
+              tokenName: item.opposingOrderItem.tokenName,
+              tokenImage: item.opposingOrderItem.tokenImage,
+              tokenSlug: item.opposingOrderItem.tokenSlug,
+              numTokens: item.opposingOrderItem.numTokens
+            }
+          }
+        }
+      };
+      return orderItems;
+    }, {} );
 
-  //   const collectionAddresses = Object.keys(orderItems);
-  //   const tokenStrings = collectionAddresses.reduce((acc: string[], collectionAddress) => {
-  //     const tokens = orderItems[collectionAddress].tokens;
-  //     const tokenStrings = Object.values(tokens).map((item) => `${collectionAddress}:${item.tokenId}`);
-  //     return [...new Set([...acc, ...tokenStrings])];
-  //   }, []);
+    const collectionAddresses = Object.keys(orderItems);
+    const tokenStrings = collectionAddresses.reduce((acc: string[], collectionAddress) => {
+      const tokens = orderItems[collectionAddress].tokens;
+      const tokenStrings = Object.values(tokens).map((item) => `${collectionAddress}:${item.tokenId}`);
+      return [...new Set([...acc, ...tokenStrings])];
+    }, []);
 
-  //   const rawId = ids.sort().join('-').trim().toLowerCase();
-  //   const id = createHash('sha256').update(rawId).digest('hex');
+    const rawId = ids.sort().join('-').trim().toLowerCase();
+    const id = createHash('sha256').update(rawId).digest('hex');
 
-  //   const createdAt = Date.now();
-  //   const firestoreOrderMatch: FirestoreOrderMatchOneToMany = {
-  //     type: FirestoreOrderMatchMethod.MatchOneToManyOrders,
-  //     usersInvolved: this.getUsersInvolved(match),
-  //     id,
-  //     ids,
-  //     collectionAddresses,
-  //     chainId: match.order.firestoreOrderItem.chainId as ChainId,
-  //     complicationAddress: match.order.firestoreOrderItem.complicationAddress,
-  //     tokens: tokenStrings,
-  //     currencyAddress: match.order.firestoreOrderItem.currencyAddress,
-  //     createdAt,
-  //     state: {
-  //       status: createdAt >= timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
-  //       priceValid: price,
-  //       timestampValid: timestamp
-  //     },
-  //     matchData: {
-  //       listingIds,
-  //       offerIds,
-  //       orderItems: orderItems
-  //     }
-  //   };
-  //   return firestoreOrderMatch;
-  // }
+    const createdAt = Date.now();
+    const firestoreOrderMatch: FirestoreOrderMatchOneToMany = {
+      type: FirestoreOrderMatchMethod.MatchOneToManyOrders,
+      usersInvolved: this.getUsersInvolved(matches),
+      id,
+      ids,
+      collectionAddresses,
+      chainId: this.firestoreOrder.chainId as ChainId,
+      complicationAddress: this.firestoreOrder.complicationAddress,
+      tokens: tokenStrings,
+      currencyAddress: this.firestoreOrder.currencyAddress,
+      createdAt,
+      state: {
+        status: createdAt >= timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
+        priceValid: price,
+        timestampValid: timestamp
+      },
+      matchData: {
+        listingIds,
+        offerIds,
+        orderItems: orderItems
+      }
+    };
+    return firestoreOrderMatch;
+  }
 
-  public getUsersInvolved(match: OneToManyOrderItemMatch[] | OrderItemMatch[]): string[] {
+  public getUsersInvolved(match: OneToManyOrderItemMatch[] | OrderItemMatch[] | { orderItem: FirestoreOrderItem, opposingOrderItem: FirestoreOrderItem }[]): string[] {
     const usersAndRoles: Set<string> = new Set();
     const addUser = (firestoreOrderItem: FirestoreOrderItem) => {
       const orderSideRole = firestoreOrderItem.isSellOrder ? UserOrderRole.Lister : UserOrderRole.Offerer;
@@ -325,8 +328,17 @@ export class Order {
 
     for (const item of match) {
       if ('opposingOrderItem' in item) {
-        addUser(item.orderItem.firestoreOrderItem);
-        addUser(item.opposingOrderItem.firestoreOrderItem);
+        if(item.opposingOrderItem instanceof OrderItem) {
+          addUser(item.opposingOrderItem.firestoreOrderItem);
+        } else {
+          addUser(item.opposingOrderItem as FirestoreOrderItem);
+        }
+
+        if(item.orderItem instanceof OrderItem) {
+          addUser(item.orderItem.firestoreOrderItem);
+        } else {
+          addUser(item.orderItem as FirestoreOrderItem);
+        }
       } else {
         addUser(item.orderItem.firestoreOrderItem);
         for (const opposingOrder of item.opposingOrderItems) {

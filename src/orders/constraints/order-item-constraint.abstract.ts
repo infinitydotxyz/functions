@@ -9,6 +9,9 @@ export abstract class OrderItemConstraint implements IOrderItem {
   constructor(orderItem: OrderItem) {
     this.component = orderItem;
   }
+  get maxNumItemsContribution(): number {
+    return this.component.maxNumItemsContribution;
+  }
 
   get id() {
     return this.component.id;

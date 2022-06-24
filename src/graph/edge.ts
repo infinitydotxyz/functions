@@ -2,36 +2,36 @@ import { EdgeType } from './graph.types';
 import { Node } from './node';
 
 export class Edge<T> {
-  public incomingNode?: Node<T>;
-  public outgoingNode?: Node<T>;
+  public fromNode?: Node<T>;
+  public toNode?: Node<T>;
   
   constructor(public flow = 0) {}
 
   public get maxFlow() {
-    return Math.min(this.incomingNode?.maxFlow ?? 0, this.outgoingNode?.maxFlow ?? 0);
+    return Math.min(this.fromNode?.maxFlow ?? 0, this.toNode?.maxFlow ?? 0);
   }
 
-  link(incomingNode: Node<T>, outputNode: Node<T>) {
+  link(from: Node<T>, to: Node<T>) {
     this.unlink();
 
-    this.incomingNode = incomingNode;
-    this.outgoingNode = outputNode;
+    this.fromNode = from;
+    this.toNode = to;
 
-    this.incomingNode.add(this, EdgeType.Incoming);
-    this.outgoingNode.add(this, EdgeType.Outgoing);
+    this.fromNode.add(this, EdgeType.Outgoing);
+    this.toNode.add(this, EdgeType.Incoming);
   }
 
   unlink() {
-    if (this.incomingNode) {
-      this.incomingNode.remove(this);
+    if (this.fromNode) {
+      this.fromNode.remove(this);
     }
 
-    if (this.outgoingNode) {
-      this.outgoingNode.remove(this);
+    if (this.toNode) {
+      this.toNode.remove(this);
     }
 
-    this.incomingNode = undefined;
-    this.outgoingNode = undefined;
+    this.fromNode = undefined;
+    this.toNode = undefined;
   }
 
   pushFlow(flow: number) {

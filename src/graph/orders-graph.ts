@@ -6,11 +6,26 @@ import { Edge } from './edge';
 import { FirestoreOrder } from '@infinityxyz/lib/types/core';
 import { OrderNodeCollection } from './order-node-collection';
 import { getOrderIntersection } from '../utils/intersection';
+import { OneToManyOrderMatchSearch } from './algorithms/search';
 
 export class OrdersGraph {
   constructor(public root: Node<Order>) {}
 
-  public async getOneToManyGraph(): Promise<OrderNodeCollection> {
+  public async search() {
+    const { rootOrderNode, matchingOrderNodes } = await this.getOneToManyGraph();
+    console.log(`Found: ${matchingOrderNodes.length} matches`);
+    const searcher = new OneToManyOrderMatchSearch(rootOrderNode);
+
+    const matches = searcher.searchForOneToManyMatches(rootOrderNode, matchingOrderNodes);
+
+    for(const match of matches) {
+      console.log(`Found match: Edges: ${match.edges.length}`);
+      // console.log(JSON.stringify(match, null, 2));
+      console.log(match);
+    }
+  }
+
+  public async getOneToManyGraph(): Promise<{ rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[] }> {
     this.root.unlink();
     const rootOrderNode = await this.getOrderNode(this.root.data.firestoreOrder);
     const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
@@ -20,8 +35,12 @@ export class OrdersGraph {
       );
     }
 
-    const root = await this.buildOneToManyGraph(rootOrderNode);
-    return root;
+    const matchingOrderNodes = await this.getMatches(rootOrderNode);
+    const subsetMatchingOrderNodes = matchingOrderNodes.filter((item) => {
+      return this.root.data.firestoreOrder.numItems >= item.data.order.firestoreOrder.numItems;
+    });
+    console.log(`Found: ${matchingOrderNodes.length} matches and ${subsetMatchingOrderNodes.length} subset matches`);
+    return { rootOrderNode, matchingOrderNodes: subsetMatchingOrderNodes }
   }
 
   private async getMatches(rootOrderNode: OrderNodeCollection): Promise<OrderNodeCollection[]> {
@@ -31,7 +50,8 @@ export class OrdersGraph {
     for (const orderItemNode of rootOrderNode.nodes) {
       const possibleMatches = orderItemNode.data.orderItem.getPossibleMatches();
       for await (const match of possibleMatches) {
-        if (!orderIds.has(match.id) && orderItemNode.data.orderItem.isMatch(match)) {
+        const isMatch = orderItemNode.data.orderItem.isMatch(match);
+        if (!orderIds.has(match.id) && isMatch) {
           orderIds.add(match.id);
           const orderItem = new OrderItem(match, db);
           const firestoreOrder = (await orderItem.orderRef.get()).data();
@@ -45,9 +65,7 @@ export class OrdersGraph {
     return orderNodes;
   }
 
-  private async buildOneToManyGraph(root: OrderNodeCollection) {
-    const matchingOrderNodes = await this.getMatches(root);
-
+  public buildOneToManyGraph(root: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
     /**
      * sort order nodes by increasing start time
      */

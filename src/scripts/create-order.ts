@@ -10,11 +10,20 @@ if (!signerPrivateKey) {
 const signer = new Wallet(signerPrivateKey);
 
 const nfts: ChainNFTs[] = [
+//   {
+//     collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
+//     tokens: [
+//       {
+//         tokenId: '175',
+//         numTokens: 1
+//       }
+//     ]
+// },
   {
     collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
     tokens: [
       {
-        tokenId: '9',
+        tokenId: '174',
         numTokens: 1
       }
     ]

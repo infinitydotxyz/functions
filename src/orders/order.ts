@@ -215,7 +215,8 @@ export class Order {
           collectionImage,
           collectionSlug,
           hasBlueCheck,
-          tokens: {}
+          tokens: {},
+          chainId: orderItem.firestoreOrderItem.chainId as ChainId
         };
       }
 

@@ -21,34 +21,34 @@ export class NodeCollection<Data, InternalNodeData> {
     return edges;
   }
 
-  public get inputEdges(): Edge<InternalNodeData>[] {
+  public get incomingEdges(): Edge<InternalNodeData>[] {
     let edges: Edge<InternalNodeData>[] = [];
     for (const node of this.nodes) {
-      edges = [...edges, ...node.inputEdges];
+      edges = [...edges, ...node.incomingEdges];
     }
     return edges;
   }
 
-  public get outputEdges(): Edge<InternalNodeData>[] {
+  public get outgoingEdges(): Edge<InternalNodeData>[] {
     let edges: Edge<InternalNodeData>[] = [];
     for (const node of this.nodes) {
-      edges = [...edges, ...node.outputEdges];
+      edges = [...edges, ...node.outgoingEdges];
     }
     return edges;
   }
 
-  public get inputEdgeWeight(): number {
+  public get incomingEdgeFlow(): number {
     let sum = 0;
     for (const node of this.nodes) {
-      sum += node.inputEdgeWeight;
+      sum += node.incomingEdgeFlow;
     }
     return sum;
   }
 
-  public get outputEdgeWeight(): number {
+  public get outgoingEdgeFlow(): number {
     let sum = 0;
     for (const node of this.nodes) {
-      sum += node.outputEdgeWeight;
+      sum += node.outgoingEdgeFlow;
     }
     return sum;
   }

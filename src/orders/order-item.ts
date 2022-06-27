@@ -15,11 +15,7 @@ export class OrderItem implements IOrderItem {
 
   public wrapper: IOrderItem;
 
-  constructor(
-    public readonly firestoreOrderItem: FirestoreOrderItem,
-    public readonly db: FirebaseFirestore.Firestore
-  )
-  {
+  constructor(public readonly firestoreOrderItem: FirestoreOrderItem, public readonly db: FirebaseFirestore.Firestore) {
     this.orderRef = this.db
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(this.firestoreOrderItem.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;

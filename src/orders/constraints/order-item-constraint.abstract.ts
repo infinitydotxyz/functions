@@ -74,7 +74,7 @@ export abstract class OrderItemConstraint implements IOrderItem {
       ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
     ) => (string | number | FirebaseFirestore.DocumentReference)[];
   };
-  
+
   protected abstract score: number;
 
   protected abstract isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean;

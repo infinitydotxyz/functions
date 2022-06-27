@@ -24,3 +24,4 @@ export interface Node<T> {
 
   remove(edge: Edge<T>): void;
 }
+

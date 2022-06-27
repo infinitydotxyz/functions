@@ -18,7 +18,7 @@ export class OrdersGraph {
     const matches = searcher.searchForOneToManyMatches(rootOrderNode, matchingOrderNodes);
 
     let firestoreOrderMatches: FirestoreOrderMatches[] = [];
-    for (const { intersection, edges, firestoreOrder, opposingFirestoreOrders } of matches) {
+    for (const { intersection, edges } of matches) {
       try {
         const orderItemMatches = edges.map((item) => {
           if (!item.from || !item.to) {

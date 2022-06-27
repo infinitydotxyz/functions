@@ -43,7 +43,7 @@ export class Order {
   public static isFullySpecified(orderItems: IOrderItem[]) {
     return orderItems.reduce((fullySpecified, orderItem) => {
       return fullySpecified && !!orderItem.firestoreOrderItem.tokenId;
-    }, orderItems.length > 0)
+    }, orderItems.length > 0);
   }
 
   public async searchForMatches(): Promise<{ matches: FirestoreOrderMatches[] }> {
@@ -234,7 +234,7 @@ export class Order {
   }
 
   public getFirestoreOrderMatchOneToMany(
-    matches: {orderItem: FirestoreOrderItem, opposingOrderItem: FirestoreOrderItem}[],
+    matches: { orderItem: FirestoreOrderItem; opposingOrderItem: FirestoreOrderItem }[],
     price: number,
     timestamp: number
   ): FirestoreOrderMatchOneToMany {
@@ -280,7 +280,7 @@ export class Order {
         }
       };
       return orderItems;
-    }, {} );
+    }, {});
 
     const collectionAddresses = Object.keys(orderItems);
     const tokenStrings = collectionAddresses.reduce((acc: string[], collectionAddress) => {
@@ -318,7 +318,12 @@ export class Order {
     return firestoreOrderMatch;
   }
 
-  public getUsersInvolved(match: OneToManyOrderItemMatch[] | OrderItemMatch[] | { orderItem: FirestoreOrderItem, opposingOrderItem: FirestoreOrderItem }[]): string[] {
+  public getUsersInvolved(
+    match:
+      | OneToManyOrderItemMatch[]
+      | OrderItemMatch[]
+      | { orderItem: FirestoreOrderItem; opposingOrderItem: FirestoreOrderItem }[]
+  ): string[] {
     const usersAndRoles: Set<string> = new Set();
     const addUser = (firestoreOrderItem: FirestoreOrderItem) => {
       const orderSideRole = firestoreOrderItem.isSellOrder ? UserOrderRole.Lister : UserOrderRole.Offerer;
@@ -328,13 +333,13 @@ export class Order {
 
     for (const item of match) {
       if ('opposingOrderItem' in item) {
-        if(item.opposingOrderItem instanceof OrderItem) {
+        if (item.opposingOrderItem instanceof OrderItem) {
           addUser(item.opposingOrderItem.firestoreOrderItem);
         } else {
           addUser(item.opposingOrderItem as FirestoreOrderItem);
         }
 
-        if(item.orderItem instanceof OrderItem) {
+        if (item.orderItem instanceof OrderItem) {
           addUser(item.orderItem.firestoreOrderItem);
         } else {
           addUser(item.orderItem as FirestoreOrderItem);

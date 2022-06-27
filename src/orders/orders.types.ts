@@ -34,10 +34,6 @@ export interface OrderItem {
   ): AsyncGenerator<FirestoreOrderItem>;
 
   getNumConstraints(): number;
-
-  areMatches(
-    orderItems: OrderItem[]
-  ): { isValid: false } | { isValid: true; numItems: number; tokenIds: Set<string>; price: number; timestamp: number };
 }
 
 export type OrderItemMatch = { orderItem: OrderItem; opposingOrderItem: OrderItem };

@@ -4,7 +4,7 @@ import { Node } from './node';
 export class Edge<T> {
   public fromNode?: Node<T>;
   public toNode?: Node<T>;
-  
+
   constructor(public flow = 0) {}
 
   public get maxFlow() {
@@ -35,9 +35,8 @@ export class Edge<T> {
   }
 
   pushFlow(flow: number) {
-    if(flow > this.maxFlow) {
+    if (flow > this.maxFlow) {
       throw new Error('Flow exceeds max flow');
     }
-
   }
 }

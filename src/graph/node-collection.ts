@@ -4,11 +4,10 @@ import { Node } from './node';
 export class NodeCollection<Data, InternalNodeData> {
   protected _nodes: Set<Node<InternalNodeData>>;
 
-  
   constructor(public data: Data) {
     this._nodes = new Set();
   }
-  
+
   public get nodes() {
     return this._nodes;
   }

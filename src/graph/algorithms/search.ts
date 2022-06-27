@@ -29,7 +29,12 @@ export class OneToManyOrderMatchSearch {
         console.log(`Found ${sortedOrderNodesWithFlow.length} order nodes with flow`);
         const res = [...sortedOrderNodesWithFlow].reduce(
           (
-            acc: { isValid: boolean; flow: number, firestoreOrders: FirestoreOrder[]; invalidOrderNodes: OrderNodeCollection[] },
+            acc: {
+              isValid: boolean;
+              flow: number;
+              firestoreOrders: FirestoreOrder[];
+              invalidOrderNodes: OrderNodeCollection[];
+            },
             orderNode
           ) => {
             const firestoreOrder = orderNode.data.order.firestoreOrder;

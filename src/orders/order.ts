@@ -333,16 +333,15 @@ export class Order {
 
     for (const item of match) {
       if ('opposingOrderItem' in item) {
-        if (item.opposingOrderItem instanceof OrderItem) {
+        if ('orderStatus' in item.opposingOrderItem) {
+          addUser(item.opposingOrderItem);
+        } else {
           addUser(item.opposingOrderItem.firestoreOrderItem);
-        } else {
-          addUser(item.opposingOrderItem as FirestoreOrderItem);
         }
-
-        if (item.orderItem instanceof OrderItem) {
-          addUser(item.orderItem.firestoreOrderItem);
+        if ('orderStatus' in item.orderItem) {
+          addUser(item.orderItem);
         } else {
-          addUser(item.orderItem as FirestoreOrderItem);
+          addUser(item.orderItem.firestoreOrderItem);
         }
       } else {
         addUser(item.orderItem.firestoreOrderItem);

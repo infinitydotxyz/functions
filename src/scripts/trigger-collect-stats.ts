@@ -1,5 +1,9 @@
+import { OrderDirection } from "@infinityxyz/lib/types/core";
 import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
+import PQueue from "p-queue";
 import { getDb } from "../firestore";
+import { streamQuery } from "../firestore/stream-query";
+import { sleep } from "../utils";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fetch = require("node-fetch");
 
@@ -20,25 +24,39 @@ async function main() {
 
   const collectionRef = db.collection(firestoreConstants.COLLECTIONS_COLL);
 
-  const nftsQuery = await collectionRef.select("address").get(); // use .limit(5) for testing
+  const query = collectionRef
+    .select("address")
+    .orderBy(
+      "__name__",
+      OrderDirection.Ascending // orderBy is required to support pagination
+    ) as FirebaseFirestore.Query<Item>;
 
-  const items = nftsQuery.docs ?? [];
-  let timer = 0;
-  console.log("Total collections:", items.length);
+  const startAfter = (item: Item, ref: FirebaseFirestore.DocumentReference) => {
+    return [ref.id];
+  };
 
-  for (const item of items) {
-    const itemData = item.data() as Item;
-    if (itemData.address) {
-      timer += TRIGGER_TIMER; // every 500ms
-      setTimeout(() => {
-        const address = itemData.address;
-        fetch(`${TRIGGER_ENDPOINT}${address}`)
-          .then(() => {
-            console.log("/collect-stats", address);
-          })
-          .catch((err: any) => console.error(err));
-      }, timer);
+  const pageSize = 100;
+  const collectionsStream = streamQuery(query, startAfter, { pageSize });
+  const queue = new PQueue({ concurrency: pageSize });
+
+  for await (const item of collectionsStream) {
+    if (item.address) {
+      void queue
+        .add(() => {
+          fetch(`${TRIGGER_ENDPOINT}${item.address}`)
+            .then(() => {
+              console.log("/collect-stats", item.address);
+            })
+            .catch((err: any) => console.error(err));
+        })
+        .catch(console.error);
     }
+    if (queue.pending === pageSize) {
+      console.log(`Waiting for queue to drain...`);
+      await queue.onIdle();
+      console.log(`Queue drained.`);
+    }
+    await sleep(TRIGGER_TIMER);
   }
 }
 

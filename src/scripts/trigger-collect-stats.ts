@@ -10,8 +10,7 @@ const fetch = require("node-fetch");
 // This background task loops through all collections in DB
 // and trigger /collect-stats on each collection.
 
-// - 2000 reqs / 1 hour (3600s)   => 1.8 req / sec
-const TRIGGER_TIMER = 500; // every 500 ms
+const TRIGGER_TIMER = 1000; // every 1s
 const TRIGGER_ENDPOINT = `http://localhost:9090/collections/collect-stats?list=`; // todo: use the Prod URL?
 
 type Item = {

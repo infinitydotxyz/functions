@@ -16,9 +16,11 @@ export async function signOrder(
     endPriceEth: number;
     startTimeMs: number;
     endTimeMs: number;
+    maxGasPriceWei: string;
   }
 ): Promise<SignedOBOrderDto> {
-  const { nfts, chainId, isSellOrder, numItems, startPriceEth, endPriceEth, startTimeMs, endTimeMs } = orderDescription;
+  const { nfts, chainId, isSellOrder, numItems, startPriceEth, endPriceEth, startTimeMs, endTimeMs, maxGasPriceWei } =
+    orderDescription;
   const nonce = await getOrderNonce(signer);
   const startPrice = ethers.utils.parseEther(`${startPriceEth}`);
   const endPrice = ethers.utils.parseEther(`${endPriceEth}`);
@@ -36,6 +38,7 @@ export async function signOrder(
     startTimeMs,
     endTimeMs,
     nonce,
+    maxGasPriceWei,
     execParams: {
       complicationAddress,
       currencyAddress
@@ -46,7 +49,7 @@ export async function signOrder(
     signedOrder: {
       isSellOrder,
       signer: signer.address,
-      constraints: [numItems, startPrice, endPrice, startTime, endTime, nonce],
+      constraints: [numItems, startPrice, endPrice, startTime, endTime, nonce, maxGasPriceWei],
       nfts,
       execParams: [complicationAddress, currencyAddress],
       extraParams: '0x0000000000000000000000000000000000000000000000000000000000000000',

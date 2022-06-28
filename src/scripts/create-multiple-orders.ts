@@ -71,7 +71,8 @@ export async function createOrders(oneToOne = false) {
         endPriceEth: 0.01,
         startTimeMs: Date.now(),
         endTimeMs: Date.now() + 1000 * 60 * 60 * 24 * 7,
-        nfts: wallet.nfts
+        nfts: wallet.nfts,
+        maxGasPriceWei: ethers.utils.parseEther('0.1').toString()
       };
       console.log(`Creating orders for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);
       // create listings
@@ -92,7 +93,8 @@ export async function createOrders(oneToOne = false) {
         endPriceEth: 0.02,
         startTimeMs: Date.now(),
         endTimeMs: Date.now() + 1000 * 60 * 60 * 24 * 7,
-        nfts: wallet.nfts
+        nfts: wallet.nfts,
+        maxGasPriceWei: ethers.utils.parseEther('0.1').toString()
       };
 
       const signedOffer = await signOrder(fundingWallet.wallet, offer);

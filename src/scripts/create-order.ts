@@ -19,20 +19,20 @@ const nfts: ChainNFTs[] = [
         numTokens: 1
       }
     ]
+  },
+  {
+    collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
+    tokens: [
+      {
+        tokenId: '174',
+        numTokens: 1
+      }
+    ]
   }
-  // {
-  //   collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
-  //   tokens: [
-  //     {
-  //       tokenId: '174',
-  //       numTokens: 1
-  //     }
-  //   ]
-  // }
 ];
 const chainId = ChainId.Goerli;
 const isSellOrder = true;
-const numItems = 1;
+const numItems = 2;
 const startPriceEth = 0.1;
 const endPriceEth = 0.1;
 const startTimeMs = Date.now();

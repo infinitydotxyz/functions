@@ -88,7 +88,7 @@ export async function signOrder(
     ]
   };
 
-  const orderToSign = {
+  const orderToSign: Omit<ChainOBOrder, 'sig'> = {
     isSellOrder: order.signedOrder.isSellOrder,
     signer: signer.address,
     constraints: order.signedOrder.constraints,

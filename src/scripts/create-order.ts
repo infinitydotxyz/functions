@@ -11,18 +11,13 @@ if (!signerPrivateKey) {
 const signer = new Wallet(signerPrivateKey);
 
 const nfts: ChainNFTs[] = [
-  // {
-  //   collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
-  //   tokens: [
-  //     {
-  //       tokenId: '175',
-  //       numTokens: 1
-  //     }
-  //   ]
-  // },
   {
     collection: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
     tokens: [
+      // {
+      //   tokenId: '175',
+      //   numTokens: 1
+      // },
       {
         tokenId: '174',
         numTokens: 1
@@ -36,7 +31,8 @@ const numItems = 1;
 const startPriceEth = 0.1;
 const endPriceEth = 0.1;
 const startTimeMs = Date.now();
-const maxGasPriceWei = parseEther('0.1').toString();
+const maxGasPriceWei = parseEther('1').toString();
+console.log(`max gas price: ${maxGasPriceWei}`);
 // two days from now
 const endTimeMs = startTimeMs + 2 * 24 * 60 * 60 * 1000;
 const defaultOrderDescription = {

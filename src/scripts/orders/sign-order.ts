@@ -28,7 +28,6 @@ export async function signOrder(
   const endTime = Math.floor(endTimeMs / 1000);
   const complicationAddress = getOBComplicationAddress(chainId);
   const currencyAddress = getTxnCurrencyAddress(chainId);
-  const exchangeAddress = getExchangeAddress(chainId);
 
   const order: SignedOBOrderDto = {
     chainId,
@@ -63,10 +62,10 @@ export async function signOrder(
   };
 
   const domain = {
-    name: 'InfinityExchange',
+    name: 'InfinityComplication',
     version: '1',
     chainId: chainId,
-    verifyingContract: exchangeAddress
+    verifyingContract: complicationAddress
   };
 
   const types = {

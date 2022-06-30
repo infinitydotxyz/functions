@@ -16,10 +16,13 @@ export interface OrderItemNodeData {
 
 export class OrderNodeCollection extends NodeCollection<Data, OrderItemNodeData> {
   constructor(order: Order, orderItems: IOrderItem[]) {
-    super({
-      order,
-      orderItems
-    });
+    super(
+      {
+        order,
+        orderItems
+      },
+      order.firestoreOrder.numItems
+    );
     this.initNodes();
   }
 
@@ -47,57 +50,6 @@ export class OrderNodeCollection extends NodeCollection<Data, OrderItemNodeData>
 
   public get incomingEdgesWithNonZeroFlow(): Edge<OrderItemNodeData>[] {
     return [...this.nodes].flatMap((node) => node.incomingEdgesWithNonZeroFlow);
-  }
-
-  public pushFlow(): { flowPushed: number } {
-    let totalFlow = this.outgoingEdgeFlow;
-    let totalFlowPushed = 0;
-    const maxFlow = this.data.order.firestoreOrder.numItems;
-    const nodes = [...this.nodes];
-    let index = 0;
-
-    while (totalFlow < maxFlow) {
-      const node = nodes[index];
-      if (!node) {
-        break;
-      }
-      const flowToPush = Math.min(maxFlow - totalFlow, node.maxFlow);
-      const { flowPushed } = node.pushFlow(flowToPush);
-      totalFlow += flowPushed;
-      index += 1;
-      totalFlowPushed += flowPushed;
-    }
-
-    return { flowPushed: totalFlowPushed };
-  }
-
-  public *streamFlow(): Generator<
-    {
-      flowPushed: number;
-      totalFlowPushed: number;
-    },
-    void,
-    unknown
-  > {
-    let totalFlowPushed = 0;
-    const maxFlow = this.data.order.firestoreOrder.numItems;
-    const nodes = [...this.nodes];
-
-    while (nodes.length > 0) {
-      let flowPushedToAllNodes = 0;
-      for (const node of nodes) {
-        const totalFlow = this.outgoingEdgeFlow;
-        const flowRemaining = maxFlow - totalFlow;
-        const flowToPush = Math.min(flowRemaining, node.maxFlow);
-        const { flowPushed } = node.pushFlow(flowToPush);
-        totalFlowPushed += flowPushed;
-        flowPushedToAllNodes += flowPushed;
-      }
-      if (flowPushedToAllNodes === 0) {
-        break;
-      }
-      yield { flowPushed: flowPushedToAllNodes, totalFlowPushed };
-    }
   }
 
   private initNodes() {

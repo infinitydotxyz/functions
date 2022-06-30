@@ -4,7 +4,7 @@ import { Node } from './node';
 export class NodeCollection<Data, InternalNodeData> {
   protected _nodes: Set<Node<InternalNodeData>>;
 
-  constructor(public data: Data) {
+  constructor(public data: Data, public readonly maxFlow: number) {
     this._nodes = new Set();
   }
 
@@ -64,5 +64,28 @@ export class NodeCollection<Data, InternalNodeData> {
 
   remove(node: Node<InternalNodeData>) {
     this.nodes.delete(node);
+  }
+
+  public *streamFlow(): Generator<
+    {
+      flowPushed: number;
+      totalFlowPushed: number;
+    },
+    void,
+    unknown
+  > {
+    let totalFlowPushed = 0;
+
+    while (this.nodes.size > 0) {
+      let flowPushedInIteration = 0;
+      for (const node of this.nodes) {
+        const totalFlow = this.outgoingEdgeFlow;
+        const flowRemaining = this.maxFlow - totalFlow;
+        const { flowPushed: flowPushedToNode } = node.pushFlow(flowRemaining);
+        totalFlowPushed += flowPushedToNode;
+        flowPushedInIteration += flowPushedToNode;
+      }
+      yield { flowPushed: flowPushedInIteration, totalFlowPushed };
+    }
   }
 }

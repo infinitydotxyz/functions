@@ -20,6 +20,9 @@ export class OneToManyOrderMatchSearch {
 
       for (const { flowPushed, totalFlowPushed } of flowPusher) {
         console.log(`Pushed ${flowPushed} flow. Total: ${totalFlowPushed}`);
+        if(flowPushed === 0) { // reached a stable state
+          break;
+        }
 
         const edgesWithFlow = this.getEdgesWithNonZeroFlow();
         const orderNodesWithFlow = this.getOrdersNodesFromEdges(edgesWithFlow);

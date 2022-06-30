@@ -42,10 +42,19 @@ export class Node<T> implements INode<T> {
     return sum;
   }
 
-  constructor(public data: T, public maxFlow: number) {
+  public get flow(): number {
+    if(this.isSink) {
+      return this._flow;
+    }
+    return this.outgoingEdgeFlow;
+  }
+
+  private _flow: number;
+  constructor(public data: T, public maxFlow: number, public readonly isSink = false) {
     this._edges = new Set();
     this._incomingEdges = new Set();
     this._outgoingEdges = new Set();
+    this._flow = 0;
   }
 
   unlink() {
@@ -59,6 +68,9 @@ export class Node<T> implements INode<T> {
     if (type === EdgeType.Incoming) {
       this._incomingEdges.add(edge);
     } else {
+      if(this.isSink) {
+        throw new Error('Cannot add outgoing edge to sink node');
+      }
       this._outgoingEdges.add(edge);
     }
   }
@@ -70,6 +82,13 @@ export class Node<T> implements INode<T> {
   }
 
   pushFlow(flow: number): { flowPushed: number } {
+    if(this.isSink) {
+      const flowRemaining = this.maxFlow - this._flow;
+      const flowPushed = Math.min(flowRemaining, flow);
+      this._flow = this._flow + flowPushed
+      return { flowPushed };
+    }
+
     const currentFlow = this.outgoingEdgeFlow;
     flow = Math.min(flow, this.maxFlow - currentFlow);
     let flowPushed = 0;
@@ -79,13 +98,9 @@ export class Node<T> implements INode<T> {
         break;
       }
 
-      const maxFlowToPushToEdge = edge.maxFlow - edge.flow;
-      if (maxFlowToPushToEdge > 0) {
-        const flowToPushToEdge = Math.min(maxFlowToPushToEdge, flow);
-        edge.flow = flowToPushToEdge;
-        flow -= flowToPushToEdge;
-        flowPushed += flowToPushToEdge;
-      }
+      const { flowPushed: flowPushedOnEdge } = edge.pushFlow(flow);
+      flow -= flowPushedOnEdge;
+      flowPushed += flowPushedOnEdge;
     }
 
     return { flowPushed };

@@ -8,10 +8,12 @@ export async function setApprovalForAll(
   signer: ethers.Wallet
 ) {
   const contract = new ethers.Contract(contractAddress, erc721Abi, signer);
-  const isApproved = await contract.isApprovedForAll(signer.address, operator);
+  let isApproved = await contract.isApprovedForAll(signer.address, operator);
   console.log(`${signer.address} isApprovedForAll Operator: ${operator}  ${isApproved ? '✅ ' : '❌'}`);
   if (!isApproved) {
     console.log(`Approving ${operator} for ${signer.address}`);
     await contract.setApprovalForAll(operator, approved);
+    isApproved = true;
   }
+  console.log(`${signer.address} isApprovedForAll Operator: ${operator}  ${isApproved ? '✅ ' : '❌'}`);
 }

@@ -55,4 +55,4 @@ async function scanForMatch(id: string) {
 }
 
 // void scanForMatches('0xc8ec05bd3b233e96942c496247ee12832abb7828de2e4e99cb80a77136f8f10f');
-// void scanForMatch('0xc8ec05bd3b233e96942c496247ee12832abb7828de2e4e99cb80a77136f8f10f');
+void scanForMatch('0x462c0f5ddfa2df9a138c985006ad9d170d764176e60b377a30b5a27e01df5ac5');

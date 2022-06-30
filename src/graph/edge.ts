@@ -5,7 +5,11 @@ export class Edge<T> {
   public fromNode?: Node<T>;
   public toNode?: Node<T>;
 
-  constructor(public flow = 0) {}
+  public get flow() {
+    return this._flow;
+  }
+
+  constructor(protected _flow = 0) {}
 
   public get maxFlow() {
     return Math.min(this.fromNode?.maxFlow ?? 0, this.toNode?.maxFlow ?? 0);
@@ -32,11 +36,16 @@ export class Edge<T> {
 
     this.fromNode = undefined;
     this.toNode = undefined;
+    this._flow = 0;
   }
 
   pushFlow(flow: number) {
-    if (flow > this.maxFlow) {
-      throw new Error('Flow exceeds max flow');
+    if(!this.toNode) {
+      return { flowPushed: 0 };
     }
+    const {flowPushed} = this.toNode.pushFlow(flow);
+    this._flow = this._flow + flowPushed;
+
+    return { flowPushed };
   }
 }

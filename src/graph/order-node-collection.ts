@@ -2,7 +2,6 @@ import { Order } from '../orders/order';
 import { NodeCollection } from './node-collection';
 import { OrderItem as IOrderItem } from '../orders/orders.types';
 import { Node } from './node';
-import { Edge } from './edge';
 
 interface Data {
   order: Order;
@@ -24,32 +23,6 @@ export class OrderNodeCollection extends NodeCollection<Data, OrderItemNodeData>
       order.firestoreOrder.numItems
     );
     this.initNodes();
-  }
-
-  public get incomingEdgeFlow() {
-    let flow = 0;
-    for (const node of this.nodes) {
-      flow += node.incomingEdgeFlow;
-    }
-
-    return flow;
-  }
-
-  public get outgoingEdgeFlow(): number {
-    let flow = 0;
-    for (const node of this.nodes) {
-      flow += node.outgoingEdgeFlow;
-    }
-
-    return flow;
-  }
-
-  public get outgoingEdgesWithNonZeroFlow(): Edge<OrderItemNodeData>[] {
-    return [...this.nodes].flatMap((node) => node.outgoingEdgesWithNonZeroFlow);
-  }
-
-  public get incomingEdgesWithNonZeroFlow(): Edge<OrderItemNodeData>[] {
-    return [...this.nodes].flatMap((node) => node.incomingEdgesWithNonZeroFlow);
   }
 
   private initNodes() {

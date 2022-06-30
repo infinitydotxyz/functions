@@ -14,7 +14,7 @@ describe('node collection', () => {
     expect(nodeCollection.nodes.size).toBe(0);
   });
 
-  it('unlinks all nodes and doesn\'t remove nodes from the collection', () => {
+  it("unlinks all nodes and doesn't remove nodes from the collection", () => {
     const data = {};
     const nodeCollection = new NodeCollection(data, 2);
     const nodeFromOne = new Node({}, 1, false);
@@ -131,19 +131,18 @@ describe('node collection', () => {
 
     const third = iterator.next().value;
     if (third) {
-        const { flowPushed, totalFlowPushed } = third;
-        expect(flowPushed).toBe(1);
-        expect(totalFlowPushed).toBe(3);
-        expect(edgeOne.flow).toBe(1);
-        expect(edgeTwo.flow).toBe(1);
-        expect(edgeThree.flow).toBe(1);
+      const { flowPushed, totalFlowPushed } = third;
+      expect(flowPushed).toBe(1);
+      expect(totalFlowPushed).toBe(3);
+      expect(edgeOne.flow).toBe(1);
+      expect(edgeTwo.flow).toBe(1);
+      expect(edgeThree.flow).toBe(1);
     } else {
-        expect(false).toBe(true);
+      expect(false).toBe(true);
     }
   });
 
-
-  it('pushes flow to the next nodes when a node that previously had flow is removed from the collection and the collection was at it\'s max flow', () => {
+  it("pushes flow to the next nodes when a node that previously had flow is removed from the collection and the collection was at it's max flow", () => {
     const data = {};
     const nodeCollection = new NodeCollection(data, 2);
     const nodeFromOne = new Node({}, 1, false);
@@ -152,7 +151,7 @@ describe('node collection', () => {
     const nodeToTwo = new Node({}, 1, true);
     const nodeFromThree = new Node({}, 1, false);
     const nodeToThree = new Node({}, 1, true);
-    
+
     const edgeOne = new Edge();
     const edgeTwo = new Edge();
     const edgeThree = new Edge();
@@ -160,7 +159,6 @@ describe('node collection', () => {
     edgeOne.link(nodeFromOne, nodeToOne);
     edgeTwo.link(nodeFromTwo, nodeToTwo);
     edgeThree.link(nodeFromThree, nodeToThree);
-
 
     nodeCollection.add(nodeFromOne);
     nodeCollection.add(nodeFromTwo);
@@ -194,16 +192,16 @@ describe('node collection', () => {
 
     const third = iterator.next().value;
     if (third) {
-        const { flowPushed, totalFlowPushed } = third;
-        expect(flowPushed).toBe(1);
-        expect(totalFlowPushed).toBe(3);
-        expect(edgeTwo.flow).toBe(1);
-        expect(edgeThree.flow).toBe(1);
+      const { flowPushed, totalFlowPushed } = third;
+      expect(flowPushed).toBe(1);
+      expect(totalFlowPushed).toBe(3);
+      expect(edgeTwo.flow).toBe(1);
+      expect(edgeThree.flow).toBe(1);
     } else {
-        expect(false).toBe(true);
+      expect(false).toBe(true);
     }
   });
-  
+
   it('maintains the order of nodes in which they were added to the collection', () => {
     const data = {};
     const nodeCollection = new NodeCollection(data, 2);
@@ -213,7 +211,7 @@ describe('node collection', () => {
     const nodeToTwo = new Node({}, 1, true);
     const nodeFromThree = new Node({}, 1, false);
     const nodeToThree = new Node({}, 1, true);
-    
+
     const edgeOne = new Edge();
     const edgeTwo = new Edge();
     const edgeThree = new Edge();
@@ -226,20 +224,20 @@ describe('node collection', () => {
     nodeCollection.add(nodeFromTwo);
     nodeCollection.add(nodeFromThree);
 
-    const nodes = [...nodeCollection.nodes]
+    const nodes = [...nodeCollection.nodes];
     expect(nodes[0]).toBe(nodeFromOne);
     expect(nodes[1]).toBe(nodeFromTwo);
     expect(nodes[2]).toBe(nodeFromThree);
 
     nodeCollection.remove(nodeFromOne);
 
-    const nodesAfterRemoval = [...nodeCollection.nodes]
+    const nodesAfterRemoval = [...nodeCollection.nodes];
     expect(nodesAfterRemoval[0]).toBe(nodeFromTwo);
     expect(nodesAfterRemoval[1]).toBe(nodeFromThree);
 
     nodeCollection.add(nodeFromOne);
 
-    const nodesAfterAddition = [...nodeCollection.nodes]
+    const nodesAfterAddition = [...nodeCollection.nodes];
     expect(nodesAfterAddition[0]).toBe(nodeFromTwo);
     expect(nodesAfterAddition[1]).toBe(nodeFromThree);
     expect(nodesAfterAddition[2]).toBe(nodeFromOne);
@@ -255,7 +253,7 @@ describe('node collection', () => {
     const nodeToTwo = new Node({}, 1, true);
     const nodeFromThree = new Node({}, 1, false);
     const nodeToThree = new Node({}, 1, true);
-    
+
     const edgeOne = new Edge();
     const edgeTwo = new Edge();
     const edgeThree = new Edge();

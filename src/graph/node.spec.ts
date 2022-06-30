@@ -174,7 +174,7 @@ describe('node', () => {
     expect(toNodeTwo.flow).toBe(maxFlow);
 
     fromNode.remove(edgeOne);
-    
+
     expect(fromNode.outgoingEdges.length).toBe(1);
     expect(fromNode.flow).toBe(maxFlow);
   });
@@ -197,7 +197,7 @@ describe('node', () => {
     expect(toNodeTwo.flow).toBe(maxFlow);
 
     fromNode.unlink();
-    
+
     expect(fromNode.outgoingEdges.length).toBe(0);
     expect(fromNode.flow).toBe(0);
     expect(toNodeOne.flow).toBe(0);

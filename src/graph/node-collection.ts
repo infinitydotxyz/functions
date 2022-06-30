@@ -52,6 +52,14 @@ export class NodeCollection<Data, InternalNodeData> {
     return sum;
   }
 
+  public get outgoingEdgesWithNonZeroFlow(): Edge<InternalNodeData>[] {
+    return [...this.nodes].flatMap((node) => node.outgoingEdgesWithNonZeroFlow);
+  }
+
+  public get incomingEdgesWithNonZeroFlow(): Edge<InternalNodeData>[] {
+    return [...this.nodes].flatMap((node) => node.incomingEdgesWithNonZeroFlow);
+  }
+
   unlink() {
     for (const node of this.nodes) {
       node.unlink();

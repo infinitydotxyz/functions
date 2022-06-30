@@ -77,7 +77,7 @@ export class Node<T> implements INode<T> {
 
   remove(edge: Edge<T>) {
     // TODO what happens to the flow if an edge with flow is removed?
-    if(this.isSink && this._incomingEdges.has(edge)) {
+    if (this.isSink && this._incomingEdges.has(edge)) {
       this._flow -= edge.flow;
     }
     this._edges.delete(edge);

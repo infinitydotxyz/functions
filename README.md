@@ -40,3 +40,7 @@ orderMatches
 * A subset of the Order Match order type that occurs when the following is true
     * Both orders specify a `numItems` of 1
     * The match results in a single nft being transferred
+
+
+## One to many matching
+![graph overview](https://github.com/mavriklabs/functions/blob/main/assets/graph-overview.png)

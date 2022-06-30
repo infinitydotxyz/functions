@@ -39,7 +39,7 @@ describe('node collection', () => {
     expect(nodeCollection.nodes.size).toBe(2);
   });
 
-  it('streamFlow pushes flow to all nodes', () => {
+  it('pushed flow to all nodes via streamFlow', () => {
     const data = {};
     const nodeCollection = new NodeCollection(data, 2);
     const nodeFromOne = new Node({}, 1, false);
@@ -81,7 +81,7 @@ describe('node collection', () => {
     }
   });
 
-  it('adding nodes to the collection while streaming flow results in more flow being pushed', () => {
+  it('continues to push flow to new nodes that are added to the collection', () => {
     const data = {};
     const nodeCollection = new NodeCollection(data, 4);
     const nodeFromOne = new Node({}, 1, false);
@@ -143,7 +143,7 @@ describe('node collection', () => {
   });
 
 
-  it('removing a node with flow from the collection, that\'s at its max flow, while streaming flow results in more flow being pushed to other nodes', () => {
+  it('pushes flow to the next nodes when a node that previously had flow is removed from the collection and the collection was at it\'s max flow', () => {
     const data = {};
     const nodeCollection = new NodeCollection(data, 2);
     const nodeFromOne = new Node({}, 1, false);
@@ -202,5 +202,86 @@ describe('node collection', () => {
     } else {
         expect(false).toBe(true);
     }
+  });
+  
+  it('maintains the order of nodes in which they were added to the collection', () => {
+    const data = {};
+    const nodeCollection = new NodeCollection(data, 2);
+    const nodeFromOne = new Node({}, 1, false);
+    const nodeFromTwo = new Node({}, 1, false);
+    const nodeToOne = new Node({}, 1, true);
+    const nodeToTwo = new Node({}, 1, true);
+    const nodeFromThree = new Node({}, 1, false);
+    const nodeToThree = new Node({}, 1, true);
+    
+    const edgeOne = new Edge();
+    const edgeTwo = new Edge();
+    const edgeThree = new Edge();
+
+    edgeOne.link(nodeFromOne, nodeToOne);
+    edgeTwo.link(nodeFromTwo, nodeToTwo);
+    edgeThree.link(nodeFromThree, nodeToThree);
+
+    nodeCollection.add(nodeFromOne);
+    nodeCollection.add(nodeFromTwo);
+    nodeCollection.add(nodeFromThree);
+
+    const nodes = [...nodeCollection.nodes]
+    expect(nodes[0]).toBe(nodeFromOne);
+    expect(nodes[1]).toBe(nodeFromTwo);
+    expect(nodes[2]).toBe(nodeFromThree);
+
+    nodeCollection.remove(nodeFromOne);
+
+    const nodesAfterRemoval = [...nodeCollection.nodes]
+    expect(nodesAfterRemoval[0]).toBe(nodeFromTwo);
+    expect(nodesAfterRemoval[1]).toBe(nodeFromThree);
+
+    nodeCollection.add(nodeFromOne);
+
+    const nodesAfterAddition = [...nodeCollection.nodes]
+    expect(nodesAfterAddition[0]).toBe(nodeFromTwo);
+    expect(nodesAfterAddition[1]).toBe(nodeFromThree);
+    expect(nodesAfterAddition[2]).toBe(nodeFromOne);
+  });
+
+  it('groups edges by node', () => {
+    const data = {};
+    const outgoingNodeCollection = new NodeCollection(data, 2);
+    const incomingNodeCollection = new NodeCollection(data, 2);
+    const nodeFromOne = new Node({}, 1, false);
+    const nodeFromTwo = new Node({}, 1, false);
+    const nodeToOne = new Node({}, 1, true);
+    const nodeToTwo = new Node({}, 1, true);
+    const nodeFromThree = new Node({}, 1, false);
+    const nodeToThree = new Node({}, 1, true);
+    
+    const edgeOne = new Edge();
+    const edgeTwo = new Edge();
+    const edgeThree = new Edge();
+
+    edgeOne.link(nodeFromOne, nodeToOne);
+    edgeTwo.link(nodeFromTwo, nodeToTwo);
+    edgeThree.link(nodeFromThree, nodeToThree);
+
+    outgoingNodeCollection.add(nodeFromOne);
+    outgoingNodeCollection.add(nodeFromTwo);
+    outgoingNodeCollection.add(nodeFromThree);
+
+    incomingNodeCollection.add(nodeToOne);
+    incomingNodeCollection.add(nodeToTwo);
+    incomingNodeCollection.add(nodeToThree);
+
+    const outgoingEdges = outgoingNodeCollection.outgoingEdges;
+    expect(outgoingEdges.length).toBe(3);
+    expect(outgoingEdges[0]).toBe(edgeOne);
+    expect(outgoingEdges[1]).toBe(edgeTwo);
+    expect(outgoingEdges[2]).toBe(edgeThree);
+
+    const incomingEdged = incomingNodeCollection.incomingEdges;
+    expect(incomingEdged.length).toBe(3);
+    expect(incomingEdged[0]).toBe(edgeOne);
+    expect(incomingEdged[1]).toBe(edgeTwo);
+    expect(incomingEdged[2]).toBe(edgeThree);
   });
 });

@@ -58,13 +58,12 @@ export class Node<T> implements INode<T> {
   }
 
   unlink() {
-    for (const edge of this._edges) {
+    for (const edge of this.edges) {
       edge.unlink();
     }
   }
 
   add(edge: Edge<T>, type: EdgeType) {
-    this._edges.add(edge);
     if (type === EdgeType.Incoming) {
       this._incomingEdges.add(edge);
     } else {
@@ -73,9 +72,14 @@ export class Node<T> implements INode<T> {
       }
       this._outgoingEdges.add(edge);
     }
+    this._edges.add(edge);
   }
 
   remove(edge: Edge<T>) {
+    // TODO what happens to the flow if an edge with flow is removed?
+    if(this.isSink && this._incomingEdges.has(edge)) {
+      this._flow -= edge.flow;
+    }
     this._edges.delete(edge);
     this._outgoingEdges.delete(edge);
     this._incomingEdges.delete(edge);

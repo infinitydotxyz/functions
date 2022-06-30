@@ -155,7 +155,10 @@ export class Order {
       ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
       : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
 
-    const isOneToOne = match.length === 1 && match[0].orderItem.firestoreOrderItem.numItems === 1 && match[0].opposingOrderItem.firestoreOrderItem.numItems === 1; // TODO make sure the orders only contain a single nft
+    const isOneToOne =
+      match.length === 1 &&
+      match[0].orderItem.firestoreOrderItem.numItems === 1 &&
+      match[0].opposingOrderItem.firestoreOrderItem.numItems === 1; // TODO make sure the orders only contain a single nft
 
     const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
       id,

@@ -40,10 +40,10 @@ export class Edge<T> {
   }
 
   pushFlow(flow: number) {
-    if(!this.toNode) {
+    if (!this.toNode) {
       return { flowPushed: 0 };
     }
-    const {flowPushed} = this.toNode.pushFlow(flow);
+    const { flowPushed } = this.toNode.pushFlow(flow);
     this._flow = this._flow + flowPushed;
 
     return { flowPushed };

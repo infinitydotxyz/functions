@@ -43,7 +43,7 @@ export class Node<T> implements INode<T> {
   }
 
   public get flow(): number {
-    if(this.isSink) {
+    if (this.isSink) {
       return this._flow;
     }
     return this.outgoingEdgeFlow;
@@ -68,7 +68,7 @@ export class Node<T> implements INode<T> {
     if (type === EdgeType.Incoming) {
       this._incomingEdges.add(edge);
     } else {
-      if(this.isSink) {
+      if (this.isSink) {
         throw new Error('Cannot add outgoing edge to sink node');
       }
       this._outgoingEdges.add(edge);
@@ -82,10 +82,10 @@ export class Node<T> implements INode<T> {
   }
 
   pushFlow(flow: number): { flowPushed: number } {
-    if(this.isSink) {
+    if (this.isSink) {
       const flowRemaining = this.maxFlow - this._flow;
       const flowPushed = Math.min(flowRemaining, flow);
-      this._flow = this._flow + flowPushed
+      this._flow = this._flow + flowPushed;
       return { flowPushed };
     }
 

@@ -61,7 +61,7 @@ describe('edge', () => {
 
   it('should not be connected and not have flow when unlinked', () => {
     const maxFlow = 1;
-    const { edge, from, to } = getConnection(maxFlow);
+    const { edge, from } = getConnection(maxFlow);
     from.pushFlow(maxFlow);
 
     expect(edge.flow).toBe(maxFlow);
@@ -90,5 +90,5 @@ describe('edge', () => {
     expect(to.maxFlow).toBe(newMaxFlow);
     expect(from.maxFlow).toBeGreaterThanOrEqual(newMaxFlow);
     expect(edge.maxFlow).toBe(newMaxFlow);
-  })
+  });
 });

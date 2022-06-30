@@ -43,4 +43,4 @@ orderMatches
 
 
 ## One to many matching
-![graph overview](https://github.com/mavriklabs/functions/blob/main/assets/graph-overview.png)
+![graph overview](https://github.com/mavriklabs/functions/blob/joe/one-to-many-search/assets/graph-overview.png)

@@ -4,7 +4,7 @@ import { OrderItemConstraint } from './order-item-constraint.abstract';
 /**
  * require that the lister and offerer are different
  */
-export class DifferentWalletConstraint extends OrderItemConstraint {
+export class OrderItemDifferentWalletConstraint extends OrderItemConstraint {
   protected score = 0;
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {

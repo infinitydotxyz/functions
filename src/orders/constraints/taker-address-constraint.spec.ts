@@ -2,7 +2,7 @@ import { getOrderItem } from './chain-id-constraint.spec';
 import { constraints } from './constraint.types';
 import { OrderItemTakerAddressConstraint } from './taker-address-constraint';
 
-describe('maker address constraint', () => {
+describe('taker address constraint', () => {
   it('only matches opposing order items where the maker address is equal to the specified taker address', () => {
     const addressOne = '0x142c5b3a5689ba0871903c53dacf235a28cb21f0';
     const addressTwo = '0x8a90cab2b38dba80c64b7734e58ee1db38b8992e';

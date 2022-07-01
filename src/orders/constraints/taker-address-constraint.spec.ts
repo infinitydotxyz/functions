@@ -31,10 +31,10 @@ describe('taker address constraint', () => {
 
     expect(orderForAddressTwoConstraint.isMatch(orderByAddressOne.firestoreOrderItem)).toBe(true);
     expect(orderForAddressTwoConstraint.isMatch(orderByAddressTwo.firestoreOrderItem)).toBe(true);
-  })
+  });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemTakerAddressConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemTakerAddressConstraint);
     expect(isIncluded).toBe(true);
   });
 });

@@ -1,5 +1,3 @@
-
-
 import { OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { getOrderItem } from './chain-id-constraint.spec';
 import { constraints } from './constraint.types';
@@ -19,7 +17,7 @@ describe('order status constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemOrderStatusConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemOrderStatusConstraint);
     expect(isIncluded).toBe(true);
   });
 });

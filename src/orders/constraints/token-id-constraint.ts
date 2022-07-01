@@ -21,7 +21,7 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
      * offer is for this tokenId or any token in the collection
      */
     if (this.component.firestoreOrderItem.isSellOrder) {
-      if(!this.component.firestoreOrderItem.tokenId) {
+      if (!this.component.firestoreOrderItem.tokenId) {
         return false; // require token id for listings
       }
 

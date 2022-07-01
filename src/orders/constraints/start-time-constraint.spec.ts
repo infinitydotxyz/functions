@@ -17,7 +17,7 @@ describe('start time constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemStartTimeConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemStartTimeConstraint);
     expect(isIncluded).toBe(true);
   });
 });

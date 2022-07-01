@@ -14,7 +14,6 @@ describe('end time constraint', () => {
     const equalTo = getOrderItem({ startTimeMs: startTime, endTimeMs: endTimeEqualsStartTime });
     const greaterThan = getOrderItem({ startTimeMs: startTime, endTimeMs: endTimeGreaterThanStartTime });
 
-
     const constraintOne = new OrderItemEndTimeConstraint(main);
 
     expect(constraintOne.isMatch(lessThan.firestoreOrderItem)).toBe(false);
@@ -23,7 +22,7 @@ describe('end time constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemEndTimeConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemEndTimeConstraint);
     expect(isIncluded).toBe(true);
   });
 });

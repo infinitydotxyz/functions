@@ -1,12 +1,9 @@
-
-
 import { getOrderItem } from './chain-id-constraint.spec';
 import { constraints } from './constraint.types';
 import { OrderItemNumTokensConstraint } from './num-tokens-constraint';
 
 describe('num tokens constraint', () => {
   it('only matches order items with the same number of order items', () => {
-
     const one = getOrderItem({ numTokens: 1 });
     const two = getOrderItem({ numTokens: 2 });
     const three = getOrderItem({ numTokens: 3 });
@@ -19,7 +16,7 @@ describe('num tokens constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemNumTokensConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemNumTokensConstraint);
     expect(isIncluded).toBe(true);
   });
 });

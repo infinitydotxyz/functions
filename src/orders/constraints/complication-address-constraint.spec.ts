@@ -19,7 +19,7 @@ describe('complication address constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemComplicationAddressConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemComplicationAddressConstraint);
     expect(isIncluded).toBe(true);
   });
 });

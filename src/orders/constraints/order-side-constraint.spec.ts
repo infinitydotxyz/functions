@@ -1,12 +1,9 @@
-
-
 import { getOrderItem } from './chain-id-constraint.spec';
 import { constraints } from './constraint.types';
 import { OrderItemOrderSideConstraint } from './order-side-constraint';
 
 describe('order side constraint', () => {
   it('only matches order items of the opposite order side', () => {
-
     const buy = getOrderItem({ isSellOrder: false });
     const sell = getOrderItem({ isSellOrder: true });
 
@@ -20,7 +17,7 @@ describe('order side constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemOrderSideConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemOrderSideConstraint);
     expect(isIncluded).toBe(true);
   });
 });

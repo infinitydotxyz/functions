@@ -19,7 +19,7 @@ describe('different wallet constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemDifferentWalletConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemDifferentWalletConstraint);
     expect(isIncluded).toBe(true);
   });
 });

@@ -19,7 +19,7 @@ describe('collection address constraint', () => {
   });
 
   it('constraint is included', () => {
-    const isIncluded = constraints.some(item => item === OrderItemCollectionAddressConstraint);
+    const isIncluded = constraints.some((item) => item === OrderItemCollectionAddressConstraint);
     expect(isIncluded).toBe(true);
   });
 });

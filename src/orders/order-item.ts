@@ -13,6 +13,9 @@ export class OrderItem implements IOrderItem {
 
   public readonly id: string;
 
+  /**
+   * provides access to the order item with constraints applied
+   */
   public wrapper: IOrderItem;
 
   constructor(public readonly firestoreOrderItem: FirestoreOrderItem, public readonly db: FirebaseFirestore.Firestore) {
@@ -20,6 +23,16 @@ export class OrderItem implements IOrderItem {
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(this.firestoreOrderItem.id) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
     this.id = nanoid();
+  }
+
+  public applyConstraints(): IOrderItem {
+    let orderItem: IOrderItem | undefined = undefined;
+    for (const Constraint of constraints) {
+      orderItem = new Constraint(orderItem ?? this);
+    }
+    orderItem = orderItem ?? this;
+    this.wrapper = orderItem;
+    return this.wrapper;
   }
 
   public get isAuction(): boolean {
@@ -36,16 +49,6 @@ export class OrderItem implements IOrderItem {
       return 1;
     }
     return this.firestoreOrderItem.numItems;
-  }
-
-  public applyConstraints(): IOrderItem {
-    let orderItem: IOrderItem | undefined = undefined;
-    for (const Constraint of constraints) {
-      orderItem = new Constraint(orderItem ?? this);
-    }
-    orderItem = orderItem ?? this;
-    this.wrapper = orderItem;
-    return this.wrapper;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -8,12 +8,13 @@ export type Path<T> = { edges: { edge: Edge<T>; weight: number }[] };
 export type Paths<T> = Path<T>[];
 
 export class OneToManyOrderMatchSearch {
-  constructor(private graph: OrderNodeCollection) {}
+  constructor(private rootOrderNode: OrderNodeCollection, private matchingOrderNodes: OrderNodeCollection[]) {}
 
-  public *searchForOneToManyMatches(root: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+  public *searchForOneToManyMatches() {
+    const matchingOrderNodes = [...this.matchingOrderNodes];
     while (matchingOrderNodes.length > 0) {
       console.log(`Searching for matches in ${matchingOrderNodes.length} orders`);
-      const graph = this.buildOneToManyGraph(root, matchingOrderNodes);
+      const graph = this.buildOneToManyGraph(this.rootOrderNode, matchingOrderNodes);
       const mainOpposingOrderNode = matchingOrderNodes.shift();
 
       const flowPusher = graph.streamFlow();
@@ -25,7 +26,7 @@ export class OneToManyOrderMatchSearch {
           break;
         }
 
-        const edgesWithFlow = this.getEdgesWithNonZeroFlow();
+        const edgesWithFlow = this.getEdgesWithNonZeroFlow(graph);
         const orderNodesWithFlow = this.getOrdersNodesFromEdges(edgesWithFlow);
         const sortedOrderNodesWithFlow = [...orderNodesWithFlow].sort(
           (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
@@ -89,7 +90,15 @@ export class OneToManyOrderMatchSearch {
     }
   }
 
-  public buildOneToManyGraph(root: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+  public buildOneToManyGraph(
+    root: OrderNodeCollection,
+    matchingOrderNodes: OrderNodeCollection[]
+  ): OrderNodeCollection {
+    root.unlink();
+    for (const orderNode of matchingOrderNodes) {
+      orderNode.unlink();
+    }
+
     /**
      * sort order nodes by increasing start time
      */
@@ -100,7 +109,10 @@ export class OneToManyOrderMatchSearch {
     for (const orderNode of matchingOrderNodes) {
       for (const orderItemNode of orderNode.nodes) {
         for (const rootOrderItemNode of root.nodes) {
-          if (rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem)) {
+          if (
+            rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem) &&
+            orderItemNode.data.orderItem.isMatch(rootOrderItemNode.data.orderItem.firestoreOrderItem)
+          ) {
             const edge = new Edge();
             edge.link(rootOrderItemNode, orderItemNode);
           }
@@ -110,9 +122,9 @@ export class OneToManyOrderMatchSearch {
     return root;
   }
 
-  private getEdgesWithNonZeroFlow() {
+  private getEdgesWithNonZeroFlow(graph: OrderNodeCollection) {
     let edgesWithFlow: Edge<OrderItemNodeData>[] = [];
-    for (const node of this.graph.nodes) {
+    for (const node of graph.nodes) {
       const nodeEdgesWithFlow = node.outgoingEdgesWithNonZeroFlow;
       edgesWithFlow = [...edgesWithFlow, ...nodeEdgesWithFlow];
     }

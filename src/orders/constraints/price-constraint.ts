@@ -7,7 +7,7 @@ import { OrderItemConstraint } from './order-item-constraint.abstract';
 export class OrderItemPriceConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  public getIntersection(order: OrderItemPrice): OrderPriceIntersection {
+  public getIntersection(order: OrderItemPrice): OrderPriceIntersection | null {
     const intersection = getOrderIntersection(this.firestoreOrderItem, order);
     return intersection;
   }

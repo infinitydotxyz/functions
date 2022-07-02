@@ -117,7 +117,7 @@ export function getOneToManyOrderIntersection(one: OrderItemPrice, many: OrderIt
   return intersection;
 }
 
-export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): OrderPriceIntersection {
+export function getOrderIntersection(one: OrderItemPrice, two: OrderItemPrice): OrderPriceIntersection | null {
   const segmentOne: LineSegment = {
     start: {
       x: one.startTimeMs,

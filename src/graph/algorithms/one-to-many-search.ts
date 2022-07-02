@@ -1,16 +1,21 @@
 import { Edge } from '../edge';
 import { OrderItemNodeData, OrderNodeCollection } from '../order-node-collection';
 import { Node } from '../node';
-import { FirestoreOrder } from '@infinityxyz/lib/types/core';
+import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core';
 import { getOneToManyOrderIntersection } from '../../utils/intersection';
+import { OrderPriceIntersection } from '../../utils/intersection.types';
 
-export type Path<T> = { edges: { edge: Edge<T>; weight: number }[] };
-export type Paths<T> = Path<T>[];
+export type OneToManyMatch = {
+  firestoreOrder: FirestoreOrder;
+  opposingFirestoreOrders: FirestoreOrder[];
+  intersection: OrderPriceIntersection;
+  edges: { from: FirestoreOrderItem; to: FirestoreOrderItem; numItems: number }[];
+};
 
 export class OneToManyOrderMatchSearch {
   constructor(private rootOrderNode: OrderNodeCollection, private matchingOrderNodes: OrderNodeCollection[]) {}
 
-  public *searchForOneToManyMatches() {
+  public *searchForOneToManyMatches(): Generator<OneToManyMatch, void, void> {
     const matchingOrderNodes = [...this.matchingOrderNodes];
     while (matchingOrderNodes.length > 0) {
       console.log(`Searching for matches in ${matchingOrderNodes.length} orders`);
@@ -71,11 +76,20 @@ export class OneToManyOrderMatchSearch {
           if (intersection == null) {
             mainOpposingOrderNode?.unlink();
           } else {
-            const edges = edgesWithFlow.map((item) => {
-              const from = item.fromNode?.data.orderItem.firestoreOrderItem;
-              const to = item.toNode?.data.orderItem.firestoreOrderItem;
-              return { from, to, numItems: item.flow };
-            });
+            const edges = edgesWithFlow
+              .map((item) => {
+                const from = item.fromNode?.data.orderItem.firestoreOrderItem;
+                const to = item.toNode?.data.orderItem.firestoreOrderItem;
+                if (!from || !to) {
+                  return null;
+                }
+                return { from, to, numItems: item.flow };
+              })
+              .filter((item) => item != null) as {
+              from: FirestoreOrderItem;
+              to: FirestoreOrderItem;
+              numItems: number;
+            }[];
             yield {
               firestoreOrder: graph.data.order.firestoreOrder,
               opposingFirestoreOrders: res.firestoreOrders,

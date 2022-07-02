@@ -3,10 +3,15 @@ import { Node } from './node';
 import { getDb } from '../firestore';
 import { OrderItem } from '../orders/order-item';
 import { Edge } from './edge';
-import { FirestoreOrder, FirestoreOrderItem, FirestoreOrderMatches } from '@infinityxyz/lib/types/core';
+import {
+  FirestoreOrder,
+  FirestoreOrderItem,
+  FirestoreOrderMatches,
+  FirestoreOrderMatchOneToMany
+} from '@infinityxyz/lib/types/core';
 import { OrderNodeCollection } from './order-node-collection';
 import { getOrderIntersection } from '../utils/intersection';
-import { OneToManyOrderMatchSearch } from './algorithms/one-to-many-search';
+import { OneToManyMatch, OneToManyOrderMatchSearch } from './algorithms/one-to-many-search';
 import { OrderItem as IOrderItem } from '../orders/orders.types';
 
 export class OrdersGraph {
@@ -33,7 +38,7 @@ export class OrdersGraph {
     return root;
   }
 
-  public async search() {
+  public async search(): Promise<FirestoreOrderMatches[]> {
     const rootOrderNode = await this.getRootOrderNode();
     this.verifyRootOrderNode(rootOrderNode);
 
@@ -43,30 +48,31 @@ export class OrdersGraph {
     const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
     const matches = searcher.searchForOneToManyMatches();
 
-    let firestoreOrderMatches: FirestoreOrderMatches[] = [];
-    for (const { intersection, edges } of matches) {
-      try {
-        const orderItemMatches = edges.map((item) => {
-          if (!item.from || !item.to) {
-            throw new Error('Edge is missing from or to node');
-          }
-          return {
-            orderItem: item.from,
-            opposingOrderItem: item.to
-          };
-        });
-        const orderMatch = this.root.data.getFirestoreOrderMatchOneToMany(
-          orderItemMatches,
-          intersection.price,
-          intersection.timestamp
-        );
-        firestoreOrderMatches = [...firestoreOrderMatches, orderMatch];
-      } catch (err) {
-        console.error(err);
-      }
+    const firestoreOrderMatches: FirestoreOrderMatches[] = [];
+    for (const match of matches) {
+      const firestoreOrderMatch = this.transformOrderMatchToFirestoreOrderMatch(match);
+      firestoreOrderMatches.push(firestoreOrderMatch);
     }
 
     return firestoreOrderMatches;
+  }
+
+  private transformOrderMatchToFirestoreOrderMatch({
+    intersection,
+    edges
+  }: OneToManyMatch): FirestoreOrderMatchOneToMany {
+    const orderItemMatches = edges.map((item) => {
+      return {
+        orderItem: item.from,
+        opposingOrderItem: item.to
+      };
+    });
+    const orderMatch = this.root.data.getFirestoreOrderMatchOneToMany(
+      orderItemMatches,
+      intersection.price,
+      intersection.timestamp
+    );
+    return orderMatch;
   }
 
   private async getRootOrderNode(): Promise<OrderNodeCollection> {
@@ -98,11 +104,11 @@ export class OrdersGraph {
       const possibleMatches = orderItemNode.data.orderItem.getPossibleMatches();
       for await (const possibleMatch of possibleMatches) {
         const doesMatch = this.checkPossibleMatch(orderItemNode.data.orderItem, possibleMatch);
-        if(doesMatch && !orderIds.has(possibleMatch.id) ) {
+        if (doesMatch && !orderIds.has(possibleMatch.id)) {
           orderIds.add(possibleMatch.id);
           const orderItem = new OrderItem(possibleMatch, db);
           const firestoreOrder = (await orderItem.orderRef.get()).data();
-          if(firestoreOrder) {
+          if (firestoreOrder) {
             const orderNode = await this.getOrderNode(firestoreOrder);
             orderNodes.push(orderNode);
           }
@@ -114,7 +120,7 @@ export class OrdersGraph {
 
   private checkPossibleMatch(rootOrderItem: IOrderItem, possibleMatch: FirestoreOrderItem) {
     const isMatch = rootOrderItem.isMatch(possibleMatch);
-    if(!isMatch) {
+    if (!isMatch) {
       return false;
     }
 

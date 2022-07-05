@@ -12,10 +12,6 @@ export type OneToManyMatch = {
 };
 
 export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> {
-  constructor(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
-    super(rootOrderNode, matchingOrderNodes);
-  }
-
   public search(): OneToManyMatch[] {
     const results: OneToManyMatch[] = [];
     const iterator = this.searchForOneToManyMatches();

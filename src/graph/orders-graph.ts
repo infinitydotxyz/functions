@@ -12,6 +12,7 @@ import { OrderNodeCollection } from './order-node-collection';
 import { getOrderIntersection } from '../utils/intersection';
 import { OneToManyMatch, OneToManyOrderMatchSearch } from './algorithms/one-to-many-search';
 import { OrderItem as IOrderItem } from '../orders/orders.types';
+import { OneToOneOrderMatchSearch } from './algorithms/one-to-one-search';
 
 export class OrdersGraph {
   constructor(public root: Node<Order>) {}
@@ -20,8 +21,6 @@ export class OrdersGraph {
     possibleMatches?: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]
   ): Promise<FirestoreOrderMatches[]> {
     const rootOrderNode = await this.getRootOrderNode();
-
-    this.verifyOneToManyRootOrderNode(rootOrderNode);
 
     if (!possibleMatches) {
       possibleMatches = [];
@@ -39,18 +38,45 @@ export class OrdersGraph {
     }
 
     const matchingOrderNodes = await this.getMatches(possibleMatches);
-    const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
+    const oneToOne = this.searchOneToOne(rootOrderNode, matchingOrderNodes);
+    const oneToManyMatches = this.searchOneToMany(rootOrderNode, matchingOrderNodes);
 
-    const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
-    const matches = searcher.search();
+    const firestoreMatches = [...oneToOne, ...oneToManyMatches];
 
-    const firestoreOrderMatches: FirestoreOrderMatches[] = [];
-    for (const match of matches) {
-      const firestoreOrderMatch = this.transformOrderMatchToFirestoreOrderMatch(match);
-      firestoreOrderMatches.push(firestoreOrderMatch);
+    return firestoreMatches;
+  }
+
+  public searchOneToOne(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+    try {
+      const searcher = new OneToOneOrderMatchSearch(rootOrderNode, matchingOrderNodes);
+      const matches = searcher.search();
+      const firestoreMatches = matches.map((item) =>
+        rootOrderNode.data.order.getFirestoreOrderMatch(item.matches, item.price, item.timestamp)
+      );
+
+      return firestoreMatches;
+    } catch (err) {
+      console.error(err);
+      return [];
     }
+  }
 
-    return firestoreOrderMatches;
+  public searchOneToMany(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+    try {
+      this.verifyOneToManyRootOrderNode(rootOrderNode);
+      const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
+      const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
+      const matches = searcher.search();
+
+      const firestoreOrderMatches: FirestoreOrderMatches[] = matches.map((item) => {
+        return this.transformOrderMatchToFirestoreOrderMatch(item);
+      });
+
+      return firestoreOrderMatches;
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
   }
 
   private transformOrderMatchToFirestoreOrderMatch({

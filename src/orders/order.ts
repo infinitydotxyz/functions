@@ -57,7 +57,7 @@ export class Order {
     if (!firstItem) {
       throw new Error('invalid order, no order items found');
     }
-
+    
     const orderSubsetMatches = new Map<string, { matches: OrderItemMatch[] }[]>();
     const fullMatches: {
       order: Order;
@@ -71,6 +71,7 @@ export class Order {
      * get the possible matches for every order item in the order
      */
     const possibilities = await this.getPossibleMatches(orderItems);
+
     for (const { orderItem, possibleMatches } of possibilities) {
       for (const possibleMatch of possibleMatches) {
         if (orderItem.isMatch(possibleMatch)) {
@@ -113,10 +114,7 @@ export class Order {
       }
     }
 
-    const singleMatches = fullMatches.reduce((acc: (FirestoreOrderMatch | FirestoreOrderMatchOneToOne)[], item) => {
-      const orderMatch = this.getFirestoreOrderMatch(item.matches, item.price, item.timestamp);
-      return [...acc, orderMatch];
-    }, []);
+    const matches = fullMatches.map((item) => this.getFirestoreOrderMatch(item.matches, item.price, item.timestamp));
 
     /**
      * search for one to many matches
@@ -125,7 +123,7 @@ export class Order {
     const graph = new OrdersGraph(node);
     const oneToManyMatches = await graph.search(possibilities);
 
-    return { matches: [...singleMatches, ...oneToManyMatches] };
+    return { matches: [...matches, ...oneToManyMatches] };
   }
 
   private async getPossibleMatches(

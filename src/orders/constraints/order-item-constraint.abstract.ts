@@ -6,6 +6,8 @@ import { OrderItem as IOrderItem, OrderItem } from '../orders.types';
 export abstract class OrderItemConstraint implements IOrderItem {
   public component: OrderItem;
 
+  static POSSIBLE_MATCHES_DEFAULT_PAGE_SIZE = 500;
+
   constructor(orderItem: OrderItem) {
     this.component = orderItem;
   }
@@ -54,14 +56,14 @@ export abstract class OrderItemConstraint implements IOrderItem {
     return isThisSatisfied && isComponentSatisfied;
   }
 
-  getPossibleMatches(query?: FirebaseFirestore.Query<FirestoreOrderItem>): AsyncGenerator<FirestoreOrderItem> {
+  getPossibleMatches(query?: FirebaseFirestore.Query<FirestoreOrderItem>, pageSize = OrderItemConstraint.POSSIBLE_MATCHES_DEFAULT_PAGE_SIZE): AsyncGenerator<FirestoreOrderItem> {
     if (!query) {
       query = this.component.db.collectionGroup(
         firestoreConstants.ORDER_ITEMS_SUB_COLL
       ) as unknown as FirebaseFirestore.Query<FirestoreOrderItem>;
     }
     const updatedQuery = this.addConstraintToQuery(query);
-    return this.component.getPossibleMatches(updatedQuery);
+    return this.component.getPossibleMatches(updatedQuery, pageSize);
   }
 
   abstract addOrderByToQuery(

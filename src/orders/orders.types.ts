@@ -30,7 +30,8 @@ export interface OrderItem {
   isMatch(orderItem: FirestoreOrderItem): boolean;
 
   getPossibleMatches(
-    queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>
+    queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>,
+    pageSize?: number
   ): AsyncGenerator<FirestoreOrderItem>;
 
   getNumConstraints(): number;

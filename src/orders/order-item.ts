@@ -5,6 +5,7 @@ import { OrderItem as IOrderItem } from './orders.types';
 import { Constraint, constraints } from './constraints/constraint.types';
 import { streamQuery } from '../firestore/stream-query';
 import { nanoid } from 'nanoid';
+import { OrderItemConstraint } from './constraints/order-item-constraint.abstract';
 
 export class OrderItem implements IOrderItem {
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;
@@ -64,7 +65,8 @@ export class OrderItem implements IOrderItem {
    *  if they are a match
    */
   public getPossibleMatches(
-    queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>
+    queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>,
+    pageSize = OrderItemConstraint.POSSIBLE_MATCHES_DEFAULT_PAGE_SIZE
   ): AsyncGenerator<FirestoreOrderItem> {
     if (!queryWithConstraints) {
       throw new Error('queryWithConstraints is required');
@@ -73,7 +75,7 @@ export class OrderItem implements IOrderItem {
     const { query, getStartAfter } = orderByConstraint.addOrderByToQuery(queryWithConstraints);
 
     return streamQuery<FirestoreOrderItem>(query, getStartAfter, {
-      pageSize: 10
+      pageSize
     });
   }
 

@@ -45,7 +45,7 @@ export class Order {
     }, orderItems.length > 0);
   }
 
-  public async searchForMatches(): Promise<{ matches: FirestoreOrderMatches[] }> {
+  public async searchForMatches(): Promise<{ matches: FirestoreOrderMatches[]; requiresScan: FirestoreOrder[] }> {
     /**
      * get the order items for this order
      */
@@ -63,9 +63,9 @@ export class Order {
     const node = new Node(this, this.firestoreOrder.numItems);
     const graph = new OrdersGraph(node);
 
-    const matches = await graph.search(possibilities);
+    const { matches, requiresScan } = await graph.search(possibilities);
 
-    return { matches };
+    return { matches, requiresScan };
   }
 
   private async getPossibleMatches(
@@ -351,6 +351,18 @@ export class Order {
     }
 
     await batchHandler.flush();
+  }
+
+  async markScanned(): Promise<void> {
+    try {
+      const update: Partial<FirestoreOrder> = {
+        enqueued: false,
+        lastScannedAt: Date.now()
+      };
+      await this.ref.set(update, { merge: true });
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   private async getFirestoreOrderItems(): Promise<FirestoreOrderItem[]> {

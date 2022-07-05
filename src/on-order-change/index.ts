@@ -4,6 +4,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { Order } from '../orders/order';
 import { invalidatePendingOrderMatches } from './invalidate-pending-order-matches';
+import { triggerScans } from './trigger-scan';
 
 export const onOrderChange = functions
   .region(REGION)
@@ -15,9 +16,10 @@ export const onOrderChange = functions
       switch (updatedOrder?.orderStatus) {
         case OBOrderStatus.ValidActive: {
           const order = new Order(updatedOrder);
-          const { matches } = await order.searchForMatches();
-          matches.sort((a, b) => a.state.timestampValid - b.state.timestampValid);
+          const { matches, requiresScan } = await order.searchForMatches();
           await order.saveMatches(matches);
+          await order.markScanned();
+          await triggerScans(requiresScan);
           break;
         }
         case OBOrderStatus.ValidInactive:

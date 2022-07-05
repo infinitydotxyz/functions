@@ -19,7 +19,7 @@ export class OrdersGraph {
 
   public async search(
     possibleMatches?: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]
-  ): Promise<FirestoreOrderMatches[]> {
+  ): Promise<{ matches: FirestoreOrderMatches[], requiresScan: FirestoreOrder[]}> {
     const rootOrderNode = await this.getRootOrderNode();
 
     if (!possibleMatches) {
@@ -43,7 +43,12 @@ export class OrdersGraph {
 
     const firestoreMatches = [...oneToOne, ...oneToManyMatches];
 
-    return firestoreMatches;
+    let requiresScan: FirestoreOrder[] = [];
+    if(rootOrderNode.data.order.firestoreOrder.numItems === 1) {
+      requiresScan = matchingOrderNodes.filter((item) => item.data.order.firestoreOrder.numItems > 1).map((item) => item.data.order.firestoreOrder);
+    }
+
+    return { matches: firestoreMatches, requiresScan };
   }
 
   public searchOneToOne(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
@@ -110,11 +115,19 @@ export class OrdersGraph {
         `Attempted to build graph for order that is not fully specified. Order: ${this.root.data.firestoreOrder.id}`
       );
     }
+
+    const validNumItems = rootOrderNode.data.order.firestoreOrder.numItems > 1;
+    if (!validNumItems) {
+      throw new Error(
+        `Attempted to build one to many graph for order that has num item of ${rootOrderNode.data.order.firestoreOrder.numItems}. Order: ${this.root.data.firestoreOrder.id}`
+      );
+    }
   }
 
   private filterOneToManyMatches(matches: OrderNodeCollection[]) {
     return matches.filter((item) => {
-      return this.root.data.firestoreOrder.numItems >= item.data.order.firestoreOrder.numItems;
+      // return this.root.data.firestoreOrder.numItems > item.data.order.firestoreOrder.numItems;
+      return item.data.order.firestoreOrder.numItems === 1;
     });
   }
 

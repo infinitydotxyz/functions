@@ -1,9 +1,8 @@
-import { Edge } from '../edge';
-import { OrderItemNodeData, OrderNodeCollection } from '../order-node-collection';
-import { Node } from '../node';
+import { OrderNodeCollection } from '../order-node-collection';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core';
 import { getOneToManyOrderIntersection } from '../../utils/intersection';
 import { OrderPriceIntersection } from '../../utils/intersection.types';
+import { OrderMatchSearch } from './order-match-search.abstract';
 
 export type OneToManyMatch = {
   firestoreOrder: FirestoreOrder;
@@ -12,14 +11,25 @@ export type OneToManyMatch = {
   edges: { from: FirestoreOrderItem; to: FirestoreOrderItem; numItems: number }[];
 };
 
-export class OneToManyOrderMatchSearch {
-  constructor(private rootOrderNode: OrderNodeCollection, private matchingOrderNodes: OrderNodeCollection[]) {}
+export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> {
+  constructor(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+    super(rootOrderNode, matchingOrderNodes);
+  }
 
-  public *searchForOneToManyMatches(): Generator<OneToManyMatch, void, void> {
+  public search(): OneToManyMatch[] {
+    const results: OneToManyMatch[] = [];
+    const iterator = this.searchForOneToManyMatches();
+    for (const item of iterator) {
+      results.push(item);
+    }
+    return results;
+  }
+
+  private *searchForOneToManyMatches(): Generator<OneToManyMatch, void, void> {
     const matchingOrderNodes = [...this.matchingOrderNodes];
     while (matchingOrderNodes.length > 0) {
       console.log(`Searching for matches in ${matchingOrderNodes.length} orders`);
-      const graph = this.buildOneToManyGraph(this.rootOrderNode, matchingOrderNodes);
+      const graph = this.connectNodes(this.rootOrderNode, matchingOrderNodes);
       const mainOpposingOrderNode = matchingOrderNodes.shift();
 
       const flowPusher = graph.streamFlow();
@@ -102,70 +112,5 @@ export class OneToManyOrderMatchSearch {
         }
       }
     }
-  }
-
-  public buildOneToManyGraph(
-    root: OrderNodeCollection,
-    matchingOrderNodes: OrderNodeCollection[]
-  ): OrderNodeCollection {
-    root.unlink();
-    for (const orderNode of matchingOrderNodes) {
-      orderNode.unlink();
-    }
-
-    /**
-     * sort order nodes by increasing start time
-     */
-    matchingOrderNodes.sort(
-      (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
-    );
-
-    for (const orderNode of matchingOrderNodes) {
-      for (const orderItemNode of orderNode.nodes) {
-        for (const rootOrderItemNode of root.nodes) {
-          if (
-            rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem) &&
-            orderItemNode.data.orderItem.isMatch(rootOrderItemNode.data.orderItem.firestoreOrderItem)
-          ) {
-            const edge = new Edge();
-            edge.link(rootOrderItemNode, orderItemNode);
-          }
-        }
-      }
-    }
-    return root;
-  }
-
-  private getEdgesWithNonZeroFlow(graph: OrderNodeCollection) {
-    let edgesWithFlow: Edge<OrderItemNodeData>[] = [];
-    for (const node of graph.nodes) {
-      const nodeEdgesWithFlow = node.outgoingEdgesWithNonZeroFlow;
-      edgesWithFlow = [...edgesWithFlow, ...nodeEdgesWithFlow];
-    }
-
-    return edgesWithFlow;
-  }
-
-  private getOrdersNodesFromEdges(edges: Iterable<Edge<OrderItemNodeData>>): Set<OrderNodeCollection> {
-    const outgoingNodes = new Set<Node<OrderItemNodeData>>();
-    for (const edge of edges) {
-      if (edge.toNode) {
-        outgoingNodes.add(edge.toNode);
-      }
-    }
-
-    const orderNodes = this.getOrderNodesFromOrderItemNodes(outgoingNodes);
-    return orderNodes;
-  }
-
-  private getOrderNodesFromOrderItemNodes(nodes: Iterable<Node<OrderItemNodeData>>): Set<OrderNodeCollection> {
-    const orderNodes = new Set<OrderNodeCollection>();
-    for (const node of nodes) {
-      const orderNode = node.data.orderNode;
-      if (orderNode) {
-        orderNodes.add(orderNode);
-      }
-    }
-    return orderNodes;
   }
 }

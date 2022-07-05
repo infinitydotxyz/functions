@@ -2,7 +2,6 @@ import { Order } from '../orders/order';
 import { Node } from './node';
 import { getDb } from '../firestore';
 import { OrderItem } from '../orders/order-item';
-import { Edge } from './edge';
 import {
   FirestoreOrder,
   FirestoreOrderItem,
@@ -16,27 +15,6 @@ import { OrderItem as IOrderItem } from '../orders/orders.types';
 
 export class OrdersGraph {
   constructor(public root: Node<Order>) {}
-
-  public buildOneToManyGraph(root: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
-    /**
-     * sort order nodes by increasing start time
-     */
-    matchingOrderNodes.sort(
-      (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
-    );
-
-    for (const orderNode of matchingOrderNodes) {
-      for (const orderItemNode of orderNode.nodes) {
-        for (const rootOrderItemNode of root.nodes) {
-          if (rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem)) {
-            const edge = new Edge();
-            edge.link(rootOrderItemNode, orderItemNode);
-          }
-        }
-      }
-    }
-    return root;
-  }
 
   public async search(
     possibleMatches?: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]
@@ -64,7 +42,7 @@ export class OrdersGraph {
     const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
 
     const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
-    const matches = searcher.searchForOneToManyMatches();
+    const matches = searcher.search();
 
     const firestoreOrderMatches: FirestoreOrderMatches[] = [];
     for (const match of matches) {

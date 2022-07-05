@@ -57,7 +57,7 @@ export class Order {
     if (!firstItem) {
       throw new Error('invalid order, no order items found');
     }
-    
+
     const orderSubsetMatches = new Map<string, { matches: OrderItemMatch[] }[]>();
     const fullMatches: {
       order: Order;

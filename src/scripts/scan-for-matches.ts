@@ -43,14 +43,18 @@ async function scanForMatch(id: string) {
   const orders = streamQuery(query, (order, ref) => [ref], { pageSize: 50 });
   let orderNum = 0;
   for await (const orderData of orders) {
-    console.log(`Scanning order ${++orderNum}`);
-    const order = new Order(orderData);
-    const node = new Node(order, order.firestoreOrder.numItems);
-    const graph = new OrdersGraph(node);
-    const matches = await graph.search();
-    await graph.root.data.saveMatches(matches);
-    console.log(matches);
-    console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
+    try {
+      console.log(`Scanning order ${++orderNum}`);
+      const order = new Order(orderData);
+      const node = new Node(order, order.firestoreOrder.numItems);
+      const graph = new OrdersGraph(node);
+      const matches = await graph.search();
+      await graph.root.data.saveMatches(matches);
+      console.log(matches);
+      console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
+    } catch (err) {
+      console.error(err);
+    }
   }
 }
 

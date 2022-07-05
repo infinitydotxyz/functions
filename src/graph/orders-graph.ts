@@ -40,7 +40,8 @@ export class OrdersGraph {
 
   public async search(): Promise<FirestoreOrderMatches[]> {
     const rootOrderNode = await this.getRootOrderNode();
-    this.verifyRootOrderNode(rootOrderNode);
+
+    this.verifyOneToManyRootOrderNode(rootOrderNode);
 
     const matchingOrderNodes = await this.getMatches(rootOrderNode);
     const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
@@ -81,7 +82,7 @@ export class OrdersGraph {
     return rootOrderNode;
   }
 
-  private verifyRootOrderNode(rootOrderNode: OrderNodeCollection) {
+  private verifyOneToManyRootOrderNode(rootOrderNode: OrderNodeCollection) {
     const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
     if (!isFullySpecified) {
       throw new Error(

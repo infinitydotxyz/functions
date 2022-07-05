@@ -10,6 +10,7 @@ export function getDb(): FirebaseFirestore.Firestore {
       credential: admin.credential.cert(serviceAccount as ServiceAccount)
     });
     db = admin.firestore();
+    db.settings({ ignoreUndefinedProperties: true });
   }
   return db;
 }

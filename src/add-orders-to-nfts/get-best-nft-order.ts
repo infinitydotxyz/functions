@@ -1,11 +1,11 @@
-import { FirestoreOrderItem, OBOrderStatus, OrderDirection } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../firestore';
+import {FirestoreOrderItem, OBOrderStatus, OrderDirection} from "@infinityxyz/lib/types/core";
+import {firestoreConstants} from "@infinityxyz/lib/utils/constants";
+import {getDb} from "../firestore";
 
 export async function getBestNftOrder(
-  nft: { collectionAddress: string; chainId: string; tokenId: string },
-  isSellOrder: boolean,
-  tx?: FirebaseFirestore.Transaction
+    nft: { collectionAddress: string; chainId: string; tokenId: string },
+    isSellOrder: boolean,
+    tx?: FirebaseFirestore.Transaction
 ): Promise<FirebaseFirestore.QueryDocumentSnapshot<FirestoreOrderItem> | null> {
   const db = getDb();
   if (!nft.collectionAddress || !nft.chainId || !nft.tokenId) {
@@ -14,11 +14,11 @@ export async function getBestNftOrder(
 
   const orderItemsGroup = db.collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL);
   const activeOrderItemsForNftQuery = orderItemsGroup
-    .where('collectionAddress', '==', nft.collectionAddress)
-    .where('chainId', '==', nft.chainId)
-    .where('tokenId', '==', nft.tokenId)
-    .where('isSellOrder', '==', isSellOrder)
-    .where('orderStatus', '==', OBOrderStatus.ValidActive);
+      .where("collectionAddress", "==", nft.collectionAddress)
+      .where("chainId", "==", nft.chainId)
+      .where("tokenId", "==", nft.tokenId)
+      .where("isSellOrder", "==", isSellOrder)
+      .where("orderStatus", "==", OBOrderStatus.ValidActive);
 
   const bestListingOrderDirection = OrderDirection.Ascending;
   const bestOfferOrderDirection = OrderDirection.Descending;
@@ -26,9 +26,9 @@ export async function getBestNftOrder(
   const directionForBestOrder = isSellOrder ? bestListingOrderDirection : bestOfferOrderDirection;
 
   const bestOrderQuery = activeOrderItemsForNftQuery
-    .orderBy('startPriceEth', directionForBestOrder) // TODO how do we handle auctions?
-    .orderBy('endTimeMs', OrderDirection.Descending) // break ties by the order that is valid until the latest date
-    .limit(1) as FirebaseFirestore.Query<FirestoreOrderItem>;
+      .orderBy("startPriceEth", directionForBestOrder) // TODO how do we handle auctions?
+      .orderBy("endTimeMs", OrderDirection.Descending) // todo: Joe this should be ascending; break ties by the order that is valid until the latest date
+      .limit(1) as FirebaseFirestore.Query<FirestoreOrderItem>;
 
   let bestOrdersSnap: FirebaseFirestore.QuerySnapshot<FirestoreOrderItem>;
   if (tx) {

@@ -2,7 +2,9 @@ import { OrderItemPrice } from '../orders/orders.types';
 import { getOrderIntersection } from './intersection';
 import { OrderPriceIntersection } from './intersection.types';
 
-export const testOrderIntersection = (fn: (one: OrderItemPrice, two: OrderItemPrice) => OrderPriceIntersection | null) => {
+export const testOrderIntersection = (
+  fn: (one: OrderItemPrice, two: OrderItemPrice) => OrderPriceIntersection | null
+) => {
   it('should be defined', () => {
     expect(fn).toBeDefined();
   });

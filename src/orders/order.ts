@@ -20,6 +20,8 @@ import { getOrderIntersection } from '../utils/intersection';
 import { OrderItem } from './order-item';
 import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
+import { Node } from '../graph/node';
+import { OrdersGraph } from '../graph/orders-graph';
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -68,9 +70,9 @@ export class Order {
     /**
      * get the possible matches for every order item in the order
      */
-    for (const orderItem of orderItems) {
-      const possibleMatches = orderItem.getPossibleMatches(); // TODO should erc1155 use the num tokens constraint?
-      for await (const possibleMatch of possibleMatches) {
+    const possibilities = await this.getPossibleMatches(orderItems);
+    for (const { orderItem, possibleMatches } of possibilities) {
+      for (const possibleMatch of possibleMatches) {
         if (orderItem.isMatch(possibleMatch)) {
           const possibleMatchOrderItemId = possibleMatch.id;
           if (!orderSubsetMatches.has(possibleMatchOrderItemId)) {
@@ -115,7 +117,30 @@ export class Order {
       const orderMatch = this.getFirestoreOrderMatch(item.matches, item.price, item.timestamp);
       return [...acc, orderMatch];
     }, []);
-    return { matches: singleMatches };
+
+    /**
+     * search for one to many matches
+     */
+    const node = new Node(this, this.firestoreOrder.numItems);
+    const graph = new OrdersGraph(node);
+    const oneToManyMatches = await graph.search(possibilities);
+
+    return { matches: [...singleMatches, ...oneToManyMatches] };
+  }
+
+  private async getPossibleMatches(
+    orderItems: IOrderItem[]
+  ): Promise<{ orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]> {
+    const res: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[] = [];
+    for (const orderItem of orderItems) {
+      const possibleMatches: FirestoreOrderItem[] = [];
+      const iterator = orderItem.getPossibleMatches(); // TODO should erc1155 use the num tokens constraint?
+      for await (const possibleMatch of iterator) {
+        possibleMatches.push(possibleMatch);
+      }
+      res.push({ orderItem, possibleMatches });
+    }
+    return res;
   }
 
   private getFirestoreOrderMatch(

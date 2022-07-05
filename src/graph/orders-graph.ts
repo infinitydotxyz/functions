@@ -38,12 +38,29 @@ export class OrdersGraph {
     return root;
   }
 
-  public async search(): Promise<FirestoreOrderMatches[]> {
+  public async search(
+    possibleMatches?: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]
+  ): Promise<FirestoreOrderMatches[]> {
     const rootOrderNode = await this.getRootOrderNode();
 
     this.verifyOneToManyRootOrderNode(rootOrderNode);
 
-    const matchingOrderNodes = await this.getMatches(rootOrderNode);
+    if (!possibleMatches) {
+      possibleMatches = [];
+      for (const orderItemNode of rootOrderNode.nodes) {
+        const iterator = orderItemNode.data.orderItem.getPossibleMatches();
+        const orderItemPossibleMatches: FirestoreOrderItem[] = [];
+        for await (const possibleMatch of iterator) {
+          orderItemPossibleMatches.push(possibleMatch);
+        }
+        possibleMatches.push({
+          orderItem: orderItemNode.data.orderItem,
+          possibleMatches: orderItemPossibleMatches
+        });
+      }
+    }
+
+    const matchingOrderNodes = await this.getMatches(possibleMatches);
     const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
 
     const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
@@ -97,14 +114,15 @@ export class OrdersGraph {
     });
   }
 
-  private async getMatches(rootOrderNode: OrderNodeCollection): Promise<OrderNodeCollection[]> {
+  private async getMatches(
+    possibilities: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]
+  ): Promise<OrderNodeCollection[]> {
     const db = getDb();
     const orderIds = new Set<string>();
     const orderNodes: OrderNodeCollection[] = [];
-    for (const orderItemNode of rootOrderNode.nodes) {
-      const possibleMatches = orderItemNode.data.orderItem.getPossibleMatches();
-      for await (const possibleMatch of possibleMatches) {
-        const doesMatch = this.checkPossibleMatch(orderItemNode.data.orderItem, possibleMatch);
+    for (const { orderItem, possibleMatches } of possibilities) {
+      for (const possibleMatch of possibleMatches) {
+        const doesMatch = this.checkPossibleMatch(orderItem, possibleMatch);
         if (doesMatch && !orderIds.has(possibleMatch.id)) {
           orderIds.add(possibleMatch.id);
           const orderItem = new OrderItem(possibleMatch, db);

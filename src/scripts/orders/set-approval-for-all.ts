@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { erc721Abi } from '../../tests/abi/erc721';
+import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 
 export async function setApprovalForAll(
   contractAddress: string,
@@ -7,7 +7,7 @@ export async function setApprovalForAll(
   approved: boolean,
   signer: ethers.Wallet
 ) {
-  const contract = new ethers.Contract(contractAddress, erc721Abi, signer);
+  const contract = new ethers.Contract(contractAddress, ERC721ABI, signer);
   let isApproved = await contract.isApprovedForAll(signer.address, operator);
   console.log(`${signer.address} isApprovedForAll Operator: ${operator}  ${isApproved ? '✅ ' : '❌'}`);
   if (!isApproved) {

@@ -21,6 +21,7 @@ orderMatches
         * `invalid` - can no longer be fulfilled
             * end timestamp has been reached
             * order has been cancelled
+            * order has been executed
 * Order match - a fulfillment of intents (i.e. orders)
     * can be in states `active`, `inactive`, `matched` or `error`
         * `inactive` - the match is pending until some timestamp when it becomes valid

@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 import { readFile, readdir, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { erc20Abi } from '../../tests/abi/erc20';
 import { WalletWithBalances } from './types';
+import { ERC20ABI } from '@infinityxyz/lib/abi/erc20';
 
 export async function loadWallets(
   provider: ethers.providers.JsonRpcProvider,
@@ -45,7 +45,7 @@ export async function getWalletWithBalances(
   provider: ethers.providers.JsonRpcProvider,
   wethAddress: string
 ): Promise<WalletWithBalances> {
-  const weth = new ethers.Contract(wethAddress, erc20Abi, provider);
+  const weth = new ethers.Contract(wethAddress, ERC20ABI, provider);
   const balance = await provider.getBalance(wallet.address);
   const wethBalance = await weth.balanceOf(wallet.address);
   return { wallet, ethBalance: balance, wethBalance };

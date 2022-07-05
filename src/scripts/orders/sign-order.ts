@@ -36,7 +36,7 @@ export async function signOrder(
     endPriceEth,
     startTimeMs,
     endTimeMs,
-    nonce: parseInt(nonce, 10),
+    nonce,
     maxGasPriceWei,
     execParams: {
       complicationAddress,

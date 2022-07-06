@@ -27,7 +27,6 @@ export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> 
       console.log(`Searching for matches in ${matchingOrderNodes.length} orders`);
       const graph = this.connectNodes(this.rootOrderNode, matchingOrderNodes);
       const mainOpposingOrderNode = matchingOrderNodes.shift();
-      console.log(`Found: ${graph.outgoingEdges.length} edges`);
       const flowPusher = graph.streamFlow();
 
       for (const { flowPushed, totalFlowPushed } of flowPusher) {
@@ -36,13 +35,12 @@ export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> 
           // reached a stable state
           break;
         }
-
+        
         const edgesWithFlow = this.getEdgesWithNonZeroFlow(graph);
         const orderNodesWithFlow = this.getOrdersNodesFromEdges(edgesWithFlow);
         const sortedOrderNodesWithFlow = [...orderNodesWithFlow].sort(
           (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
         );
-        console.log(`Found ${sortedOrderNodesWithFlow.length} order nodes with flow`);
         const res = [...sortedOrderNodesWithFlow].reduce(
           (
             acc: {

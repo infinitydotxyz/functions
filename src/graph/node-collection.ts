@@ -90,7 +90,6 @@ export class NodeCollection<Data, InternalNodeData> {
         const totalFlow = this.outgoingEdgeFlow;
         const flowRemaining = this.maxFlow - totalFlow;
         const { flowPushed: flowPushedToNode } = node.pushFlow(flowRemaining);
-        console.log(`Attempted to push ${flowRemaining} to node. Successfully pushed ${flowPushedToNode}`);
         totalFlowPushed += flowPushedToNode;
         flowPushedInIteration += flowPushedToNode;
       }

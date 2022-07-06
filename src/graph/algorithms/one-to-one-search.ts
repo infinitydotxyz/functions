@@ -1,5 +1,5 @@
 import { Order } from '../../orders/order';
-import { OrderItem as IOrderItem, OrderItemMatch } from '../../orders/orders.types';
+import { OrderItem as IOrderItem, OrderItemMatch, ValidationResponse } from '../../orders/orders.types';
 import { getOrderIntersection } from '../../utils/intersection';
 import { OrderMatchSearch } from './order-match-search.abstract';
 
@@ -28,8 +28,6 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       const opposingOrderItems = orderNode.data.orderItems;
 
       console.log(`searching for matches between ${order.firestoreOrder.id} and ${opposingOrder.firestoreOrder.id}`);
-      console.log(JSON.stringify(order.firestoreOrder, null, 2));
-      console.log(JSON.stringify(opposingOrder.firestoreOrder, null, 2));
       const matches = this.checkForMatches(
         orderItems,
         {
@@ -133,13 +131,17 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
 
     const combinations = generateMatchCombinations(orderItems, opposingOrder.orderItems);
     console.log(`Found ${combinations.length} combinations`);
-    const validCombinations = combinations.filter((path, index) => {
+    const validCombinations = combinations.filter((path) => {
       const numMatchesValid = path.matches.length >= minOrderItemsToFulfill;
-      const validForOpposingOrder = this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
-      console.log(
-        `Combination ${index} Num matches valid: ${numMatchesValid} Valid for opposing order: ${validForOpposingOrder}`
-      );
-      return numMatchesValid && validForOpposingOrder;
+      if(!numMatchesValid) {
+        console.log(`Combination has ${path.matches.length} matches but needs ${minOrderItemsToFulfill} matches`);
+        return false;
+      }
+      const opposingOrderValidationResponse = this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
+      if(!opposingOrderValidationResponse.isValid) {
+        console.log(`Opposing order validation failed: ${opposingOrderValidationResponse.reasons.join(', ')}`);
+      }
+      return numMatchesValid && opposingOrderValidationResponse.isValid;
     });
 
     const validAfter = priceIntersection.timestamp;
@@ -170,30 +172,74 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
     });
   }
 
-  public validateMatchForOpposingOrder(matches: OrderItemMatch[], opposingOrder: Order): boolean {
-    const matchesValid = matches.every((match) => {
+  public validateMatchForOpposingOrder(matches: OrderItemMatch[], opposingOrder: Order): ValidationResponse {
+    const matchesValidResponse = matches.reduce((acc: ValidationResponse, match) => {
       const response = match.opposingOrderItem.isMatch(match.orderItem.firestoreOrderItem);
-      if (!response.isValid) {
-        console.log(response.reasons);
+      const reasons = acc.isValid ? [] : acc.reasons;
+      const responseReasons = response.isValid ? [] : response.reasons;
+      return {
+        isValid: acc.isValid && response.isValid,
+        reasons: [...reasons, ...responseReasons]
       }
-      return response.isValid;
-    });
-    console.log(`\t matches valid for opposing order: ${matchesValid}`);
+    }, { isValid: true, reasons: [] });
+    if(!matchesValidResponse.isValid) {
+      return matchesValidResponse;
+    }
 
-    const isNumItemsValid = this.isNumItemsValid(opposingOrder.firestoreOrder.numItems, matches.length);
-    console.log(`\t num items valid for opposing order: ${isNumItemsValid}`);
-    return isNumItemsValid && matchesValid;
+    const numItemsValidationResponse = this.isNumItemsValid(opposingOrder.firestoreOrder.numItems, matches.length);
+    if (!numItemsValidationResponse.isValid) {
+      return numItemsValidationResponse;
+    }
+
+    return {
+      isValid: true,
+    }
   }
 
-  private isNumItemsValid(opposingOrderNumItems: number, numMatches: number) {
+  private isNumItemsValid(opposingOrderNumItems: number, numMatches: number): ValidationResponse {
     const isOpposingOrderBuyOrder = this.rootOrderNode.data.order.firestoreOrder.isSellOrder;
     if (isOpposingOrderBuyOrder) {
-      const numItemsValid =
-        numMatches >= opposingOrderNumItems && this.rootOrderNode.data.order.firestoreOrder.numItems <= numMatches;
-      return numItemsValid;
+      const buyOrderNumItemsAtLeastNumMatches = numMatches >= opposingOrderNumItems;
+      const sellOrderNumItemsAtMostNumMatches = this.rootOrderNode.data.order.firestoreOrder.numItems <= numMatches;
+      if (!buyOrderNumItemsAtLeastNumMatches) {
+        return {
+          isValid: false,
+          reasons: [`Buy order requires at least ${opposingOrderNumItems} items, but found ${numMatches} items`]
+        };
+      }
+
+      if (!sellOrderNumItemsAtMostNumMatches) {
+        return {
+          isValid: false,
+          reasons: [
+            `Sell order requires at most ${this.rootOrderNode.data.order.firestoreOrder.numItems} items, but found ${numMatches} items`
+          ]
+        };
+      }
+      return {
+        isValid: true
+      };
     }
-    const numItemsValid =
-      numMatches <= opposingOrderNumItems && this.rootOrderNode.data.order.firestoreOrder.numItems >= numMatches;
-    return numItemsValid;
+
+    const buyOrderNumItemsAtLeastNumMatches = numMatches >= this.rootOrderNode.data.order.firestoreOrder.numItems;
+    const sellOrderNumItemsAtMostNumMatches = opposingOrderNumItems <= numMatches;
+    if (!buyOrderNumItemsAtLeastNumMatches) {
+      return {
+        isValid: false,
+        reasons: [
+          `Buy order requires at least ${this.rootOrderNode.data.order.firestoreOrder.numItems} items, but found ${numMatches} items`
+        ]
+      };
+    }
+
+    if (!sellOrderNumItemsAtMostNumMatches) {
+      return {
+        isValid: false,
+        reasons: [`Sell order requires at most ${opposingOrderNumItems} items, but found ${numMatches} items`]
+      };
+    }
+    return {
+      isValid: true
+    };
   }
 }

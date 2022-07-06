@@ -87,7 +87,6 @@ export class Node<T> implements INode<T> {
 
   pushFlow(flow: number): { flowPushed: number } {
     if (this.isSink) {
-      console.log(`Pushing flow to sink node. Max flow: ${this.maxFlow} Current Flow: ${this._flow}`);
       const flowRemaining = this.maxFlow - this._flow;
       const flowPushed = Math.min(flowRemaining, flow);
       this._flow = this._flow + flowPushed;
@@ -95,7 +94,6 @@ export class Node<T> implements INode<T> {
     }
 
     const currentFlow = this.outgoingEdgeFlow;
-    console.log(`Pushing flow to node. Max flow: ${this.maxFlow} Current Flow: ${currentFlow}. Outgoing edges: ${this.outgoingEdges.length}`);
     flow = Math.min(flow, this.maxFlow - currentFlow); 
     let flowPushed = 0;
 

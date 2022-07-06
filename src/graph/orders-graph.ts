@@ -146,8 +146,6 @@ export class OrdersGraph {
             const orderNode = await this.getOrderNode(firestoreOrder, false);
             orderNodes.push(orderNode);
           }
-        } else if(!validationResponse.isValid) {
-          console.log(validationResponse.reasons); // TODO remove
         }
       }
     }

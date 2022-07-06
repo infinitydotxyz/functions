@@ -6,7 +6,7 @@ export class OrderItemCollectionAddressConstraint extends OrderItemConstraint {
   protected score = 0;
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
-    let isValid = true
+    let isValid = true;
     if (this.component.firestoreOrderItem.collectionAddress) {
       isValid = orderItem.collectionAddress === this.component.firestoreOrderItem.collectionAddress;
     }
@@ -14,15 +14,17 @@ export class OrderItemCollectionAddressConstraint extends OrderItemConstraint {
      * if the order item doesn't specify a collection address
      * then it can be matched with any collection address
      */
-    if(isValid) {
+    if (isValid) {
       return {
         isValid
       };
     }
     return {
-      isValid, 
-      reasons: [`Collection Addresses do not match ${orderItem.collectionAddress} !== ${this.component.firestoreOrderItem.collectionAddress}`]
-    }
+      isValid,
+      reasons: [
+        `Collection Addresses do not match ${orderItem.collectionAddress} !== ${this.component.firestoreOrderItem.collectionAddress}`
+      ]
+    };
   }
 
   protected addConstraintToQuery(

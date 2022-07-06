@@ -19,11 +19,11 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
       return {
         isValid: false,
         reasons: [`Prices do not intersect`]
-      }
+      };
     }
     return {
-      isValid: true,
-    }
+      isValid: true
+    };
   }
 
   protected addConstraintToQuery(

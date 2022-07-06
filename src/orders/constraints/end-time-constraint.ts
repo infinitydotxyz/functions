@@ -14,7 +14,9 @@ export class OrderItemEndTimeConstraint extends OrderItemConstraint {
     }
     return {
       isValid,
-      reasons: [`End time of opposing order ${orderItem.endTimeMs} is before start time of the main order ${this.component.firestoreOrderItem.startTimeMs}`]
+      reasons: [
+        `End time of opposing order ${orderItem.endTimeMs} is before start time of the main order ${this.component.firestoreOrderItem.startTimeMs}`
+      ]
     };
   }
 

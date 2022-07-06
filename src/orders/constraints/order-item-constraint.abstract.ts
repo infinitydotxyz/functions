@@ -55,10 +55,10 @@ export abstract class OrderItemConstraint implements IOrderItem {
     const componentResponse = this.component.isMatch(orderItem);
     const isValid = response.isValid && componentResponse.isValid;
 
-    if(isValid) {
+    if (isValid) {
       return {
         isValid
-      }
+      };
     }
 
     const responseReasons = response.isValid ? [] : response.reasons;
@@ -66,7 +66,7 @@ export abstract class OrderItemConstraint implements IOrderItem {
     return {
       isValid,
       reasons: [...responseReasons, ...componentResponseReasons]
-    }
+    };
   }
 
   getPossibleMatches(

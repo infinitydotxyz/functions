@@ -54,9 +54,9 @@ export class OrderItem implements IOrderItem {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public isMatch(_orderItem: FirestoreOrderItem): ValidationResponse {
-    return { 
+    return {
       isValid: true
-    }
+    };
   }
 
   /**

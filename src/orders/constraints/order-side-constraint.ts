@@ -18,7 +18,11 @@ export class OrderItemOrderSideConstraint extends OrderItemConstraint {
     }
     return {
       isValid,
-      reasons: [`Order sides conflict opposing order side ${orderItem.isSellOrder ? 'listing' : 'offer'} main order side ${this.expectedOrderSide ? 'offer' : 'listing'}`]
+      reasons: [
+        `Order sides conflict opposing order side ${orderItem.isSellOrder ? 'listing' : 'offer'} main order side ${
+          this.expectedOrderSide ? 'offer' : 'listing'
+        }`
+      ]
     };
   }
 

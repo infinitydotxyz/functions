@@ -23,10 +23,10 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
      */
     if (this.component.firestoreOrderItem.isSellOrder) {
       if (!this.component.firestoreOrderItem.tokenId) {
-        return  {
+        return {
           isValid: false,
           reasons: ['TokenId is required for listings']
-        }
+        };
       }
 
       const isValid = orderItem.tokenId === this.component.firestoreOrderItem.tokenId || orderItem.tokenId === '';
@@ -37,8 +37,10 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
       }
       return {
         isValid,
-        reasons: [`TokenIds don't intersect. Main order token id ${this.component.firestoreOrderItem.tokenId} opposing order token id ${orderItem.tokenId}`]
-      }
+        reasons: [
+          `TokenIds don't intersect. Main order token id ${this.component.firestoreOrderItem.tokenId} opposing order token id ${orderItem.tokenId}`
+        ]
+      };
     }
 
     /**
@@ -54,8 +56,10 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
       }
       return {
         isValid,
-        reasons: [`TokenIds don't intersect. Main order token id ${this.component.firestoreOrderItem.tokenId} opposing order token id ${orderItem.tokenId}`]
-      }
+        reasons: [
+          `TokenIds don't intersect. Main order token id ${this.component.firestoreOrderItem.tokenId} opposing order token id ${orderItem.tokenId}`
+        ]
+      };
     }
 
     /**
@@ -64,7 +68,7 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
      */
     return {
       isValid: true
-    }
+    };
   }
 
   protected addConstraintToQuery(

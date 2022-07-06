@@ -7,14 +7,16 @@ export class OrderItemComplicationAddressConstraint extends OrderItemConstraint 
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
     const isValid = orderItem.complicationAddress === this.component.firestoreOrderItem.complicationAddress;
-    if(isValid) {
+    if (isValid) {
       return {
         isValid
       };
     }
     return {
       isValid,
-      reasons: [`Complication Addresses do not match ${orderItem.complicationAddress} !== ${this.component.firestoreOrderItem.complicationAddress}`]
+      reasons: [
+        `Complication Addresses do not match ${orderItem.complicationAddress} !== ${this.component.firestoreOrderItem.complicationAddress}`
+      ]
     };
   }
 

@@ -7,15 +7,17 @@ export class OrderItemStartTimeConstraint extends OrderItemConstraint {
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
     const isValid = orderItem.startTimeMs <= this.component.firestoreOrderItem.endTimeMs;
-    if(isValid) {
+    if (isValid) {
       return {
         isValid
       };
     }
-    return { 
+    return {
       isValid,
-      reasons: [`End time of main order ${this.component.firestoreOrderItem.endTimeMs} is less than the start time of opposing order ${orderItem.startTimeMs}`]
-    }
+      reasons: [
+        `End time of main order ${this.component.firestoreOrderItem.endTimeMs} is less than the start time of opposing order ${orderItem.startTimeMs}`
+      ]
+    };
   }
 
   protected addConstraintToQuery(

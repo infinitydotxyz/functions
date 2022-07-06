@@ -5,17 +5,17 @@ import { OrderItemConstraint } from './order-item-constraint.abstract';
 export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse{
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
     const isValid = orderItem.orderStatus === OBOrderStatus.ValidActive;
-    if(isValid) {
+    if (isValid) {
       return {
         isValid
       };
     }
-    return { 
+    return {
       isValid,
       reasons: [`Order status of opposing order is not valid active ${orderItem.orderStatus}`]
-    }
+    };
   }
 
   protected addConstraintToQuery(

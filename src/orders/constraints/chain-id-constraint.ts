@@ -7,7 +7,7 @@ export class OrderItemChainIdConstraint extends OrderItemConstraint {
 
   protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
     const isValid = orderItem.chainId === this.component.firestoreOrderItem.chainId;
-    if(isValid) {
+    if (isValid) {
       return {
         isValid
       };

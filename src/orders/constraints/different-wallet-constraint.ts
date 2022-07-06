@@ -18,8 +18,10 @@ export class OrderItemDifferentWalletConstraint extends OrderItemConstraint {
     }
     return {
       isValid,
-      reasons: [`Maker Addresses do not match ${orderItem.makerAddress} !== ${this.component.firestoreOrderItem.makerAddress}`]
-    }
+      reasons: [
+        `Maker Addresses do not match ${orderItem.makerAddress} !== ${this.component.firestoreOrderItem.makerAddress}`
+      ]
+    };
   }
 
   protected addConstraintToQuery(

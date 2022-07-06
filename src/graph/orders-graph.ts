@@ -9,7 +9,6 @@ import {
   FirestoreOrderMatchOneToMany
 } from '@infinityxyz/lib/types/core';
 import { OrderNodeCollection } from './order-node-collection';
-import { getOrderIntersection } from '../utils/intersection';
 import { OneToManyMatch, OneToManyOrderMatchSearch } from './algorithms/one-to-many-search';
 import { OrderItem as IOrderItem } from '../orders/orders.types';
 import { OneToOneOrderMatchSearch } from './algorithms/one-to-one-search';
@@ -35,7 +34,7 @@ export class OrdersGraph {
           possibleMatches: orderItemPossibleMatches
         });
       }
-    } 
+    }
     console.log(`Found: ${possibleMatches.length} possible matches`);
     const matchingOrderNodes = await this.getMatches(possibleMatches);
     console.log(`Found: ${matchingOrderNodes.length} matching orders`);
@@ -74,7 +73,7 @@ export class OrdersGraph {
   public searchOneToMany(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
     try {
       const isValid = this.verifyOneToManyRootOrderNode(rootOrderNode);
-      if(!isValid) {
+      if (!isValid) {
         return [];
       }
       const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
@@ -138,8 +137,8 @@ export class OrdersGraph {
     const orderNodes: OrderNodeCollection[] = [];
     for (const { orderItem, possibleMatches } of possibilities) {
       for (const possibleMatch of possibleMatches) {
-        const doesMatch = this.checkPossibleMatch(orderItem, possibleMatch);
-        if (doesMatch && !orderIds.has(possibleMatch.id)) {
+        const validationResponse = orderItem.isMatch(possibleMatch);
+        if (validationResponse.isValid && !orderIds.has(possibleMatch.id)) {
           orderIds.add(possibleMatch.id);
           const orderItem = new OrderItem(possibleMatch, db);
           const firestoreOrder = (await orderItem.orderRef.get()).data();
@@ -147,22 +146,12 @@ export class OrdersGraph {
             const orderNode = await this.getOrderNode(firestoreOrder);
             orderNodes.push(orderNode);
           }
+        } else if(!validationResponse.isValid) {
+          console.log(validationResponse.reasons); // TODO remove
         }
       }
     }
     return orderNodes;
-  }
-
-  private checkPossibleMatch(rootOrderItem: IOrderItem, possibleMatch: FirestoreOrderItem) {
-    const isMatch = rootOrderItem.isMatch(possibleMatch);
-    if (!isMatch) {
-      return false;
-    }
-
-    const intersection = getOrderIntersection(rootOrderItem.firestoreOrderItem, possibleMatch);
-    const intersects = intersection !== null;
-
-    return intersects;
   }
 
   private async getOrderNode(firestoreOrder: FirestoreOrder) {

@@ -27,7 +27,7 @@ export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> 
       console.log(`Searching for matches in ${matchingOrderNodes.length} orders`);
       const graph = this.connectNodes(this.rootOrderNode, matchingOrderNodes);
       const mainOpposingOrderNode = matchingOrderNodes.shift();
-
+      console.log(`Found: ${graph.outgoingEdges.length} edges`);
       const flowPusher = graph.streamFlow();
 
       for (const { flowPushed, totalFlowPushed } of flowPusher) {

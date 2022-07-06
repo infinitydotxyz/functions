@@ -7,13 +7,13 @@ export type OrderItemPrice = Pick<
 >;
 
 export type ValidMatch = {
-  isValid: true
-}
+  isValid: true;
+};
 
 export type InvalidMatch = {
-  isValid: false,
-  reasons: string[]
-}
+  isValid: false;
+  reasons: string[];
+};
 
 export type ValidationResponse = ValidMatch | InvalidMatch;
 

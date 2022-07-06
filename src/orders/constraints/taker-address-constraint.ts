@@ -15,16 +15,17 @@ export class OrderItemTakerAddressConstraint extends OrderItemConstraint {
     if (this.firestoreOrderItem.takerAddress) {
       isValid = this.firestoreOrderItem.takerAddress === orderItem.makerAddress;
     }
-    if(isValid){ 
-
+    if (isValid) {
       return {
         isValid
-      }
+      };
     }
-    return  {
-      isValid, 
-      reasons: [`Taker Address ${this.firestoreOrderItem.takerAddress} does not match opposing order maker address ${orderItem.makerAddress}`]
-    }
+    return {
+      isValid,
+      reasons: [
+        `Taker Address ${this.firestoreOrderItem.takerAddress} does not match opposing order maker address ${orderItem.makerAddress}`
+      ]
+    };
   }
 
   protected addConstraintToQuery(

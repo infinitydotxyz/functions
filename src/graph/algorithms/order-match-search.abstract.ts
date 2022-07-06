@@ -18,15 +18,27 @@ export abstract class OrderMatchSearch<T> {
       (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
     );
 
+    console.log(`Root order nodes: ${root.nodes.size}`);
+    console.log(`Matching order nodes: ${matchingOrderNodes.length}`);
     for (const orderNode of matchingOrderNodes) {
+      console.log(`Checking order node ${orderNode.data.order.firestoreOrder.id} size: (${orderNode.nodes.size})`);
       for (const orderItemNode of orderNode.nodes) {
         for (const rootOrderItemNode of root.nodes) {
+          console.log(`\tRoot token id: ${rootOrderItemNode.data.orderItem.firestoreOrderItem.tokenId} Opposing order item token id: ${orderItemNode.data.orderItem.firestoreOrderItem.tokenId}`);
+          const rootValidationResponse = rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem);
+          const opposingOrderValidationResponse = orderItemNode.data.orderItem.isMatch(rootOrderItemNode.data.orderItem.firestoreOrderItem)
           if (
-            rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem) &&
-            orderItemNode.data.orderItem.isMatch(rootOrderItemNode.data.orderItem.firestoreOrderItem)
+            rootValidationResponse.isValid &&
+            opposingOrderValidationResponse.isValid
           ) {
+            console.log(`\t\tValid edge`);
             const edge = new Edge();
             edge.link(rootOrderItemNode, orderItemNode);
+          } else {
+            const rootReasons = rootValidationResponse.isValid ? [] : rootValidationResponse.reasons;
+            const opposingOrderReasons = opposingOrderValidationResponse.isValid ? [] : opposingOrderValidationResponse.reasons;
+            console.log(`\t\tInvalid Edge: root - opposing order item: ${rootReasons.join(', ')}`);
+            console.log(`\t\tInvalid Edge: opposing order - root order item: ${opposingOrderReasons.join(', ')}`);
           }
         }
       }

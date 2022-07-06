@@ -43,7 +43,11 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
 
       const bestFullMatch = this.getBestMatch(matches, minNumItemsToFulfill);
       if (bestFullMatch.isMatch) {
-        this.log?.(`* Found valid match with ${opposingOrder.firestoreOrder.id}. Valid at ${new Date(bestFullMatch.timestamp)} for price ${bestFullMatch.price} *`)
+        this.log?.(
+          `* Found valid match with ${opposingOrder.firestoreOrder.id}. Valid at ${new Date(
+            bestFullMatch.timestamp
+          )} for price ${bestFullMatch.price} *`
+        );
         fullMatches.push({
           order,
           orderItems,
@@ -224,9 +228,7 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
     if (!sellOrderNumItemsAtMostNumMatches) {
       return {
         isValid: false,
-        reasons: [
-          `Sell order requires at most ${sellOrderNumItems} items, but found ${numMatches} items`
-        ]
+        reasons: [`Sell order requires at most ${sellOrderNumItems} items, but found ${numMatches} items`]
       };
     }
     return {

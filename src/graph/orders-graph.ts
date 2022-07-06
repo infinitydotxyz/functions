@@ -111,7 +111,7 @@ export class OrdersGraph {
 
   private async getRootOrderNode(): Promise<OrderNodeCollection> {
     this.root.unlink();
-    const rootOrderNode = await this.getOrderNode(this.root.data.firestoreOrder);
+    const rootOrderNode = await this.getOrderNode(this.root.data.firestoreOrder, true);
     return rootOrderNode;
   }
 
@@ -143,7 +143,7 @@ export class OrdersGraph {
           const orderItem = new OrderItem(possibleMatch, db);
           const firestoreOrder = (await orderItem.orderRef.get()).data();
           if (firestoreOrder) {
-            const orderNode = await this.getOrderNode(firestoreOrder);
+            const orderNode = await this.getOrderNode(firestoreOrder, false);
             orderNodes.push(orderNode);
           }
         } else if(!validationResponse.isValid) {
@@ -154,10 +154,10 @@ export class OrdersGraph {
     return orderNodes;
   }
 
-  private async getOrderNode(firestoreOrder: FirestoreOrder) {
+  private async getOrderNode(firestoreOrder: FirestoreOrder, isRoot: boolean) {
     const order = new Order(firestoreOrder);
     const orderItems = await order.getOrderItems();
-    const orderNodeCollection = new OrderNodeCollection(order, orderItems);
+    const orderNodeCollection = new OrderNodeCollection(order, orderItems, !isRoot);
     return orderNodeCollection;
   }
 }

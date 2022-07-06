@@ -14,7 +14,7 @@ export interface OrderItemNodeData {
 }
 
 export class OrderNodeCollection extends NodeCollection<Data, OrderItemNodeData> {
-  constructor(order: Order, orderItems: IOrderItem[]) {
+  constructor(order: Order, orderItems: IOrderItem[], isSink = false) {
     super(
       {
         order,
@@ -22,13 +22,13 @@ export class OrderNodeCollection extends NodeCollection<Data, OrderItemNodeData>
       },
       order.firestoreOrder.numItems
     );
-    this.initNodes();
+    this.initNodes(isSink);
   }
 
-  private initNodes() {
+  private initNodes(isSink: boolean) {
     for (const orderItem of this.data.orderItems) {
       const orderItemMaxFlow = orderItem.maxNumItemsContribution;
-      const node = new Node({ orderItem, orderNode: this }, orderItemMaxFlow);
+      const node = new Node({ orderItem, orderNode: this }, orderItemMaxFlow, isSink);
       this.add(node);
     }
   }

@@ -17,28 +17,26 @@ export abstract class OrderMatchSearch<T> {
     matchingOrderNodes.sort(
       (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
     );
-
-    this.log?.(`Root order nodes: ${root.nodes.size}`);
-    this.log?.(`Matching order nodes: ${matchingOrderNodes.length}`);
+    this.log?.(`Building graph from ${matchingOrderNodes.length} orders. Root order has ${root.nodes.size} order items`);
     for (const orderNode of matchingOrderNodes) {
-      this.log?.(`Checking order node ${orderNode.data.order.firestoreOrder.id} size: (${orderNode.nodes.size})`);
+      this.log?.(`  Checking order node ${orderNode.data.order.firestoreOrder.id} size: (${orderNode.nodes.size})`);
       for (const orderItemNode of orderNode.nodes) {
         for (const rootOrderItemNode of root.nodes) {
-          this.log?.(`\tRoot token id: ${rootOrderItemNode.data.orderItem.firestoreOrderItem.tokenId} Opposing order item token id: ${orderItemNode.data.orderItem.firestoreOrderItem.tokenId}`);
+          this.log?.(`    Root token id: ${rootOrderItemNode.data.orderItem.firestoreOrderItem.tokenId} Opposing order item token id: ${orderItemNode.data.orderItem.firestoreOrderItem.tokenId}`);
           const rootValidationResponse = rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem);
           const opposingOrderValidationResponse = orderItemNode.data.orderItem.isMatch(rootOrderItemNode.data.orderItem.firestoreOrderItem)
           if (
             rootValidationResponse.isValid &&
             opposingOrderValidationResponse.isValid
           ) {
-            this.log?.(`\t\tValid edge`);
+            this.log?.(`      Valid edge`);
             const edge = new Edge();
             edge.link(rootOrderItemNode, orderItemNode);
           } else {
             const rootReasons = rootValidationResponse.isValid ? [] : rootValidationResponse.reasons;
             const opposingOrderReasons = opposingOrderValidationResponse.isValid ? [] : opposingOrderValidationResponse.reasons;
-            this.log?.(`\t\tInvalid Edge: root - opposing order item: ${rootReasons.join(', ')}`);
-            this.log?.(`\t\tInvalid Edge: opposing order - root order item: ${opposingOrderReasons.join(', ')}`);
+            this.log?.(`      Invalid Edge: root - opposing order item: ${rootReasons.join(', ')}`);
+            this.log?.(`      Invalid Edge: opposing order - root order item: ${opposingOrderReasons.join(', ')}`);
           }
         }
       }

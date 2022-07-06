@@ -36,23 +36,25 @@ export class OrdersGraph {
       }
     }
 
-    const log = (msg: string, options?: {step?: string }) => {
+    const log = (msg: string, options?: { step?: string }) => {
       const stepString = options?.step ? ` [${options.step}] ` : '';
       const indentation = [options?.step].filter((part) => !!part).length;
-      const formattedMsg = `${'  '.repeat(indentation)}[${rootOrderNode.data.order.firestoreOrder.id}]${stepString} ${msg}`;
+      const formattedMsg = `${'  '.repeat(indentation)}[${
+        rootOrderNode.data.order.firestoreOrder.id
+      }]${stepString} ${msg}`;
       console.log(formattedMsg);
-    }
+    };
     log('Searching for matches...');
 
-    log(`Found: ${possibleMatches.length} possible matches`, {step: 'possible matches'});
+    log(`Found: ${possibleMatches.length} possible matches`, { step: 'possible matches' });
     const matchingOrderNodes = await this.getMatches(possibleMatches);
-    log(`Found: ${matchingOrderNodes.length} matching orders`, {step: 'filtering possible matches'});
+    log(`Found: ${matchingOrderNodes.length} matching orders`, { step: 'filtering possible matches' });
     const oneToOne = this.searchOneToOne(rootOrderNode, matchingOrderNodes, (message: string) => {
-      log(message, {step: 'one to one'});
+      log(message, { step: 'one to one' });
     });
     log(`Found: ${oneToOne.length} one to one matches`);
     const oneToManyMatches = this.searchOneToMany(rootOrderNode, matchingOrderNodes, (message: string) => {
-      log(message, {step: 'one to many'});
+      log(message, { step: 'one to many' });
     });
     log(`Found: ${oneToManyMatches.length} one to many matches`);
 
@@ -68,7 +70,11 @@ export class OrdersGraph {
     return { matches: firestoreMatches, requiresScan };
   }
 
-  public searchOneToOne(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[], log: (message: string) => void) {
+  public searchOneToOne(
+    rootOrderNode: OrderNodeCollection,
+    matchingOrderNodes: OrderNodeCollection[],
+    log: (message: string) => void
+  ) {
     try {
       const searcher = new OneToOneOrderMatchSearch(rootOrderNode, matchingOrderNodes, log);
       const matches = searcher.search();
@@ -83,7 +89,11 @@ export class OrdersGraph {
     }
   }
 
-  public searchOneToMany(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[], log: (message: string) => void) {
+  public searchOneToMany(
+    rootOrderNode: OrderNodeCollection,
+    matchingOrderNodes: OrderNodeCollection[],
+    log: (message: string) => void
+  ) {
     try {
       const isValid = this.verifyOneToManyRootOrderNode(rootOrderNode);
       if (!isValid) {

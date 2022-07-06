@@ -133,12 +133,12 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
     this.log?.(`Found ${combinations.length} combinations`);
     const validCombinations = combinations.filter((path) => {
       const numMatchesValid = path.matches.length >= minOrderItemsToFulfill;
-      if(!numMatchesValid) {
+      if (!numMatchesValid) {
         this.log?.(`Combination has ${path.matches.length} matches but needs ${minOrderItemsToFulfill} matches`);
         return false;
       }
       const opposingOrderValidationResponse = this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
-      if(!opposingOrderValidationResponse.isValid) {
+      if (!opposingOrderValidationResponse.isValid) {
         this.log?.(`Opposing order validation failed: ${opposingOrderValidationResponse.reasons.join(', ')}`);
       }
       return numMatchesValid && opposingOrderValidationResponse.isValid;
@@ -173,16 +173,19 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
   }
 
   public validateMatchForOpposingOrder(matches: OrderItemMatch[], opposingOrder: Order): ValidationResponse {
-    const matchesValidResponse = matches.reduce((acc: ValidationResponse, match) => {
-      const response = match.opposingOrderItem.isMatch(match.orderItem.firestoreOrderItem);
-      const reasons = acc.isValid ? [] : acc.reasons;
-      const responseReasons = response.isValid ? [] : response.reasons;
-      return {
-        isValid: acc.isValid && response.isValid,
-        reasons: [...reasons, ...responseReasons]
-      }
-    }, { isValid: true, reasons: [] });
-    if(!matchesValidResponse.isValid) {
+    const matchesValidResponse = matches.reduce(
+      (acc: ValidationResponse, match) => {
+        const response = match.opposingOrderItem.isMatch(match.orderItem.firestoreOrderItem);
+        const reasons = acc.isValid ? [] : acc.reasons;
+        const responseReasons = response.isValid ? [] : response.reasons;
+        return {
+          isValid: acc.isValid && response.isValid,
+          reasons: [...reasons, ...responseReasons]
+        };
+      },
+      { isValid: true, reasons: [] }
+    );
+    if (!matchesValidResponse.isValid) {
       return matchesValidResponse;
     }
 
@@ -192,8 +195,8 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
     }
 
     return {
-      isValid: true,
-    }
+      isValid: true
+    };
   }
 
   private isNumItemsValid(opposingOrderNumItems: number, numMatches: number): ValidationResponse {

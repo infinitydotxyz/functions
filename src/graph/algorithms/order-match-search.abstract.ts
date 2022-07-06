@@ -3,7 +3,11 @@ import { Node } from '../node';
 import { OrderItemNodeData, OrderNodeCollection } from '../order-node-collection';
 
 export abstract class OrderMatchSearch<T> {
-  constructor(protected rootOrderNode: OrderNodeCollection, protected matchingOrderNodes: OrderNodeCollection[], protected log?:(message: string) => void) {}
+  constructor(
+    protected rootOrderNode: OrderNodeCollection,
+    protected matchingOrderNodes: OrderNodeCollection[],
+    protected log?: (message: string) => void
+  ) {}
 
   public abstract search(): T[];
 
@@ -17,24 +21,31 @@ export abstract class OrderMatchSearch<T> {
     matchingOrderNodes.sort(
       (a, b) => a.data.order.firestoreOrder.startTimeMs - b.data.order.firestoreOrder.startTimeMs
     );
-    this.log?.(`Building graph from ${matchingOrderNodes.length} orders. Root order has ${root.nodes.size} order items`);
+    this.log?.(
+      `Building graph from ${matchingOrderNodes.length} orders. Root order has ${root.nodes.size} order items`
+    );
     for (const orderNode of matchingOrderNodes) {
       this.log?.(`  Checking order node ${orderNode.data.order.firestoreOrder.id} size: (${orderNode.nodes.size})`);
       for (const orderItemNode of orderNode.nodes) {
         for (const rootOrderItemNode of root.nodes) {
-          this.log?.(`    Root token id: ${rootOrderItemNode.data.orderItem.firestoreOrderItem.tokenId} Opposing order item token id: ${orderItemNode.data.orderItem.firestoreOrderItem.tokenId}`);
-          const rootValidationResponse = rootOrderItemNode.data.orderItem.isMatch(orderItemNode.data.orderItem.firestoreOrderItem);
-          const opposingOrderValidationResponse = orderItemNode.data.orderItem.isMatch(rootOrderItemNode.data.orderItem.firestoreOrderItem)
-          if (
-            rootValidationResponse.isValid &&
-            opposingOrderValidationResponse.isValid
-          ) {
+          this.log?.(
+            `    Root token id: ${rootOrderItemNode.data.orderItem.firestoreOrderItem.tokenId} Opposing order item token id: ${orderItemNode.data.orderItem.firestoreOrderItem.tokenId}`
+          );
+          const rootValidationResponse = rootOrderItemNode.data.orderItem.isMatch(
+            orderItemNode.data.orderItem.firestoreOrderItem
+          );
+          const opposingOrderValidationResponse = orderItemNode.data.orderItem.isMatch(
+            rootOrderItemNode.data.orderItem.firestoreOrderItem
+          );
+          if (rootValidationResponse.isValid && opposingOrderValidationResponse.isValid) {
             this.log?.(`      Valid edge`);
             const edge = new Edge();
             edge.link(rootOrderItemNode, orderItemNode);
           } else {
             const rootReasons = rootValidationResponse.isValid ? [] : rootValidationResponse.reasons;
-            const opposingOrderReasons = opposingOrderValidationResponse.isValid ? [] : opposingOrderValidationResponse.reasons;
+            const opposingOrderReasons = opposingOrderValidationResponse.isValid
+              ? []
+              : opposingOrderValidationResponse.reasons;
             this.log?.(`      Invalid Edge: root - opposing order item: ${rootReasons.join(', ')}`);
             this.log?.(`      Invalid Edge: opposing order - root order item: ${opposingOrderReasons.join(', ')}`);
           }

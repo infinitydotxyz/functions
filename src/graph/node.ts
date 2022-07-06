@@ -94,7 +94,7 @@ export class Node<T> implements INode<T> {
     }
 
     const currentFlow = this.outgoingEdgeFlow;
-    flow = Math.min(flow, this.maxFlow - currentFlow); 
+    flow = Math.min(flow, this.maxFlow - currentFlow);
     let flowPushed = 0;
 
     for (const edge of this.outgoingEdges) {

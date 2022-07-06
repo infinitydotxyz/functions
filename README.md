@@ -3,7 +3,6 @@
 ## Matching Engine
 
 ## TODO
-- [ ] One to many matches require searching for matches for the one order when any order in the many orders becomes active
 - [ ] Optimize queries to use batches
 - [ ] Should we have a maximum number of order items that can be in an order?
 

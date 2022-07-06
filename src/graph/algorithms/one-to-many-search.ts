@@ -24,13 +24,13 @@ export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> 
   private *searchForOneToManyMatches(): Generator<OneToManyMatch, void, void> {
     const matchingOrderNodes = [...this.matchingOrderNodes];
     while (matchingOrderNodes.length > 0) {
-      console.log(`Searching for matches in ${matchingOrderNodes.length} orders`);
+      this.log?.(`Searching for matches in ${matchingOrderNodes.length} orders`);
       const graph = this.connectNodes(this.rootOrderNode, matchingOrderNodes);
       const mainOpposingOrderNode = matchingOrderNodes.shift();
       const flowPusher = graph.streamFlow();
 
       for (const { flowPushed, totalFlowPushed } of flowPusher) {
-        console.log(`Pushed ${flowPushed} flow. Total: ${totalFlowPushed}`);
+        this.log?.(`Pushed ${flowPushed} flow. Total: ${totalFlowPushed}`);
         if (flowPushed === 0) {
           // reached a stable state
           break;

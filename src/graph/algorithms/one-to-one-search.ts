@@ -27,7 +27,7 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       const opposingOrder = orderNode.data.order;
       const opposingOrderItems = orderNode.data.orderItems;
 
-      console.log(`searching for matches between ${order.firestoreOrder.id} and ${opposingOrder.firestoreOrder.id}`);
+      this.log?.(`Searching for matches with ${opposingOrder.firestoreOrder.id}`);
       const matches = this.checkForMatches(
         orderItems,
         {
@@ -36,7 +36,7 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
         },
         order.firestoreOrder.numItems
       );
-      console.log(`Found ${matches.length} combinations of matches`);
+      this.log?.(`Found ${matches.length} combinations of matches`);
 
       const bestFullMatch = this.getBestMatch(matches, order.firestoreOrder.numItems);
       if (bestFullMatch.isMatch) {
@@ -125,21 +125,21 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       opposingOrder.order.firestoreOrder
     );
     if (priceIntersection === null) {
-      console.log(`No price intersection`);
+      this.log?.(`No price intersection`);
       return [];
     }
 
     const combinations = generateMatchCombinations(orderItems, opposingOrder.orderItems);
-    console.log(`Found ${combinations.length} combinations`);
+    this.log?.(`Found ${combinations.length} combinations`);
     const validCombinations = combinations.filter((path) => {
       const numMatchesValid = path.matches.length >= minOrderItemsToFulfill;
       if(!numMatchesValid) {
-        console.log(`Combination has ${path.matches.length} matches but needs ${minOrderItemsToFulfill} matches`);
+        this.log?.(`Combination has ${path.matches.length} matches but needs ${minOrderItemsToFulfill} matches`);
         return false;
       }
       const opposingOrderValidationResponse = this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
       if(!opposingOrderValidationResponse.isValid) {
-        console.log(`Opposing order validation failed: ${opposingOrderValidationResponse.reasons.join(', ')}`);
+        this.log?.(`Opposing order validation failed: ${opposingOrderValidationResponse.reasons.join(', ')}`);
       }
       return numMatchesValid && opposingOrderValidationResponse.isValid;
     });

@@ -35,13 +35,26 @@ export class OrdersGraph {
         });
       }
     }
-    console.log(`Found: ${possibleMatches.length} possible matches`);
+
+    const log = (msg: string, options?: {step?: string }) => {
+      const stepString = options?.step ? ` [${options.step}] ` : '';
+      const indentation = [options?.step].filter((part) => !!part).length;
+      const formattedMsg = `${'  '.repeat(indentation)}[${rootOrderNode.data.order.firestoreOrder.id}]${stepString} ${msg}`;
+      console.log(formattedMsg);
+    }
+    log('Searching for matches...');
+
+    log(`Found: ${possibleMatches.length} possible matches`, {step: 'possible matches'});
     const matchingOrderNodes = await this.getMatches(possibleMatches);
-    console.log(`Found: ${matchingOrderNodes.length} matching orders`);
-    const oneToOne = this.searchOneToOne(rootOrderNode, matchingOrderNodes);
-    console.log(`Found: ${oneToOne.length} one to one matches`);
-    const oneToManyMatches = this.searchOneToMany(rootOrderNode, matchingOrderNodes);
-    console.log(`Found: ${oneToManyMatches.length} one to many matches`);
+    log(`Found: ${matchingOrderNodes.length} matching orders`, {step: 'filtering possible matches'});
+    const oneToOne = this.searchOneToOne(rootOrderNode, matchingOrderNodes, (message: string) => {
+      log(message, {step: 'one to one'});
+    });
+    log(`Found: ${oneToOne.length} one to one matches`);
+    const oneToManyMatches = this.searchOneToMany(rootOrderNode, matchingOrderNodes, (message: string) => {
+      log(message, {step: 'one to many'});
+    });
+    log(`Found: ${oneToManyMatches.length} one to many matches`);
 
     const firestoreMatches = [...oneToOne, ...oneToManyMatches];
 
@@ -55,9 +68,9 @@ export class OrdersGraph {
     return { matches: firestoreMatches, requiresScan };
   }
 
-  public searchOneToOne(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+  public searchOneToOne(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[], log: (message: string) => void) {
     try {
-      const searcher = new OneToOneOrderMatchSearch(rootOrderNode, matchingOrderNodes);
+      const searcher = new OneToOneOrderMatchSearch(rootOrderNode, matchingOrderNodes, log);
       const matches = searcher.search();
       const firestoreMatches = matches.map((item) =>
         rootOrderNode.data.order.getFirestoreOrderMatch(item.matches, item.price, item.timestamp)
@@ -65,19 +78,19 @@ export class OrdersGraph {
 
       return firestoreMatches;
     } catch (err) {
-      console.log(err);
+      log(err as string);
       return [];
     }
   }
 
-  public searchOneToMany(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
+  public searchOneToMany(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[], log: (message: string) => void) {
     try {
       const isValid = this.verifyOneToManyRootOrderNode(rootOrderNode);
       if (!isValid) {
         return [];
       }
       const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
-      const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
+      const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes, log);
       const matches = searcher.search();
 
       const firestoreOrderMatches: FirestoreOrderMatches[] = matches.map((item) => {
@@ -86,7 +99,7 @@ export class OrdersGraph {
 
       return firestoreOrderMatches;
     } catch (err) {
-      console.log(err);
+      log(err as string);
       return [];
     }
   }

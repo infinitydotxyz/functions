@@ -14,8 +14,8 @@ describe('price constraint', () => {
     const sellConstraint = new OrderItemPriceConstraint(sell);
     const buyConstraint = new OrderItemPriceConstraint(buy);
 
-    expect(sellConstraint.isMatch(buy.firestoreOrderItem)).toBe(true);
-    expect(buyConstraint.isMatch(sell.firestoreOrderItem)).toBe(true);
+    expect(sellConstraint.isMatch(buy.firestoreOrderItem).isValid).toBe(true);
+    expect(buyConstraint.isMatch(sell.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('matches order items where the buy price is greater than the sell price', () => {
@@ -29,8 +29,8 @@ describe('price constraint', () => {
     const sellConstraint = new OrderItemPriceConstraint(sell);
     const buyConstraint = new OrderItemPriceConstraint(buy);
 
-    expect(sellConstraint.isMatch(buy.firestoreOrderItem)).toBe(true);
-    expect(buyConstraint.isMatch(sell.firestoreOrderItem)).toBe(true);
+    expect(sellConstraint.isMatch(buy.firestoreOrderItem).isValid).toBe(true);
+    expect(buyConstraint.isMatch(sell.firestoreOrderItem).isValid).toBe(true);
   });
 
   it("doesn't matches order items where the sell price is greater than the buy price", () => {
@@ -44,8 +44,8 @@ describe('price constraint', () => {
     const sellConstraint = new OrderItemPriceConstraint(sell);
     const buyConstraint = new OrderItemPriceConstraint(buy);
 
-    expect(sellConstraint.isMatch(buy.firestoreOrderItem)).toBe(false);
-    expect(buyConstraint.isMatch(sell.firestoreOrderItem)).toBe(false);
+    expect(sellConstraint.isMatch(buy.firestoreOrderItem).isValid).toBe(false);
+    expect(buyConstraint.isMatch(sell.firestoreOrderItem).isValid).toBe(false);
   });
 
   it("doesn't matches order items where the time intervals don't overlap", () => {
@@ -64,8 +64,8 @@ describe('price constraint', () => {
     const sellConstraint = new OrderItemPriceConstraint(sell);
     const buyConstraint = new OrderItemPriceConstraint(buy);
 
-    expect(sellConstraint.isMatch(buy.firestoreOrderItem)).toBe(false);
-    expect(buyConstraint.isMatch(sell.firestoreOrderItem)).toBe(false);
+    expect(sellConstraint.isMatch(buy.firestoreOrderItem).isValid).toBe(false);
+    expect(buyConstraint.isMatch(sell.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('matches order items where the sell order decreases to intersect with the buy order', () => {
@@ -79,8 +79,8 @@ describe('price constraint', () => {
     const sellConstraint = new OrderItemPriceConstraint(sell);
     const buyConstraint = new OrderItemPriceConstraint(buy);
 
-    expect(sellConstraint.isMatch(buy.firestoreOrderItem)).toBe(true);
-    expect(buyConstraint.isMatch(sell.firestoreOrderItem)).toBe(true);
+    expect(sellConstraint.isMatch(buy.firestoreOrderItem).isValid).toBe(true);
+    expect(buyConstraint.isMatch(sell.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('matches order items where the buy order increases to intersect with the buy order', () => {
@@ -94,8 +94,8 @@ describe('price constraint', () => {
     const sellConstraint = new OrderItemPriceConstraint(sell);
     const buyConstraint = new OrderItemPriceConstraint(buy);
 
-    expect(sellConstraint.isMatch(buy.firestoreOrderItem)).toBe(true);
-    expect(buyConstraint.isMatch(sell.firestoreOrderItem)).toBe(true);
+    expect(sellConstraint.isMatch(buy.firestoreOrderItem).isValid).toBe(true);
+    expect(buyConstraint.isMatch(sell.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

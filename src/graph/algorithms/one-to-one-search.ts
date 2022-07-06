@@ -27,14 +27,18 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       const opposingOrder = orderNode.data.order;
       const opposingOrderItems = orderNode.data.orderItems;
 
+      console.log(`searching for matches between ${order.firestoreOrder.id} and ${opposingOrder.firestoreOrder.id}`);
+      console.log(JSON.stringify(order.firestoreOrder, null, 2));
+      console.log(JSON.stringify(opposingOrder.firestoreOrder, null, 2));
       const matches = this.checkForMatches(
-        opposingOrderItems,
+        orderItems,
         {
-          order,
-          orderItems
+          order: opposingOrder,
+          orderItems: opposingOrderItems
         },
         order.firestoreOrder.numItems
       );
+      console.log(`Found ${matches.length} combinations of matches`);
 
       const bestFullMatch = this.getBestMatch(matches, order.firestoreOrder.numItems);
       if (bestFullMatch.isMatch) {
@@ -122,14 +126,19 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       opposingOrder.order.firestoreOrder
     );
     if (priceIntersection === null) {
+      console.log(`No price intersection`);
       return [];
     }
 
     const combinations = generateMatchCombinations(orderItems, opposingOrder.orderItems);
-    const validCombinations = combinations.filter((path) => {
+    console.log(`Found ${combinations.length} combinations`);
+    const validCombinations = combinations.filter((path, index) => {
+      const numMatchesValid = path.matches.length >= minOrderItemsToFulfill;
+      const validForOpposingOrder = this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
+      console.log(`Combination ${index} Num matches valid: ${numMatchesValid} Valid for opposing order: ${validForOpposingOrder}`);
       return (
-        path.matches.length >= minOrderItemsToFulfill &&
-        this.validateMatchForOpposingOrder(path.matches, opposingOrder.order)
+        numMatchesValid && validForOpposingOrder
+        
       );
     });
 
@@ -163,7 +172,10 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
 
   public validateMatchForOpposingOrder(matches: OrderItemMatch[], opposingOrder: Order): boolean {
     const matchesValid = matches.every((match) => match.opposingOrderItem.isMatch(match.orderItem.firestoreOrderItem));
+    console.log(`\t matches valid for opposing order: ${matchesValid}`);
+
     const isNumItemsValid = this.isNumItemsValid(opposingOrder.firestoreOrder.numItems, matches.length);
+    console.log(`\t num items valid for opposing order: ${isNumItemsValid}`);
     return isNumItemsValid && matchesValid;
   }
 

@@ -10,9 +10,9 @@ describe('num tokens constraint', () => {
 
     const constraintTwo = new OrderItemNumTokensConstraint(two);
 
-    expect(constraintTwo.isMatch(one.firestoreOrderItem)).toBe(false);
-    expect(constraintTwo.isMatch(two.firestoreOrderItem)).toBe(true);
-    expect(constraintTwo.isMatch(three.firestoreOrderItem)).toBe(false);
+    expect(constraintTwo.isMatch(one.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintTwo.isMatch(two.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintTwo.isMatch(three.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('constraint is included', () => {

@@ -11,9 +11,9 @@ describe('start time constraint', () => {
 
     const constraint = new OrderItemStartTimeConstraint(equalTo);
 
-    expect(constraint.isMatch(lessThan.firestoreOrderItem)).toBe(true);
-    expect(constraint.isMatch(equalTo.firestoreOrderItem)).toBe(true);
-    expect(constraint.isMatch(greaterThan.firestoreOrderItem)).toBe(false);
+    expect(constraint.isMatch(lessThan.firestoreOrderItem).isValid).toBe(true);
+    expect(constraint.isMatch(equalTo.firestoreOrderItem).isValid).toBe(true);
+    expect(constraint.isMatch(greaterThan.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('constraint is included', () => {

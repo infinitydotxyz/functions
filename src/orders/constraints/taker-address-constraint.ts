@@ -1,4 +1,5 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemTakerAddressConstraint extends OrderItemConstraint {
@@ -9,11 +10,21 @@ export class OrderItemTakerAddressConstraint extends OrderItemConstraint {
     return 0;
   }
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    let isValid = true;
     if (this.firestoreOrderItem.takerAddress) {
-      return this.firestoreOrderItem.takerAddress === orderItem.makerAddress;
+      isValid = this.firestoreOrderItem.takerAddress === orderItem.makerAddress;
     }
-    return true;
+    if(isValid){ 
+
+      return {
+        isValid
+      }
+    }
+    return  {
+      isValid, 
+      reasons: [`Taker Address ${this.firestoreOrderItem.takerAddress} does not match opposing order maker address ${orderItem.makerAddress}`]
+    }
   }
 
   protected addConstraintToQuery(

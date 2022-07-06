@@ -6,6 +6,17 @@ export type OrderItemPrice = Pick<
   'isSellOrder' | 'startTimeMs' | 'endTimeMs' | 'startPriceEth' | 'endPriceEth'
 >;
 
+export type ValidMatch = {
+  isValid: true
+}
+
+export type InvalidMatch = {
+  isValid: false,
+  reasons: string[]
+}
+
+export type ValidationResponse = ValidMatch | InvalidMatch;
+
 export interface OrderItem {
   isAuction: boolean;
 
@@ -27,7 +38,7 @@ export interface OrderItem {
 
   firestoreQueryOrderByConstraint: typeof AbstractOrderItemConstraint;
 
-  isMatch(orderItem: FirestoreOrderItem): boolean;
+  isMatch(orderItem: FirestoreOrderItem): ValidationResponse;
 
   getPossibleMatches(
     queryWithConstraints?: FirebaseFirestore.Query<FirestoreOrderItem>,

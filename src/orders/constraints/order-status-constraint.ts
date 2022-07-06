@@ -1,11 +1,21 @@
 import { FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemOrderStatusConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    return orderItem.orderStatus === OBOrderStatus.ValidActive;
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse{
+    const isValid = orderItem.orderStatus === OBOrderStatus.ValidActive;
+    if(isValid) {
+      return {
+        isValid
+      };
+    }
+    return { 
+      isValid,
+      reasons: [`Order status of opposing order is not valid active ${orderItem.orderStatus}`]
+    }
   }
 
   protected addConstraintToQuery(

@@ -1,11 +1,21 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemNumTokensConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    return orderItem.numTokens == this.firestoreOrderItem.numTokens;
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    const isValid = orderItem.numTokens == this.firestoreOrderItem.numTokens;
+    if (isValid) {
+      return {
+        isValid
+      };
+    }
+    return {
+      isValid,
+      reasons: [`Num Tokens do not match ${orderItem.numTokens} !== ${this.firestoreOrderItem.numTokens}`]
+    };
   }
 
   protected addConstraintToQuery(

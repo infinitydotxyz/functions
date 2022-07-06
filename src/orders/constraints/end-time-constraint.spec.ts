@@ -16,9 +16,9 @@ describe('end time constraint', () => {
 
     const constraintOne = new OrderItemEndTimeConstraint(main);
 
-    expect(constraintOne.isMatch(lessThan.firestoreOrderItem)).toBe(false);
-    expect(constraintOne.isMatch(equalTo.firestoreOrderItem)).toBe(true);
-    expect(constraintOne.isMatch(greaterThan.firestoreOrderItem)).toBe(true);
+    expect(constraintOne.isMatch(lessThan.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintOne.isMatch(equalTo.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintOne.isMatch(greaterThan.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

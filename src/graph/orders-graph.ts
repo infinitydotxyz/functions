@@ -35,11 +35,14 @@ export class OrdersGraph {
           possibleMatches: orderItemPossibleMatches
         });
       }
-    }
-
+    } 
+    console.log(`Found: ${possibleMatches.length} possible matches`);
     const matchingOrderNodes = await this.getMatches(possibleMatches);
+    console.log(`Found: ${matchingOrderNodes.length} matching orders`);
     const oneToOne = this.searchOneToOne(rootOrderNode, matchingOrderNodes);
+    console.log(`Found: ${oneToOne.length} one to one matches`);
     const oneToManyMatches = this.searchOneToMany(rootOrderNode, matchingOrderNodes);
+    console.log(`Found: ${oneToManyMatches.length} one to many matches`);
 
     const firestoreMatches = [...oneToOne, ...oneToManyMatches];
 
@@ -63,14 +66,17 @@ export class OrdersGraph {
 
       return firestoreMatches;
     } catch (err) {
-      console.error(err);
+      console.log(err);
       return [];
     }
   }
 
   public searchOneToMany(rootOrderNode: OrderNodeCollection, matchingOrderNodes: OrderNodeCollection[]) {
     try {
-      this.verifyOneToManyRootOrderNode(rootOrderNode);
+      const isValid = this.verifyOneToManyRootOrderNode(rootOrderNode);
+      if(!isValid) {
+        return [];
+      }
       const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
       const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes);
       const matches = searcher.search();
@@ -81,7 +87,7 @@ export class OrdersGraph {
 
       return firestoreOrderMatches;
     } catch (err) {
-      console.error(err);
+      console.log(err);
       return [];
     }
   }
@@ -112,18 +118,9 @@ export class OrdersGraph {
 
   private verifyOneToManyRootOrderNode(rootOrderNode: OrderNodeCollection) {
     const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
-    if (!isFullySpecified) {
-      throw new Error(
-        `Attempted to build graph for order that is not fully specified. Order: ${this.root.data.firestoreOrder.id}`
-      );
-    }
 
     const validNumItems = rootOrderNode.data.order.firestoreOrder.numItems > 1;
-    if (!validNumItems) {
-      throw new Error(
-        `Attempted to build one to many graph for order that has num item of ${rootOrderNode.data.order.firestoreOrder.numItems}. Order: ${this.root.data.firestoreOrder.id}`
-      );
-    }
+    return isFullySpecified && validNumItems;
   }
 
   private filterOneToManyMatches(matches: OrderNodeCollection[]) {

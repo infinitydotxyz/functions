@@ -11,9 +11,9 @@ describe('order status constraint', () => {
 
     const validActiveConstraint = new OrderItemOrderStatusConstraint(validActive);
 
-    expect(validActiveConstraint.isMatch(validInactive.firestoreOrderItem)).toBe(false);
-    expect(validActiveConstraint.isMatch(validActive.firestoreOrderItem)).toBe(true);
-    expect(validActiveConstraint.isMatch(invalid.firestoreOrderItem)).toBe(false);
+    expect(validActiveConstraint.isMatch(validInactive.firestoreOrderItem).isValid).toBe(false);
+    expect(validActiveConstraint.isMatch(validActive.firestoreOrderItem).isValid).toBe(true);
+    expect(validActiveConstraint.isMatch(invalid.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('constraint is included', () => {

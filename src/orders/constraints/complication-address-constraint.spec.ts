@@ -12,10 +12,10 @@ describe('complication address constraint', () => {
     const constraintOne = new OrderItemComplicationAddressConstraint(one);
     const constraintTwo = new OrderItemComplicationAddressConstraint(two);
 
-    expect(constraintOne.isMatch(constraintTwo.firestoreOrderItem)).toBe(false);
-    expect(constraintOne.isMatch(constraintOne.firestoreOrderItem)).toBe(true);
-    expect(constraintTwo.isMatch(constraintOne.firestoreOrderItem)).toBe(false);
-    expect(constraintTwo.isMatch(constraintTwo.firestoreOrderItem)).toBe(true);
+    expect(constraintOne.isMatch(constraintTwo.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintOne.isMatch(constraintOne.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintTwo.isMatch(constraintOne.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintTwo.isMatch(constraintTwo.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

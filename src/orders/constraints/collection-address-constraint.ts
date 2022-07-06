@@ -1,18 +1,28 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemCollectionAddressConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    let isValid = true
     if (this.component.firestoreOrderItem.collectionAddress) {
-      return orderItem.collectionAddress === this.component.firestoreOrderItem.collectionAddress;
+      isValid = orderItem.collectionAddress === this.component.firestoreOrderItem.collectionAddress;
     }
     /**
      * if the order item doesn't specify a collection address
      * then it can be matched with any collection address
      */
-    return true;
+    if(isValid) {
+      return {
+        isValid
+      };
+    }
+    return {
+      isValid, 
+      reasons: [`Collection Addresses do not match ${orderItem.collectionAddress} !== ${this.component.firestoreOrderItem.collectionAddress}`]
+    }
   }
 
   protected addConstraintToQuery(

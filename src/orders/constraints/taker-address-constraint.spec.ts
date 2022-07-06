@@ -14,8 +14,8 @@ describe('taker address constraint', () => {
 
     const orderForAddressTwoConstraint = new OrderItemTakerAddressConstraint(orderForAddressTwo);
 
-    expect(orderForAddressTwoConstraint.isMatch(orderByAddressOne.firestoreOrderItem)).toBe(false);
-    expect(orderForAddressTwoConstraint.isMatch(orderByAddressTwo.firestoreOrderItem)).toBe(true);
+    expect(orderForAddressTwoConstraint.isMatch(orderByAddressOne.firestoreOrderItem).isValid).toBe(false);
+    expect(orderForAddressTwoConstraint.isMatch(orderByAddressTwo.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('matches opposing order items when the taker address is not specified', () => {
@@ -29,8 +29,8 @@ describe('taker address constraint', () => {
 
     const orderForAddressTwoConstraint = new OrderItemTakerAddressConstraint(orderForAddressTwo);
 
-    expect(orderForAddressTwoConstraint.isMatch(orderByAddressOne.firestoreOrderItem)).toBe(true);
-    expect(orderForAddressTwoConstraint.isMatch(orderByAddressTwo.firestoreOrderItem)).toBe(true);
+    expect(orderForAddressTwoConstraint.isMatch(orderByAddressOne.firestoreOrderItem).isValid).toBe(true);
+    expect(orderForAddressTwoConstraint.isMatch(orderByAddressTwo.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

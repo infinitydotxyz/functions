@@ -12,10 +12,10 @@ describe('collection address constraint', () => {
     const constraintGoerliDoodles = new OrderItemCollectionAddressConstraint(goerliDoodles1);
     const constraintDoodles = new OrderItemCollectionAddressConstraint(doodles);
 
-    expect(constraintGoerliDoodles.isMatch(doodles.firestoreOrderItem)).toBe(false);
-    expect(constraintGoerliDoodles.isMatch(goerliDoodles1.firestoreOrderItem)).toBe(true);
-    expect(constraintDoodles.isMatch(goerliDoodles1.firestoreOrderItem)).toBe(false);
-    expect(constraintDoodles.isMatch(constraintDoodles.firestoreOrderItem)).toBe(true);
+    expect(constraintGoerliDoodles.isMatch(doodles.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintGoerliDoodles.isMatch(goerliDoodles1.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintDoodles.isMatch(goerliDoodles1.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintDoodles.isMatch(constraintDoodles.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

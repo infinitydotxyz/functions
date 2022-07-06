@@ -49,7 +49,7 @@ async function scanForMatch(id: string) {
       const node = new Node(order, order.firestoreOrder.numItems);
       const graph = new OrdersGraph(node);
       const { matches } = await graph.search();
-      await graph.root.data.saveMatches(matches);
+      // await graph.root.data.saveMatches(matches);
       console.log(matches);
       console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
     } catch (err) {
@@ -59,4 +59,4 @@ async function scanForMatch(id: string) {
 }
 
 // void scanForMatches('0xc8ec05bd3b233e96942c496247ee12832abb7828de2e4e99cb80a77136f8f10f');
-void scanForMatch('0x462c0f5ddfa2df9a138c985006ad9d170d764176e60b377a30b5a27e01df5ac5');
+void scanForMatch('0x0c82064eb22519f4df8c7aee66b357e1d9d0e0db17272ccfbd1387c75c5c8537');

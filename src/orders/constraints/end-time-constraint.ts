@@ -1,11 +1,21 @@
 import { FirestoreOrderItem, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemEndTimeConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    return orderItem.endTimeMs >= this.component.firestoreOrderItem.startTimeMs;
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    const isValid = orderItem.endTimeMs >= this.component.firestoreOrderItem.startTimeMs;
+    if (isValid) {
+      return {
+        isValid
+      };
+    }
+    return {
+      isValid,
+      reasons: [`End time of opposing order ${orderItem.endTimeMs} is before start time of the main order ${this.component.firestoreOrderItem.startTimeMs}`]
+    };
   }
 
   protected addConstraintToQuery(

@@ -10,10 +10,10 @@ describe('order side constraint', () => {
     const constraintBuy = new OrderItemOrderSideConstraint(buy);
     const constraintSell = new OrderItemOrderSideConstraint(sell);
 
-    expect(constraintBuy.isMatch(sell.firestoreOrderItem)).toBe(true);
-    expect(constraintBuy.isMatch(buy.firestoreOrderItem)).toBe(false);
-    expect(constraintSell.isMatch(buy.firestoreOrderItem)).toBe(true);
-    expect(constraintSell.isMatch(sell.firestoreOrderItem)).toBe(false);
+    expect(constraintBuy.isMatch(sell.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintBuy.isMatch(buy.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintSell.isMatch(buy.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintSell.isMatch(sell.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('constraint is included', () => {

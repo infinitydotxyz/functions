@@ -12,10 +12,10 @@ describe('different wallet constraint', () => {
     const constraintOne = new OrderItemDifferentWalletConstraint(one);
     const constraintTwo = new OrderItemDifferentWalletConstraint(two);
 
-    expect(constraintOne.isMatch(constraintTwo.firestoreOrderItem)).toBe(true);
-    expect(constraintOne.isMatch(constraintOne.firestoreOrderItem)).toBe(false);
-    expect(constraintTwo.isMatch(constraintOne.firestoreOrderItem)).toBe(true);
-    expect(constraintTwo.isMatch(constraintTwo.firestoreOrderItem)).toBe(false);
+    expect(constraintOne.isMatch(constraintTwo.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintOne.isMatch(constraintOne.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintTwo.isMatch(constraintOne.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintTwo.isMatch(constraintTwo.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('constraint is included', () => {

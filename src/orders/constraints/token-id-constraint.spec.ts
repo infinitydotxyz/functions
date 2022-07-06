@@ -11,9 +11,9 @@ describe('token id constraint', () => {
 
     const constraint = new OrderItemTokenIdConstraint(listing);
 
-    expect(constraint.isMatch(offerForSameTokenId.firestoreOrderItem)).toBe(true);
-    expect(constraint.isMatch(offerForDifferentTokenId.firestoreOrderItem)).toBe(false);
-    expect(constraint.isMatch(offerWithoutTokenIdSpecified.firestoreOrderItem)).toBe(true);
+    expect(constraint.isMatch(offerForSameTokenId.firestoreOrderItem).isValid).toBe(true);
+    expect(constraint.isMatch(offerForDifferentTokenId.firestoreOrderItem).isValid).toBe(false);
+    expect(constraint.isMatch(offerWithoutTokenIdSpecified.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('matches offers with a token id specified to listings for that same token id only', () => {
@@ -25,9 +25,9 @@ describe('token id constraint', () => {
 
     const constraint = new OrderItemTokenIdConstraint(offer);
 
-    expect(constraint.isMatch(listingForSameTokenId.firestoreOrderItem)).toBe(true);
-    expect(constraint.isMatch(listingForDifferentTokenId.firestoreOrderItem)).toBe(false);
-    expect(constraint.isMatch(listingWithoutTokenIdSpecified.firestoreOrderItem)).toBe(false);
+    expect(constraint.isMatch(listingForSameTokenId.firestoreOrderItem).isValid).toBe(true);
+    expect(constraint.isMatch(listingForDifferentTokenId.firestoreOrderItem).isValid).toBe(false);
+    expect(constraint.isMatch(listingWithoutTokenIdSpecified.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('requires listings to specify a token id', () => {
@@ -37,8 +37,8 @@ describe('token id constraint', () => {
 
     const constraint = new OrderItemTokenIdConstraint(listing);
 
-    expect(constraint.isMatch(offerForTokenId.firestoreOrderItem)).toBe(false);
-    expect(constraint.isMatch(offerForCollection.firestoreOrderItem)).toBe(false);
+    expect(constraint.isMatch(offerForTokenId.firestoreOrderItem).isValid).toBe(false);
+    expect(constraint.isMatch(offerForCollection.firestoreOrderItem).isValid).toBe(false);
   });
 
   it('matches offers without a token id specified to any listings', () => {
@@ -49,8 +49,8 @@ describe('token id constraint', () => {
 
     const constraint = new OrderItemTokenIdConstraint(offer);
 
-    expect(constraint.isMatch(listingForTokenId.firestoreOrderItem)).toBe(true);
-    expect(constraint.isMatch(listingForCollection.firestoreOrderItem)).toBe(true);
+    expect(constraint.isMatch(listingForTokenId.firestoreOrderItem).isValid).toBe(true);
+    expect(constraint.isMatch(listingForCollection.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

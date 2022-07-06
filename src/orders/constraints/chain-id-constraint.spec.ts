@@ -48,10 +48,10 @@ describe('chain id constraint', () => {
     const constraintGoerli = new OrderItemChainIdConstraint(orderItemGoerli);
     const constraintMainnet = new OrderItemChainIdConstraint(orderItemMainnet);
 
-    expect(constraintGoerli.isMatch(orderItemMainnet.firestoreOrderItem)).toBe(false);
-    expect(constraintGoerli.isMatch(orderItemGoerli.firestoreOrderItem)).toBe(true);
-    expect(constraintMainnet.isMatch(orderItemGoerli.firestoreOrderItem)).toBe(false);
-    expect(constraintMainnet.isMatch(constraintMainnet.firestoreOrderItem)).toBe(true);
+    expect(constraintGoerli.isMatch(orderItemMainnet.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintGoerli.isMatch(orderItemGoerli.firestoreOrderItem).isValid).toBe(true);
+    expect(constraintMainnet.isMatch(orderItemGoerli.firestoreOrderItem).isValid).toBe(false);
+    expect(constraintMainnet.isMatch(constraintMainnet.firestoreOrderItem).isValid).toBe(true);
   });
 
   it('constraint is included', () => {

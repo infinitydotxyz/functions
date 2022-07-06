@@ -1,11 +1,21 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemComplicationAddressConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    return orderItem.complicationAddress === this.component.firestoreOrderItem.complicationAddress;
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    const isValid = orderItem.complicationAddress === this.component.firestoreOrderItem.complicationAddress;
+    if(isValid) {
+      return {
+        isValid
+      };
+    }
+    return {
+      isValid,
+      reasons: [`Complication Addresses do not match ${orderItem.complicationAddress} !== ${this.component.firestoreOrderItem.complicationAddress}`]
+    };
   }
 
   protected addConstraintToQuery(

@@ -1,7 +1,7 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
 import { getOrderIntersection } from '../../utils/intersection';
 import { OrderPriceIntersection } from '../../utils/intersection.types';
-import { OrderItemPrice } from '../orders.types';
+import { OrderItemPrice, ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemPriceConstraint extends OrderItemConstraint {
@@ -13,12 +13,17 @@ export class OrderItemPriceConstraint extends OrderItemConstraint {
   }
 
   // note this does not check if the price is currently valid
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
     const intersection = this.getIntersection(orderItem);
     if (intersection === null) {
-      return false;
+      return {
+        isValid: false,
+        reasons: [`Prices do not intersect`]
+      }
     }
-    return true;
+    return {
+      isValid: true,
+    }
   }
 
   protected addConstraintToQuery(

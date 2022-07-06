@@ -1,4 +1,5 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 /**
@@ -7,8 +8,18 @@ import { OrderItemConstraint } from './order-item-constraint.abstract';
 export class OrderItemDifferentWalletConstraint extends OrderItemConstraint {
   protected score = 0;
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    return orderItem.makerAddress !== this.component.firestoreOrderItem.makerAddress;
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    const isValid = orderItem.makerAddress !== this.component.firestoreOrderItem.makerAddress;
+
+    if (isValid) {
+      return {
+        isValid
+      };
+    }
+    return {
+      isValid,
+      reasons: [`Maker Addresses do not match ${orderItem.makerAddress} !== ${this.component.firestoreOrderItem.makerAddress}`]
+    }
   }
 
   protected addConstraintToQuery(

@@ -1,7 +1,7 @@
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { OrderItemStartTimeConstraint } from './constraints/start-time-constraint';
-import { OrderItem as IOrderItem } from './orders.types';
+import { OrderItem as IOrderItem, ValidationResponse } from './orders.types';
 import { Constraint, constraints } from './constraints/constraint.types';
 import { streamQuery } from '../firestore/stream-query';
 import { nanoid } from 'nanoid';
@@ -53,8 +53,10 @@ export class OrderItem implements IOrderItem {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public isMatch(_orderItem: FirestoreOrderItem): boolean {
-    return true;
+  public isMatch(_orderItem: FirestoreOrderItem): ValidationResponse {
+    return { 
+      isValid: true
+    }
   }
 
   /**

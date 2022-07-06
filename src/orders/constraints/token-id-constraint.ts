@@ -1,4 +1,5 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemTokenIdConstraint extends OrderItemConstraint {
@@ -9,7 +10,7 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
     return 0;
   }
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
     /**
      * we should restrict listings to for specific tokenIds
      * otherwise how do we find what token ids can be exchanged?
@@ -22,10 +23,22 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
      */
     if (this.component.firestoreOrderItem.isSellOrder) {
       if (!this.component.firestoreOrderItem.tokenId) {
-        return false; // require token id for listings
+        return  {
+          isValid: false,
+          reasons: ['TokenId is required for listings']
+        }
       }
 
-      return orderItem.tokenId === this.component.firestoreOrderItem.tokenId || orderItem.tokenId === '';
+      const isValid = orderItem.tokenId === this.component.firestoreOrderItem.tokenId || orderItem.tokenId === '';
+      if (isValid) {
+        return {
+          isValid
+        };
+      }
+      return {
+        isValid,
+        reasons: [`TokenIds don't intersect. Main order token id ${this.component.firestoreOrderItem.tokenId} opposing order token id ${orderItem.tokenId}`]
+      }
     }
 
     /**
@@ -33,14 +46,25 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
      * then the constraint is only satisfied if the listing is for the same tokenId
      */
     if (this.component.firestoreOrderItem.tokenId) {
-      return orderItem.tokenId === this.component.firestoreOrderItem.tokenId;
+      const isValid = orderItem.tokenId === this.component.firestoreOrderItem.tokenId;
+      if (isValid) {
+        return {
+          isValid
+        };
+      }
+      return {
+        isValid,
+        reasons: [`TokenIds don't intersect. Main order token id ${this.component.firestoreOrderItem.tokenId} opposing order token id ${orderItem.tokenId}`]
+      }
     }
 
     /**
      * the order is an offer and the tokenId is not specified
      * then the constraint is satisfied if the listing is for any tokenId in the collection
      */
-    return true;
+    return {
+      isValid: true
+    }
   }
 
   protected addConstraintToQuery(

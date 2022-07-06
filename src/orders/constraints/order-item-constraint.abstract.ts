@@ -1,7 +1,7 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { OrderItem as IOrderItem, OrderItem } from '../orders.types';
+import { OrderItem as IOrderItem, OrderItem, ValidationResponse } from '../orders.types';
 
 export abstract class OrderItemConstraint implements IOrderItem {
   public component: OrderItem;
@@ -50,10 +50,23 @@ export abstract class OrderItemConstraint implements IOrderItem {
     return this.component.getNumConstraints() + 1;
   }
 
-  isMatch(orderItem: FirestoreOrderItem): boolean {
-    const isThisSatisfied = this.isConstraintSatisfied(orderItem);
-    const isComponentSatisfied = this.component.isMatch(orderItem);
-    return isThisSatisfied && isComponentSatisfied;
+  isMatch(orderItem: FirestoreOrderItem): ValidationResponse {
+    const response = this.isConstraintSatisfied(orderItem);
+    const componentResponse = this.component.isMatch(orderItem);
+    const isValid = response.isValid && componentResponse.isValid;
+
+    if(isValid) {
+      return {
+        isValid
+      }
+    }
+
+    const responseReasons = response.isValid ? [] : response.reasons;
+    const componentResponseReasons = componentResponse.isValid ? [] : componentResponse.reasons;
+    return {
+      isValid,
+      reasons: [...responseReasons, ...componentResponseReasons]
+    }
   }
 
   getPossibleMatches(
@@ -82,7 +95,7 @@ export abstract class OrderItemConstraint implements IOrderItem {
 
   protected abstract score: number;
 
-  protected abstract isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean;
+  protected abstract isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse;
 
   protected abstract addConstraintToQuery(
     query: FirebaseFirestore.Query<FirestoreOrderItem>

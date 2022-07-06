@@ -1,4 +1,5 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 
 export class OrderItemOrderSideConstraint extends OrderItemConstraint {
@@ -8,8 +9,17 @@ export class OrderItemOrderSideConstraint extends OrderItemConstraint {
     return !this.component.firestoreOrderItem.isSellOrder;
   }
 
-  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): boolean {
-    return orderItem.isSellOrder === this.expectedOrderSide;
+  protected isConstraintSatisfied(orderItem: FirestoreOrderItem): ValidationResponse {
+    const isValid = orderItem.isSellOrder === this.expectedOrderSide;
+    if (isValid) {
+      return {
+        isValid
+      };
+    }
+    return {
+      isValid,
+      reasons: [`Order sides conflict opposing order side ${orderItem.isSellOrder ? 'listing' : 'offer'} main order side ${this.expectedOrderSide ? 'offer' : 'listing'}`]
+    };
   }
 
   protected addConstraintToQuery(

@@ -15,12 +15,17 @@ export const onOrderChange = functions
     try {
       switch (updatedOrder?.orderStatus) {
         case OBOrderStatus.ValidActive: {
-          if (!updatedOrder.lastScannedAt || updatedOrder.lastScannedAt < Date.now() - 30_000) {
+          if (updatedOrder.enqueued) {
+            const order = new Order(updatedOrder);
+            const { matches } = await order.searchForMatches();
+            await order.saveMatches(matches);
+            await order.markScanned();
+          } else if (!updatedOrder.lastScannedAt || updatedOrder.lastScannedAt < Date.now() - 30_000) {
             const order = new Order(updatedOrder);
             const { matches, requiresScan } = await order.searchForMatches();
             await order.saveMatches(matches);
             await order.markScanned();
-            await triggerScans(requiresScan);
+            await triggerScans(requiresScan); // only trigger scans if the current order was not enqueued
           }
           break;
         }

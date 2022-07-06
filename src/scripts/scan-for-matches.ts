@@ -50,7 +50,6 @@ async function scanForMatch(id: string) {
       const graph = new OrdersGraph(node);
       const { matches } = await graph.search();
       await graph.root.data.saveMatches(matches);
-      console.log(matches);
       console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);
     } catch (err) {
       console.error(err);

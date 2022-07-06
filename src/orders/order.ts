@@ -65,6 +65,17 @@ export class Order {
 
     const { matches, requiresScan } = await graph.search(possibilities);
 
+    console.table(
+      matches.map((item) => {
+        return {
+          id: item.id,
+          type: item.type,
+          numOrders: item.ids.length,
+          numUsers: item.usersInvolved.filter((item) => !item.includes(':')).length
+        };
+      })
+    );
+
     return { matches, requiresScan };
   }
 

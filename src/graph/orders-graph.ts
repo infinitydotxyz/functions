@@ -19,7 +19,7 @@ export class OrdersGraph {
 
   public async search(
     possibleMatches?: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[]
-  ): Promise<{ matches: FirestoreOrderMatches[], requiresScan: FirestoreOrder[]}> {
+  ): Promise<{ matches: FirestoreOrderMatches[]; requiresScan: FirestoreOrder[] }> {
     const rootOrderNode = await this.getRootOrderNode();
 
     if (!possibleMatches) {
@@ -44,8 +44,10 @@ export class OrdersGraph {
     const firestoreMatches = [...oneToOne, ...oneToManyMatches];
 
     let requiresScan: FirestoreOrder[] = [];
-    if(rootOrderNode.data.order.firestoreOrder.numItems === 1) {
-      requiresScan = matchingOrderNodes.filter((item) => item.data.order.firestoreOrder.numItems > 1).map((item) => item.data.order.firestoreOrder);
+    if (rootOrderNode.data.order.firestoreOrder.numItems === 1) {
+      requiresScan = matchingOrderNodes
+        .filter((item) => item.data.order.firestoreOrder.numItems > 1)
+        .map((item) => item.data.order.firestoreOrder);
     }
 
     return { matches: firestoreMatches, requiresScan };

@@ -28,18 +28,22 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       const opposingOrderItems = orderNode.data.orderItems;
 
       this.log?.(`Searching for matches with ${opposingOrder.firestoreOrder.id}`);
+
+      const buyOrder = order.firestoreOrder.isSellOrder ? opposingOrder : order;
+      const minNumItemsToFulfill = buyOrder.firestoreOrder.numItems;
       const matches = this.checkForMatches(
         orderItems,
         {
           order: opposingOrder,
           orderItems: opposingOrderItems
         },
-        order.firestoreOrder.numItems
+        minNumItemsToFulfill
       );
-      this.log?.(`Found ${matches.length} combinations of matches`);
+      this.log?.(`  Found ${matches.length} combinations of matches`);
 
-      const bestFullMatch = this.getBestMatch(matches, order.firestoreOrder.numItems);
+      const bestFullMatch = this.getBestMatch(matches, minNumItemsToFulfill);
       if (bestFullMatch.isMatch) {
+        this.log?.(`* Found valid match with ${opposingOrder.firestoreOrder.id}. Valid at ${new Date(bestFullMatch.timestamp)} for price ${bestFullMatch.price} *`)
         fullMatches.push({
           order,
           orderItems,
@@ -48,6 +52,8 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
           price: bestFullMatch.price,
           timestamp: bestFullMatch.timestamp
         });
+      } else {
+        this.log?.(`  Failed to find best match`);
       }
     }
 
@@ -125,21 +131,21 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
       opposingOrder.order.firestoreOrder
     );
     if (priceIntersection === null) {
-      this.log?.(`No price intersection`);
+      this.log?.(`  No price intersection`);
       return [];
     }
 
     const combinations = generateMatchCombinations(orderItems, opposingOrder.orderItems);
-    this.log?.(`Found ${combinations.length} combinations`);
+    this.log?.(`  Found ${combinations.length} combinations`);
     const validCombinations = combinations.filter((path) => {
       const numMatchesValid = path.matches.length >= minOrderItemsToFulfill;
       if (!numMatchesValid) {
-        this.log?.(`Combination has ${path.matches.length} matches but needs ${minOrderItemsToFulfill} matches`);
+        this.log?.(`  Combination has ${path.matches.length} matches but needs ${minOrderItemsToFulfill} matches`);
         return false;
       }
       const opposingOrderValidationResponse = this.validateMatchForOpposingOrder(path.matches, opposingOrder.order);
       if (!opposingOrderValidationResponse.isValid) {
-        this.log?.(`Opposing order validation failed: ${opposingOrderValidationResponse.reasons.join(', ')}`);
+        this.log?.(`  Opposing order validation failed: ${opposingOrderValidationResponse.reasons.join(', ')}`);
       }
       return numMatchesValid && opposingOrderValidationResponse.isValid;
     });
@@ -160,9 +166,10 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
     const now = Date.now();
     const currentPrice = priceIntersection.getPriceAtTime(now);
     if (currentPrice === null) {
+      this.log?.(`  No current price`);
       return [];
     }
-
+    this.log?.(`  Found ${validCombinations.length} valid combinations`);
     return validCombinations.map((item) => {
       return {
         match: item.matches,
@@ -183,7 +190,7 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
           reasons: [...reasons, ...responseReasons]
         };
       },
-      { isValid: true, reasons: [] }
+      { isValid: true, reasons: [] as string[] }
     );
     if (!matchesValidResponse.isValid) {
       return matchesValidResponse;
@@ -200,45 +207,26 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
   }
 
   private isNumItemsValid(opposingOrderNumItems: number, numMatches: number): ValidationResponse {
-    const isOpposingOrderBuyOrder = this.rootOrderNode.data.order.firestoreOrder.isSellOrder;
-    if (isOpposingOrderBuyOrder) {
-      const buyOrderNumItemsAtLeastNumMatches = numMatches >= opposingOrderNumItems;
-      const sellOrderNumItemsAtMostNumMatches = this.rootOrderNode.data.order.firestoreOrder.numItems <= numMatches;
-      if (!buyOrderNumItemsAtLeastNumMatches) {
-        return {
-          isValid: false,
-          reasons: [`Buy order requires at least ${opposingOrderNumItems} items, but found ${numMatches} items`]
-        };
-      }
+    const rootNumItems = this.rootOrderNode.data.order.firestoreOrder.numItems;
+    const [sellOrderNumItems, buyOrderNumItems] = this.rootOrderNode.data.order.firestoreOrder.isSellOrder
+      ? [rootNumItems, opposingOrderNumItems]
+      : [opposingOrderNumItems, rootNumItems];
 
-      if (!sellOrderNumItemsAtMostNumMatches) {
-        return {
-          isValid: false,
-          reasons: [
-            `Sell order requires at most ${this.rootOrderNode.data.order.firestoreOrder.numItems} items, but found ${numMatches} items`
-          ]
-        };
-      }
-      return {
-        isValid: true
-      };
-    }
-
-    const buyOrderNumItemsAtLeastNumMatches = numMatches >= this.rootOrderNode.data.order.firestoreOrder.numItems;
-    const sellOrderNumItemsAtMostNumMatches = opposingOrderNumItems <= numMatches;
+    const buyOrderNumItemsAtLeastNumMatches = numMatches >= buyOrderNumItems;
+    const sellOrderNumItemsAtMostNumMatches = numMatches <= sellOrderNumItems;
     if (!buyOrderNumItemsAtLeastNumMatches) {
       return {
         isValid: false,
-        reasons: [
-          `Buy order requires at least ${this.rootOrderNode.data.order.firestoreOrder.numItems} items, but found ${numMatches} items`
-        ]
+        reasons: [`Buy order requires at least ${buyOrderNumItems} items, but found ${numMatches} items`]
       };
     }
 
     if (!sellOrderNumItemsAtMostNumMatches) {
       return {
         isValid: false,
-        reasons: [`Sell order requires at most ${opposingOrderNumItems} items, but found ${numMatches} items`]
+        reasons: [
+          `Sell order requires at most ${sellOrderNumItems} items, but found ${numMatches} items`
+        ]
       };
     }
     return {

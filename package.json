@@ -18,6 +18,7 @@
     "test:watch": "jest --watch",
     "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts",
     "create-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/create-order.ts",
+    "create-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/create-multiple-orders.ts",
     "scan-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/scan-for-matches.ts",
     "clear-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-matches.ts",
     "clear-users-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-users-orders.ts"
@@ -50,7 +51,7 @@
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.2",
-    "ts-node": "^10.7.0",
+    "ts-node": "^10.8.2",
     "typescript": "^4.6.4"
   },
   "private": true,

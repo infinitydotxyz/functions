@@ -1,5 +1,3 @@
-import { config } from 'dotenv';
-config();
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { getExchangeAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';

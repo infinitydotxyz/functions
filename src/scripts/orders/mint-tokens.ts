@@ -1,5 +1,6 @@
 import { BigNumber, ethers } from 'ethers';
-import { ERC20ABI } from '@infinityxyz/lib/abi/erc20';
+import { goerliDoodlesAbi } from '../abi/goerli-doodles.abi';
+
 import { WalletWithBalances } from './types';
 
 export async function mintTokens(
@@ -8,7 +9,7 @@ export async function mintTokens(
   payableAmount: string,
   numTokens: number
 ): Promise<{ tokenId: string }[]> {
-  const iface = new ethers.utils.Interface(ERC20ABI);
+  const iface = new ethers.utils.Interface(goerliDoodlesAbi);
   const mint = iface.getFunction('mint');
   const data = iface.encodeFunctionData(mint, [numTokens]);
   const nonce = await wallet.wallet.getTransactionCount();

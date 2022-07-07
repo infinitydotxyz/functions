@@ -14,6 +14,6 @@ export async function setApprovalForAll(
     console.log(`Approving ${operator} for ${signer.address}`);
     await contract.setApprovalForAll(operator, approved);
     isApproved = true;
+    console.log(`${signer.address} isApprovedForAll Operator: ${operator}  ${isApproved ? '✅ ' : '❌'}`);
   }
-  console.log(`${signer.address} isApprovedForAll Operator: ${operator}  ${isApproved ? '✅ ' : '❌'}`);
 }

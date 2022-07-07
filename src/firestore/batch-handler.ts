@@ -1,5 +1,5 @@
-import { getDb } from "../firestore";
-import { sleep } from "../utils";
+import { getDb } from '../firestore';
+import { sleep } from '../utils';
 
 const MAX_BATCH_SIZE = 300;
 
@@ -27,15 +27,23 @@ export default class FirestoreBatchHandler {
     object: Partial<FirebaseFirestore.DocumentData>,
     options: FirebaseFirestore.SetOptions
   ): void {
+    this.checkSize();
+    this.currentBatch.batch.set(doc, object, options);
+    this.currentBatch.size += 1;
+  }
+
+  delete(doc: FirebaseFirestore.DocumentReference): void {
+    this.checkSize();
+    this.currentBatch.batch.delete(doc);
+    this.currentBatch.size += 1;
+  }
+
+  private checkSize(): void {
     if (this.currentBatch.size >= MAX_BATCH_SIZE) {
       this.flush().catch((err) => {
         console.error(err);
-        throw err;
       });
     }
-
-    this.currentBatch.batch.set(doc, object, options);
-    this.currentBatch.size += 1;
   }
 
   async flush(): Promise<void> {
@@ -64,7 +72,7 @@ export default class FirestoreBatchHandler {
   private newBatch(): Batch {
     return {
       batch: this.db.batch(),
-      size: 0,
+      size: 0
     };
   }
 }

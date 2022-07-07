@@ -1,28 +1,19 @@
-interface StreamQueryOptions<
-  DocumentData,
-  TransformedPage = DocumentData,
-  TransformedItem = TransformedPage
-> {
+interface StreamQueryOptions<DocumentData, TransformedPage = DocumentData, TransformedItem = TransformedPage> {
   pageSize: number;
-  transformPage?: (
-    docs: DocumentData[]
-  ) => Promise<TransformedPage[]> | TransformedPage[];
-  transformItem?: (
-    pageItem?: TransformedPage
-  ) => Promise<TransformedItem> | TransformedItem;
+  transformPage?: (docs: DocumentData[]) => Promise<TransformedPage[]> | TransformedPage[];
+  transformItem?: (pageItem?: TransformedPage) => Promise<TransformedItem> | TransformedItem;
 }
 
-export async function* streamQuery<
-  DocumentData,
-  TransformedPage = DocumentData,
-  TransformedItem = TransformedPage
->(
+export async function* streamQuery<DocumentData, TransformedPage = DocumentData, TransformedItem = TransformedPage>(
   query: FirebaseFirestore.Query<DocumentData>,
-  getStartAfterField: (item: DocumentData, ref: FirebaseFirestore.DocumentReference<DocumentData>) => (string | number)[],
+  getStartAfterField: (
+    item: DocumentData,
+    ref: FirebaseFirestore.DocumentReference<DocumentData>
+  ) => (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[],
   options: StreamQueryOptions<DocumentData, TransformedPage, TransformedItem>
 ): AsyncGenerator<TransformedItem> {
   let hasNextPage = true;
-  let startAfter: (string | number)[] | undefined = undefined;
+  let startAfter: (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[] | undefined = undefined;
   while (hasNextPage) {
     let pageQuery = query;
     if (startAfter !== undefined) {
@@ -32,15 +23,11 @@ export async function* streamQuery<
     const pageData = pageSnapshot.docs.map((item) => item.data());
 
     const transformedPage: TransformedPage[] = (
-      typeof options.transformPage === "function"
-        ? await options.transformPage(pageData)
-        : pageData
+      typeof options.transformPage === 'function' ? await options.transformPage(pageData) : pageData
     ) as TransformedPage[];
     for (const item of transformedPage) {
       const transformedItem = (
-        options.transformItem && typeof options.transformItem === "function"
-          ? await options.transformItem(item)
-          : item
+        options.transformItem && typeof options.transformItem === 'function' ? await options.transformItem(item) : item
       ) as TransformedItem;
       if (transformedItem) {
         yield transformedItem;
@@ -48,6 +35,9 @@ export async function* streamQuery<
     }
 
     hasNextPage = pageSnapshot.docs.length >= options.pageSize;
-    startAfter = getStartAfterField(pageData[pageData.length - 1], pageSnapshot.docs[pageSnapshot.docs.length - 1].ref);
+    startAfter = getStartAfterField(
+      pageData?.[pageData.length - 1],
+      pageSnapshot.docs?.[pageSnapshot.docs.length - 1]?.ref
+    );
   }
 }

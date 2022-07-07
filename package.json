@@ -1,8 +1,10 @@
 {
   "name": "functions",
   "scripts": {
+    "clean": "rimraf ./dist",
     "lint": "eslint \"{src,apps}/**/*.ts\" --fix",
-    "build": "tsc",
+    "pre:push": "npm run format && npm run lint && npm run build && npm run test",
+    "build": "tsc -b ./tsconfig.build.json",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -11,30 +13,66 @@
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
-    "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts"
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "backfill-collection-data": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-collection-data-to-nfts.ts",
+    "create-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/create-order.ts",
+    "scan-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/scan-for-matches.ts",
+    "clear-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-matches.ts",
+    "clear-users-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-users-orders.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.117.2",
-    "firebase-admin": "^9.8.0",
-    "firebase-functions": "^3.14.1",
+    "@infinityxyz/lib": "^1.120.0",
+    "dotenv": "^16.0.1",
+    "ethers": "^5.6.6",
+    "firebase-admin": "^10.2.0",
+    "firebase-functions": "^3.21.2",
+    "nanoid": "^3.3.4",
     "p-queue": "^6.6.2"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^3.9.1",
-    "@typescript-eslint/parser": "^3.8.0",
+    "@types/jest": "^27.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
     "eslint": "^7.6.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.22.0",
     "firebase-functions-test": "^0.2.0",
+    "jest": "^28.1.0",
+    "phin": "^3.6.1",
     "prettier": "^2.6.2",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^28.0.2",
     "ts-node": "^10.7.0",
-    "typescript": "^3.8.0"
+    "typescript": "^4.6.4"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "moduleDirectories": [
+      "node_modules",
+      "src"
+    ],
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
 }

@@ -1,6 +1,6 @@
-import {FirestoreOrderItem, Token} from "@infinityxyz/lib/types/core";
-import {firestoreConstants} from "@infinityxyz/lib/utils/constants";
-import {getDb} from "../firestore";
+import { FirestoreOrderItem, Token } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+import { getDb } from '../firestore';
 
 export function getNftRef(orderItem: FirestoreOrderItem): FirebaseFirestore.DocumentReference<Partial<Token>> {
   const db = getDb();

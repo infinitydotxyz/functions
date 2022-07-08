@@ -1,17 +1,14 @@
-import {
-  FirestoreOrderItem,
-  OrderItemSnippet,
-  Token,
-} from "@infinityxyz/lib/types/core";
-import { firestoreConstants } from "@infinityxyz/lib/utils/constants";
-import * as functions from "firebase-functions";
-import { getDb } from "../firestore";
-import { getBestOrder } from "./getBestOrder";
-import { getNftRef } from "./getNftRef";
-import { getRelevantOrderItemSnippet } from "./getRelevantOrderItemsSnippet";
+import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+import * as functions from 'firebase-functions';
+import { getDb } from '../firestore';
+import { REGION } from '../utils/constants';
+import { getBestNftOrder } from './get-best-nft-order';
+import { getNftRef } from './get-nft-ref';
+import { getRelevantOrderItemSnippet } from './get-relevant-order-item-snippet';
 
 export const addOrdersToNfts = functions
-  .region("us-east1")
+  .region(REGION)
   .firestore.document(
     `${firestoreConstants.ORDERS_COLL}/{orderId}/${firestoreConstants.ORDER_ITEMS_SUB_COLL}/{orderItemId}`
   )
@@ -32,11 +29,11 @@ export const addOrdersToNfts = functions
         const nftSnap = await tx.get(nftRef);
         const nft = nftSnap.data() ?? {};
 
-        const bestOrderDoc = await getBestOrder(
+        const bestOrderDoc = await getBestNftOrder(
           {
             collectionAddress: orderItem.collectionAddress,
             chainId: orderItem.chainId,
-            tokenId: orderItem.tokenId,
+            tokenId: orderItem.tokenId
           },
           orderItem.isSellOrder,
           tx
@@ -48,9 +45,7 @@ export const addOrdersToNfts = functions
         let requiresUpdate = currentOrder?.orderItemId !== bestOrder?.id;
         if (!requiresUpdate) {
           for (const [key, value] of Object.entries(currentOrder ?? {})) {
-            const fieldIsSame =
-              value ===
-              ((bestOrder ?? {}) as Record<string, string | number>)?.[key];
+            const fieldIsSame = value === ((bestOrder ?? {}) as Record<string, string | number>)?.[key];
             if (!fieldIsSame) {
               requiresUpdate = true;
               break;
@@ -64,22 +59,18 @@ export const addOrdersToNfts = functions
 
         const updatedOrderItemSnippet: OrderItemSnippet = {
           hasOrder: !!bestOrder,
-          orderItemId: bestOrder?.id ?? "",
-          orderItem: bestOrder,
+          orderItemId: bestOrder?.id ?? '',
+          orderItem: bestOrder
         };
 
-        const fieldToUpdate = orderItem.isSellOrder ? "listing" : "offer";
+        const fieldToUpdate = orderItem.isSellOrder ? 'listing' : 'offer';
 
-        const updatedOrderSnippet: Pick<Token, "ordersSnippet"> = {
+        const updatedOrderSnippet: Pick<Token, 'ordersSnippet'> = {
           ordersSnippet: {
-            [fieldToUpdate]: updatedOrderItemSnippet,
-          },
+            [fieldToUpdate]: updatedOrderItemSnippet
+          }
         };
-        tx.set(
-          nftSnap.ref,
-          { ...updatedOrderSnippet },
-          { mergeFields: [`ordersSnippet.${fieldToUpdate}`] }
-        );
+        tx.set(nftSnap.ref, { ...updatedOrderSnippet }, { mergeFields: [`ordersSnippet.${fieldToUpdate}`] });
       });
     } catch (err) {
       console.error(err);

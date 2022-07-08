@@ -6,7 +6,7 @@ let db: FirebaseFirestore.Firestore;
 export function getDb(): FirebaseFirestore.Firestore {
   if (!db) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as ServiceAccount),
+      credential: admin.credential.cert(serviceAccount as ServiceAccount)
     });
     db = admin.firestore();
     db.settings({ ignoreUndefinedProperties: true });

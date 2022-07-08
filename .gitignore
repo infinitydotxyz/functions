@@ -6,7 +6,10 @@ dist/**/*
 # Node.js dependency directory
 node_modules/
 
+.env
 src/creds/**/*
 
 # logs
 firebase-debug.log
+
+wallets/**

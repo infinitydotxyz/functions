@@ -8,6 +8,10 @@ import { triggerScans } from './trigger-scan';
 
 export const onOrderChange = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540,
+    maxInstances: 3
+  })
   .firestore.document(`${firestoreConstants.ORDERS_COLL}/{orderId}`)
   .onWrite(async (change) => {
     const prevOrder = change.before.data() as FirestoreOrder | undefined;

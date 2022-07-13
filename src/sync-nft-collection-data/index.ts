@@ -6,6 +6,10 @@ import { updateNftsWithCollection } from './update-nfts-with-collection';
 
 export const syncNftCollectionData = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540,
+    maxInstances: 1
+  })
   .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}`)
   .onWrite(async (change) => {
     const before = (change.before.data() ?? {}) as Partial<Collection>;

@@ -10,24 +10,48 @@ import { signOrder } from './orders/sign-order';
 import { WalletWithTokens } from './orders/types';
 import { setApprovalForAll } from './orders/set-approval-for-all';
 
-export async function createOrders(oneToOne = false) {
-  const chainId = ChainId.Goerli;
-  const providerUrl = process.env.PROVIDER_URL_GOERLI;
+const GOERLI_DOODLES = {
+  address: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
+  chainId: ChainId.Goerli
+};
+const baseUrl = 'http://localhost:9090';
 
-  if (!providerUrl) {
-    throw new Error('PROVIDER_URL_GOERLI is required');
+const getProviderUrl = (chainId: ChainId) => {
+  let url = '';
+  switch (chainId) {
+    case ChainId.Goerli:
+      url = process.env['GOERLI_PROVIDER_URL'] ?? '';
+      break;
+    case ChainId.Mainnet:
+      url = process.env['MAINNET_PROVIDER_URL'] ?? '';
+      break;
+    default:
+      throw new Error(`Unsupported chainId: ${chainId}`);
   }
+
+  if (!url) {
+    throw new Error(`No provider url found for chainId: ${chainId}`);
+  }
+
+  return url;
+};
+
+export async function createOrders(oneToOne = false, numWallets: number) {
+  const coll = GOERLI_DOODLES;
+  const chainId = coll.chainId;
+  const providerUrl = getProviderUrl(coll.chainId);
+
   const provider = new ethers.providers.JsonRpcProvider(providerUrl);
   const signer = getFundingWallet(provider);
   const weth = getTxnCurrencyAddress(chainId);
   const exchange = getExchangeAddress(chainId);
   const numTokens = oneToOne ? 1 : 3; // TODO test one to one
   const goerliDoodles = {
-    address: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
+    address: coll.address,
     costPerToken: ethers.utils.parseEther('0.01')
   };
 
-  const wallets = await loadWallets(provider, weth, 7);
+  const wallets = await loadWallets(provider, weth, numWallets);
   console.log(`Funding test wallets...`);
   const { testWallets, fundingWallet } = await fundTestWallets(
     wallets,
@@ -78,8 +102,8 @@ export async function createOrders(oneToOne = false) {
         collection.collection;
         await setApprovalForAll(collection.collection, exchange, true, wallet.wallet);
       }
-      const signedOrder = await signOrder(wallet.wallet, orderDescription);
-      await postOrder(wallet.wallet, signedOrder);
+      const signedOrder = await signOrder(wallet.wallet, orderDescription, baseUrl);
+      await postOrder(wallet.wallet, signedOrder, baseUrl);
       console.log(`Created listing for ${wallet.wallet.address} token: ${orderDescription.nfts[0].tokens[0].tokenId}`);
 
       // create offers
@@ -95,8 +119,8 @@ export async function createOrders(oneToOne = false) {
         maxGasPriceWei: ethers.utils.parseEther('0.1').toString()
       };
 
-      const signedOffer = await signOrder(fundingWallet.wallet, offer);
-      await postOrder(fundingWallet.wallet, signedOffer);
+      const signedOffer = await signOrder(fundingWallet.wallet, offer, baseUrl);
+      await postOrder(fundingWallet.wallet, signedOffer, baseUrl);
       console.log(`Created offer for ${fundingWallet.wallet.address} token: ${offer.nfts[0].tokens[0].tokenId}`);
     } catch (err) {
       console.error(err);
@@ -174,8 +198,8 @@ async function createMultipleOneToManyOrders() {
         collection.collection;
         await setApprovalForAll(collection.collection, exchange, true, wallet.wallet);
       }
-      const signedOrder = await signOrder(wallet.wallet, sellOrderDescription);
-      await postOrder(wallet.wallet, signedOrder);
+      const signedOrder = await signOrder(wallet.wallet, sellOrderDescription, baseUrl);
+      await postOrder(wallet.wallet, signedOrder, baseUrl);
       console.log(
         `Created listing for ${wallet.wallet.address} token: ${sellOrderDescription.nfts[0].tokens[0].tokenId}`
       );
@@ -213,20 +237,20 @@ async function createMultipleOneToManyOrders() {
       maxGasPriceWei: ethers.utils.parseEther('0.3').toString()
     };
 
-    const signedOffer = await signOrder(fundingWallet.wallet, offer);
-    await postOrder(fundingWallet.wallet, signedOffer);
+    const signedOffer = await signOrder(fundingWallet.wallet, offer, baseUrl);
+    await postOrder(fundingWallet.wallet, signedOffer, baseUrl);
     console.log(`Created offer for ${fundingWallet.wallet.address} token: ${offer.nfts[0].tokens[0].tokenId}`);
   } catch (err) {
     console.error(err);
   }
 }
 
-async function createMultipleOneToOneOrders() {
-  await createOrders(true);
+async function createMultipleOneToOneOrders(numWallets: number) {
+  await createOrders(true, numWallets);
 }
 
-async function createMultipleOrderMatchOrders() {
-  await createOrders(false);
+async function createMultipleOrderMatchOrders(numWallets: number) {
+  await createOrders(false, numWallets);
 }
 
 enum Command {
@@ -256,10 +280,10 @@ function helpMessage() {
 async function main() {
   switch (process.argv[2] ?? '') {
     case Command.CreateOneToOne:
-      await createMultipleOneToOneOrders();
+      await createMultipleOneToOneOrders(10);
       break;
     case Command.CreateOrdersMatch:
-      await createMultipleOrderMatchOrders();
+      await createMultipleOrderMatchOrders(5);
       break;
     case Command.CreateOneToMany:
       await createMultipleOneToManyOrders();

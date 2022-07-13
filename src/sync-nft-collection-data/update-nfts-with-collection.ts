@@ -10,12 +10,34 @@ export async function updateNftsWithCollection(
     collectionAddress: collection?.address ?? '',
     collectionName: collection?.metadata?.name ?? '',
     collectionSlug: collection?.slug ?? '',
+    collectionProfileImage: collection?.metadata?.profileImage ?? '',
+    collectionBannerImage: collection?.metadata?.bannerImage ?? '',
+    collectionDescription: collection?.metadata?.description ?? '',
     hasBlueCheck: collection?.hasBlueCheck ?? false
   };
-  const docs = await collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).listDocuments();
+
   const batchHandler = new FirestoreBatchHandler();
-  for (const doc of docs) {
-    batchHandler.add(doc, update, { merge: true });
+  let tokenIdStartAfter = '';
+  let done = false;
+  const limit = 1000;
+  while (!done) {
+    const docs = (
+      await collectionRef
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .limit(1000)
+        .orderBy('tokenId', 'desc')
+        .startAfter(tokenIdStartAfter)
+        .get()
+    ).docs;
+
+    tokenIdStartAfter = docs[docs.length - 1].get('tokenId');
+    if (docs.length < limit) {
+      done = true;
+    }
+
+    for (const doc of docs) {
+      batchHandler.add(doc.ref, update, { merge: true });
+    }
   }
 
   await batchHandler.flush();

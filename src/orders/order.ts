@@ -19,6 +19,7 @@ import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from
 import { createHash } from 'crypto';
 import { Node } from '../graph/node';
 import { OrdersGraph } from '../graph/orders-graph';
+import { OneToOneMatch } from '../graph/algorithms/one-to-one-search';
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -95,20 +96,21 @@ export class Order {
   }
 
   public getFirestoreOrderMatch(
-    match: OrderItemMatch[],
+    orderMatch: OneToOneMatch,
     price: number,
     timestamp: number
   ): FirestoreOrderMatch | FirestoreOrderMatchOneToOne {
+    const matches = orderMatch.matches;
     const ids = [
       ...new Set(
-        match.flatMap(({ orderItem, opposingOrderItem }) => [
+        matches.flatMap(({ orderItem, opposingOrderItem }) => [
           orderItem.firestoreOrderItem.id,
           opposingOrderItem.firestoreOrderItem.id
         ])
       )
     ];
 
-    const rawId = match
+    const rawId = matches
       .map(({ orderItem, opposingOrderItem }) => {
         const [listing, offer] = orderItem.firestoreOrderItem.isSellOrder
           ? [orderItem.firestoreOrderItem, opposingOrderItem.firestoreOrderItem]
@@ -125,16 +127,18 @@ export class Order {
     const collectionAddresses: string[] = [];
     const tokenStrings: string[] = [];
 
-    const firstOrder = match[0].orderItem;
-    const firstOpposingOrder = match[0].opposingOrderItem;
+    const firstOrder = matches[0].orderItem;
+    const firstOpposingOrder = matches[0].opposingOrderItem;
     const [sampleListing, sampleOffer] = firstOrder.firestoreOrderItem.isSellOrder
       ? [firstOrder.firestoreOrderItem, firstOpposingOrder.firestoreOrderItem]
       : [firstOpposingOrder.firestoreOrderItem, firstOrder.firestoreOrderItem];
 
     const isOneToOne =
-      match.length === 1 &&
-      match[0].orderItem.firestoreOrderItem.numItems === 1 &&
-      match[0].opposingOrderItem.firestoreOrderItem.numItems === 1; // TODO make sure the orders only contain a single nft
+      matches.length === 1 &&
+      orderMatch.orderItems.length === 1 &&
+      orderMatch.opposingOrderItems.length === 1 &&
+      matches[0].orderItem.firestoreOrderItem.numItems === 1 &&
+      matches[0].opposingOrderItem.firestoreOrderItem.numItems === 1;
 
     const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
       id,
@@ -151,7 +155,7 @@ export class Order {
         offerId: sampleOffer.id,
         orderItems: {}
       },
-      usersInvolved: this.getUsersInvolved(match),
+      usersInvolved: this.getUsersInvolved(matches),
       state: {
         status: createdAt >= timestamp ? FirestoreOrderMatchStatus.Active : FirestoreOrderMatchStatus.Inactive,
         priceValid: price,
@@ -159,7 +163,7 @@ export class Order {
       }
     };
 
-    for (const { orderItem, opposingOrderItem } of match) {
+    for (const { orderItem, opposingOrderItem } of matches) {
       const collectionAddress =
         orderItem.firestoreOrderItem.collectionAddress || opposingOrderItem.firestoreOrderItem.collectionAddress;
       const tokenId = orderItem.firestoreOrderItem.tokenId || opposingOrderItem.firestoreOrderItem.tokenId;

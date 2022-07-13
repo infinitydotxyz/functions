@@ -48,9 +48,10 @@ const defaultOrderDescription = {
 };
 
 async function createOrder() {
-  const order = await signOrder(signer, defaultOrderDescription);
+  const baseUrl = 'http://localhost:9090';
+  const order = await signOrder(signer, defaultOrderDescription, baseUrl);
 
-  await postOrder(signer, order);
+  await postOrder(signer, order, baseUrl);
 }
 
 void createOrder();

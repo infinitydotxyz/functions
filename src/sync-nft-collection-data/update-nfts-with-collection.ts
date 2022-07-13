@@ -10,6 +10,9 @@ export async function updateNftsWithCollection(
     collectionAddress: collection?.address ?? '',
     collectionName: collection?.metadata?.name ?? '',
     collectionSlug: collection?.slug ?? '',
+    collectionProfileImage: collection?.metadata?.profileImage ?? '',
+    collectionBannerImage: collection?.metadata?.bannerImage ?? '',
+    collectionDescription: collection?.metadata?.description ?? '',
     hasBlueCheck: collection?.hasBlueCheck ?? false
   };
   const docs = await collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).listDocuments();

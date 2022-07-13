@@ -21,6 +21,7 @@ export async function updateNftsWithCollection(
   let done = false;
   const limit = 1000;
   while (!done) {
+    console.log(`Fetching NFTs for collection ${collection?.address} starting after ${tokenIdStartAfter}`);
     const docs = (
       await collectionRef
         .collection(firestoreConstants.COLLECTION_NFTS_COLL)
@@ -29,9 +30,12 @@ export async function updateNftsWithCollection(
         .startAfter(tokenIdStartAfter)
         .get()
     ).docs;
-
-    tokenIdStartAfter = docs[docs.length - 1].get('tokenId');
-    if (docs.length < limit) {
+    
+    const lastItem = docs[docs.length - 1];
+    if (lastItem) {
+      tokenIdStartAfter = docs[docs.length - 1].get('tokenId');
+    }
+    if (docs.length < limit || !lastItem) {
       done = true;
     }
 

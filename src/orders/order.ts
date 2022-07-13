@@ -138,7 +138,9 @@ export class Order {
       orderMatch.orderItems.length === 1 &&
       orderMatch.opposingOrderItems.length === 1 &&
       matches[0].orderItem.firestoreOrderItem.numItems === 1 &&
-      matches[0].opposingOrderItem.firestoreOrderItem.numItems === 1;
+      matches[0].opposingOrderItem.firestoreOrderItem.numItems === 1 && 
+      !!orderMatch.orderItems[0].firestoreOrderItem.tokenId &&
+      !!orderMatch.opposingOrderItems[0].firestoreOrderItem.tokenId;
 
     const firestoreOrderMatch: FirestoreOrderMatch | FirestoreOrderMatchOneToOne = {
       id,

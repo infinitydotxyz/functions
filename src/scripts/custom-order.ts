@@ -35,8 +35,8 @@ async function main() {
 
   const order = {
     chainId,
-    isSellOrder: false,
-    numItems: 1,
+    isSellOrder: true,
+    numItems: 3,
     startPriceEth: 0.01,
     endPriceEth: 0.01,
     startTimeMs: Date.now(),

@@ -33,7 +33,7 @@ export async function updateNftsWithCollection(
     
     const lastItem = docs[docs.length - 1];
     if (lastItem) {
-      tokenIdStartAfter = docs[docs.length - 1].get('tokenId');
+      tokenIdStartAfter = lastItem.get('tokenId');
     }
     if (docs.length < limit || !lastItem) {
       done = true;

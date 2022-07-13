@@ -79,7 +79,7 @@ export class OrdersGraph {
       const searcher = new OneToOneOrderMatchSearch(rootOrderNode, matchingOrderNodes, log);
       const matches = searcher.search();
       const firestoreMatches = matches.map((item) =>
-        rootOrderNode.data.order.getFirestoreOrderMatch(item.matches, item.price, item.timestamp)
+        rootOrderNode.data.order.getFirestoreOrderMatch(item, item.price, item.timestamp)
       );
 
       return firestoreMatches;

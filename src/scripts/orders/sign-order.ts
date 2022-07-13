@@ -17,11 +17,12 @@ export async function signOrder(
     startTimeMs: number;
     endTimeMs: number;
     maxGasPriceWei: string;
-  }
+  },
+  baseUrl: string
 ): Promise<SignedOBOrderDto> {
   const { nfts, chainId, isSellOrder, numItems, startPriceEth, endPriceEth, startTimeMs, endTimeMs, maxGasPriceWei } =
     orderDescription;
-  const nonce = await getOrderNonce(signer);
+  const nonce = await getOrderNonce(signer, baseUrl);
   const startPrice = ethers.utils.parseEther(`${startPriceEth}`);
   const endPrice = ethers.utils.parseEther(`${endPriceEth}`);
   const startTime = Math.floor(startTimeMs / 1000);

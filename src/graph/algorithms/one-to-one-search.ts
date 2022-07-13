@@ -6,6 +6,8 @@ import { OrderMatchSearch } from './order-match-search.abstract';
 export type OneToOneMatch = {
   order: Order;
   orderItems: IOrderItem[];
+  opposingOrder: Order;
+  opposingOrderItems: IOrderItem[];
   matches: OrderItemMatch[];
   price: number;
   timestamp: number;
@@ -15,13 +17,7 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
   public search(): OneToOneMatch[] {
     const order = this.rootOrderNode.data.order;
     const orderItems = this.rootOrderNode.data.orderItems;
-    const fullMatches: {
-      order: Order;
-      orderItems: IOrderItem[];
-      matches: OrderItemMatch[];
-      price: number;
-      timestamp: number;
-    }[] = [];
+    const fullMatches: OneToOneMatch[] = [];
 
     for (const orderNode of this.matchingOrderNodes) {
       const opposingOrder = orderNode.data.order;
@@ -51,7 +47,8 @@ export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
         fullMatches.push({
           order,
           orderItems,
-          ...opposingOrder,
+          opposingOrder,
+          opposingOrderItems,
           matches: bestFullMatch.match,
           price: bestFullMatch.price,
           timestamp: bestFullMatch.timestamp

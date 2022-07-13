@@ -6,8 +6,7 @@ import { markOrdersValidActive } from './mark-orders-valid-active';
 export const updateOrderStatus = functions
   .region(REGION)
   .runWith({
-    timeoutSeconds: 540,
-    maxInstances: 1
+    timeoutSeconds: 540
   })
   .pubsub.schedule('every 1 minutes')
   .onRun(async () => {

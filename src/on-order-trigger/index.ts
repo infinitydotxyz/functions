@@ -13,8 +13,7 @@ import { REGION } from '../utils/constants';
 export const onOrderTrigger = functions
   .region(REGION)
   .runWith({
-    timeoutSeconds: 540,
-    maxInstances: 3
+    timeoutSeconds: 540
   })
   .pubsub.schedule('every 1 minutes')
   .onRun(async () => {

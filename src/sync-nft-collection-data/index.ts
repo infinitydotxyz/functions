@@ -7,8 +7,7 @@ import { updateNftsWithCollection } from './update-nfts-with-collection';
 export const syncNftCollectionData = functions
   .region(REGION)
   .runWith({
-    timeoutSeconds: 540,
-    maxInstances: 1
+    timeoutSeconds: 540
   })
   .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}`)
   .onWrite(async (change) => {

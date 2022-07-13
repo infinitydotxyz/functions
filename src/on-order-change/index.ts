@@ -9,8 +9,7 @@ import { triggerScans } from './trigger-scan';
 export const onOrderChange = functions
   .region(REGION)
   .runWith({
-    timeoutSeconds: 540,
-    maxInstances: 3
+    timeoutSeconds: 540
   })
   .firestore.document(`${firestoreConstants.ORDERS_COLL}/{orderId}`)
   .onWrite(async (change) => {

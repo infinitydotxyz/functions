@@ -10,8 +10,7 @@ import { getRelevantOrderItemSnippet } from './get-relevant-order-item-snippet';
 export const addOrdersToNfts = functions
   .region(REGION)
   .runWith({
-    timeoutSeconds: 540,
-    maxInstances: 1
+    timeoutSeconds: 540
   })
   .firestore.document(
     `${firestoreConstants.ORDERS_COLL}/{orderId}/${firestoreConstants.ORDER_ITEMS_SUB_COLL}/{orderItemId}`

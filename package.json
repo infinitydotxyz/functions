@@ -5,7 +5,7 @@
     "lint": "eslint \"{src,apps}/**/*.ts\" --fix",
     "pre:push": "npm run format && npm run lint && npm run build && npm run test",
     "build": "tsc -b ./tsconfig.build.json",
-    "serve": "npm run build && firebase emulators:start --only functions --project nftc-dev",
+    "serve": "npm run build && firebase emulators:start --only functions --project nftc-infinity",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy:dev": "firebase deploy --only functions --project nftc-dev",

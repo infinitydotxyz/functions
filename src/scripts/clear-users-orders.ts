@@ -30,4 +30,4 @@ async function clearUsersOrders(userAddresses: string[]) {
   await batchHandler.flush();
 }
 
-void clearUsersOrders(['0x02bf5bdd3387ffd93474252a95b16976429707cc', '0x367b6cF125db1540F0DA0523200781d4b3147ceD']);
+void clearUsersOrders(['0x0B9E6a7c63f721d3AA801A7740feA3b425fc64A6', '0x367b6cF125db1540F0DA0523200781d4b3147ceD']);

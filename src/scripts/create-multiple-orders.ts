@@ -20,10 +20,10 @@ const getProviderUrl = (chainId: ChainId) => {
   let url = '';
   switch (chainId) {
     case ChainId.Goerli:
-      url = process.env['GOERLI_PROVIDER_URL'] ?? '';
+      url = process.env['PROVIDER_URL_GOERLI'] ?? '';
       break;
     case ChainId.Mainnet:
-      url = process.env['MAINNET_PROVIDER_URL'] ?? '';
+      url = process.env['PROVIDER_URL_MAINNET'] ?? '';
       break;
     default:
       throw new Error(`Unsupported chainId: ${chainId}`);

@@ -94,9 +94,11 @@ export class OrdersGraph {
     matchingOrderNodes: OrderNodeCollection[],
     log: (message: string) => void
   ) {
+    log(`Searching for one to many matches With ${matchingOrderNodes.length} matching orders`);
     try {
       const isValid = this.verifyOneToManyRootOrderNode(rootOrderNode);
       if (!isValid) {
+        log('Root order node is not fully specified or has a num items less than one');
         return [];
       }
       const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);

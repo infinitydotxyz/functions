@@ -141,10 +141,9 @@ export class OrdersGraph {
   }
 
   private verifyOneToManyRootOrderNode(rootOrderNode: OrderNodeCollection) {
-    const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
-
+    // const isFullySpecified = Order.isFullySpecified(rootOrderNode.data.orderItems);
     const validNumItems = rootOrderNode.data.order.firestoreOrder.numItems > 1;
-    return isFullySpecified && validNumItems;
+    return validNumItems;
   }
 
   private filterOneToManyMatches(matches: OrderNodeCollection[]) {

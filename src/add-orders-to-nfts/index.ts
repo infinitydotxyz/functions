@@ -1,4 +1,5 @@
-import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
+import { FirestoreOrder, FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
+import { ChainOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import * as functions from 'firebase-functions';
 import { getDb } from '../firestore';
@@ -41,14 +42,17 @@ export const addOrdersToNfts = functions
           orderItem.isSellOrder,
           tx
         );
-        const bestOrder = bestOrderDoc?.data?.() ?? null;
+
+        // don't include attributes
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { attributes, ...bestOrder } = bestOrderDoc?.data?.() ?? ({} as any);
 
         const currentOrder = getRelevantOrderItemSnippet(orderItem, nft);
 
         let requiresUpdate = currentOrder?.orderItemId !== bestOrder?.id;
         if (!requiresUpdate) {
           for (const [key, value] of Object.entries(currentOrder ?? {})) {
-            const fieldIsSame = value === ((bestOrder ?? {}) as Record<string, string | number>)?.[key];
+            const fieldIsSame = value === (bestOrder as Record<string, string | number>)?.[key];
             if (!fieldIsSame) {
               requiresUpdate = true;
               break;
@@ -60,10 +64,19 @@ export const addOrdersToNfts = functions
           return;
         }
 
+        let signedOrder: ChainOBOrderDto = {} as any;
+        if (bestOrder.id) {
+          const orderRef = bestOrderDoc?.ref.parent.parent;
+          const orderSnap = await orderRef?.get?.();
+          const orderDoc = orderSnap?.data() as FirestoreOrder | undefined;
+          signedOrder = orderDoc?.signedOrder ?? ({} as any);
+        }
+
         const updatedOrderItemSnippet: OrderItemSnippet = {
-          hasOrder: !!bestOrder,
+          hasOrder: !!bestOrder.id,
           orderItemId: bestOrder?.id ?? '',
-          orderItem: bestOrder
+          orderItem: bestOrder,
+          signedOrder
         };
 
         const fieldToUpdate = orderItem.isSellOrder ? 'listing' : 'offer';

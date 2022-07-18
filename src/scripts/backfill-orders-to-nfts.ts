@@ -56,7 +56,8 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
       orderItem.isSellOrder
     );
 
-    const bestOrder = bestOrderDoc?.data();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { attributes, ...bestOrder } = bestOrderDoc?.data() ?? ({} as any);
     if (bestOrder && bestOrderDoc?.id) {
       const nftRef = getNftRef(bestOrder);
       const nftSnap = await nftRef.get();
@@ -64,10 +65,13 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
       if (nft) {
         const bestOrderSaved = getRelevantOrderItemSnippet(bestOrder, nft);
         if (bestOrderSaved?.orderItemId !== bestOrderDoc.id) {
+          const orderSnap = await bestOrderDoc.ref.parent.parent?.get();
+          const signedOrder = orderSnap?.data()?.signedOrder ?? {};
           const updatedOrderItemSnippet: OrderItemSnippet = {
-            hasOrder: !!bestOrder,
+            hasOrder: !!bestOrder.id,
             orderItemId: bestOrder?.id ?? '',
-            orderItem: bestOrder
+            orderItem: bestOrder,
+            signedOrder
           };
 
           const fieldToUpdate = orderItem.isSellOrder ? 'listing' : 'offer';

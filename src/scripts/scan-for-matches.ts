@@ -27,4 +27,4 @@ async function scanForMatches(id: string) {
   }
 }
 
-void scanForMatches('0xa30128d848a7ce135ffc48f377a49fa177001db159e99474be7c481db4c48a98');
+void scanForMatches('0x23a97324148963aa7114c6e883c229e436c14e17f658f77868aaf24d4097bbc2');

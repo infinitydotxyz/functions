@@ -23,14 +23,16 @@
     "clear-matches": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-matches.ts",
     "clear-users-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-users-orders.ts",
     "custom-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/custom-order.ts",
-    "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts"
+    "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
+    "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
+    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.123.0",
+    "@infinityxyz/lib": "^1.134.2",
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",
     "firebase-admin": "^10.2.0",

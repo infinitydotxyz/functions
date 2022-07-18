@@ -1,7 +1,7 @@
 import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
 
 export function getRelevantOrderItemSnippet(
-  orderItem: FirestoreOrderItem,
+  orderItem: Omit<FirestoreOrderItem, 'attributes'>,
   nft: Partial<Token>
 ): OrderItemSnippet | null {
   const isListing = orderItem.isSellOrder;

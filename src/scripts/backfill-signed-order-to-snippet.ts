@@ -2,13 +2,14 @@ import { Collection, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
+import { streamQueryWithRef } from '../firestore/stream-query';
 
 export async function backfillSignedOrderToSnippet() {
   const db = getDb();
 
-  const collectionsRef = db.collection(firestoreConstants.COLLECTIONS_COLL);
-  const stream = collectionsRef.stream() as AsyncIterable<FirebaseFirestore.QueryDocumentSnapshot<Collection>>;
-
+  const collectionsRef = db.collection(firestoreConstants.COLLECTIONS_COLL) as FirebaseFirestore.CollectionReference<Collection>;
+  const stream = streamQueryWithRef(collectionsRef, (doc, ref) => [ref], { pageSize: 100 });
+  
   let numCollections = 0;
   let numListings = 0;
   let numOffers = 0;
@@ -79,60 +80,6 @@ export async function backfillSignedOrderToSnippet() {
     }
     await batchHandler.flush();
   }
-
-  // const listings = db.collectionGroup(firestoreConstants.COLLECTION_NFTS_COLL).where('ordersSnippet.listing.hasOrder', '==', true);
-  // const offers = db.collectionGroup(firestoreConstants.COLLECTION_NFTS_COLL).where('ordersSnippet.offer.hasOrder', '==', true);
-
-  // const nftsWithListingsStream = listings.stream() as AsyncIterable<FirebaseFirestore.DocumentSnapshot<Token>>;
-  // const batchHandler = new FirestoreBatchHandler();
-
-  // for await (const snap of nftsWithListingsStream) {
-  //     const nftWithListing = snap.data();
-  //     const orderId = nftWithListing?.ordersSnippet?.listing?.orderItem?.id;
-  //     if(orderId) {
-  //         const orderSnap = await db.collection(firestoreConstants.ORDERS_COLL).doc(orderId).get();
-  //         const order = orderSnap.data();
-  //         if(order) {
-  //             const update: Partial<Token> = {
-  //                 ordersSnippet: {
-  //                     ...nftWithListing.ordersSnippet,
-  //                     listing: {
-  //                         ...nftWithListing.ordersSnippet?.listing,
-  //                         hasOrder: true,
-  //                         signedOrder: order.signedOrder
-  //                     }
-  //                 }
-  //             }
-  //             batchHandler.add(snap.ref, update, { merge: true });
-  //         }
-  //     }
-  // }
-
-  // await batchHandler.flush();
-
-  // const nftsWithOffersStream = offers.stream() as AsyncIterable<FirebaseFirestore.DocumentSnapshot<Token>>;
-  // for await (const snap of nftsWithOffersStream) {
-  //     const nftWithOffer = snap.data();
-  //     const orderId = nftWithOffer?.ordersSnippet?.offer?.orderItem?.id;
-  //     if(orderId) {
-  //         const orderSnap = await db.collection(firestoreConstants.ORDERS_COLL).doc(orderId).get();
-  //         const order = orderSnap.data();
-  //         if(order) {
-  //             const update: Partial<Token> = {
-  //                 ordersSnippet: {
-  //                     ...nftWithOffer.ordersSnippet,
-  //                     offer: {
-  //                         ...nftWithOffer.ordersSnippet?.offer,
-  //                         hasOrder: true,
-  //                         signedOrder: order.signedOrder
-  //                     }
-  //                 }
-  //             }
-  //             batchHandler.add(snap.ref, update, { merge: true });
-  //         }
-  //     }
-  // }
-  // await batchHandler.flush();
 }
 
 void backfillSignedOrderToSnippet();

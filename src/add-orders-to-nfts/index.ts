@@ -1,4 +1,4 @@
-import { FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
+import { FirestoreOrder, FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import * as functions from 'firebase-functions';
 import { getDb } from '../firestore';
@@ -42,7 +42,6 @@ export const addOrdersToNfts = functions
           tx
         );
         const bestOrder = bestOrderDoc?.data?.() ?? null;
-
         const currentOrder = getRelevantOrderItemSnippet(orderItem, nft);
 
         let requiresUpdate = currentOrder?.orderItemId !== bestOrder?.id;
@@ -60,10 +59,21 @@ export const addOrdersToNfts = functions
           return;
         }
 
+        const orderRef = bestOrderDoc?.ref.parent.parent;
+        const orderSnap = await orderRef?.get?.();
+        const orderDoc = orderSnap?.data() as FirestoreOrder | undefined;
+        const signedOrder = orderDoc?.signedOrder;
+
+        if(!signedOrder) {
+          return;
+        }
+
+
         const updatedOrderItemSnippet: OrderItemSnippet = {
           hasOrder: !!bestOrder,
           orderItemId: bestOrder?.id ?? '',
-          orderItem: bestOrder
+          orderItem: bestOrder,
+          signedOrder,
         };
 
         const fieldToUpdate = orderItem.isSellOrder ? 'listing' : 'offer';

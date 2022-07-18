@@ -10,19 +10,20 @@ export async function backfillSignedOrderToSnippet() {
   const collectionsRef = db.collection(firestoreConstants.COLLECTIONS_COLL) as FirebaseFirestore.CollectionReference<Collection>;
   const stream = streamQueryWithRef(collectionsRef, (doc, ref) => [ref], { pageSize: 100 });
   
+  let chain = '1';
   let numCollections = 0;
   let numListings = 0;
   let numOffers = 0;
   let currentCollection = NULL_ADDRESS;
 
-  setInterval(() => {
+  const interval = setInterval(() => {
     const progress =  Math.floor(10000 * (parseInt(currentCollection.slice(0,5), 16) / parseInt('0xfff', 16))) / 100;
-    console.log(`[${progress}%] ${currentCollection} Collections checked: ${numCollections} Listings found: ${numListings} Offers found: ${numOffers}`);
+    console.log(`[Chain: ${chain}] [${progress}%] ${currentCollection} Collections checked: ${numCollections} Listings found: ${numListings} Offers found: ${numOffers}`);
   }, 5_000);
 
   for await (const collection of stream) {
     numCollections += 1;
-    currentCollection = collection.ref.id.split(':')[1];
+    [chain, currentCollection] = collection.ref.id.split(':');
     const nfts = collection.ref.collection(firestoreConstants.COLLECTION_NFTS_COLL);
     const listings = nfts.where('ordersSnippet.listing.hasOrder', '==', true);
     const offers = nfts.where('ordersSnippet.offer.hasOrder', '==', true);
@@ -44,7 +45,7 @@ export async function backfillSignedOrderToSnippet() {
               listing: {
                 ...nftWithListing.ordersSnippet?.listing,
                 hasOrder: true,
-                signedOrder: order.signedOrder
+                signedOrder: order.signedOrder ?? {}
               }
             }
           };
@@ -80,6 +81,10 @@ export async function backfillSignedOrderToSnippet() {
     }
     await batchHandler.flush();
   }
+
+  clearInterval(interval);
+
+  console.log(`Complete`);
 }
 
 void backfillSignedOrderToSnippet();

@@ -24,7 +24,8 @@
     "clear-users-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/clear-users-orders.ts",
     "custom-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/custom-order.ts",
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
-    "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts"
+    "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
+    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts"
   },
   "engines": {
     "node": "16"

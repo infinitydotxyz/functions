@@ -64,10 +64,13 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
       if (nft) {
         const bestOrderSaved = getRelevantOrderItemSnippet(bestOrder, nft);
         if (bestOrderSaved?.orderItemId !== bestOrderDoc.id) {
+          const orderSnap = await bestOrderDoc.ref.parent.parent?.get();
+          const signedOrder = orderSnap?.data()?.signedOrder;
           const updatedOrderItemSnippet: OrderItemSnippet = {
             hasOrder: !!bestOrder,
             orderItemId: bestOrder?.id ?? '',
-            orderItem: bestOrder
+            orderItem: bestOrder,
+            signedOrder
           };
 
           const fieldToUpdate = orderItem.isSellOrder ? 'listing' : 'offer';

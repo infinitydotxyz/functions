@@ -7,9 +7,11 @@ import { streamQueryWithRef } from '../firestore/stream-query';
 export async function backfillSignedOrderToSnippet() {
   const db = getDb();
 
-  const collectionsRef = db.collection(firestoreConstants.COLLECTIONS_COLL) as FirebaseFirestore.CollectionReference<Collection>;
+  const collectionsRef = db.collection(
+    firestoreConstants.COLLECTIONS_COLL
+  ) as FirebaseFirestore.CollectionReference<Collection>;
   const stream = streamQueryWithRef(collectionsRef, (doc, ref) => [ref], { pageSize: 100 });
-  
+
   let chain = '1';
   let numCollections = 0;
   let numListings = 0;
@@ -17,8 +19,10 @@ export async function backfillSignedOrderToSnippet() {
   let currentCollection = NULL_ADDRESS;
 
   const interval = setInterval(() => {
-    const progress =  Math.floor(10000 * (parseInt(currentCollection.slice(0,5), 16) / parseInt('0xfff', 16))) / 100;
-    console.log(`[Chain: ${chain}] [${progress}%] ${currentCollection} Collections checked: ${numCollections} Listings found: ${numListings} Offers found: ${numOffers}`);
+    const progress = Math.floor(10000 * (parseInt(currentCollection.slice(0, 5), 16) / parseInt('0xfff', 16))) / 100;
+    console.log(
+      `[Chain: ${chain}] [${progress}%] ${currentCollection} Collections checked: ${numCollections} Listings found: ${numListings} Offers found: ${numOffers}`
+    );
   }, 5_000);
 
   for await (const collection of stream) {

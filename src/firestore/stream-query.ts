@@ -42,14 +42,23 @@ export async function* streamQuery<DocumentData, TransformedPage = DocumentData,
   }
 }
 
-
-interface StreamQueryWithRefOptions<DocumentData, TransformedPage = { data: DocumentData, ref: FirebaseFirestore.DocumentReference<DocumentData>}, TransformedItem = TransformedPage> {
+interface StreamQueryWithRefOptions<
+  DocumentData,
+  TransformedPage = { data: DocumentData; ref: FirebaseFirestore.DocumentReference<DocumentData> },
+  TransformedItem = TransformedPage
+> {
   pageSize: number;
-  transformPage?: (docs: { data: DocumentData, ref: FirebaseFirestore.DocumentReference }[]) => Promise<TransformedPage[]> | TransformedPage[];
+  transformPage?: (
+    docs: { data: DocumentData; ref: FirebaseFirestore.DocumentReference }[]
+  ) => Promise<TransformedPage[]> | TransformedPage[];
   transformItem?: (pageItem?: TransformedPage) => Promise<TransformedItem> | TransformedItem;
 }
 
-export async function* streamQueryWithRef<DocumentData, TransformedPage = { data: DocumentData, ref: FirebaseFirestore.DocumentReference<DocumentData>}, TransformedItem = TransformedPage>(
+export async function* streamQueryWithRef<
+  DocumentData,
+  TransformedPage = { data: DocumentData; ref: FirebaseFirestore.DocumentReference<DocumentData> },
+  TransformedItem = TransformedPage
+>(
   query: FirebaseFirestore.Query<DocumentData> | FirebaseFirestore.CollectionReference<DocumentData>,
   getStartAfterField: (
     item: DocumentData,

@@ -57,7 +57,7 @@ export async function backfillOrders(emitter: Emitter): Promise<void> {
     );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { attributes, ...bestOrder} = bestOrderDoc?.data() ?? {} as any;
+    const { attributes, ...bestOrder } = bestOrderDoc?.data() ?? ({} as any);
     if (bestOrder && bestOrderDoc?.id) {
       const nftRef = getNftRef(bestOrder);
       const nftSnap = await nftRef.get();

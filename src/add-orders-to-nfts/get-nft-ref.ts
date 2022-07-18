@@ -2,7 +2,9 @@ import { FirestoreOrderItem, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getDb } from '../firestore';
 
-export function getNftRef(orderItem: Omit<FirestoreOrderItem, 'attributes'>): FirebaseFirestore.DocumentReference<Partial<Token>> {
+export function getNftRef(
+  orderItem: Omit<FirestoreOrderItem, 'attributes'>
+): FirebaseFirestore.DocumentReference<Partial<Token>> {
   const db = getDb();
   const collection = orderItem.collectionAddress;
   const chainId = orderItem.chainId;

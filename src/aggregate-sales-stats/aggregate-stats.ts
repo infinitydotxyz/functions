@@ -1,49 +1,16 @@
 import { NftSale, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { format, parse } from 'date-fns';
 import { getDb } from '../firestore';
 import { streamQueryWithRef } from '../firestore/stream-query';
-import { AggregationInterval, BaseStats, ChangeInStats, CurrentStats, PrevStats, Sales } from './models/sales';
-import { calcPercentChange, combineCurrentStats, getStatsDocInfo } from './utils';
-
-export interface SalesIntervalDoc {
-  updatedAt: number;
-  hasUnaggregatedSales: boolean;
-  isAggregated: boolean;
-  startTimestamp: number;
-  endTimestamp: number;
-  stats: CurrentStats;
-}
-
-export const getIntervalAggregationId = (timestamp: number, interval: AggregationInterval) => {
-  if (interval === AggregationInterval.FiveMinutes) {
-    const date = format(timestamp, 'yyyy-MM-dd-HH');
-    const min = format(timestamp, 'mm');
-    const minInt = parseInt(min, 10);
-    const intervalNum = `${Math.floor(minInt / 5)}`.padStart(2, '0');
-    return `${date}-${intervalNum}`;
-  }
-  throw new Error(`Id not supported for interval: ${interval}`);
-};
-
-export const parseAggregationId = (id: string, interval: AggregationInterval) => {
-  if (interval === AggregationInterval.FiveMinutes) {
-    const [yyyy, MM, dd, HH, intervalNum] = id.split('-');
-    const startMinute = parseInt(intervalNum, 10) * 5;
-    const minMM = `${startMinute}`.padStart(2, '0');
-    const minDateString = `${yyyy}-${MM}-${dd}-${HH}-${minMM}`;
-    const minDate = parse(minDateString, 'yyyy-MM-dd-HH-mm', new Date());
-    const fiveMin = 5 * 60 * 1000;
-    if (Number.isNaN(minDate.getTime())) {
-      throw new Error(`Invalid date string: Min date: ${minDateString} id: ${id}`);
-    }
-    const startTimestamp = minDate.getTime();
-    const endTimestamp = startTimestamp + fiveMin - 1;
-    return { startTimestamp: startTimestamp, endTimestamp };
-  }
-
-  throw new Error(`Parsing not supported for interval: ${interval}`);
-};
+import { Sales } from './models/sales';
+import { AggregationInterval, SalesIntervalDoc, BaseStats, CurrentStats, PrevStats, ChangeInStats } from './types';
+import {
+  calcPercentChange,
+  combineCurrentStats,
+  getIntervalAggregationId,
+  getStatsDocInfo,
+  parseAggregationId
+} from './utils';
 
 export async function saveSalesForAggregation() {
   const db = getDb();
@@ -90,7 +57,7 @@ export async function saveSalesForAggregation() {
   }
 }
 
-export function saveSaleToCollectionSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
+function saveSaleToCollectionSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
   const db = getDb();
   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
   const collectionStatsRef = db
@@ -106,44 +73,6 @@ export function saveSaleToCollectionSales(sale: NftSale & { docId: string }, tx:
     hasUnaggregatedSales: true
   };
   tx.set(collectionStatsRef, statsDocUpdate, { merge: true });
-}
-
-export function saveSaleToNftSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
-  const db = getDb();
-  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-  const nftStatsRef = db
-    .collection(firestoreConstants.COLLECTIONS_COLL)
-    .doc(`${sale.chainId}:${sale.collectionAddress}`)
-    .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-    .doc(sale.tokenId)
-    .collection('aggregatedNftSales')
-    .doc(intervalId);
-  const salesRef = nftStatsRef.collection('intervalSales');
-  const saleRef = salesRef.doc(sale.docId);
-  tx.set(saleRef, sale, { merge: false });
-  const statsDocUpdate: Partial<SalesIntervalDoc> = {
-    updatedAt: Date.now(),
-    hasUnaggregatedSales: true
-  };
-  tx.set(nftStatsRef, statsDocUpdate, { merge: true });
-}
-
-export function saveSaleToSourceSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
-  const db = getDb();
-  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-  const sourceStatsRef = db
-    .collection('marketplaceStats')
-    .doc(`${sale.source}`)
-    .collection('aggregatedSourceSales')
-    .doc(intervalId);
-  const salesRef = sourceStatsRef.collection('intervalSales');
-  const saleRef = salesRef.doc(sale.docId);
-  tx.set(saleRef, sale, { merge: false });
-  const statsDocUpdate: Partial<SalesIntervalDoc> = {
-    updatedAt: Date.now(),
-    hasUnaggregatedSales: true
-  };
-  tx.set(sourceStatsRef, statsDocUpdate, { merge: true });
 }
 
 export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentReference<SalesIntervalDoc>) {
@@ -170,6 +99,44 @@ export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentRefe
   } catch (err) {
     console.error('Failed to aggregate sales', err);
   }
+}
+
+function saveSaleToNftSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
+  const db = getDb();
+  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
+  const nftStatsRef = db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .doc(`${sale.chainId}:${sale.collectionAddress}`)
+    .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+    .doc(sale.tokenId)
+    .collection('aggregatedNftSales')
+    .doc(intervalId);
+  const salesRef = nftStatsRef.collection('intervalSales');
+  const saleRef = salesRef.doc(sale.docId);
+  tx.set(saleRef, sale, { merge: false });
+  const statsDocUpdate: Partial<SalesIntervalDoc> = {
+    updatedAt: Date.now(),
+    hasUnaggregatedSales: true
+  };
+  tx.set(nftStatsRef, statsDocUpdate, { merge: true });
+}
+
+function saveSaleToSourceSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
+  const db = getDb();
+  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
+  const sourceStatsRef = db
+    .collection('marketplaceStats')
+    .doc(`${sale.source}`)
+    .collection('aggregatedSourceSales')
+    .doc(intervalId);
+  const salesRef = sourceStatsRef.collection('intervalSales');
+  const saleRef = salesRef.doc(sale.docId);
+  tx.set(saleRef, sale, { merge: false });
+  const statsDocUpdate: Partial<SalesIntervalDoc> = {
+    updatedAt: Date.now(),
+    hasUnaggregatedSales: true
+  };
+  tx.set(sourceStatsRef, statsDocUpdate, { merge: true });
 }
 
 export async function aggregateHourlyStats(

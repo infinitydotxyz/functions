@@ -2,7 +2,7 @@ import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils'
 import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
 import { format, parse } from 'date-fns';
-import { CurrentStats } from './models/sales';
+import { AggregationInterval, CurrentStats } from './types';
 
 export const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -230,4 +230,34 @@ export const calcPercentChange = (prev: number | null, current: number | null, p
   }
 
   return round(percent, precision);
+};
+
+export const getIntervalAggregationId = (timestamp: number, interval: AggregationInterval) => {
+  if (interval === AggregationInterval.FiveMinutes) {
+    const date = format(timestamp, 'yyyy-MM-dd-HH');
+    const min = format(timestamp, 'mm');
+    const minInt = parseInt(min, 10);
+    const intervalNum = `${Math.floor(minInt / 5)}`.padStart(2, '0');
+    return `${date}-${intervalNum}`;
+  }
+  throw new Error(`Id not supported for interval: ${interval}`);
+};
+
+export const parseAggregationId = (id: string, interval: AggregationInterval) => {
+  if (interval === AggregationInterval.FiveMinutes) {
+    const [yyyy, MM, dd, HH, intervalNum] = id.split('-');
+    const startMinute = parseInt(intervalNum, 10) * 5;
+    const minMM = `${startMinute}`.padStart(2, '0');
+    const minDateString = `${yyyy}-${MM}-${dd}-${HH}-${minMM}`;
+    const minDate = parse(minDateString, 'yyyy-MM-dd-HH-mm', new Date());
+    const fiveMin = 5 * 60 * 1000;
+    if (Number.isNaN(minDate.getTime())) {
+      throw new Error(`Invalid date string: Min date: ${minDateString} id: ${id}`);
+    }
+    const startTimestamp = minDate.getTime();
+    const endTimestamp = startTimestamp + fiveMin - 1;
+    return { startTimestamp: startTimestamp, endTimestamp };
+  }
+
+  throw new Error(`Parsing not supported for interval: ${interval}`);
 };

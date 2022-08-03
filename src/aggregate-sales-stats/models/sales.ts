@@ -1,21 +1,10 @@
-import { ChainId, NftSale, SaleSource, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
-import { getIntervalAggregationId } from '../aggregate-stats';
-import { calculateStats, calculateStatsBigInt, getStatsDocInfo } from '../utils';
+import { ChainId, NftSale, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { AggregationInterval, CurrentStats } from '../types';
+import { calculateStats, calculateStatsBigInt, getIntervalAggregationId, getStatsDocInfo } from '../utils';
 
 type SalesById<T extends NftSale> = Map<string, { sales: T[] }>;
 type SalesByPeriod<T extends NftSale> = Map<StatsPeriod, SalesById<T>>;
 
-export interface ProtocolFeeStats {
-  minProtocolFeeWei: string | null;
-  maxProtocolFeeWei: string | null;
-  avgProtocolFeeWei: string | null;
-  sumProtocolFeeWei: string;
-  numSalesWithProtocolFee: number;
-}
-
-export enum AggregationInterval {
-  FiveMinutes = 'fiveMinutes'
-}
 export type SalesByAggregationInterval<T extends NftSale> = Map<AggregationInterval, SalesById<T>>;
 
 export type CollectionSalesByInterval<T extends NftSale> = {
@@ -45,12 +34,6 @@ export type NftSalesByPeriod<T extends NftSale> = {
   chainId: ChainId;
   tokenId: string;
 };
-export type CurrentStats = Pick<Stats, 'floorPrice' | 'numSales' | 'ceilPrice' | 'volume' | 'avgPrice'> &
-  Partial<ProtocolFeeStats>;
-
-export type PrevStats = Pick<Stats, 'prevFloorPrice'| 'prevCeilPrice' |  'prevVolume' | 'prevNumSales' | 'prevAvgPrice' >;
-export type ChangeInStats = Pick<Stats, 'floorPricePercentChange' | 'ceilPricePercentChange' | 'volumePercentChange' | 'numSalesPercentChange' | 'avgPricePercentChange'>;
-export type BaseStats = CurrentStats & PrevStats & ChangeInStats;
 
 export class Sales<T extends NftSale> {
   public allSales: Iterable<T>;

@@ -2,17 +2,9 @@ import { NftSale } from '@infinityxyz/lib/types/core/NftSale';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQuery } from '../firestore/stream-query';
+import { SalesRequestOptions } from './types';
 
-interface SalesByBlockOptions {
-  fromBlock: number;
-  toBlock: number;
-}
-interface SalesByTimestampOptions {
-  from: number;
-  to: number;
-}
 
-export type SalesRequestOptions = SalesByBlockOptions | SalesByTimestampOptions;
 export async function getSales(options: SalesRequestOptions) {
   let salesStream;
   if ('fromBlock' in options) {
@@ -28,7 +20,7 @@ export async function getSales(options: SalesRequestOptions) {
   return salesArray;
 }
 
-export function getSalesByTimestamp(from: number, to: number, startAfterHash?: string): AsyncGenerator<NftSale> {
+function getSalesByTimestamp(from: number, to: number, startAfterHash?: string): AsyncGenerator<NftSale> {
   const db = getDb();
   const salesQuery = db
     .collection(firestoreConstants.SALES_COLL)
@@ -44,7 +36,7 @@ export function getSalesByTimestamp(from: number, to: number, startAfterHash?: s
   return sales;
 }
 
-export function getSalesByBlock(fromBlock: number, toBlock: number, startAfterHash?: string): AsyncGenerator<NftSale> {
+function getSalesByBlock(fromBlock: number, toBlock: number, startAfterHash?: string): AsyncGenerator<NftSale> {
   const db = getDb();
   const salesQuery = db
     .collection(firestoreConstants.SALES_COLL)

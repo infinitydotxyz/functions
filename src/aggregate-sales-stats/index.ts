@@ -2,6 +2,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { REGION } from '../utils/constants';
 import { aggregateIntervalSales, saveSalesForAggregation, aggregateStats } from './aggregate-stats';
+import { retriggerAggregation } from './retrigger-aggregation';
 import { SalesIntervalDoc } from './types';
 
 export const saveSalesToBeAggregated = functions
@@ -12,6 +13,7 @@ export const saveSalesToBeAggregated = functions
   .pubsub.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *') // every 5 min
   .onRun(async () => {
     await saveSalesForAggregation();
+    await retriggerAggregation();
   });
 
 export const aggregateCollectionSales = functions
@@ -63,7 +65,7 @@ export const aggregateSourceSales = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`marketplaces/{saleSource}/aggregatedSourceSales/{intervalId}`)
+  .firestore.document(`marketplaceStats/{saleSource}/aggregatedSourceSales/{intervalId}`)
   .onWrite(async (change) => {
     const update = change.after.data() as Partial<SalesIntervalDoc>;
     if (update.hasUnaggregatedSales === true) {

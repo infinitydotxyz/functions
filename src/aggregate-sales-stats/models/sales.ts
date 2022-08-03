@@ -1,4 +1,5 @@
 import { ChainId, NftSale, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { formatEther } from 'ethers/lib/utils';
 import { AggregationInterval, CurrentStats } from '../types';
 import { calculateStats, calculateStatsBigInt, getIntervalAggregationId, getStatsDocInfo } from '../utils';
 
@@ -118,7 +119,7 @@ export class Sales<T extends NftSale> {
     const protocolFeeWeiStats = calculateStatsBigInt(sales, (sale: T) =>
       'protocolFeeWei' in sale ? BigInt(sale.protocolFeeWei) : null
     );
-    
+
     return {
       floorPrice: priceStatsEth.min as number,
       ceilPrice: priceStatsEth.max as number,
@@ -129,7 +130,8 @@ export class Sales<T extends NftSale> {
       maxProtocolFeeWei: protocolFeeWeiStats.max?.toString() ?? null,
       avgProtocolFeeWei: protocolFeeWeiStats.avg?.toString() ?? null,
       sumProtocolFeeWei: protocolFeeWeiStats.sum.toString(),
-      numSalesWithProtocolFee: protocolFeeWeiStats.numItemsInAvg
+      numSalesWithProtocolFee: protocolFeeWeiStats.numItemsInAvg,
+      sumProtocolFeeEth: parseFloat(formatEther(protocolFeeWeiStats.sum.toString()))
     };
   }
 

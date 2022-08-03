@@ -4,7 +4,6 @@ import { getDb } from '../firestore';
 import { streamQuery } from '../firestore/stream-query';
 import { SalesRequestOptions } from './types';
 
-
 export async function getSales(options: SalesRequestOptions) {
   let salesStream;
   if ('fromBlock' in options) {

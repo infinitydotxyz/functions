@@ -1,9 +1,9 @@
-import { NftSale, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChangeInSalesStats, NftSale, PrevBaseSalesStats, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { Sales } from './models/sales';
-import { AggregationInterval, SalesIntervalDoc, BaseStats, CurrentStats, PrevStats, ChangeInStats } from './types';
+import { AggregationInterval, SalesIntervalDoc, BaseStats, CurrentStats } from './types';
 import {
   calcPercentChange,
   combineCurrentStats,
@@ -41,7 +41,8 @@ export async function saveSalesForAggregation() {
         }
         const saleWithDocId = {
           ...sale,
-          docId: ref.id
+          docId: ref.id,
+          updatedAt: Date.now()
         };
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);
@@ -57,7 +58,7 @@ export async function saveSalesForAggregation() {
   }
 }
 
-function saveSaleToCollectionSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
+function saveSaleToCollectionSales(sale: NftSale & { docId: string, updatedAt: number }, tx: FirebaseFirestore.Transaction) {
   const db = getDb();
   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
   const collectionStatsRef = db
@@ -93,6 +94,9 @@ export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentRefe
           stats,
           hasUnaggregatedSales: false
         };
+        for(const saleDoc of salesSnapshot.docs) {
+          tx.set(saleDoc.ref, { isAggregated: true, updatedAt: Date.now()}, { merge: true });
+        }
         tx.update(ref, updatedIntervalDoc);
       }
     });
@@ -101,7 +105,7 @@ export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentRefe
   }
 }
 
-function saveSaleToNftSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
+function saveSaleToNftSales(sale: NftSale & { docId: string, updatedAt: number }, tx: FirebaseFirestore.Transaction) {
   const db = getDb();
   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
   const nftStatsRef = db
@@ -121,12 +125,12 @@ function saveSaleToNftSales(sale: NftSale & { docId: string }, tx: FirebaseFires
   tx.set(nftStatsRef, statsDocUpdate, { merge: true });
 }
 
-function saveSaleToSourceSales(sale: NftSale & { docId: string }, tx: FirebaseFirestore.Transaction) {
+function saveSaleToSourceSales(sale: NftSale & { docId: string, updatedAt: number }, tx: FirebaseFirestore.Transaction) {
   const db = getDb();
   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
   const sourceStatsRef = db
     .collection('marketplaceStats')
-    .doc(`${sale.source}`)
+    .doc(sale.source)
     .collection('aggregatedSourceSales')
     .doc(intervalId);
   const salesRef = sourceStatsRef.collection('intervalSales');
@@ -144,27 +148,22 @@ export async function aggregateHourlyStats(
   intervalRef: FirebaseFirestore.DocumentReference<SalesIntervalDoc>,
   statsCollection: FirebaseFirestore.CollectionReference
 ): Promise<BaseStats> {
-  try {
-    const period = getStatsDocInfo(timestamp, StatsPeriod.Hourly);
-    const startTimestamp = period.timestamp;
-    const oneHour = 60 * 1000 * 60;
-    const endTimestamp = period.timestamp + oneHour;
-    const salesIntervalsColl = intervalRef.parent;
-    const snapshot = await salesIntervalsColl
-      .where('startTimestamp', '>=', startTimestamp)
-      .where('startTimestamp', '<', endTimestamp)
-      .get();
-    const statsForHour = snapshot.docs
-      .map((item) => item.data())
-      .filter((item) => !!item.stats)
-      .map((item) => item.stats);
-    const current = combineCurrentStats(statsForHour);
-    const stats = await combineWithPrevStats(current, startTimestamp, StatsPeriod.Hourly, statsCollection);
-    return stats;
-  } catch (err) {
-    console.log({ timestamp });
-    throw err;
-  }
+  const period = getStatsDocInfo(timestamp, StatsPeriod.Hourly);
+  const startTimestamp = period.timestamp;
+  const oneHour = 60 * 1000 * 60;
+  const endTimestamp = period.timestamp + oneHour;
+  const salesIntervalsColl = intervalRef.parent;
+  const snapshot = await salesIntervalsColl
+    .where('startTimestamp', '>=', startTimestamp)
+    .where('startTimestamp', '<', endTimestamp)
+    .get();
+  const statsForHour = snapshot.docs
+    .map((item) => item.data())
+    .filter((item) => !!item.stats)
+    .map((item) => item.stats);
+  const current = combineCurrentStats(statsForHour);
+  const stats = await combineWithPrevStats(current, startTimestamp, StatsPeriod.Hourly, statsCollection);
+  return stats;
 }
 
 export async function aggregateDailyStats(
@@ -324,7 +323,7 @@ export async function combineWithPrevStats(
   const mostRecentStatsDoc = mostRecentStatsSnapshot.docs[0];
   const mostRecentStats = mostRecentStatsDoc?.data();
 
-  let prevStats: PrevStats & ChangeInStats;
+  let prevStats: PrevBaseSalesStats & ChangeInSalesStats;
   if (!mostRecentStatsDoc || !mostRecentStats) {
     prevStats = {
       prevFloorPrice: null as any as number,

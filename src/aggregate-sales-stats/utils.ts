@@ -3,6 +3,7 @@ import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
 import { format, parse } from 'date-fns';
 import { AggregationInterval, CurrentStats } from './types';
+import { formatEther } from 'ethers/lib/utils';
 
 export const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -192,11 +193,13 @@ export function combineCurrentStats(stats: CurrentStats[]): CurrentStats {
   const maxProtocolFeeWei = calculateStatsBigInt(stats, (item) =>
     typeof item.maxProtocolFeeWei === 'string' ? BigInt(item.maxProtocolFeeWei) : null
   ).max;
-  const sumProtocolFeeWei = calculateStatsBigInt(stats, (item) =>
+  const sumProtocolFeeWeiBigInt = calculateStatsBigInt(stats, (item) =>
     typeof item.sumProtocolFeeWei === 'string' ? BigInt(item.sumProtocolFeeWei) : null
   ).sum;
   const numSalesWithProtocolFee = calculateStats(stats, (item) => item.numSalesWithProtocolFee).sum;
-  const avgProtocolFeeWei = numSalesWithProtocolFee > 0 ? sumProtocolFeeWei / BigInt(numSalesWithProtocolFee) : null;
+  const avgProtocolFeeWei =
+    numSalesWithProtocolFee > 0 ? sumProtocolFeeWeiBigInt / BigInt(numSalesWithProtocolFee) : null;
+  const sumProtocolFeeWei = sumProtocolFeeWeiBigInt?.toString() ?? '0';
 
   return {
     floorPrice: floorPrice as number,
@@ -207,8 +210,9 @@ export function combineCurrentStats(stats: CurrentStats[]): CurrentStats {
     minProtocolFeeWei: minProtocolFeeWei?.toString() ?? null,
     maxProtocolFeeWei: maxProtocolFeeWei?.toString() ?? null,
     avgProtocolFeeWei: avgProtocolFeeWei?.toString() ?? null,
-    sumProtocolFeeWei: sumProtocolFeeWei?.toString() ?? null,
-    numSalesWithProtocolFee
+    sumProtocolFeeWei,
+    numSalesWithProtocolFee,
+    sumProtocolFeeEth: parseFloat(formatEther(sumProtocolFeeWei))
   };
 }
 

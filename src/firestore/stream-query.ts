@@ -91,7 +91,7 @@ export async function* streamQueryWithRef<
 
     hasNextPage = pageSnapshot.docs.length >= options.pageSize;
     startAfter = getStartAfterField(
-      pageData?.[pageData.length - 1].data,
+      pageData?.[pageData.length - 1]?.data,
       pageSnapshot.docs?.[pageSnapshot.docs.length - 1]?.ref
     );
   }

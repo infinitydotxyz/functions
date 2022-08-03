@@ -1,7 +1,7 @@
 import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
 import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { CurrentStats } from './models/sales';
 
 export const EXCLUDED_COLLECTIONS = [
@@ -59,21 +59,29 @@ function getFormattedStatsDate(timestamp: number, period: StatsPeriod): string {
 
   switch (period) {
     case StatsPeriod.Hourly:
-      return format(date, 'yyyy-MM-dd-HH');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.Daily:
-      return format(date, 'yyyy-MM-dd');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.Weekly:
-      return format(date.setDate(firstDayOfWeek), 'yyyy-MM-dd');
+      return format(date.setDate(firstDayOfWeek), statsFormatByPeriod[period]);
     case StatsPeriod.Monthly:
-      return format(date, 'yyyy-MM');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.Yearly:
-      return format(date, 'yyyy');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.All:
       return '';
     default:
       throw new Error(`Period: ${period as string} not yet implemented`);
   }
 }
+
+const statsFormatByPeriod = {
+  [StatsPeriod.Hourly]: 'yyyy-MM-dd-HH',
+  [StatsPeriod.Daily]: 'yyyy-MM-dd',
+  [StatsPeriod.Weekly]: 'yyyy-MM-dd',
+  [StatsPeriod.Monthly]: 'yyyy-MM',
+  [StatsPeriod.Yearly]: 'yyyy'
+};
 
 /**
  * returns the timestamp corresponding to the stats docId
@@ -86,17 +94,22 @@ function getTimestampFromFormattedDate(formattedDate: string, period: StatsPerio
     case StatsPeriod.Monthly:
     case StatsPeriod.Weekly:
     case StatsPeriod.Daily:
-      return new Date(formattedDate).getTime();
-    case StatsPeriod.Hourly:
-      // eslint-disable-next-line no-case-declarations
-      const [year, month, day, hour] = formattedDate.split('-');
-      return new Date(`${year}-${month}-${day}T${hour}:00`).getTime();
+    case StatsPeriod.Hourly: {
+      const date = parse(formattedDate, statsFormatByPeriod[period], new Date());
+      return date.getTime();
+    }
+    // // eslint-disable-nzext-line no-case-declarations
+    // const [year, month, day, hour] = formattedDate.split('-');
+    // return new Date(`${year}-${month}-${day}T${hour}:00`).getTime();
     default:
       throw new Error(`Period: ${period as string} not yet implemented`);
   }
 }
 
-export function calculateStatsBigInt<T>(items: Iterable<T>, _accessor?: (item: T) => bigint | number | null | undefined) {
+export function calculateStatsBigInt<T>(
+  items: Iterable<T>,
+  _accessor?: (item: T) => bigint | number | null | undefined
+) {
   const accessor = _accessor ? _accessor : (item: T) => item;
   let numItems = 0;
   let numValidItems = 0;
@@ -137,9 +150,9 @@ export function calculateStats<T>(items: Iterable<T>, _accessor?: (item: T) => n
   const accessor = _accessor ? _accessor : (item: T) => item;
   let numItems = 0;
   let numValidItems = 0;
-  let min:  number | null = null;
+  let min: number | null = null;
   let max: number | null = null;
-  let sum = 0
+  let sum = 0;
 
   for (const item of items) {
     const value = accessor(item);
@@ -148,7 +161,7 @@ export function calculateStats<T>(items: Iterable<T>, _accessor?: (item: T) => n
     if (isValidNumber) {
       numValidItems += 1;
       sum += value;
-      const currentMin: number = min === null ? value :  min;
+      const currentMin: number = min === null ? value : min;
       min = currentMin < value ? currentMin : value;
       const currentMax: number = max === null ? value : max;
       max = currentMax > value ? currentMax : value;
@@ -173,11 +186,17 @@ export function combineCurrentStats(stats: CurrentStats[]): CurrentStats {
   const volume = calculateStats(stats, (item) => item.volume).sum;
   const numSales = calculateStats(stats, (item) => item.numSales).sum;
   const avgPrice = volume / numSales;
-  const minProtocolFeeWei = calculateStatsBigInt(stats, (item) => typeof item.minProtocolFeeWei ==='string' ? BigInt(item.minProtocolFeeWei) : null).min;
-  const maxProtocolFeeWei = calculateStatsBigInt(stats, (item) => typeof item.maxProtocolFeeWei ==='string' ? BigInt(item.maxProtocolFeeWei) : null).max;
-  const sumProtocolFeeWei = calculateStatsBigInt(stats, (item) => typeof item.sumProtocolFeeWei ==='string' ? BigInt(item.sumProtocolFeeWei) : null).sum;
+  const minProtocolFeeWei = calculateStatsBigInt(stats, (item) =>
+    typeof item.minProtocolFeeWei === 'string' ? BigInt(item.minProtocolFeeWei) : null
+  ).min;
+  const maxProtocolFeeWei = calculateStatsBigInt(stats, (item) =>
+    typeof item.maxProtocolFeeWei === 'string' ? BigInt(item.maxProtocolFeeWei) : null
+  ).max;
+  const sumProtocolFeeWei = calculateStatsBigInt(stats, (item) =>
+    typeof item.sumProtocolFeeWei === 'string' ? BigInt(item.sumProtocolFeeWei) : null
+  ).sum;
   const numSalesWithProtocolFee = calculateStats(stats, (item) => item.numSalesWithProtocolFee).sum;
-  const avgProtocolFeeWei = sumProtocolFeeWei / BigInt(numSalesWithProtocolFee);
+  const avgProtocolFeeWei = numSalesWithProtocolFee > 0 ? sumProtocolFeeWei / BigInt(numSalesWithProtocolFee) : null;
 
   return {
     floorPrice: floorPrice as number,
@@ -187,11 +206,10 @@ export function combineCurrentStats(stats: CurrentStats[]): CurrentStats {
     avgPrice,
     minProtocolFeeWei: minProtocolFeeWei?.toString() ?? null,
     maxProtocolFeeWei: maxProtocolFeeWei?.toString() ?? null,
-    avgProtocolFeeWei: avgProtocolFeeWei?.toString(),
+    avgProtocolFeeWei: avgProtocolFeeWei?.toString() ?? null,
     sumProtocolFeeWei: sumProtocolFeeWei?.toString() ?? null,
     numSalesWithProtocolFee
-  }
-
+  };
 }
 
 const round = (value: number, decimals: number) => {
@@ -199,9 +217,8 @@ const round = (value: number, decimals: number) => {
   return Math.floor(value * decimalsFactor) / decimalsFactor;
 };
 
-
 export const calcPercentChange = (prev: number | null, current: number | null, precision = 4) => {
-  if(prev == null || current == null) {
+  if (prev == null || current == null) {
     return 0;
   }
   const change = current - prev;

@@ -77,3 +77,98 @@ export const aggregateSourceSales = functions
       await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });
+
+// export async function test() {
+//   await saveSalesForAggregation();
+
+//   const db = getDb();
+
+//   db.collectionGroup('aggregatedCollectionSales').onSnapshot(
+//     async (snapshot) => {
+//       try {
+//         const changes = snapshot.docChanges();
+
+//         for (const item of changes) {
+//           const { doc } = item;
+//           const update = doc.data() as Partial<SalesIntervalDoc>;
+//           if (update.hasUnaggregatedSales === true) {
+//             await aggregateIntervalSales(doc.ref as FirebaseFirestore.DocumentReference<SalesIntervalDoc>);
+//           } else if (!!update.stats && !update.isAggregated) {
+//             const intervalRef = doc.ref as FirebaseFirestore.DocumentReference<SalesIntervalDoc>;
+//             const collectionRef = intervalRef.parent.parent;
+//             if (!collectionRef) {
+//               throw new Error('No collection ref found');
+//             }
+//             const statsCollectionRef = collectionRef.collection(firestoreConstants.COLLECTION_STATS_COLL);
+//             await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
+//           }
+//         }
+//       } catch (err) {
+//         console.error('collections', err);
+//       }
+//     },
+//     (err) => {
+//       console.error('collections', err);
+//     }
+//   );
+
+//   db.collectionGroup('aggregatedNftSales').onSnapshot(
+//     async (snapshot) => {
+//       try {
+//         const changes = snapshot.docChanges();
+
+//         for (const item of changes) {
+//           const { doc } = item;
+//           const update = doc.data() as Partial<SalesIntervalDoc>;
+//           if (update.hasUnaggregatedSales === true) {
+//             await aggregateIntervalSales(doc.ref as FirebaseFirestore.DocumentReference<SalesIntervalDoc>);
+//           } else if (!!update.stats && !update.isAggregated) {
+//             const intervalRef = doc.ref as FirebaseFirestore.DocumentReference<SalesIntervalDoc>;
+//             const collectionRef = intervalRef.parent.parent;
+//             if (!collectionRef) {
+//               throw new Error('No collection ref found');
+//             }
+//             const statsCollectionRef = collectionRef.collection(firestoreConstants.NFT_STATS_COLL);
+//             await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
+//           }
+//         }
+//       } catch (err) {
+//         console.error('nfts', err);
+//       }
+//     },
+//     (err) => {
+//       console.error('nfts', err);
+//     }
+//   );
+
+//   db.collectionGroup('aggregatedSourceSales').onSnapshot(
+//     async (snapshot) => {
+//       const changes = snapshot.docChanges();
+
+//       try {
+//         for (const item of changes) {
+//           const { doc } = item;
+//           const update = doc.data() as Partial<SalesIntervalDoc>;
+//           if (update.hasUnaggregatedSales === true) {
+//             await aggregateIntervalSales(doc.ref as FirebaseFirestore.DocumentReference<SalesIntervalDoc>);
+//           } else if (!!update.stats && !update.isAggregated) {
+//             const intervalRef = doc.ref as FirebaseFirestore.DocumentReference<SalesIntervalDoc>;
+//             const collectionRef = intervalRef.parent.parent;
+//             if (!collectionRef) {
+//               throw new Error('No collection ref found');
+//             }
+//             const statsCollectionRef = collectionRef.collection('sourceStats');
+//             await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
+//           }
+//         }
+//       } catch (err) {
+//         console.error('sources', err);
+//       }
+//     },
+//     (err) => {
+//       console.error('sources', err);
+//     }
+//   );
+// }
+
+// void main();

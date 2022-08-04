@@ -12,10 +12,7 @@ export async function retriggerAggregation() {
   const tenMin = 60 * 1000 * 10;
   const retriggerIfUpdatedBefore = Date.now() - tenMin;
   const batchHandler = new FirestoreBatchHandler();
-  
-  const query = intervalSales.where('isAggregated', '==', false).where('isDeleted', '==', false).where('updatedAt', '<', retriggerIfUpdatedBefore);
-  const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
-  
+
   const updatePaths = new Set<string>();
   const trigger = (ref?: FirebaseFirestore.DocumentReference | null) => {
     if (ref && !updatePaths.has(ref.path)) {
@@ -23,11 +20,17 @@ export async function retriggerAggregation() {
       batchHandler.add(ref, { updatedAt: Date.now(), hasUnaggregatedSales: true }, { merge: true });
       console.log(`Re-triggering aggregation for ${ref.path}`);
     }
-  }
+  };
 
+  const query = intervalSales
+    .where('isAggregated', '==', false)
+    .where('isDeleted', '==', false)
+    .where('updatedAt', '<', retriggerIfUpdatedBefore);
+  const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
   for await (const item of stream) {
     const aggregatedSalesDoc = item.ref.parent.parent;
-    trigger(aggregatedSalesDoc)
+    trigger(aggregatedSalesDoc);
+    batchHandler.add(item.ref, { updatedAt: Date.now() }, { merge: true });
   }
 
   for (const collection of collectionGroups) {
@@ -37,7 +40,6 @@ export async function retriggerAggregation() {
       trigger(item.ref);
     }
   }
-
 
   await batchHandler.flush();
 }

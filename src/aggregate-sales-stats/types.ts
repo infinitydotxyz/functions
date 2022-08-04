@@ -2,7 +2,7 @@ import {
   BaseSalesStats,
   ChangeInSalesStats,
   PrevBaseSalesStats,
-  ProtocolFeeStats
+  ProtocolFeeStats,
 } from '@infinityxyz/lib/types/core/Stats';
 
 export enum AggregationInterval {

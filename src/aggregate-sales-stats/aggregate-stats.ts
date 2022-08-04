@@ -13,6 +13,7 @@ import {
   StatsPeriod,
   Token
 } from '@infinityxyz/lib/types/core';
+import { NftImageDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft-image.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQueryWithRef } from '../firestore/stream-query';
@@ -280,6 +281,32 @@ export async function aggregateAllTimeStats(
   };
 }
 
+export async function aggregateSourceStats(
+  update: SalesIntervalDoc,
+  intervalRef: FirebaseFirestore.DocumentReference<SalesIntervalDoc>,
+  statsCollectionRef: FirebaseFirestore.CollectionReference
+) {
+  const timestamp = Math.floor((update.startTimestamp + update.endTimestamp) / 2);
+
+  const hourly = await aggregateHourlyStats(timestamp, intervalRef, statsCollectionRef);
+  await saveStats(timestamp, StatsPeriod.Hourly, statsCollectionRef, hourly);
+  const daily = await aggregateDailyStats(timestamp, statsCollectionRef);
+  await saveStats(timestamp, StatsPeriod.Daily, statsCollectionRef, daily);
+  const weekly = await aggregateWeeklyStats(timestamp, statsCollectionRef);
+  await saveStats(timestamp, StatsPeriod.Weekly, statsCollectionRef, weekly);
+  const monthly = await aggregateMonthlyStats(timestamp, statsCollectionRef);
+  await saveStats(timestamp, StatsPeriod.Monthly, statsCollectionRef, monthly);
+  const yearly = await aggregateYearlyStats(timestamp, statsCollectionRef);
+  await saveStats(timestamp, StatsPeriod.Yearly, statsCollectionRef, yearly);
+  const allTime = await aggregateAllTimeStats(statsCollectionRef);
+  await saveStats(timestamp, StatsPeriod.All, statsCollectionRef, allTime);
+
+  await intervalRef.update({
+    updatedAt: Date.now(),
+    isAggregated: true
+  });
+}
+
 export async function aggregateCollectionStats(
   update: SalesIntervalDoc,
   intervalRef: FirebaseFirestore.DocumentReference<SalesIntervalDoc>,
@@ -314,46 +341,45 @@ export async function aggregateCollectionStats(
     ...common
   };
 
-  await saveStats(timestamp, StatsPeriod.Hourly, statsCollectionRef, collectionHourlyStats);
+  await saveCollectionStats(timestamp, StatsPeriod.Hourly, statsCollectionRef, collectionHourlyStats);
   const daily = await aggregateDailyStats(timestamp, statsCollectionRef);
   const collectionDailyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...daily,
     ...common
   };
 
-  await saveStats(timestamp, StatsPeriod.Daily, statsCollectionRef, collectionDailyStats);
+  await saveCollectionStats(timestamp, StatsPeriod.Daily, statsCollectionRef, collectionDailyStats);
   const weekly = await aggregateWeeklyStats(timestamp, statsCollectionRef);
   const collectionWeeklyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...weekly,
     ...common
   };
-  await saveStats(timestamp, StatsPeriod.Weekly, statsCollectionRef, collectionWeeklyStats);
+  await saveCollectionStats(timestamp, StatsPeriod.Weekly, statsCollectionRef, collectionWeeklyStats);
   const monthly = await aggregateMonthlyStats(timestamp, statsCollectionRef);
   const collectionMonthlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...monthly,
     ...common
   };
 
-  await saveStats(timestamp, StatsPeriod.Monthly, statsCollectionRef, collectionMonthlyStats);
+  await saveCollectionStats(timestamp, StatsPeriod.Monthly, statsCollectionRef, collectionMonthlyStats);
   const yearly = await aggregateYearlyStats(timestamp, statsCollectionRef);
   const collectionYearlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...yearly,
     ...common
   };
-  await saveStats(timestamp, StatsPeriod.Yearly, statsCollectionRef, collectionYearlyStats);
+  await saveCollectionStats(timestamp, StatsPeriod.Yearly, statsCollectionRef, collectionYearlyStats);
   const allTime = await aggregateAllTimeStats(statsCollectionRef);
   const collectionAllTimeStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...allTime,
     ...common
   };
-  await saveStats(timestamp, StatsPeriod.All, statsCollectionRef, collectionAllTimeStats);
+  await saveCollectionStats(timestamp, StatsPeriod.All, statsCollectionRef, collectionAllTimeStats);
 
   await intervalRef.update({
     updatedAt: Date.now(),
     isAggregated: true
   });
 }
-
 
 export async function aggregateNftStats(
   update: SalesIntervalDoc,
@@ -366,14 +392,11 @@ export async function aggregateNftStats(
   const collectionRef = nftRef.parent.parent as FirebaseFirestore.DocumentReference<Partial<Collection>>;
   const [chainId, address] = collectionRef.id.split(':');
   const collectionSnap = await collectionRef.get();
-  // const socialsStats = await collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL).
-  // const collectionSnap = await collectionRef.get();
-  // const socialsStats = await collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL).
   const collectionData = collectionSnap?.data() ?? {};
   const nftData = nftSnap.data() ?? {};
   const timestamp = Math.floor((update.startTimestamp + update.endTimestamp) / 2);
-  const common: CollectionLinkData & NftLinkData = {
-    tokenId: nftData.tokenId || tokenId,
+  const common: CollectionLinkData & NftLinkData & { tokenId: string } = {
+    tokenId: nftData.tokenId ?? tokenId ?? '',
     name: collectionData?.metadata?.name ?? '',
     chainId: (collectionData?.chainId ?? chainId ?? ChainId.Mainnet) as ChainId,
     collectionAddress: collectionData?.address ?? address ?? '',
@@ -382,60 +405,57 @@ export async function aggregateNftStats(
     slug: collectionData?.slug ?? '',
     hasBlueCheck: collectionData?.hasBlueCheck ?? false,
     nftName: nftData?.metadata?.name ?? '',
-    nftTitle: nftData?.metadata && 'title' in nftData.metadata ? nftData?.metadata?.title : '',
+    nftTitle: (nftData?.metadata as any)?.title ?? '',
     nftSlug: nftData?.slug ?? '',
     rarityRank: nftData?.rarityRank ?? null,
     rarityScore: nftData?.rarityScore ?? null,
-    nftImage: nftData?.image,
-    tokenIdNumeric: nftData?.tokenIdNumeric ?? null,
-
-    // numNfts: collectionData?.numNfts ?? null,
-    // numOwners: collectionData?.numOwners ?? null,
-    // volumeUSDC: 0, // TODO
-    // topOwnersByOwnedNftsCount: [] // TODO
-
+    images: {
+      image: (nftData?.image as NftImageDto | undefined) ?? null,
+      zoraImage: nftData?.zoraImage ?? null,
+      zoraContent: nftData?.zoraContent ?? null,
+      alchemyCachedImage: nftData?.alchemyCachedImage ?? ''
+    }
   };
 
   const hourly = await aggregateHourlyStats(timestamp, intervalRef, statsCollectionRef);
-
-  const collectionHourlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const nftHourlyStats: Omit<NftStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...hourly,
     ...common
   };
 
-  await saveStats(timestamp, StatsPeriod.Hourly, statsCollectionRef, collectionHourlyStats);
+  await saveNftStats(timestamp, StatsPeriod.Hourly, statsCollectionRef, nftHourlyStats);
   const daily = await aggregateDailyStats(timestamp, statsCollectionRef);
-  const collectionDailyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const nftDailyStats: Omit<NftStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...daily,
     ...common
   };
 
-  await saveStats(timestamp, StatsPeriod.Daily, statsCollectionRef, collectionDailyStats);
+  await saveNftStats(timestamp, StatsPeriod.Daily, statsCollectionRef, nftDailyStats);
   const weekly = await aggregateWeeklyStats(timestamp, statsCollectionRef);
-  const collectionWeeklyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const nftWeeklyStats: Omit<NftStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...weekly,
     ...common
   };
-  await saveStats(timestamp, StatsPeriod.Weekly, statsCollectionRef, collectionWeeklyStats);
+  await saveNftStats(timestamp, StatsPeriod.Weekly, statsCollectionRef, nftWeeklyStats);
   const monthly = await aggregateMonthlyStats(timestamp, statsCollectionRef);
-  const collectionMonthlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const nftMonthlyStats: Omit<NftStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...monthly,
     ...common
   };
 
-  await saveStats(timestamp, StatsPeriod.Monthly, statsCollectionRef, collectionMonthlyStats);
+  await saveNftStats(timestamp, StatsPeriod.Monthly, statsCollectionRef, nftMonthlyStats);
   const yearly = await aggregateYearlyStats(timestamp, statsCollectionRef);
-  const collectionYearlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const nftYearlyStats: Omit<NftStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...yearly,
     ...common
   };
-  await saveStats(timestamp, StatsPeriod.Yearly, statsCollectionRef, collectionYearlyStats);
+  await saveNftStats(timestamp, StatsPeriod.Yearly, statsCollectionRef, nftYearlyStats);
   const allTime = await aggregateAllTimeStats(statsCollectionRef);
-  const collectionAllTimeStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const nftAllTimeStats: Omit<NftStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...allTime,
     ...common
   };
-  await saveStats(timestamp, StatsPeriod.All, statsCollectionRef, collectionAllTimeStats);
+  await saveNftStats(timestamp, StatsPeriod.All, statsCollectionRef, nftAllTimeStats);
 
   await intervalRef.update({
     updatedAt: Date.now(),

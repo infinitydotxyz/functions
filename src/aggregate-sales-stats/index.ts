@@ -1,7 +1,13 @@
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { REGION } from '../utils/constants';
-import { aggregateIntervalSales, saveSalesForAggregation, aggregateStats } from './aggregate-stats';
+import {
+  aggregateIntervalSales,
+  saveSalesForAggregation,
+  aggregateCollectionStats,
+  aggregateNftStats,
+  aggregateSourceStats
+} from './aggregate-stats';
 import { retriggerAggregation } from './retrigger-aggregation';
 import { SalesIntervalDoc } from './types';
 
@@ -33,7 +39,7 @@ export const aggregateCollectionSales = functions
         throw new Error('No collection ref found');
       }
       const statsCollectionRef = collectionRef.collection(firestoreConstants.COLLECTION_STATS_COLL);
-      await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
+      await aggregateCollectionStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });
 
@@ -56,7 +62,7 @@ export const aggregateNftSales = functions
         throw new Error('No collection ref found');
       }
       const statsCollectionRef = nftRef.collection(firestoreConstants.NFT_STATS_COLL);
-      await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
+      await aggregateNftStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });
 
@@ -77,6 +83,6 @@ export const aggregateSourceSales = functions
         throw new Error('No collection ref found');
       }
       const statsCollectionRef = sourceStatsRef.collection('sourceStats');
-      await aggregateStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
+      await aggregateSourceStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });

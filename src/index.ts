@@ -9,6 +9,7 @@ import {
   aggregateNftSales,
   aggregateSourceSales
 } from './aggregate-sales-stats';
+import { syncStatsCollectionData } from './sync-stats-collection-data';
 
 export {
   addOrdersToNfts,
@@ -19,5 +20,6 @@ export {
   saveSalesToBeAggregated,
   aggregateCollectionSales,
   aggregateNftSales,
-  aggregateSourceSales
+  aggregateSourceSales,
+  syncStatsCollectionData
 };

@@ -10,7 +10,7 @@
     "start": "npm run shell",
     "deploy:dev": "npm run build && firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "npm run build && firebase deploy --only functions --project nftc-infinity",
-    "deploy:test": "npm run build && firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateNftSales,functions:aggregateSourceSales --project nftc-test-270df",
+    "deploy:test": "npm run build && firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateNftSales,functions:aggregateSourceSales,functions:syncStatsCollectionData --project nftc-test-270df",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -26,16 +26,14 @@
     "custom-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/custom-order.ts",
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
     "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
-    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts",
-    "aggregate": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/aggregate-sales-stats/index.ts",
-    "retrigger": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/aggregate-sales-stats/retrigger-aggregation.ts"
+    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.143.7",
+    "@infinityxyz/lib": "^1.143.10",
     "date-fns": "^2.29.1",
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",

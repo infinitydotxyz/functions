@@ -3,6 +3,7 @@ import {
   ChangeInSalesStats,
   Collection,
   CollectionLinkData,
+  CollectionSalesStats,
   CollectionStats,
   NftLinkData,
   NftSale,
@@ -315,12 +316,9 @@ export async function aggregateCollectionStats(
   const collectionRef = statsCollectionRef.parent as FirebaseFirestore.DocumentReference<Partial<Collection>>;
   const [chainId, address] = collectionRef.id.split(':');
   const collectionSnap = await collectionRef.get();
-  // const socialsStats = await collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL).
   const collectionData = collectionSnap?.data() ?? {};
   const timestamp = Math.floor((update.startTimestamp + update.endTimestamp) / 2);
-  const currentSocialsStats = {} as any as SocialsStats; // TODO
   const common = {
-    ...currentSocialsStats,
     name: collectionData?.metadata?.name ?? '',
     chainId: (collectionData?.chainId ?? chainId ?? ChainId.Mainnet) as ChainId,
     collectionAddress: collectionData?.address ?? address ?? '',
@@ -336,40 +334,40 @@ export async function aggregateCollectionStats(
 
   const hourly = await aggregateHourlyStats(timestamp, intervalRef, statsCollectionRef);
 
-  const collectionHourlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const collectionHourlyStats = {
     ...hourly,
     ...common
   };
 
   await saveCollectionStats(timestamp, StatsPeriod.Hourly, statsCollectionRef, collectionHourlyStats);
   const daily = await aggregateDailyStats(timestamp, statsCollectionRef);
-  const collectionDailyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const collectionDailyStats = {
     ...daily,
     ...common
   };
 
   await saveCollectionStats(timestamp, StatsPeriod.Daily, statsCollectionRef, collectionDailyStats);
   const weekly = await aggregateWeeklyStats(timestamp, statsCollectionRef);
-  const collectionWeeklyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const collectionWeeklyStats = {
     ...weekly,
     ...common
   };
   await saveCollectionStats(timestamp, StatsPeriod.Weekly, statsCollectionRef, collectionWeeklyStats);
   const monthly = await aggregateMonthlyStats(timestamp, statsCollectionRef);
-  const collectionMonthlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const collectionMonthlyStats = {
     ...monthly,
     ...common
   };
 
   await saveCollectionStats(timestamp, StatsPeriod.Monthly, statsCollectionRef, collectionMonthlyStats);
   const yearly = await aggregateYearlyStats(timestamp, statsCollectionRef);
-  const collectionYearlyStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const collectionYearlyStats = {
     ...yearly,
     ...common
   };
   await saveCollectionStats(timestamp, StatsPeriod.Yearly, statsCollectionRef, collectionYearlyStats);
   const allTime = await aggregateAllTimeStats(statsCollectionRef);
-  const collectionAllTimeStats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+  const collectionAllTimeStats = {
     ...allTime,
     ...common
   };
@@ -467,10 +465,41 @@ export async function saveCollectionStats(
   ts: number,
   period: StatsPeriod,
   statsCollectionRef: FirebaseFirestore.CollectionReference,
-  stats: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'>,
+  stats: Omit<CollectionSalesStats & CollectionLinkData, 'updatedAt' | 'timestamp' | 'period'>,
   batch?: FirebaseFirestore.WriteBatch
 ) {
-  return await saveStats(ts, period, statsCollectionRef, stats, batch);
+  const socialsStatsSnap = (await statsCollectionRef.parent
+    ?.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL)
+    .where('period', '==', period)
+    .where('timestamp', '<=', ts)
+    .orderBy('timestamp', 'desc')
+    .limit(1)
+    .get()) as FirebaseFirestore.QuerySnapshot<SocialsStats> | undefined;
+  const socialsStats: Omit<SocialsStats, 'collectionAddress' | 'chainId' | 'period' | 'timestamp' | 'updatedAt'> =
+    socialsStatsSnap?.docs?.[0]?.data() ?? {
+      discordFollowers: null,
+      discordPresence: null,
+      guildId: null,
+      discordLink: null,
+      twitterFollowers: null,
+      twitterFollowing: null,
+      twitterId: null,
+      twitterHandle: null,
+      twitterLink: null,
+      prevDiscordFollowers: null,
+      discordFollowersPercentChange: null,
+      prevDiscordPresence: null,
+      discordPresencePercentChange: null,
+      prevTwitterFollowers: null,
+      twitterFollowersPercentChange: null,
+      prevTwitterFollowing: null,
+      twitterFollowingPercentChange: null
+    };
+  const statsWithSocials: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
+    ...socialsStats,
+    ...stats
+  };
+  return await saveStats(ts, period, statsCollectionRef, statsWithSocials, batch);
 }
 
 export async function saveNftStats(

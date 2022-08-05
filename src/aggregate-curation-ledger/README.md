@@ -10,7 +10,7 @@
                     updatedAt: number
                 ```
                 - curationLedger // contains sale events, vote events and un-vote events 
-                - curationBlockRewards // groups curationLedger events into daily _blocks_ containing fee distribution data
+                - curationBlockRewards // groups curationLedger events into hourly _blocks_ containing fee distribution data
                     - {curationBlockId}
                         ```ts
                             numCurators: number;
@@ -27,6 +27,9 @@
                                     totalProtocolFeesAccruedWei: string;
                                     blockProtocolFeesAccruedWei: string;
                                 ```
+                - curationPeriods // stores curation rewards for a full curation period (multiple blocks)
+                    - {curationPeriodId}
+
 
 
 ### How it works - Cloud Functions
@@ -57,3 +60,4 @@
 - [ ] Aggregate blocks to calculate total rewards over the full curation period
 - [ ] How do we query for rewards by user?
 - [ ] backfill sales 
+- [ ] how do we handle the case where a user should be removed from `curationPeriodUserRewards` or `curationBlockUserRewards`?

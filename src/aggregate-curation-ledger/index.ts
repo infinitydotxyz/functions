@@ -6,7 +6,7 @@ import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { REGION } from '../utils/constants';
-import { CurationAggregator } from './curation-aggregator';
+import { aggregateLedger } from './aggregate-ledger';
 import { CurationMetadata } from './types';
 
 export const triggerCurationLedgerAggregation = functions
@@ -33,8 +33,9 @@ export const triggerCurationLedgerAggregation = functions
       if (curationMetadataRef && !updates.has(curationMetadataRef.path)) {
         updates.add(curationMetadataRef.path);
         const curationMetadataUpdate: CurationMetadata = {
-          updatedAt: Date.now(),
-          ledgerRequiresAggregation: true
+            updatedAt: Date.now(),
+            ledgerRequiresAggregation: true,
+            periodsRequireAggregation: false 
         };
         batchHandler.add(curationMetadataRef, curationMetadataUpdate, { merge: true });
       }
@@ -48,52 +49,19 @@ export const aggregateCurationLedger = functions
   .onWrite(async (change, context) => {
     const curationMetadata = change.after.data() as CurationMetadata | undefined;
     const [chainId, collectionAddress] = context.params.collectionId.split(':') as [ChainId, string];
-
+    const curationMetadataRef = change.after.ref as FirebaseFirestore.DocumentReference<CurationMetadata>;
     if (!curationMetadata) {
       return;
     } else if (curationMetadata.ledgerRequiresAggregation) {
-      const curationMetadataRef = change.after.ref as FirebaseFirestore.DocumentReference<CurationMetadata>;
-      const curationLedgerRef = curationMetadataRef.collection('curationLedger');
-      const snapshot = await curationLedgerRef
-        .where('isAggregated', '==', false)
-        .where('isDeleted', '==', false)
-        .orderBy('blockNumber', 'asc')
-        .limit(1)
-        .get();
-      const firstUnaggregatedDoc = snapshot.docs[0];
-      const firstUnaggregatedEvent = firstUnaggregatedDoc?.data() as CurationLedgerEventType | undefined;
-      if (!firstUnaggregatedEvent) {
-        console.error(`Failed to find unaggregated event for ${curationMetadataRef.path}`);
-        return;
+      await aggregateLedger(curationMetadataRef, collectionAddress, chainId);
+      const triggerPeriodAggregationUpdate: CurationMetadata = { ledgerRequiresAggregation: false, updatedAt: Date.now(), periodsRequireAggregation: true };
+      await curationMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
+    } else if (curationMetadata.periodsRequireAggregation) {
+
+      const metadataUpdate: Partial<CurationMetadata> = {
+        periodsRequireAggregation: false,
       }
-
-      const curationBlockRange = CurationAggregator.getCurationBlockRange(firstUnaggregatedEvent.timestamp);
-      const curationLedgerEventsQuery = curationLedgerRef
-        .where('timestamp', '>=', curationBlockRange.startTimestamp)
-        .orderBy('timestamp', 'asc') as FirebaseFirestore.Query<CurationLedgerEventType>;
-      const curationLedgerEventsStream = streamQueryWithRef(curationLedgerEventsQuery, (item, ref) => [ref], {
-        pageSize: 300
-      });
-
-      const events: CurationLedgerEventType[] = [];
-      const eventsWithRefs = [];
-      for await (const { data, ref } of curationLedgerEventsStream) {
-        events.push({ ...data });
-        eventsWithRefs.push({ ...data, ref });
-      }
-
-      const curationAggregator = new CurationAggregator(events, curationMetadataRef, collectionAddress, chainId);
-      await curationAggregator.aggregate();
-
-      const batchHandler = new FirestoreBatchHandler();
-      for (const event of eventsWithRefs) {
-        const updatedEvent: Partial<CurationLedgerEventType> = {
-          isAggregated: true,
-          updatedAt: Date.now()
-        };
-        batchHandler.add(event.ref, updatedEvent, { merge: true });
-      }
-      batchHandler.add(curationMetadataRef, { ledgerRequiresAggregation: false, updatedAt: Date.now() }, { merge: true });
-      await batchHandler.flush();
+      await curationMetadataRef.set(metadataUpdate, { merge: true });
     }
+
   });

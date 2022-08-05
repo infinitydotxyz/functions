@@ -6,7 +6,7 @@ import { streamQuery } from '../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUsers, CurationMetadata } from './types';
 
-export class CurationAggregator {
+export class CurationBlockAggregator {
   static getCurationBlockRange(timestamp: number) {
     const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Hourly).timestamp;
     const oneHour = 60 * 60 * 1000;
@@ -29,7 +29,7 @@ export class CurationAggregator {
   ) {
     this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.blockNumber);
     for (const event of this._curationEvents) {
-      const { startTimestamp } = CurationAggregator.getCurationBlockRange(event.timestamp);
+      const { startTimestamp } = CurationBlockAggregator.getCurationBlockRange(event.timestamp);
       let block = this._curationBlocks.get(startTimestamp);
       if (block) {
         block.addEvent(event);
@@ -77,7 +77,7 @@ export class CurationAggregator {
     currentBlockStartTimestamp: number,
     curationRewardsRef: FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>
   ): Promise<CurationBlockRewards> {
-    const timestamp = CurationAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
+    const timestamp = CurationBlockAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
     const snapshot = await curationRewardsRef.where('timestamp', '<=', timestamp).limit(1).get();
     const prevBlockRewardsDoc = snapshot.docs[0];
     let prevBlockRewardsData = prevBlockRewardsDoc?.data();
@@ -100,6 +100,7 @@ export class CurationAggregator {
         blockProtocolFeesAccruedEth: 0,
         arbitrageProtocolFeesAccruedEth: 0,
         timestamp: timestamp,
+        isAggregated: false
       };
       const prevBlockRewards = {
         ...prevBlockRewardsData,

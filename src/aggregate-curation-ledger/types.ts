@@ -19,13 +19,10 @@ export interface CurationBlockRewardsDoc {
 
   numCurators: number;
   numCuratorVotes: number;
-
   numCuratorsAdded: number;
   numCuratorsRemoved: number;
-
   numCuratorVotesAdded: number;
   numCuratorVotesRemoved: number;
-
   numCuratorsPercentChange: number;
   numCuratorVotesPercentChange: number;
 
@@ -53,6 +50,7 @@ export interface CurationBlockRewardsDoc {
    * start timestamp of the block
    */
   timestamp: number;
+  isAggregated: boolean;
 }
 
 export interface CurationBlockRewards extends CurationBlockRewardsDoc {
@@ -62,6 +60,7 @@ export interface CurationBlockRewards extends CurationBlockRewardsDoc {
 export interface CurationMetadata {
   ledgerRequiresAggregation: boolean;
   updatedAt: number;
+  periodsRequireAggregation: boolean;
 }
 
 export enum CurationPeriodState {
@@ -70,8 +69,37 @@ export enum CurationPeriodState {
   Completed = 'completed'
 }
 
-export interface CurationPeriod {
-  rewards: CurationBlockRewards;
+export interface CurationPeriodDoc {
+  collectionAddress: string;
+  chainId: ChainId;
   timestamp: number;
-  state: CurationPeriodState;
+  /**
+   * total fees accrued over all previous periods
+   */
+  totalProtocolFeesAccruedWei: string;
+
+  /**
+   * fees accrued during this period
+   */
+  periodProtocolFeesAccruedWei: string;
+
+  totalProtocolFeesAccruedEth: number;
+  periodProtocolFeesAccruedEth: number;
+}
+
+export interface CurationPeriodUser {
+    userAddress: string;
+    chainId: ChainId;
+    collectionAddress: string;
+    totalProtocolFeesAccruedWei: string;
+    periodProtocolFeesAccruedWei: string;
+    totalProtocolFeesAccruedEth: number;
+    periodProtocolFeesAccruedEth: number;
+}
+
+export type CurationPeriodUsers = { [userAddress: string]: CurationPeriodUser };
+
+export interface CurationPeriod extends CurationPeriodDoc {
+    users: CurationPeriodUsers;
+    blocks: CurationBlockRewards[];
 }

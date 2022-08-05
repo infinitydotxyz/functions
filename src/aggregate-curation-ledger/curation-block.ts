@@ -100,6 +100,7 @@ export class CurationBlock {
       arbitrageProtocolFeesAccruedWei: prevBlockRewards.arbitrageProtocolFeesAccruedWei,
       arbitrageProtocolFeesAccruedEth: prevBlockRewards.arbitrageProtocolFeesAccruedEth,
       timestamp: this.metadata.blockStart,
+      isAggregated: false,
     };
 
     const blockRewards = this.distributeRewards(blockRewardsBeforeDistribution);

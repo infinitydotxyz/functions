@@ -29,8 +29,9 @@ export class CurationPeriodAggregator {
   static async getCurationPeriodBlocks(
     timestamp: number,
     curationBlockRewardsRef: FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>
-  ): Promise<{ block: CurationBlockRewards, ref: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc> }[]> {
-    const blocks: { block: CurationBlockRewards, ref: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc> }[] = [];
+  ): Promise<{ block: CurationBlockRewards; ref: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc> }[]> {
+    const blocks: { block: CurationBlockRewards; ref: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc> }[] =
+      [];
     const { startTimestamp, endTimestamp } = this.getCurationPeriodRange(timestamp);
     const blocksQuery = curationBlockRewardsRef
       .where('timestamp', '>=', startTimestamp)
@@ -51,7 +52,7 @@ export class CurationPeriodAggregator {
           block.users[user.userAddress] = user;
         }
       }
-      blocks.push({block, ref});
+      blocks.push({ block, ref });
     }
     return blocks;
   }
@@ -60,11 +61,7 @@ export class CurationPeriodAggregator {
   protected _endTimestamp: number;
   protected _prevTimestamp: number;
 
-  constructor(
-    timestamp: number,
-    protected _collectionAddress: string,
-    protected _chainId: ChainId
-  ) {
+  constructor(timestamp: number, protected _collectionAddress: string, protected _chainId: ChainId) {
     const { startTimestamp, endTimestamp, prevTimestamp } = CurationPeriodAggregator.getCurationPeriodRange(timestamp);
     this._startTimestamp = startTimestamp;
     this._endTimestamp = endTimestamp;
@@ -95,9 +92,7 @@ export class CurationPeriodAggregator {
 
   getPeriodRewards(blocks: CurationBlockRewards[]): ICurationPeriod {
     const mostRecentBlock = blocks[blocks.length - 1];
-    const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) =>
-      BigInt(block.blockProtocolFeesAccruedWei)
-    );
+    const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) => BigInt(block.blockProtocolFeesAccruedWei));
     const curationPeriod: ICurationPeriod = {
       collectionAddress: this._collectionAddress,
       chainId: this._chainId,
@@ -143,7 +138,8 @@ export class CurationPeriodAggregator {
       totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
       totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
-      periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum)
+      periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
+      updatedAt: Date.now()
     };
     return curationPeriodUser;
   }

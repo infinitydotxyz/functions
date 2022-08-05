@@ -2,7 +2,7 @@ import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
-import { streamQuery } from '../firestore/stream-query';
+import { streamQuery, streamQueryWithRef } from '../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUsers, CurationMetadata } from './types';
 
@@ -27,7 +27,7 @@ export class CurationBlockAggregator {
     private _collectionAddress: string,
     private _chainId: ChainId
   ) {
-    this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.blockNumber);
+    this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.timestamp);
     for (const event of this._curationEvents) {
       const { startTimestamp } = CurationBlockAggregator.getCurationBlockRange(event.timestamp);
       let block = this._curationBlocks.get(startTimestamp);
@@ -51,26 +51,34 @@ export class CurationBlockAggregator {
         if(!prevBlockRewards) {
             prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
         }
+        const aggregationStartTime = Date.now();
         const { blockRewards } = block.getBlockRewards(prevBlockRewards);
-        await this.saveCurationBlockRewards(blockRewards);
+        await this.saveCurationBlockRewards(blockRewards, aggregationStartTime);
         prevBlockRewards = blockRewards;
     }
   }
 
-  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards) {
+  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards, aggregationStartTime: number) {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
     const docId = `${curationBlockRewardsDoc.timestamp}`;
     const blockRewardsRef = this._blockRewards.doc(docId);
+    
     const batch = new FirestoreBatchHandler();
-
     batch.add(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
     for (const [userAddress, user] of Object.entries(users)) {
         const userRef = blockRewardsRef.collection('curationBlockUserRewards').doc(userAddress); 
         batch.add(userRef, user, { merge: false });
     }
-
     await batch.flush();
+
+    const invalidUsersQuery = blockRewardsRef.collection('curationBlockUserRewards').where('updatedAt', '<', aggregationStartTime);
+    const invalidUsersStream = streamQueryWithRef(invalidUsersQuery, (item,ref) => [ref], { pageSize: 300 });
+    const batch2 = blockRewardsRef.firestore.batch();
+    for await(const invalidUser of invalidUsersStream) {
+      batch2.delete(invalidUser.ref);
+    }
+    await batch2.commit();
   }
 
   async getPrevCurationBlockRewards(

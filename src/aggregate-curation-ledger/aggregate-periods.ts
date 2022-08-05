@@ -1,5 +1,6 @@
 import { ChainId } from "@infinityxyz/lib/types/core/ChainId";
 import FirestoreBatchHandler from "../firestore/batch-handler";
+import { streamQueryWithRef } from "../firestore/stream-query";
 import { CurationPeriodAggregator } from "./curation-period-aggregator";
 import { CurationBlockRewardsDoc, CurationMetadata, CurationPeriodDoc, CurationPeriodUser } from "./types";
 
@@ -16,6 +17,7 @@ export async function aggregatePeriods(curationMetadataRef: FirebaseFirestore.Do
 
     let curationPeriodRange = CurationPeriodAggregator.getCurationPeriodRange(firstUnaggregatedBlock.timestamp);
     while(curationPeriodRange.startTimestamp < Date.now()) {
+        const aggregationStartTime = Date.now();
         const periodBlockWithRefs = await CurationPeriodAggregator.getCurationPeriodBlocks(curationPeriodRange.startTimestamp, curationBlockRewardsRef);
         const periodBlocks = periodBlockWithRefs.map((item) => item.block);
         const aggregator = new CurationPeriodAggregator(curationPeriodRange.startTimestamp, collectionAddress, chainId);
@@ -34,6 +36,15 @@ export async function aggregatePeriods(curationMetadataRef: FirebaseFirestore.Do
         }
 
         await batchHandler.flush();
+
+        const invalidUsersQuery = curationPeriodDocRef.collection('curationPeriodUserRewards').where('updatedAt', '<', aggregationStartTime);
+        const invalidUsersStream = streamQueryWithRef(invalidUsersQuery, (item,ref) => [ref], { pageSize: 300 });
+        const batch = curationPeriodDocRef.firestore.batch();
+        for await(const invalidUser of invalidUsersStream) {
+            batch.delete(invalidUser.ref);
+        }
+        await batch.commit();
+
         curationPeriodRange = CurationPeriodAggregator.getCurationPeriodRange(curationPeriodRange.endTimestamp);
     }
 }

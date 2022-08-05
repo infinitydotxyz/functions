@@ -161,6 +161,7 @@ export class CurationBlock {
           lastVotedAt: this.metadata.blockStart,
           collectionAddress: this.metadata.collectionAddress,
           chainId: this.metadata.chainId,
+          updatedAt: Date.now(),
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };
@@ -181,6 +182,7 @@ export class CurationBlock {
       user.blockProtocolFeesAccruedWei = userFees.toString();
       feesDistributed += userFees;
       user.totalProtocolFeesAccruedWei = (BigInt(user.totalProtocolFeesAccruedWei) + userFees).toString();
+      user.updatedAt = Date.now()
     }
     const feesRemaining = fees - feesDistributed;
     if(feesDistributed > fees) {

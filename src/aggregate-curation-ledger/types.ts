@@ -9,6 +9,7 @@ export interface CurationUser {
   blockProtocolFeesAccruedWei: string;
   firstVotedAt: number;
   lastVotedAt: number;
+  updatedAt: number;
 }
 
 export type CurationUsers = { [userAddress: string]: CurationUser };
@@ -95,6 +96,7 @@ export interface CurationPeriodUser {
     periodProtocolFeesAccruedWei: string;
     totalProtocolFeesAccruedEth: number;
     periodProtocolFeesAccruedEth: number;
+    updatedAt: number;
 }
 
 export type CurationPeriodUsers = { [userAddress: string]: CurationPeriodUser };

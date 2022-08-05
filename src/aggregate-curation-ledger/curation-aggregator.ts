@@ -17,8 +17,8 @@ export class CurationAggregator {
 
   private _curationBlocks: Map<number, CurationBlock> = new Map();
 
-  private get _rewardsRef(): FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc> {
-    return this._curationMetadataDocRef.collection('curationRewards') as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
+  private get _blockRewards(): FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc> {
+    return this._curationMetadataDocRef.collection('curationBlockRewards') as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   }
 
   constructor(
@@ -45,7 +45,7 @@ export class CurationAggregator {
     let prevBlockRewards: CurationBlockRewards | undefined;
     for(const [,block] of this._curationBlocks) {
         if(!prevBlockRewards) {
-            prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._rewardsRef);
+            prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
         }
         const { blockRewards } = block.getBlockRewards(prevBlockRewards);
         await this.saveCurationBlockRewards(blockRewards);
@@ -57,7 +57,7 @@ export class CurationAggregator {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
     const docId = `${curationBlockRewardsDoc.timestamp}`;
-    const blockRewardsRef = this._rewardsRef.doc(docId);
+    const blockRewardsRef = this._blockRewards.doc(docId);
     const batch = new FirestoreBatchHandler();
 
     batch.add(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
@@ -81,13 +81,19 @@ export class CurationAggregator {
       prevBlockRewardsData = {
         numCurators: 0,
         numCuratorVotes: 0,
+        numCuratorsAdded: 0,
+        numCuratorsRemoved: 0,
+        numCuratorVotesAdded: 0,
+        numCuratorVotesRemoved: 0,
+        numCuratorsPercentChange: 0,
+        numCuratorVotesPercentChange: 0,
         totalProtocolFeesAccruedWei: '0',
         blockProtocolFeesAccruedWei: '0',
         arbitrageProtocolFeesAccruedWei: '0',
         totalProtocolFeesAccruedEth: 0,
         blockProtocolFeesAccruedEth: 0,
         arbitrageProtocolFeesAccruedEth: 0,
-        timestamp: timestamp
+        timestamp: timestamp,
       };
       const prevBlockRewards = {
         ...prevBlockRewardsData,

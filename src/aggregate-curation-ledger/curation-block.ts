@@ -6,7 +6,7 @@ import {
   CurationVotesAdded,
   CurationVotesRemoved
 } from '../aggregate-sales-stats/curation.types';
-import { calculateStatsBigInt } from '../aggregate-sales-stats/utils';
+import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
 import { CurationBlockRewards, CurationUsers } from './types';
 
 
@@ -63,12 +63,12 @@ export class CurationBlock {
 
   public getBlockRewards(prevBlockRewards: CurationBlockRewards): { blockRewards: CurationBlockRewards, usersAdded: CurationUsers, usersRemoved: CurationUsers} {
     const prevUsers = prevBlockRewards.users;
-    const { updatedUsers: updatedUsersAfterRemovals, usersRemoved } = this.applyVoteRemovals(
+    const { updatedUsers: updatedUsersAfterRemovals, usersRemoved, numCuratorVotesRemoved } = this.applyVoteRemovals(
       prevUsers,
       this._votesRemoved
     );
 
-    const { updatedUsers: updatedUsersAfterAdditions, newUsers } = this.applyVoteAdditions(
+    const { updatedUsers: updatedUsersAfterAdditions, newUsers, numCuratorVotesAdded } = this.applyVoteAdditions(
       updatedUsersAfterRemovals,
       this._votes
     );
@@ -76,18 +76,25 @@ export class CurationBlock {
     const blockProtocolFeesAccruedWei = BigInt(this.feesGeneratedWei);
     const totalProtocolFeesAccruedWei =
     blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.totalProtocolFeesAccruedWei);
-
+    const numCuratorVotes = parseInt(voteStats.sum.toString(), 10);
+    const numCurators = voteStats.numItems;
     const blockRewardsBeforeDistribution: CurationBlockRewards = {
       users: updatedUsersAfterAdditions,
-      numCurators: voteStats.numItems,
-      numCuratorVotes: parseInt(voteStats.sum.toString(), 10),
+      numCurators,
+      numCuratorVotes: numCuratorVotes,
+      numCuratorsAdded: Object.keys(newUsers).length,
+      numCuratorsRemoved: Object.keys(usersRemoved).length,
+      numCuratorVotesRemoved,
+      numCuratorVotesAdded,
+      numCuratorsPercentChange: calcPercentChange(prevBlockRewards.numCurators, numCurators),
+      numCuratorVotesPercentChange: calcPercentChange(prevBlockRewards.numCuratorVotes, numCuratorVotes),
       totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
       totalProtocolFeesAccruedEth: parseFloat(formatEther(totalProtocolFeesAccruedWei.toString())),
       blockProtocolFeesAccruedWei: blockProtocolFeesAccruedWei.toString(),
       blockProtocolFeesAccruedEth: parseFloat(formatEther(blockProtocolFeesAccruedWei.toString())),
       arbitrageProtocolFeesAccruedWei: prevBlockRewards.arbitrageProtocolFeesAccruedWei,
       arbitrageProtocolFeesAccruedEth: prevBlockRewards.arbitrageProtocolFeesAccruedEth,
-      timestamp: this.metadata.blockStart
+      timestamp: this.metadata.blockStart,
     };
 
     const blockRewards = this.distributeRewards(blockRewardsBeforeDistribution);
@@ -98,9 +105,9 @@ export class CurationBlock {
   protected applyVoteRemovals(
     users: CurationUsers,
     votesRemoved: CurationVotesRemoved[]
-  ): { updatedUsers: CurationUsers; usersRemoved: CurationUsers } {
+  ): { updatedUsers: CurationUsers; usersRemoved: CurationUsers, numCuratorVotesRemoved: number } {
     const currentUsers: CurationUsers = JSON.parse(JSON.stringify(users));
-
+    let numCuratorVotesRemoved = 0;
     for (const voteRemoved of votesRemoved) {
       const existingUser = currentUsers[voteRemoved.userAddress];
       if (!existingUser) {
@@ -108,6 +115,7 @@ export class CurationBlock {
       } else {
         const userVotesRemaining = Math.max(existingUser.votes - voteRemoved.votes, 0);
         existingUser.votes = userVotesRemaining;
+        numCuratorVotesRemoved += voteRemoved.votes;
       }
     }
 
@@ -120,33 +128,38 @@ export class CurationBlock {
       }
     }
 
-    return { updatedUsers: currentUsers, usersRemoved };
+    return { updatedUsers: currentUsers, usersRemoved, numCuratorVotesRemoved };
   }
 
   protected applyVoteAdditions(
     users: CurationUsers,
     votesAdded: CurationVotesAdded[]
-  ): { updatedUsers: CurationUsers; newUsers: CurationUsers } {
+  ): { updatedUsers: CurationUsers; newUsers: CurationUsers, numCuratorVotesAdded: number } {
     const currentUsers: CurationUsers = JSON.parse(JSON.stringify(users));
     const newUsers = {} as CurationUsers;
+    let numCuratorVotesAdded = 0;
     for (const voteAdded of votesAdded) {
       const existingUser = currentUsers[voteAdded.userAddress];
+      numCuratorVotesAdded += voteAdded.votes;
       if (existingUser) {
         const updatedVotes = existingUser.votes + voteAdded.votes;
         existingUser.votes = updatedVotes;
+        existingUser.lastVotedAt = this.metadata.blockStart;
       } else {
         const newUser = {
           userAddress: voteAdded.userAddress,
           votes: voteAdded.votes,
           totalProtocolFeesAccruedWei: '0',
-          blockProtocolFeesAccruedWei: '0'
+          blockProtocolFeesAccruedWei: '0',
+          firstVotedAt: this.metadata.blockStart,
+          lastVotedAt: this.metadata.blockStart,
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };
       }
     }
 
-    return { updatedUsers: currentUsers, newUsers };
+    return { updatedUsers: currentUsers, newUsers, numCuratorVotesAdded };
   }
 
   protected distributeRewards(_rewards: CurationBlockRewards): CurationBlockRewards {

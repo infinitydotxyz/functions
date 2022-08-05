@@ -3,6 +3,8 @@ export interface CurationUser {
   votes: number;
   totalProtocolFeesAccruedWei: string;
   blockProtocolFeesAccruedWei: string;
+  firstVotedAt: number;
+  lastVotedAt: number;
 }
 
 export type CurationUsers = { [userAddress: string]: CurationUser };
@@ -10,6 +12,15 @@ export type CurationUsers = { [userAddress: string]: CurationUser };
 export interface CurationBlockRewardsDoc {
   numCurators: number;
   numCuratorVotes: number;
+
+  numCuratorsAdded: number;
+  numCuratorsRemoved: number;
+
+  numCuratorVotesAdded: number;
+  numCuratorVotesRemoved: number;
+
+  numCuratorsPercentChange: number;
+  numCuratorVotesPercentChange: number;
 
   /**
    * total fees accrued over all previous blocks

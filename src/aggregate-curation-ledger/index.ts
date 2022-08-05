@@ -32,9 +32,9 @@ export const triggerCurationLedgerAggregation = functions
       if (curationMetadataRef && !updates.has(curationMetadataRef.path)) {
         updates.add(curationMetadataRef.path);
         const curationMetadataUpdate: CurationMetadata = {
-            updatedAt: Date.now(),
-            ledgerRequiresAggregation: true,
-        }
+          updatedAt: Date.now(),
+          ledgerRequiresAggregation: true
+        };
         batchHandler.add(curationMetadataRef, curationMetadataUpdate, { merge: true });
       }
     }
@@ -83,11 +83,11 @@ export const aggregateCurationLedger = functions
       await curationAggregator.aggregate();
 
       const batchHandler = new FirestoreBatchHandler();
-      for(const event of eventsWithRefs) {
+      for (const event of eventsWithRefs) {
         const updatedEvent: Partial<CurationLedgerEventType> = {
-            isAggregated: true,
-            updatedAt: Date.now()
-        }
+          isAggregated: true,
+          updatedAt: Date.now()
+        };
         batchHandler.add(event.ref, updatedEvent, { merge: true });
       }
       await batchHandler.flush();

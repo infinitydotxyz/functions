@@ -1,4 +1,4 @@
-import { formatEther } from "ethers/lib/utils";
+import { formatEther } from 'ethers/lib/utils';
 
 export function sleep(duration: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, duration));

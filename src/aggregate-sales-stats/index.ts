@@ -2,11 +2,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { REGION } from '../utils/constants';
 import { aggregateIntervalSales } from './aggregate-interval-stats';
-import {
-  aggregateCollectionStats,
-  aggregateNftStats,
-  aggregateSourceStats
-} from './aggregate-stats';
+import { aggregateCollectionStats, aggregateNftStats, aggregateSourceStats } from './aggregate-stats';
 import { retriggerAggregation } from './retrigger-aggregation';
 import { saveSalesForAggregation } from './save-sales-for-aggregation';
 import { SalesIntervalDoc } from './types';

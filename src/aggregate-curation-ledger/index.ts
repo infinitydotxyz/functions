@@ -34,9 +34,9 @@ export const triggerCurationLedgerAggregation = functions
       if (curationMetadataRef && !updates.has(curationMetadataRef.path)) {
         updates.add(curationMetadataRef.path);
         const curationMetadataUpdate: CurationMetadata = {
-            updatedAt: Date.now(),
-            ledgerRequiresAggregation: true,
-            periodsRequireAggregation: false 
+          updatedAt: Date.now(),
+          ledgerRequiresAggregation: true,
+          periodsRequireAggregation: false
         };
         batchHandler.add(curationMetadataRef, curationMetadataUpdate, { merge: true });
       }
@@ -44,7 +44,7 @@ export const triggerCurationLedgerAggregation = functions
     await batchHandler.flush();
   });
 
-export const aggregateCurationLedger = functions
+export const aggregateCuration = functions
   .region(REGION)
   .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/curationCollection/curationMetadata`)
   .onWrite(async (change, context) => {
@@ -55,14 +55,17 @@ export const aggregateCurationLedger = functions
       return;
     } else if (curationMetadata.ledgerRequiresAggregation) {
       await aggregateLedger(curationMetadataRef, collectionAddress, chainId);
-      const triggerPeriodAggregationUpdate: CurationMetadata = { ledgerRequiresAggregation: false, updatedAt: Date.now(), periodsRequireAggregation: true };
+      const triggerPeriodAggregationUpdate: CurationMetadata = {
+        ledgerRequiresAggregation: false,
+        updatedAt: Date.now(),
+        periodsRequireAggregation: true
+      };
       await curationMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (curationMetadata.periodsRequireAggregation) {
       await aggregatePeriods(curationMetadataRef, collectionAddress, chainId);
       const metadataUpdate: Partial<CurationMetadata> = {
-        periodsRequireAggregation: false,
-      }
+        periodsRequireAggregation: false
+      };
       await curationMetadataRef.set(metadataUpdate, { merge: true });
     }
-
   });

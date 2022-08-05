@@ -16,11 +16,7 @@ import {
 import { NftImageDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft-image.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { SalesIntervalDoc, BaseStats, CurrentStats } from './types';
-import {
-  calcPercentChange,
-  combineCurrentStats,
-  getStatsDocInfo,
-} from './utils';
+import { calcPercentChange, combineCurrentStats, getStatsDocInfo } from './utils';
 
 export async function aggregateHourlyStats(
   timestamp: number,

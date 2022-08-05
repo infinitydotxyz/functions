@@ -1,10 +1,10 @@
-import { ChainId, InfinityNftSale, NftSale, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, InfinityNftSale, NftSale, SaleSource } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQueryWithRef } from '../firestore/stream-query';
-import { CurationLedgerEvent, curationLedgerEventPriority, CurationLedgerSale } from './curation.types';
+import { CurationLedgerEvent, CurationLedgerSale } from './curation.types';
 import { AggregationInterval, SalesIntervalDoc } from './types';
-import { getIntervalAggregationId, getStatsDocInfo } from './utils';
+import { getIntervalAggregationId } from './utils';
 
 export async function saveSalesForAggregation() {
   const db = getDb();
@@ -38,7 +38,7 @@ export async function saveSalesForAggregation() {
           docId: ref.id,
           updatedAt: Date.now()
         };
-        if(saleWithDocId.source === SaleSource.Infinity) { 
+        if (saleWithDocId.source === SaleSource.Infinity) {
           saveSaleToCollectionCurationLedger(saleWithDocId, tx);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
@@ -60,13 +60,16 @@ function saveSaleToCollectionCurationLedger(
   tx: FirebaseFirestore.Transaction
 ) {
   const db = getDb();
-  const curationSale: CurationLedgerSale = { ...sale, address: sale.collectionAddress, chainId: sale.chainId as ChainId, discriminator: CurationLedgerEvent.Sale };
-  const collectionDocRef =  db
-  .collection(firestoreConstants.COLLECTIONS_COLL)
-  .doc(`${sale.chainId}:${sale.collectionAddress}`);
-  const saleRef = collectionDocRef
-    .collection('curationLedger')
-    .doc(sale.docId);
+  const curationSale: CurationLedgerSale = {
+    ...sale,
+    address: sale.collectionAddress,
+    chainId: sale.chainId as ChainId,
+    discriminator: CurationLedgerEvent.Sale
+  };
+  const collectionDocRef = db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .doc(`${sale.chainId}:${sale.collectionAddress}`);
+  const saleRef = collectionDocRef.collection('curationLedger').doc(sale.docId);
   tx.set(saleRef, curationSale, { merge: false });
 }
 

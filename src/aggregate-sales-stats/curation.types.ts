@@ -43,12 +43,12 @@ export interface CurationVotesRemoved extends CurationLedgerEventType {
 }
 
 export interface CurationPeriod {
-    startTimestamp: number;
-    endTimestamp: number;
-    hasUnaggregatedEvents: boolean;
-    updatedAt: number;
-    isAggregated: boolean;
-    numCurators: number;
-    numCuratorVotes: number;
-    protocolFees: ProtocolFeeStats;
+  startTimestamp: number;
+  endTimestamp: number;
+  hasUnaggregatedEvents: boolean;
+  updatedAt: number;
+  isAggregated: boolean;
+  numCurators: number;
+  numCuratorVotes: number;
+  protocolFees: ProtocolFeeStats;
 }

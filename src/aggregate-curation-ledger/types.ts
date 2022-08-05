@@ -89,19 +89,19 @@ export interface CurationPeriodDoc {
 }
 
 export interface CurationPeriodUser {
-    userAddress: string;
-    chainId: ChainId;
-    collectionAddress: string;
-    totalProtocolFeesAccruedWei: string;
-    periodProtocolFeesAccruedWei: string;
-    totalProtocolFeesAccruedEth: number;
-    periodProtocolFeesAccruedEth: number;
-    updatedAt: number;
+  userAddress: string;
+  chainId: ChainId;
+  collectionAddress: string;
+  totalProtocolFeesAccruedWei: string;
+  periodProtocolFeesAccruedWei: string;
+  totalProtocolFeesAccruedEth: number;
+  periodProtocolFeesAccruedEth: number;
+  updatedAt: number;
 }
 
 export type CurationPeriodUsers = { [userAddress: string]: CurationPeriodUser };
 
 export interface CurationPeriod extends CurationPeriodDoc {
-    users: CurationPeriodUsers;
-    blocks: CurationBlockRewards[];
+  users: CurationPeriodUsers;
+  blocks: CurationBlockRewards[];
 }

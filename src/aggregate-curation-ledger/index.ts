@@ -64,9 +64,9 @@ export const aggregateCurationLedger = functions
         return;
       }
 
-      const curationBlockTimestampRange = CurationAggregator.getCurationBlock(firstUnaggregatedEvent.timestamp);
+      const curationBlockRange = CurationAggregator.getCurationBlockRange(firstUnaggregatedEvent.timestamp);
       const curationLedgerEventsQuery = curationLedgerRef
-        .where('timestamp', '>=', curationBlockTimestampRange.startTimestamp)
+        .where('timestamp', '>=', curationBlockRange.startTimestamp)
         .orderBy('timestamp', 'asc') as FirebaseFirestore.Query<CurationLedgerEventType>;
       const curationLedgerEventsStream = streamQueryWithRef(curationLedgerEventsQuery, (item, ref) => [ref], {
         pageSize: 300

@@ -7,7 +7,7 @@ import { CurationBlock } from './curation-block';
 import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUsers, CurationMetadata } from './types';
 
 export class CurationAggregator {
-  static getCurationBlock(timestamp: number) {
+  static getCurationBlockRange(timestamp: number) {
     const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Daily).timestamp;
     const oneDay = 24 * 60 * 60 * 1000;
     const endTimestamp = startTimestamp + oneDay;
@@ -27,7 +27,7 @@ export class CurationAggregator {
   ) {
     this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.blockNumber);
     for (const event of this._curationEvents) {
-      const { startTimestamp } = CurationAggregator.getCurationBlock(event.timestamp);
+      const { startTimestamp } = CurationAggregator.getCurationBlockRange(event.timestamp);
       let block = this._curationBlocks.get(startTimestamp);
       if (block) {
         block.addEvent(event);
@@ -62,7 +62,7 @@ export class CurationAggregator {
 
     batch.add(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
     for (const [userAddress, user] of Object.entries(users)) {
-        const userRef = blockRewardsRef.collection('blockRewardsUsers').doc(userAddress); 
+        const userRef = blockRewardsRef.collection('curationBlockUserRewards').doc(userAddress); 
         batch.add(userRef, user, { merge: false });
     }
 
@@ -73,7 +73,7 @@ export class CurationAggregator {
     currentBlockStartTimestamp: number,
     curationRewardsRef: FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>
   ): Promise<CurationBlockRewards> {
-    const timestamp = CurationAggregator.getCurationBlock(currentBlockStartTimestamp).prevTimestamp;
+    const timestamp = CurationAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
     const snapshot = await curationRewardsRef.where('startTimestamp', '<=', timestamp).limit(1).get();
     const prevBlockRewardsDoc = snapshot.docs[0];
     let prevBlockRewardsData = prevBlockRewardsDoc?.data();
@@ -92,7 +92,7 @@ export class CurationAggregator {
       return prevBlockRewards;
     }
     const usersQuery = prevBlockRewardsDoc.ref.collection(
-      'blockRewardsUsers'
+      'curationBlockUserRewards'
     ) as FirebaseFirestore.CollectionReference<CurationUser>;
     const usersStream = streamQuery(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     const users: CurationUsers = {};

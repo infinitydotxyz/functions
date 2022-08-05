@@ -1,4 +1,4 @@
-import { StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
@@ -9,8 +9,8 @@ import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUs
 export class CurationAggregator {
   static getCurationBlockRange(timestamp: number) {
     const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Hourly).timestamp;
-    const oneDay = 60 * 60 * 1000;
-    const endTimestamp = startTimestamp + oneDay;
+    const oneHour = 60 * 60 * 1000;
+    const endTimestamp = startTimestamp + oneHour;
     const prevTimestamp = getStatsDocInfo(startTimestamp - 1, StatsPeriod.Hourly).timestamp;
     return { startTimestamp, endTimestamp, prevTimestamp };
   }
@@ -23,7 +23,9 @@ export class CurationAggregator {
 
   constructor(
     private _curationEvents: CurationLedgerEventType[],
-    private _curationMetadataDocRef: FirebaseFirestore.DocumentReference<CurationMetadata>
+    private _curationMetadataDocRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
+    private _collectionAddress: string,
+    private _chainId: ChainId
   ) {
     this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.blockNumber);
     for (const event of this._curationEvents) {
@@ -33,7 +35,9 @@ export class CurationAggregator {
         block.addEvent(event);
       } else {
         block = new CurationBlock({
-          blockStart: startTimestamp
+          blockStart: startTimestamp,
+          collectionAddress: this._collectionAddress,
+          chainId: this._chainId,
         });
         this._curationBlocks.set(startTimestamp, block);
         block.addEvent(event);
@@ -79,6 +83,8 @@ export class CurationAggregator {
     let prevBlockRewardsData = prevBlockRewardsDoc?.data();
     if (!prevBlockRewardsData) {
       prevBlockRewardsData = {
+        collectionAddress: this._collectionAddress,
+        chainId: this._chainId,
         numCurators: 0,
         numCuratorVotes: 0,
         numCuratorsAdded: 0,

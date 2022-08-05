@@ -1,3 +1,4 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
@@ -44,8 +45,10 @@ export const triggerCurationLedgerAggregation = functions
 export const aggregateCurationLedger = functions
   .region(REGION)
   .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/curationCollection/curationMetadata`)
-  .onWrite(async (change) => {
+  .onWrite(async (change, context) => {
     const curationMetadata = change.after.data() as CurationMetadata | undefined;
+    const [chainId, collectionAddress] = context.params.collectionId.split(':') as [ChainId, string];
+
     if (!curationMetadata) {
       return;
     } else if (curationMetadata.ledgerRequiresAggregation) {
@@ -79,7 +82,7 @@ export const aggregateCurationLedger = functions
         eventsWithRefs.push({ ...data, ref });
       }
 
-      const curationAggregator = new CurationAggregator(events, curationMetadataRef);
+      const curationAggregator = new CurationAggregator(events, curationMetadataRef, collectionAddress, chainId);
       await curationAggregator.aggregate();
 
       const batchHandler = new FirestoreBatchHandler();
@@ -90,6 +93,7 @@ export const aggregateCurationLedger = functions
         };
         batchHandler.add(event.ref, updatedEvent, { merge: true });
       }
+      batchHandler.add(curationMetadataRef, { ledgerRequiresAggregation: false, updatedAt: Date.now() }, { merge: true });
       await batchHandler.flush();
     }
   });

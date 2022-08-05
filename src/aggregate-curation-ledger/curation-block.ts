@@ -1,3 +1,4 @@
+import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { formatEther } from 'ethers/lib/utils';
 import {
   CurationLedgerEvent,
@@ -7,7 +8,7 @@ import {
   CurationVotesRemoved
 } from '../aggregate-sales-stats/curation.types';
 import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
-import { CurationBlockRewards, CurationUsers } from './types';
+import { CurationBlockRewards, CurationUser, CurationUsers } from './types';
 
 
 interface BlockMetadata {
@@ -15,6 +16,8 @@ interface BlockMetadata {
    * inclusive
    */
   blockStart: number;
+  collectionAddress: string;
+  chainId: ChainId;
 }
 
 /**
@@ -80,6 +83,8 @@ export class CurationBlock {
     const numCurators = voteStats.numItems;
     const blockRewardsBeforeDistribution: CurationBlockRewards = {
       users: updatedUsersAfterAdditions,
+      collectionAddress: this.metadata.collectionAddress,
+      chainId: this.metadata.chainId,
       numCurators,
       numCuratorVotes: numCuratorVotes,
       numCuratorsAdded: Object.keys(newUsers).length,
@@ -146,13 +151,15 @@ export class CurationBlock {
         existingUser.votes = updatedVotes;
         existingUser.lastVotedAt = this.metadata.blockStart;
       } else {
-        const newUser = {
+        const newUser: CurationUser = {
           userAddress: voteAdded.userAddress,
           votes: voteAdded.votes,
           totalProtocolFeesAccruedWei: '0',
           blockProtocolFeesAccruedWei: '0',
           firstVotedAt: this.metadata.blockStart,
           lastVotedAt: this.metadata.blockStart,
+          collectionAddress: this.metadata.collectionAddress,
+          chainId: this.metadata.chainId,
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };

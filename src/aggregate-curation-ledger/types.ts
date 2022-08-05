@@ -1,6 +1,10 @@
+import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+
 export interface CurationUser {
   userAddress: string;
   votes: number;
+  chainId: ChainId;
+  collectionAddress: string;
   totalProtocolFeesAccruedWei: string;
   blockProtocolFeesAccruedWei: string;
   firstVotedAt: number;
@@ -10,6 +14,9 @@ export interface CurationUser {
 export type CurationUsers = { [userAddress: string]: CurationUser };
 
 export interface CurationBlockRewardsDoc {
+  collectionAddress: string;
+  chainId: ChainId;
+
   numCurators: number;
   numCuratorVotes: number;
 
@@ -24,7 +31,7 @@ export interface CurationBlockRewardsDoc {
 
   /**
    * total fees accrued over all previous blocks
-   * and this block 
+   * and this block
    */
   totalProtocolFeesAccruedWei: string;
 
@@ -55,4 +62,16 @@ export interface CurationBlockRewards extends CurationBlockRewardsDoc {
 export interface CurationMetadata {
   ledgerRequiresAggregation: boolean;
   updatedAt: number;
+}
+
+export enum CurationPeriodState {
+  NotStarted = 'notStarted',
+  InProgress = 'inProgress',
+  Completed = 'completed'
+}
+
+export interface CurationPeriod {
+  rewards: CurationBlockRewards;
+  timestamp: number;
+  state: CurationPeriodState;
 }

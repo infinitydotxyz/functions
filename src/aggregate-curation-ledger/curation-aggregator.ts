@@ -8,10 +8,10 @@ import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUs
 
 export class CurationAggregator {
   static getCurationBlockRange(timestamp: number) {
-    const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Daily).timestamp;
-    const oneDay = 24 * 60 * 60 * 1000;
+    const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Hourly).timestamp;
+    const oneDay = 60 * 60 * 1000;
     const endTimestamp = startTimestamp + oneDay;
-    const prevTimestamp = getStatsDocInfo(startTimestamp - 1, StatsPeriod.Daily).timestamp;
+    const prevTimestamp = getStatsDocInfo(startTimestamp - 1, StatsPeriod.Hourly).timestamp;
     return { startTimestamp, endTimestamp, prevTimestamp };
   }
 

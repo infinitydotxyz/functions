@@ -51,9 +51,12 @@
     6. start calculation for the next block if it exists
 
 ### TODO
-- [ ] Handle the case where there are fees for a collection but no votes - carry over and distribute to the first users to vote
+- [X] Handle the case where there are fees for a collection but no votes - carry over and distribute to the first users to vote
+- [ ] Should curation blocks be 1 day, 1 hour, 1 week? 
+    * The smaller the blocks are the faster and cheaper aggregation will be
+    * Setting the curation block to be a full week means we don't need another step to aggregate blocks to the full period
+    * When do we handle saving rewards in a way to allow for user specific queries?
 - [ ] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers
 - [ ] Write vote events to ledger when user votes 
-- [ ] Should curation blocks be 1 day, 1 hour, 1 week? 
 - [ ] Aggregate blocks to calculate total rewards over the full curation period
 - [ ] How do we query for rewards by user?

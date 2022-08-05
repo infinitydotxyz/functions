@@ -7,6 +7,7 @@ import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { REGION } from '../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
+import { aggregatePeriods } from './aggregate-periods';
 import { CurationMetadata } from './types';
 
 export const triggerCurationLedgerAggregation = functions
@@ -57,7 +58,7 @@ export const aggregateCurationLedger = functions
       const triggerPeriodAggregationUpdate: CurationMetadata = { ledgerRequiresAggregation: false, updatedAt: Date.now(), periodsRequireAggregation: true };
       await curationMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (curationMetadata.periodsRequireAggregation) {
-
+      await aggregatePeriods(curationMetadataRef, collectionAddress, chainId);
       const metadataUpdate: Partial<CurationMetadata> = {
         periodsRequireAggregation: false,
       }

@@ -6,7 +6,6 @@ import {
   CollectionSalesStats,
   CollectionStats,
   NftLinkData,
-  NftSale,
   NftStats,
   PrevBaseSalesStats,
   SocialsStats,
@@ -16,154 +15,12 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { NftImageDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft-image.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../firestore';
-import { streamQueryWithRef } from '../firestore/stream-query';
-import { Sales } from './models/sales';
-import { AggregationInterval, SalesIntervalDoc, BaseStats, CurrentStats } from './types';
+import { SalesIntervalDoc, BaseStats, CurrentStats } from './types';
 import {
   calcPercentChange,
   combineCurrentStats,
-  getIntervalAggregationId,
   getStatsDocInfo,
-  parseAggregationId
 } from './utils';
-
-export async function saveSalesForAggregation() {
-  const db = getDb();
-  const unaggregatedSales = db
-    .collection(firestoreConstants.SALES_COLL)
-    .where('isAggregated', '==', false) as FirebaseFirestore.Query<NftSale | undefined>;
-  const unaggregatedSalesStream = streamQueryWithRef(unaggregatedSales, (item, ref) => [ref], {
-    pageSize: 300
-  });
-
-  const salesArray: {
-    sale: NftSale & { docId: string };
-    ref: FirebaseFirestore.DocumentReference<NftSale | undefined>;
-  }[] = [];
-  for await (const { data, ref } of unaggregatedSalesStream) {
-    if (data) {
-      salesArray.push({ sale: { ...data, docId: ref.id }, ref });
-    }
-  }
-
-  for (const { ref } of salesArray) {
-    try {
-      await db.runTransaction(async (tx) => {
-        const saleSnap = await tx.get(ref);
-        const sale = saleSnap.data();
-        if (!sale) {
-          return;
-        }
-        const saleWithDocId = {
-          ...sale,
-          docId: ref.id,
-          updatedAt: Date.now()
-        };
-        saveSaleToCollectionSales(saleWithDocId, tx);
-        saveSaleToNftSales(saleWithDocId, tx);
-        saveSaleToSourceSales(saleWithDocId, tx);
-        const saleUpdate: Pick<NftSale, 'isAggregated'> = {
-          isAggregated: true
-        };
-        tx.update(ref, saleUpdate);
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  }
-}
-
-function saveSaleToCollectionSales(
-  sale: NftSale & { docId: string; updatedAt: number },
-  tx: FirebaseFirestore.Transaction
-) {
-  const db = getDb();
-  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-  const collectionStatsRef = db
-    .collection(firestoreConstants.COLLECTIONS_COLL)
-    .doc(`${sale.chainId}:${sale.collectionAddress}`)
-    .collection('aggregatedCollectionSales')
-    .doc(intervalId);
-  const salesRef = collectionStatsRef.collection('intervalSales');
-  const saleRef = salesRef.doc(sale.docId);
-  tx.set(saleRef, sale, { merge: false });
-  const statsDocUpdate: Partial<SalesIntervalDoc> = {
-    updatedAt: Date.now(),
-    hasUnaggregatedSales: true
-  };
-  tx.set(collectionStatsRef, statsDocUpdate, { merge: true });
-}
-
-export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentReference<SalesIntervalDoc>) {
-  try {
-    await ref.firestore.runTransaction(async (tx) => {
-      const initialDoc = await tx.get(ref);
-      if (!initialDoc.data()?.isAggregated) {
-        const salesSnapshot = await tx.get(ref.collection('intervalSales').where('isDeleted', '==', false));
-        const salesDocs = salesSnapshot.docs.map((item) => item.data());
-        const sales = salesDocs.filter((sale) => !!sale) as NftSale[];
-        const stats = Sales.getStats(sales);
-        const { startTimestamp, endTimestamp } = parseAggregationId(ref.id, AggregationInterval.FiveMinutes);
-        const updatedIntervalDoc: SalesIntervalDoc = {
-          updatedAt: Date.now(),
-          isAggregated: false,
-          startTimestamp,
-          endTimestamp,
-          stats,
-          hasUnaggregatedSales: false
-        };
-        for (const saleDoc of salesSnapshot.docs) {
-          tx.set(saleDoc.ref, { isAggregated: true, updatedAt: Date.now() }, { merge: true });
-        }
-        tx.update(ref, updatedIntervalDoc);
-      }
-    });
-  } catch (err) {
-    console.error('Failed to aggregate sales', err);
-  }
-}
-
-function saveSaleToNftSales(sale: NftSale & { docId: string; updatedAt: number }, tx: FirebaseFirestore.Transaction) {
-  const db = getDb();
-  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-  const nftStatsRef = db
-    .collection(firestoreConstants.COLLECTIONS_COLL)
-    .doc(`${sale.chainId}:${sale.collectionAddress}`)
-    .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-    .doc(sale.tokenId)
-    .collection('aggregatedNftSales')
-    .doc(intervalId);
-  const salesRef = nftStatsRef.collection('intervalSales');
-  const saleRef = salesRef.doc(sale.docId);
-  tx.set(saleRef, sale, { merge: false });
-  const statsDocUpdate: Partial<SalesIntervalDoc> = {
-    updatedAt: Date.now(),
-    hasUnaggregatedSales: true
-  };
-  tx.set(nftStatsRef, statsDocUpdate, { merge: true });
-}
-
-function saveSaleToSourceSales(
-  sale: NftSale & { docId: string; updatedAt: number },
-  tx: FirebaseFirestore.Transaction
-) {
-  const db = getDb();
-  const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-  const sourceStatsRef = db
-    .collection('marketplaceStats')
-    .doc(sale.source)
-    .collection('aggregatedSourceSales')
-    .doc(intervalId);
-  const salesRef = sourceStatsRef.collection('intervalSales');
-  const saleRef = salesRef.doc(sale.docId);
-  tx.set(saleRef, sale, { merge: false });
-  const statsDocUpdate: Partial<SalesIntervalDoc> = {
-    updatedAt: Date.now(),
-    hasUnaggregatedSales: true
-  };
-  tx.set(sourceStatsRef, statsDocUpdate, { merge: true });
-}
 
 export async function aggregateHourlyStats(
   timestamp: number,

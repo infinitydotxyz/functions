@@ -1,3 +1,4 @@
+import { formatEther } from 'ethers/lib/utils';
 import {
   CurationLedgerEvent,
   CurationLedgerEventType,
@@ -81,8 +82,12 @@ export class CurationBlock {
       numCurators: voteStats.numItems,
       numCuratorVotes: parseInt(voteStats.sum.toString(), 10),
       totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
+      totalProtocolFeesAccruedEth: parseFloat(formatEther(totalProtocolFeesAccruedWei.toString())),
       blockProtocolFeesAccruedWei: blockProtocolFeesAccruedWei.toString(),
-      startTimestamp: this.metadata.blockStart
+      blockProtocolFeesAccruedEth: parseFloat(formatEther(blockProtocolFeesAccruedWei.toString())),
+      arbitrageProtocolFeesAccruedWei: prevBlockRewards.arbitrageProtocolFeesAccruedWei,
+      arbitrageProtocolFeesAccruedEth: prevBlockRewards.arbitrageProtocolFeesAccruedEth,
+      timestamp: this.metadata.blockStart
     };
 
     const blockRewards = this.distributeRewards(blockRewardsBeforeDistribution);
@@ -147,13 +152,24 @@ export class CurationBlock {
   protected distributeRewards(_rewards: CurationBlockRewards): CurationBlockRewards {
     const rewards: CurationBlockRewards = JSON.parse(JSON.stringify(_rewards));
     const totalVotes = rewards.numCuratorVotes;
-    const fees = rewards.blockProtocolFeesAccruedWei;
+    const fees = BigInt(rewards.blockProtocolFeesAccruedWei) + BigInt(rewards.arbitrageProtocolFeesAccruedWei);
+    let feesDistributed = BigInt(0);
     for(const user of Object.values(rewards.users)) {
       const userVotes = user.votes;
       const userFees = (BigInt(userVotes) * BigInt(fees)) / BigInt(totalVotes);
       user.blockProtocolFeesAccruedWei = userFees.toString();
+      feesDistributed += userFees;
       user.totalProtocolFeesAccruedWei = (BigInt(user.totalProtocolFeesAccruedWei) + userFees).toString();
     }
-    return rewards;
+    const feesRemaining = fees - feesDistributed;
+    if(feesDistributed > fees) {
+      throw new Error(`Fees distributed (${feesDistributed}) > fees (${fees})`);
+    }
+    
+    return {
+      ...rewards,
+      arbitrageProtocolFeesAccruedWei: feesRemaining.toString(),
+      arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString()))
+    }
   }
 }

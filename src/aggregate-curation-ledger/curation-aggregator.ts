@@ -56,7 +56,7 @@ export class CurationAggregator {
   async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards) {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
-    const docId = `${curationBlockRewardsDoc.startTimestamp}`;
+    const docId = `${curationBlockRewardsDoc.timestamp}`;
     const blockRewardsRef = this._rewardsRef.doc(docId);
     const batch = new FirestoreBatchHandler();
 
@@ -74,7 +74,7 @@ export class CurationAggregator {
     curationRewardsRef: FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>
   ): Promise<CurationBlockRewards> {
     const timestamp = CurationAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
-    const snapshot = await curationRewardsRef.where('startTimestamp', '<=', timestamp).limit(1).get();
+    const snapshot = await curationRewardsRef.where('timestamp', '<=', timestamp).limit(1).get();
     const prevBlockRewardsDoc = snapshot.docs[0];
     let prevBlockRewardsData = prevBlockRewardsDoc?.data();
     if (!prevBlockRewardsData) {
@@ -83,7 +83,11 @@ export class CurationAggregator {
         numCuratorVotes: 0,
         totalProtocolFeesAccruedWei: '0',
         blockProtocolFeesAccruedWei: '0',
-        startTimestamp: timestamp
+        arbitrageProtocolFeesAccruedWei: '0',
+        totalProtocolFeesAccruedEth: 0,
+        blockProtocolFeesAccruedEth: 0,
+        arbitrageProtocolFeesAccruedEth: 0,
+        timestamp: timestamp
       };
       const prevBlockRewards = {
         ...prevBlockRewardsData,

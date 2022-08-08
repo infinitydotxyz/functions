@@ -13,23 +13,61 @@
                 - curationBlockRewards // groups curationLedger events into hourly _blocks_ containing fee distribution data
                     - {curationBlockId}
                         ```ts
+                            collectionAddress: string;
+                            chainId: ChainId;
                             numCurators: number;
                             numCuratorVotes: number;
+                            numCuratorsAdded: number;
+                            numCuratorsRemoved: number;
+                            numCuratorVotesAdded: number;
+                            numCuratorVotesRemoved: number;
+                            numCuratorsPercentChange: number;
+                            numCuratorVotesPercentChange: number;
                             totalProtocolFeesAccruedWei: string;
                             blockProtocolFeesAccruedWei: string;
-                            startTimestamp: number;
+                            arbitrageProtocolFeesAccruedWei: string;
+                            totalProtocolFeesAccruedEth: number;
+                            blockProtocolFeesAccruedEth: number;
+                            arbitrageProtocolFeesAccruedEth: number;
+                            timestamp: number;
+                            isAggregated: boolean;
                         ```
                         - curationBlockUserRewards
                             - {userAddress}
                                 ```ts
                                     userAddress: string;
                                     votes: number;
+                                    chainId: ChainId;
+                                    collectionAddress: string;
                                     totalProtocolFeesAccruedWei: string;
                                     blockProtocolFeesAccruedWei: string;
+                                    firstVotedAt: number;
+                                    lastVotedAt: number;
+                                    updatedAt: number;
                                 ```
                 - curationPeriods // stores curation rewards for a full curation period (multiple blocks)
                     - {curationPeriodId}
-
+                        ```ts
+                            collectionAddress: string;
+                            chainId: ChainId;
+                            timestamp: number;
+                            totalProtocolFeesAccruedWei: string;
+                            periodProtocolFeesAccruedWei: string;
+                            totalProtocolFeesAccruedEth: number;
+                            periodProtocolFeesAccruedEth: number;
+                        ```
+                        - curationPeriodUsers
+                            - {user address}
+                                ```ts
+                                    userAddress: string;
+                                    chainId: ChainId;
+                                    collectionAddress: string;
+                                    totalProtocolFeesAccruedWei: string;
+                                    periodProtocolFeesAccruedWei: string;
+                                    totalProtocolFeesAccruedEth: number;
+                                    periodProtocolFeesAccruedEth: number;
+                                    updatedAt: number;
+                                ```
 
 
 ### How it works - Cloud Functions
@@ -59,5 +97,6 @@
 - [x] how do we handle the case where a user should be removed from `curationPeriodUserRewards`?
 - [ ] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers
 - [ ] Write vote events to ledger when user votes 
-- [ ] How do we query for rewards by user?
+- [ ] How do we query for rewards by user? 
+- [ ] User/collection apr 
 - [ ] backfill sales 

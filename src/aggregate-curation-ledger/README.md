@@ -54,9 +54,9 @@
     6. start calculation for the next block if it exists
 
 ### TODO
-- [X] Handle the case where there are fees for a collection but no votes - carry over and distribute to the first users to vote
-- [X] Aggregate blocks to calculate total rewards over the full curation period
-- [X] how do we handle the case where a user should be removed from `curationPeriodUserRewards` or `curationBlockUserRewards`?
+- [x] Handle the case where there are fees for a collection but no votes - carry over and distribute to the first users to vote
+- [x] Aggregate blocks to calculate total rewards over the full curation period
+- [x] how do we handle the case where a user should be removed from `curationPeriodUserRewards`?
 - [ ] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers
 - [ ] Write vote events to ledger when user votes 
 - [ ] How do we query for rewards by user?

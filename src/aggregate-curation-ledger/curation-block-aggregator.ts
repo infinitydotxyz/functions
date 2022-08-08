@@ -2,7 +2,7 @@ import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
-import { streamQuery, streamQueryWithRef } from '../firestore/stream-query';
+import { streamQuery } from '../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUsers, CurationMetadata } from './types';
 
@@ -53,14 +53,13 @@ export class CurationBlockAggregator {
       if (!prevBlockRewards) {
         prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
       }
-      const aggregationStartTime = Date.now();
       const { blockRewards } = block.getBlockRewards(prevBlockRewards);
-      await this.saveCurationBlockRewards(blockRewards, aggregationStartTime);
+      await this.saveCurationBlockRewards(blockRewards);
       prevBlockRewards = blockRewards;
     }
   }
 
-  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards, aggregationStartTime: number) {
+  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards) {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
     const docId = `${curationBlockRewardsDoc.timestamp}`;
@@ -73,16 +72,6 @@ export class CurationBlockAggregator {
       batch.add(userRef, user, { merge: false });
     }
     await batch.flush();
-
-    const invalidUsersQuery = blockRewardsRef
-      .collection('curationBlockUserRewards')
-      .where('updatedAt', '<', aggregationStartTime);
-    const invalidUsersStream = streamQueryWithRef(invalidUsersQuery, (item, ref) => [ref], { pageSize: 300 });
-    const batch2 = blockRewardsRef.firestore.batch();
-    for await (const invalidUser of invalidUsersStream) {
-      batch2.delete(invalidUser.ref);
-    }
-    await batch2.commit();
   }
 
   async getPrevCurationBlockRewards(
@@ -111,7 +100,7 @@ export class CurationBlockAggregator {
         totalProtocolFeesAccruedEth: 0,
         blockProtocolFeesAccruedEth: 0,
         arbitrageProtocolFeesAccruedEth: 0,
-        timestamp: timestamp,
+        timestamp,
         isAggregated: false
       };
       const prevBlockRewards = {

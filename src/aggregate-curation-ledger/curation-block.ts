@@ -46,10 +46,6 @@ export class CurationBlock {
     }
   }
 
-  get requiresRewardCalculation() {
-    return this._votes.length > 0 || this._votesRemoved.length > 0;
-  }
-
   get feesGeneratedWei() {
     const sum = calculateStatsBigInt(this._sales, (sale) => BigInt(sale.protocolFeeWei)).sum;
     return sum.toString();

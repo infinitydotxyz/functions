@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
@@ -35,12 +36,11 @@ export async function aggregatePeriods(
     const periodBlocks = periodBlockWithRefs.map((item) => item.block);
     const aggregator = new CurationPeriodAggregator(curationPeriodRange.startTimestamp, collectionAddress, chainId);
     const rewards = aggregator.getPeriodRewards(periodBlocks);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { users, blocks, ...curationPeriodDocData } = rewards;
     const batchHandler = new FirestoreBatchHandler();
     const curationPeriodDocId = `${curationPeriodRange.startTimestamp}`;
     const curationPeriodDocRef = curationMetadataRef
-      .collection('curationPeriods')
+      .collection('curationPeriodRewards')
       .doc(curationPeriodDocId) as FirebaseFirestore.DocumentReference<CurationPeriodDoc>;
     const curationPeriodUpdate: CurationPeriodDoc = {
       ...curationPeriodDocData

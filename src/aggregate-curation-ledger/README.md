@@ -45,7 +45,7 @@
                                     lastVotedAt: number;
                                     updatedAt: number;
                                 ```
-                - curationPeriods // stores curation rewards for a full curation period (multiple blocks)
+                - curationPeriodRewards // stores curation rewards for a full curation period (multiple blocks)
                     - {curationPeriodId}
                         ```ts
                             collectionAddress: string;
@@ -56,7 +56,7 @@
                             totalProtocolFeesAccruedEth: number;
                             periodProtocolFeesAccruedEth: number;
                         ```
-                        - curationPeriodUsers
+                        - curationPeriodUserRewards
                             - {user address}
                                 ```ts
                                     userAddress: string;
@@ -68,7 +68,19 @@
                                     periodProtocolFeesAccruedEth: number;
                                     updatedAt: number;
                                 ```
-
+            - currentCurationData 
+                ```ts
+                    currentBlock: 
+                    prevBlock:
+                    currentPeriod:
+                    prevPeriod:
+                ```
+                - currentCurationUsers 
+                    - {userAddress}
+                        currentBlock:
+                        prevBlock: 
+                        currentPeriod:
+                        prevPeriod: 
 
 ### How it works - Cloud Functions
 * As events are received, they are added to the curation ledger
@@ -95,8 +107,11 @@
 - [x] Handle the case where there are fees for a collection but no votes - carry over and distribute to the first users to vote
 - [x] Aggregate blocks to calculate total rewards over the full curation period
 - [x] how do we handle the case where a user should be removed from `curationPeriodUserRewards`?
+- [ ] How do we query for rewards by user? 
 - [ ] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers
 - [ ] Write vote events to ledger when user votes 
-- [ ] How do we query for rewards by user? 
-- [ ] User/collection apr 
+- [ ] Calculate APR for collections and users? - how do you calculate user APR? Should it be relative to eth or usd? 
+    - [ ] Get current token price
 - [ ] backfill sales 
+- [ ] How do we handle the times when rewards aren't live/when users shouldn't get curation rewards for? 
+- [ ] Do we need to store some minimum collection level data in the docs to allow displaying data without an additional query? What about some minimum user level data? 

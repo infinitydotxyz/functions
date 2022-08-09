@@ -139,7 +139,8 @@ export class CurationPeriodAggregator {
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
       totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
       periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      votes: userBlockRewards[userBlockRewards.length - 1].votes,
     };
     return curationPeriodUser;
   }

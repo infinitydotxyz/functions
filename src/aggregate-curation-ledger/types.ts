@@ -62,6 +62,7 @@ export interface CurationMetadata {
   ledgerRequiresAggregation: boolean;
   updatedAt: number;
   periodsRequireAggregation: boolean;
+  currentSnippetRequiresAggregation: boolean;
 }
 
 export enum CurationPeriodState {
@@ -97,6 +98,7 @@ export interface CurationPeriodUser {
   totalProtocolFeesAccruedEth: number;
   periodProtocolFeesAccruedEth: number;
   updatedAt: number;
+  votes: number;
 }
 
 export type CurationPeriodUsers = { [userAddress: string]: CurationPeriodUser };
@@ -104,4 +106,25 @@ export type CurationPeriodUsers = { [userAddress: string]: CurationPeriodUser };
 export interface CurationPeriod extends CurationPeriodDoc {
   users: CurationPeriodUsers;
   blocks: CurationBlockRewards[];
+}
+
+
+export interface CurrentCurationSnippet {
+  currentPeriod: CurationPeriod;
+  currentBlock: CurationBlockRewards;
+
+  prevPeriod: CurationPeriod;
+  prevBlock: CurationPeriod;
+} 
+
+export interface CurrentCurationSnippetDoc {
+  currentPeriod: CurationPeriodDoc;
+  currentPeriodTopUsers: CurationPeriodUser[];
+  prevPeriod: CurationPeriodDoc;
+  prevPeriodTopUsers: CurationPeriodUser[];
+
+  currentBlock: CurationBlockRewardsDoc;
+  currentBlockTopUsers: CurationUser[];
+  prevBlock: CurationBlockRewardsDoc;
+  prevBlockTopUsers: CurationUser[];
 }

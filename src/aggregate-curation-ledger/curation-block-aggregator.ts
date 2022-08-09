@@ -53,13 +53,13 @@ export class CurationBlockAggregator {
       if (!prevBlockRewards) {
         prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
       }
-      const { blockRewards } = block.getBlockRewards(prevBlockRewards);
-      await this.saveCurationBlockRewards(blockRewards);
+      const { blockRewards, usersRemoved } = block.getBlockRewards(prevBlockRewards);
+      await this.saveCurationBlockRewards(blockRewards, usersRemoved);
       prevBlockRewards = blockRewards;
     }
   }
 
-  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards) {
+  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards, usersRemoved: CurationUsers) {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
     const docId = `${curationBlockRewardsDoc.timestamp}`;
@@ -67,6 +67,11 @@ export class CurationBlockAggregator {
 
     const batch = new FirestoreBatchHandler();
     batch.add(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
+    for (const userAddress of Object.keys(usersRemoved)) {
+      const userRef = blockRewardsRef.collection('curationBlockUserRewards').doc(userAddress);
+      batch.delete(userRef);
+    }
+
     for (const [userAddress, user] of Object.entries(users)) {
       const userRef = blockRewardsRef.collection('curationBlockUserRewards').doc(userAddress);
       batch.add(userRef, user, { merge: false });

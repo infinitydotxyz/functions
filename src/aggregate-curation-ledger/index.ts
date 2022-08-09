@@ -9,6 +9,7 @@ import { REGION } from '../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregatePeriods } from './aggregate-periods';
 import { CurationMetadata } from './types';
+import { updateCurrentCurationSnippet } from './update-current-curation-snippet';
 
 export const triggerCurationLedgerAggregation = functions
   .region(REGION)
@@ -33,7 +34,7 @@ export const triggerCurationLedgerAggregation = functions
       const curationMetadataRef = ref.parent.parent;
       if (curationMetadataRef && !updates.has(curationMetadataRef.path)) {
         updates.add(curationMetadataRef.path);
-        const curationMetadataUpdate: CurationMetadata = {
+        const curationMetadataUpdate: Partial<CurationMetadata> = {
           updatedAt: Date.now(),
           ledgerRequiresAggregation: true,
           periodsRequireAggregation: false
@@ -58,13 +59,23 @@ export const aggregateCuration = functions
       const triggerPeriodAggregationUpdate: CurationMetadata = {
         ledgerRequiresAggregation: false,
         updatedAt: Date.now(),
-        periodsRequireAggregation: true
+        periodsRequireAggregation: true,
+        currentSnippetRequiresAggregation: false
       };
       await curationMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (curationMetadata.periodsRequireAggregation) {
       await aggregatePeriods(curationMetadataRef, collectionAddress, chainId);
       const metadataUpdate: Partial<CurationMetadata> = {
-        periodsRequireAggregation: false
+        periodsRequireAggregation: false,
+        currentSnippetRequiresAggregation: true,
+        updatedAt: Date.now()
+      };
+      await curationMetadataRef.set(metadataUpdate, { merge: true });
+    } else if(curationMetadata.currentSnippetRequiresAggregation) {
+      await updateCurrentCurationSnippet(curationMetadataRef, collectionAddress, chainId);
+      const metadataUpdate: Partial<CurationMetadata> = {
+        currentSnippetRequiresAggregation: false,
+        updatedAt: Date.now()
       };
       await curationMetadataRef.set(metadataUpdate, { merge: true });
     }

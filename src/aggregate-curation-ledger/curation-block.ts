@@ -8,7 +8,9 @@ import {
   CurationVotesRemoved
 } from '../aggregate-sales-stats/curation.types';
 import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
-import { CurationBlockRewards, CurationUser, CurationUsers } from './types';
+import { streamQueryWithRef } from '../firestore/stream-query';
+import { formatEth } from '../utils';
+import { CurationBlockRewards, CurationBlockRewardsDoc, CurationUser, CurationUsers } from './types';
 
 interface BlockMetadata {
   /**
@@ -29,6 +31,20 @@ export class CurationBlock {
   private _sales: CurationLedgerSale[] = [];
   private _votes: CurationVotesAdded[] = [];
   private _votesRemoved: CurationVotesRemoved[] = [];
+
+  static async getBlockUsers(blockRewardsRef: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc>): Promise<CurationUsers> {
+    const users: CurationUsers = {};
+    const usersQuery = blockRewardsRef.collection(
+      'curationBlockUserRewards'
+    ) as FirebaseFirestore.CollectionReference<CurationUser>;
+    const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
+    for await (const { data: user } of usersStream) {
+      if (user.userAddress) {
+        users[user.userAddress] = user;
+      }
+    }
+    return users;
+  }
 
   constructor(public readonly metadata: BlockMetadata) {}
 
@@ -162,7 +178,9 @@ export class CurationBlock {
           lastVotedAt: this.metadata.blockStart,
           collectionAddress: this.metadata.collectionAddress,
           chainId: this.metadata.chainId,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
+          totalProtocolFeesAccruedEth: 0,
+          blockProtocolFeesAccruedEth: 0
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };
@@ -184,6 +202,8 @@ export class CurationBlock {
       feesDistributed += userFees;
       user.totalProtocolFeesAccruedWei = (BigInt(user.totalProtocolFeesAccruedWei) + userFees).toString();
       user.updatedAt = Date.now();
+      user.totalProtocolFeesAccruedEth = formatEth(user.totalProtocolFeesAccruedWei);
+      user.blockProtocolFeesAccruedEth = formatEth(user.blockProtocolFeesAccruedWei);
     }
     const feesRemaining = fees - feesDistributed;
     if (feesDistributed > fees) {

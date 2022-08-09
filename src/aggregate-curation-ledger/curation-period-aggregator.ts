@@ -2,14 +2,15 @@ import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { formatEth } from '../utils';
+import { CurationBlock } from './curation-block';
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
+  CurationPeriodDoc,
   CurationPeriodState,
   CurationPeriodUser,
   CurationPeriodUsers,
-  CurationUser,
-  CurationUsers
+  CurationUser
 } from './types';
 import { CurationPeriod as ICurationPeriod } from './types';
 
@@ -24,6 +25,22 @@ export class CurationPeriodAggregator {
     const endTimestamp = startTimestamp + oneWeek;
     const prevTimestamp = getStatsDocInfo(startTimestamp - 1, StatsPeriod.Weekly).timestamp;
     return { startTimestamp, endTimestamp, prevTimestamp };
+  }
+
+  static async getCurationPeriodUsers(
+    curationPeriodRef: FirebaseFirestore.DocumentReference<CurationPeriodDoc>
+  ): Promise<CurationPeriodUsers> {
+    const users: CurationPeriodUsers = {};
+    const usersQuery = curationPeriodRef.collection(
+      'curationPeriodUserRewards'
+    ) as FirebaseFirestore.CollectionReference<CurationPeriodUser>;
+    const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
+    for await (const { data: user } of usersStream) {
+      if (user.userAddress) {
+        users[user.userAddress] = user;
+      }
+    }
+    return users;
   }
 
   static async getCurationPeriodBlocks(
@@ -41,17 +58,8 @@ export class CurationPeriodAggregator {
     for await (const { data: blockDocData, ref } of blocksStream) {
       const block: CurationBlockRewards = {
         ...blockDocData,
-        users: {} as CurationUsers
+        users: await CurationBlock.getBlockUsers(ref)
       };
-      const usersQuery = ref.collection(
-        'curationBlockUserRewards'
-      ) as FirebaseFirestore.CollectionReference<CurationUser>;
-      const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
-      for await (const { data: user } of usersStream) {
-        if (user.userAddress) {
-          block.users[user.userAddress] = user;
-        }
-      }
       blocks.push({ block, ref });
     }
     return blocks;
@@ -139,8 +147,7 @@ export class CurationPeriodAggregator {
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
       totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
       periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
-      updatedAt: Date.now(),
-      votes: userBlockRewards[userBlockRewards.length - 1].votes,
+      updatedAt: Date.now()
     };
     return curationPeriodUser;
   }

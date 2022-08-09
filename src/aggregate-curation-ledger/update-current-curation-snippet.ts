@@ -1,10 +1,14 @@
 import { streamQuery } from '../firestore/stream-query';
+import { CurationBlock } from './curation-block';
+import { CurationPeriodAggregator } from './curation-period-aggregator';
 import {
   CurationBlockRewardsDoc,
   CurationMetadata,
   CurationPeriodDoc,
   CurationPeriodUser,
+  CurationPeriodUsers,
   CurationUser,
+  CurationUsers,
   CurrentCurationSnippetDoc
 } from './types';
 
@@ -29,11 +33,7 @@ export async function updateCurrentCurationSnippet(
   const mostRecentBlocks = await Promise.all(
     mostRecentBlocksSnapshot.docs.map(async (doc) => {
       const docData = doc.data();
-
-      const blockUsersRef = doc.ref.collection(
-        'curationBlockUserRewards'
-      ) as FirebaseFirestore.CollectionReference<CurationUser>;
-      const blockUsers = await loadUsers(blockUsersRef);
+      const blockUsers = await CurationBlock.getBlockUsers(doc.ref);
       return {
         ...docData,
         users: blockUsers
@@ -44,14 +44,9 @@ export async function updateCurrentCurationSnippet(
   const mostRecentPeriods = await Promise.all(
     mostRecentPeriodsSnapshot.docs.map(async (doc) => {
       const docData = doc.data();
-
-      const periodUsersRef = doc.ref.collection(
-        'curationPeriodUserRewards'
-      ) as FirebaseFirestore.CollectionReference<CurationPeriodUser>;
-      const periodUsers = await loadUsers(periodUsersRef);
       return {
         ...docData,
-        users: periodUsers
+        users: await CurationPeriodAggregator.getCurationPeriodUsers(doc.ref)
       };
     })
   );
@@ -59,16 +54,28 @@ export async function updateCurrentCurationSnippet(
   const [currentBlock, prevBlock] = mostRecentBlocks;
   const [currentPeriod, prevPeriod] = mostRecentPeriods;
 
-  const sortUsersByVotes = <User extends { votes: number }>(users: Record<string, User>) => {
-    return Object.values(users ?? {}).sort((userA, userB) => {
-      return userB.votes - userA.votes;
+  const sortUsersByPeriodProtocolFees = (users: CurationPeriodUsers) => {
+    return Object.values(users).sort((a, b) => {
+        return b.periodProtocolFeesAccruedEth - a.periodProtocolFeesAccruedEth
+    })
+  };
+  const sortUsersByBlockProtocolFees = (users: CurationUsers) => {
+    return Object.values(users).sort((a, b) => {
+        return b.blockProtocolFeesAccruedEth - a.blockProtocolFeesAccruedEth
+    })
+  };
+
+  const sortUsersByTotalProtocolFees = (users: CurationUsers) => {
+    return Object.values(users).sort((a, b) => {
+        return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth
     });
   };
 
-  const currentBlockTopUsers = sortUsersByVotes(currentBlock?.users ?? {});
-  const prevBlockTopUsers = sortUsersByVotes(prevBlock?.users ?? {});
-  const currentPeriodTopUsers = sortUsersByVotes(currentPeriod?.users ?? {});
-  const prevPeriodTopUsers = sortUsersByVotes(prevPeriod?.users ?? {});
+  const currentBlockTopUsers = sortUsersByBlockProtocolFees(currentBlock?.users ?? {});
+  const prevBlockTopUsers = sortUsersByBlockProtocolFees(prevBlock?.users ?? {});
+  const currentPeriodTopUsers = sortUsersByPeriodProtocolFees(currentPeriod?.users ?? {});
+  const prevPeriodTopUsers = sortUsersByPeriodProtocolFees(prevPeriod?.users ?? {});
+  const currentTopUsers = sortUsersByTotalProtocolFees(currentBlock?.users ?? {});
 
   const numTopUsers = 10;
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
@@ -81,19 +88,4 @@ export async function updateCurrentCurationSnippet(
     prevBlockTopUsers: prevBlockTopUsers.slice(0, numTopUsers),
     currentBlockTopUsers: currentBlockTopUsers.slice(0, numTopUsers),
   };
-}
-
-async function loadUsers<User extends { userAddress: string }>(
-  userRef: FirebaseFirestore.CollectionReference<User>
-): Promise<{ [userAddress: string]: User }> {
-  const userStream = streamQuery(userRef, (item, ref) => [ref], { pageSize: 300 });
-
-  const users: Record<string, User> = {};
-  for await (const user of userStream) {
-    if (user?.userAddress) {
-      users[user.userAddress] = user;
-    }
-  }
-
-  return users;
 }

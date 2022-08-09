@@ -9,14 +9,19 @@ import { REGION } from '../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregatePeriods } from './aggregate-periods';
 import { CurationMetadata } from './types';
-import { getCurrentBlocks, getCurrentCurationSnippet, getCurrentPeriods, saveCurrentCurationSnippet } from './update-current-curation-snippet';
+import {
+  getCurrentBlocks,
+  getCurrentCurationSnippet,
+  getCurrentPeriods,
+  saveCurrentCurationSnippet
+} from './update-current-curation-snippet';
 
 export const triggerCurationLedgerAggregation = functions
   .region(REGION)
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('0,30 * * * *') // every 30 min
+  .pubsub.schedule('0,10,20,30,40,50 * * * *') 
   .onRun(async () => {
     /**
      * query for ledgers that need to be aggregated
@@ -56,11 +61,10 @@ export const aggregateCuration = functions
       return;
     } else if (curationMetadata.ledgerRequiresAggregation) {
       await aggregateLedger(curationMetadataRef, collectionAddress, chainId);
-      const triggerPeriodAggregationUpdate: CurationMetadata = {
+      const triggerPeriodAggregationUpdate: Partial<CurationMetadata> = {
         ledgerRequiresAggregation: false,
         updatedAt: Date.now(),
-        periodsRequireAggregation: true,
-        currentSnippetRequiresAggregation: false
+        periodsRequireAggregation: true
       };
       await curationMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (curationMetadata.periodsRequireAggregation) {
@@ -71,14 +75,14 @@ export const aggregateCuration = functions
         updatedAt: Date.now()
       };
       await curationMetadataRef.set(metadataUpdate, { merge: true });
-    } else if(curationMetadata.currentSnippetRequiresAggregation) {
+    } else if (curationMetadata.currentSnippetRequiresAggregation) {
       const currentBlocks = await getCurrentBlocks(curationMetadataRef);
       const currentPeriods = await getCurrentPeriods(curationMetadataRef);
       const currentSnippet = getCurrentCurationSnippet(currentPeriods, currentBlocks);
       await saveCurrentCurationSnippet(currentSnippet, curationMetadataRef);
       const metadataUpdate: Partial<CurationMetadata> = {
         currentSnippetRequiresAggregation: false,
-        updatedAt: Date.now(),
+        updatedAt: Date.now()
       };
       await curationMetadataRef.set(metadataUpdate, { merge: true });
     }

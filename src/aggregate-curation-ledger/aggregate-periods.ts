@@ -36,7 +36,7 @@ export async function aggregatePeriods(
     const periodBlocks = periodBlockWithRefs.map((item) => item.block);
     const aggregator = new CurationPeriodAggregator(curationPeriodRange.startTimestamp, collectionAddress, chainId);
     const rewards = aggregator.getPeriodRewards(periodBlocks);
-    const { users, blocks, ...curationPeriodDocData } = rewards;
+    const { users, ...curationPeriodDocData } = rewards;
     const batchHandler = new FirestoreBatchHandler();
     const curationPeriodDocId = `${curationPeriodRange.startTimestamp}`;
     const curationPeriodDocRef = curationMetadataRef

@@ -9,7 +9,7 @@ import { REGION } from '../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregatePeriods } from './aggregate-periods';
 import { CurationMetadata } from './types';
-import { updateCurrentCurationSnippet } from './update-current-curation-snippet';
+import { getCurrentBlocks, getCurrentCurationSnippet, getCurrentPeriods, saveCurrentCurationSnippet } from './update-current-curation-snippet';
 
 export const triggerCurationLedgerAggregation = functions
   .region(REGION)
@@ -72,10 +72,13 @@ export const aggregateCuration = functions
       };
       await curationMetadataRef.set(metadataUpdate, { merge: true });
     } else if(curationMetadata.currentSnippetRequiresAggregation) {
-      await updateCurrentCurationSnippet(curationMetadataRef, collectionAddress, chainId);
+      const currentBlocks = await getCurrentBlocks(curationMetadataRef);
+      const currentPeriods = await getCurrentPeriods(curationMetadataRef);
+      const currentSnippet = getCurrentCurationSnippet(currentPeriods, currentBlocks);
+      await saveCurrentCurationSnippet(currentSnippet, curationMetadataRef);
       const metadataUpdate: Partial<CurationMetadata> = {
         currentSnippetRequiresAggregation: false,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
       await curationMetadataRef.set(metadataUpdate, { merge: true });
     }

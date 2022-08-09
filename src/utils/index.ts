@@ -7,3 +7,7 @@ export function sleep(duration: number): Promise<void> {
 export function formatEth(wei: string | bigint | number): number {
   return parseFloat(formatEther(BigInt(wei).toString()));
 }
+
+export function round(value: number, decimals = 4): number {
+  return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}

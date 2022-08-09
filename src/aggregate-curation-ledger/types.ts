@@ -12,6 +12,19 @@ export interface CurationUser {
   firstVotedAt: number;
   lastVotedAt: number;
   updatedAt: number;
+
+  /**
+   * The percentage of votes this user has over the total collection curators
+   */
+  curatorShare: number;
+  /**
+   * The total number of curators in the collection
+   */
+  numCurators: number;
+  /**
+   * The total number of votes in the collection
+   */
+  numCuratorVotes: number;
 }
 
 export type CurationUsers = { [userAddress: string]: CurationUser };
@@ -106,9 +119,8 @@ export type CurationPeriodUsers = { [userAddress: string]: CurationPeriodUser };
 
 export interface CurationPeriod extends CurationPeriodDoc {
   users: CurationPeriodUsers;
-  blocks: CurationBlockRewards[];
+  // blocks: CurationBlockRewards[];
 }
-
 
 export interface CurrentCurationSnippet {
   currentPeriod: CurationPeriod;
@@ -119,13 +131,15 @@ export interface CurrentCurationSnippet {
 } 
 
 export interface CurrentCurationSnippetDoc {
-  currentPeriod: CurationPeriodDoc;
-  currentPeriodTopUsers: CurationPeriodUser[];
-  prevPeriod: CurationPeriodDoc;
-  prevPeriodTopUsers: CurationPeriodUser[];
+  currentPeriod: CurationPeriodDoc | null;
+  mostRecentCompletedPeriod: CurationPeriodDoc | null;
 
-  currentBlock: CurationBlockRewardsDoc;
-  currentBlockTopUsers: CurationUser[];
-  prevBlock: CurationBlockRewardsDoc;
-  prevBlockTopUsers: CurationUser[];
+  currentBlock: CurationBlockRewardsDoc | null;
+  mostRecentCompletedBlock: CurationBlockRewardsDoc | null;
+
+  topCuratorsByVotes: CurationUser[];
+  topCuratorsByTotalProtocolFees: CurationUser[];
+  earliestCurators: CurationUser[];
+
+  updatedAt: number;
 }

@@ -9,7 +9,7 @@ import {
 } from '../aggregate-sales-stats/curation.types';
 import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../firestore/stream-query';
-import { formatEth } from '../utils';
+import { formatEth, round } from '../utils';
 import { CurationBlockRewards, CurationBlockRewardsDoc, CurationUser, CurationUsers } from './types';
 
 interface BlockMetadata {
@@ -92,14 +92,19 @@ export class CurationBlock {
       newUsers,
       numCuratorVotesAdded
     } = this.applyVoteAdditions(updatedUsersAfterRemovals, this._votes);
+
+    
     const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterAdditions), (user) => BigInt(user.votes));
     const blockProtocolFeesAccruedWei = BigInt(this.feesGeneratedWei);
     const totalProtocolFeesAccruedWei =
-      blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.totalProtocolFeesAccruedWei);
+    blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.totalProtocolFeesAccruedWei);
     const numCuratorVotes = parseInt(voteStats.sum.toString(), 10);
     const numCurators = voteStats.numItems;
+    
+    const updatedUsersAfterStatsUpdate = this.updateVoteStats(updatedUsersAfterAdditions, numCurators, numCuratorVotes);
+
     const blockRewardsBeforeDistribution: CurationBlockRewards = {
-      users: updatedUsersAfterAdditions,
+      users: updatedUsersAfterStatsUpdate,
       collectionAddress: this.metadata.collectionAddress,
       chainId: this.metadata.chainId,
       numCurators,
@@ -154,6 +159,17 @@ export class CurationBlock {
     return { updatedUsers: currentUsers, usersRemoved, numCuratorVotesRemoved };
   }
 
+
+  protected updateVoteStats(users: CurationUsers, numCurators: number, numCuratorVotes: number): CurationUsers {
+    const updatedUsers: CurationUsers = JSON.parse(JSON.stringify(users));
+    for (const [, user] of Object.entries(updatedUsers)) {
+      user.numCurators = numCurators;
+      user.numCuratorVotes = numCuratorVotes;
+      user.curatorShare = round((user.votes / numCuratorVotes) * 100);
+    }
+    return updatedUsers;
+  }
+
   protected applyVoteAdditions(
     users: CurationUsers,
     votesAdded: CurationVotesAdded[]
@@ -180,7 +196,10 @@ export class CurationBlock {
           chainId: this.metadata.chainId,
           updatedAt: Date.now(),
           totalProtocolFeesAccruedEth: 0,
-          blockProtocolFeesAccruedEth: 0
+          blockProtocolFeesAccruedEth: 0,
+          curatorShare: 0,
+          numCurators: 0,
+          numCuratorVotes: 0
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };

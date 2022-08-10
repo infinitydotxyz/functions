@@ -23,7 +23,9 @@ export const aggregateCollectionSales = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.AGGREGATED_COLLECTION_SALES_COLL}/{intervalId}`)
+  .firestore.document(
+    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.AGGREGATED_COLLECTION_SALES_COLL}/{intervalId}`
+  )
   .onWrite(async (change) => {
     const update = change.after.data() as Partial<SalesIntervalDoc>;
     if (update.hasUnaggregatedSales === true) {
@@ -67,7 +69,9 @@ export const aggregateSourceSales = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`${firestoreConstants.MARKETPLACE_STATS_COLL}/{saleSource}/${firestoreConstants.AGGREGATED_SOURCE_SALES_COLL}/{intervalId}`)
+  .firestore.document(
+    `${firestoreConstants.MARKETPLACE_STATS_COLL}/{saleSource}/${firestoreConstants.AGGREGATED_SOURCE_SALES_COLL}/{intervalId}`
+  )
   .onWrite(async (change) => {
     const update = change.after.data() as Partial<SalesIntervalDoc>;
     if (update.hasUnaggregatedSales === true) {

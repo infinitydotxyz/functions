@@ -52,7 +52,9 @@ export const triggerCurationLedgerAggregation = functions
 
 export const aggregateCuration = functions
   .region(REGION)
-  .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/curationMetadata`)
+  .firestore.document(
+    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/curationMetadata`
+  )
   .onWrite(async (change, context) => {
     const curationMetadata = change.after.data() as CurationMetadata | undefined;
     const [chainId, collectionAddress] = context.params.collectionId.split(':') as [ChainId, string];

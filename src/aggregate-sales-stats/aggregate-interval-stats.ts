@@ -9,7 +9,9 @@ export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentRefe
     await ref.firestore.runTransaction(async (tx) => {
       const initialDoc = await tx.get(ref);
       if (!initialDoc.data()?.isAggregated) {
-        const salesSnapshot = await tx.get(ref.collection(firestoreConstants.INTERVAL_SALES_COLL).where('isDeleted', '==', false));
+        const salesSnapshot = await tx.get(
+          ref.collection(firestoreConstants.INTERVAL_SALES_COLL).where('isDeleted', '==', false)
+        );
         const salesDocs = salesSnapshot.docs.map((item) => item.data());
         const sales = salesDocs.filter((sale) => !!sale) as NftSale[];
         const stats = Sales.getStats(sales);

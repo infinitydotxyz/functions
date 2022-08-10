@@ -39,6 +39,7 @@ export interface CurationVotesAdded extends CurationLedgerEventType {
 export interface CurationVotesRemoved extends CurationLedgerEventType {
   votes: number;
   userAddress: string;
+  txHash: string;
   discriminator: CurationLedgerEvent.VotesRemoved;
 }
 

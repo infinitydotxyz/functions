@@ -1,5 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { CurationBlockAggregator } from './curation-block-aggregator';
@@ -10,7 +11,7 @@ export async function aggregateLedger(
   collectionAddress: string,
   chainId: ChainId
 ) {
-  const curationLedgerRef = curationMetadataRef.collection('curationLedger');
+  const curationLedgerRef = curationMetadataRef.collection(firestoreConstants.CURATION_LEDGER_COLL);
   const snapshot = await curationLedgerRef
     .where('isAggregated', '==', false)
     .where('isDeleted', '==', false)

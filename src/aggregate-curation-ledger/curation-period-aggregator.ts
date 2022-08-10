@@ -14,6 +14,7 @@ import {
   CurationPeriodUser,
   CurationPeriodUsers
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 export class CurationPeriodAggregator {
   static getCurationPeriodRange(timestamp: number): {
@@ -33,7 +34,7 @@ export class CurationPeriodAggregator {
   ): Promise<CurationPeriodUsers> {
     const users: CurationPeriodUsers = {};
     const usersQuery = curationPeriodRef.collection(
-      'curationPeriodUserRewards'
+      firestoreConstants.CURATION_PERIOD_USER_REWARDS_COLL
     ) as FirebaseFirestore.CollectionReference<CurationPeriodUser>;
     const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     for await (const { data: user } of usersStream) {

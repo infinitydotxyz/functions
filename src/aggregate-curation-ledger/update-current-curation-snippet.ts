@@ -8,6 +8,7 @@ import {
   CurationPeriodDoc,
   CurrentCurationSnippetDoc
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { CurationBlock } from './curation-block';
@@ -19,7 +20,7 @@ export async function getCurrentBlocks(
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
 ): Promise<{ current: CurationBlockRewards | null; mostRecent: CurationBlockRewards | null }> {
   const blockRewards = curationMetadataRef.collection(
-    'curationBlockRewards'
+    firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   const mostRecentBlocksQuery = blockRewards.where('isAggregated', '==', true).orderBy('timestamp', 'desc').limit(2);
   const mostRecentBlocksSnapshot = await mostRecentBlocksQuery.get();
@@ -61,7 +62,7 @@ export async function getCurrentPeriods(
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
 ): Promise<{ current: CurationPeriod | null; mostRecent: CurationPeriod | null }> {
   const periodRewards = curationMetadataRef.collection(
-    'curationPeriodRewards'
+    firestoreConstants.CURATION_PERIOD_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationPeriodDoc>;
 
   const mostRecentPeriodQuery = periodRewards.orderBy('timestamp', 'desc').limit(2);
@@ -151,8 +152,8 @@ export async function saveCurrentCurationSnippet(
   { curationSnippet, users }: { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers },
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
 ) {
-  const curationSnippetRef = curationMetadataRef.parent.doc('curationSnippet');
-  const curationSnippetUsersRef = curationMetadataRef.parent.doc('curationSnippet').collection('curationSnippetUsers');
+  const curationSnippetRef = curationMetadataRef.parent.doc(firestoreConstants.CURATION_SNIPPET_DOC);
+  const curationSnippetUsersRef = curationSnippetRef.collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL);
   await curationSnippetRef.set(curationSnippet, { merge: true });
 
   const usersUpdatedAt = Date.now();

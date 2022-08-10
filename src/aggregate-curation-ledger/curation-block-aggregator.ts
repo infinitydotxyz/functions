@@ -6,6 +6,7 @@ import {
   CurationBlockUsers,
   CurationBlockUser
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
@@ -25,7 +26,7 @@ export class CurationBlockAggregator {
 
   private get _blockRewards(): FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc> {
     return this._curationMetadataDocRef.collection(
-      'curationBlockRewards'
+      firestoreConstants.CURATION_BLOCK_REWARDS_COLL
     ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   }
 
@@ -74,12 +75,12 @@ export class CurationBlockAggregator {
     const batch = new FirestoreBatchHandler();
     batch.add(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
     for (const userAddress of Object.keys(usersRemoved)) {
-      const userRef = blockRewardsRef.collection('curationBlockUserRewards').doc(userAddress);
+      const userRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL).doc(userAddress);
       batch.delete(userRef);
     }
 
     for (const [userAddress, user] of Object.entries(users)) {
-      const userRef = blockRewardsRef.collection('curationBlockUserRewards').doc(userAddress);
+      const userRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL).doc(userAddress);
       batch.add(userRef, user, { merge: false });
     }
     await batch.flush();
@@ -121,7 +122,7 @@ export class CurationBlockAggregator {
       return prevBlockRewards;
     }
     const usersQuery = prevBlockRewardsDoc.ref.collection(
-      'curationBlockUserRewards'
+      firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL
     ) as FirebaseFirestore.CollectionReference<CurationBlockUser>;
     const usersStream = streamQuery(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     const users: CurationBlockUsers = {};

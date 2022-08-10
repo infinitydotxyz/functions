@@ -174,7 +174,7 @@ export function removeVotesOnCollections(
         collectionAddress: curatedCollection.address,
         chainId: curatedCollection.chainId as ChainId
       });
-      const ledgerEventRef = db.collection('curationLedger').doc();
+      const ledgerEventRef = db.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
       txn.set(ledgerEventRef, ledgerEvent);
     }
   }

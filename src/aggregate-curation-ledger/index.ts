@@ -28,7 +28,7 @@ export const triggerCurationLedgerAggregation = functions
      */
     const db = getDb();
     const curationEventsToAggregate = db
-      .collectionGroup('curationLedger')
+      .collectionGroup(firestoreConstants.CURATION_LEDGER_COLL)
       .where('isAggregated', '==', false)
       .where('isDeleted', '==', false) as FirebaseFirestore.Query<CurationLedgerEventType>;
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
@@ -52,7 +52,7 @@ export const triggerCurationLedgerAggregation = functions
 
 export const aggregateCuration = functions
   .region(REGION)
-  .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/curationCollection/curationMetadata`)
+  .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/curationMetadata`)
   .onWrite(async (change, context) => {
     const curationMetadata = change.after.data() as CurationMetadata | undefined;
     const [chainId, collectionAddress] = context.params.collectionId.split(':') as [ChainId, string];

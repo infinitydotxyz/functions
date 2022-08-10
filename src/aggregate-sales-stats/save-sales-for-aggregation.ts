@@ -69,7 +69,7 @@ function saveSaleToCollectionCurationLedger(
   const collectionDocRef = db
     .collection(firestoreConstants.COLLECTIONS_COLL)
     .doc(`${sale.chainId}:${sale.collectionAddress}`);
-  const saleRef = collectionDocRef.collection('curationLedger').doc(sale.docId);
+  const saleRef = collectionDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc(sale.docId);
   tx.set(saleRef, curationSale, { merge: false });
 }
 
@@ -82,9 +82,9 @@ function saveSaleToCollectionSales(
   const collectionStatsRef = db
     .collection(firestoreConstants.COLLECTIONS_COLL)
     .doc(`${sale.chainId}:${sale.collectionAddress}`)
-    .collection('aggregatedCollectionSales')
+    .collection(firestoreConstants.AGGREGATED_COLLECTION_SALES_COLL)
     .doc(intervalId);
-  const salesRef = collectionStatsRef.collection('intervalSales');
+  const salesRef = collectionStatsRef.collection(firestoreConstants.INTERVAL_SALES_COLL);
   const saleRef = salesRef.doc(sale.docId);
   tx.set(saleRef, sale, { merge: false });
   const statsDocUpdate: Partial<SalesIntervalDoc> = {
@@ -102,9 +102,9 @@ function saveSaleToNftSales(sale: NftSale & { docId: string; updatedAt: number }
     .doc(`${sale.chainId}:${sale.collectionAddress}`)
     .collection(firestoreConstants.COLLECTION_NFTS_COLL)
     .doc(sale.tokenId)
-    .collection('aggregatedNftSales')
+    .collection(firestoreConstants.AGGREGATED_NFT_SALES_COLL)
     .doc(intervalId);
-  const salesRef = nftStatsRef.collection('intervalSales');
+  const salesRef = nftStatsRef.collection(firestoreConstants.INTERVAL_SALES_COLL);
   const saleRef = salesRef.doc(sale.docId);
   tx.set(saleRef, sale, { merge: false });
   const statsDocUpdate: Partial<SalesIntervalDoc> = {
@@ -121,11 +121,11 @@ function saveSaleToSourceSales(
   const db = getDb();
   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
   const sourceStatsRef = db
-    .collection('marketplaceStats')
+    .collection(firestoreConstants.MARKETPLACE_STATS_COLL)
     .doc(sale.source)
-    .collection('aggregatedSourceSales')
+    .collection(firestoreConstants.AGGREGATED_SOURCE_SALES_COLL)
     .doc(intervalId);
-  const salesRef = sourceStatsRef.collection('intervalSales');
+  const salesRef = sourceStatsRef.collection(firestoreConstants.INTERVAL_SALES_COLL);
   const saleRef = salesRef.doc(sale.docId);
   tx.set(saleRef, sale, { merge: false });
   const statsDocUpdate: Partial<SalesIntervalDoc> = {

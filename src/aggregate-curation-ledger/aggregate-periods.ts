@@ -5,6 +5,7 @@ import {
   CurationPeriodDoc,
   CurationPeriodUser
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
@@ -16,7 +17,7 @@ export async function aggregatePeriods(
   chainId: ChainId
 ) {
   const curationBlockRewardsRef = curationMetadataRef.collection(
-    'curationBlockRewards'
+    firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   const snapshot = await curationBlockRewardsRef
     .where('isAggregate', '==', false)
@@ -45,7 +46,7 @@ export async function aggregatePeriods(
     const batchHandler = new FirestoreBatchHandler();
     const curationPeriodDocId = `${curationPeriodRange.startTimestamp}`;
     const curationPeriodDocRef = curationMetadataRef
-      .collection('curationPeriodRewards')
+      .collection(firestoreConstants.CURATION_PERIOD_REWARDS_COLL)
       .doc(curationPeriodDocId) as FirebaseFirestore.DocumentReference<CurationPeriodDoc>;
     const curationPeriodUpdate: CurationPeriodDoc = {
       ...curationPeriodDocData
@@ -53,7 +54,7 @@ export async function aggregatePeriods(
     batchHandler.add(curationPeriodDocRef, curationPeriodUpdate, { merge: false });
     for (const user of Object.values(users)) {
       const userDoc = curationPeriodDocRef
-        .collection('curationPeriodUserRewards')
+        .collection(firestoreConstants.CURATION_PERIOD_USER_REWARDS_COLL)
         .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationPeriodUser>;
       batchHandler.add(userDoc, user, { merge: false });
     }
@@ -61,7 +62,7 @@ export async function aggregatePeriods(
     await batchHandler.flush();
 
     const invalidUsersQuery = curationPeriodDocRef
-      .collection('curationPeriodUserRewards')
+      .collection(firestoreConstants.CURATION_PERIOD_USER_REWARDS_COLL)
       .where('updatedAt', '<', aggregationStartTime);
     const invalidUsersStream = streamQueryWithRef(invalidUsersQuery, (item, ref) => [ref], { pageSize: 300 });
     const batch = curationPeriodDocRef.firestore.batch();

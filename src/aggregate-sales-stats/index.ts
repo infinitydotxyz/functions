@@ -23,7 +23,7 @@ export const aggregateCollectionSales = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/aggregatedCollectionSales/{intervalId}`)
+  .firestore.document(`${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.AGGREGATED_COLLECTION_SALES_COLL}/{intervalId}`)
   .onWrite(async (change) => {
     const update = change.after.data() as Partial<SalesIntervalDoc>;
     if (update.hasUnaggregatedSales === true) {
@@ -45,7 +45,7 @@ export const aggregateNftSales = functions
     timeoutSeconds: 540
   })
   .firestore.document(
-    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_NFTS_COLL}/{tokenId}/aggregatedNftSales/{intervalId}`
+    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_NFTS_COLL}/{tokenId}/${firestoreConstants.AGGREGATED_NFT_SALES_COLL}/{intervalId}`
   )
   .onWrite(async (change) => {
     const update = change.after.data() as Partial<SalesIntervalDoc>;
@@ -67,7 +67,7 @@ export const aggregateSourceSales = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`marketplaceStats/{saleSource}/aggregatedSourceSales/{intervalId}`)
+  .firestore.document(`${firestoreConstants.MARKETPLACE_STATS_COLL}/{saleSource}/${firestoreConstants.AGGREGATED_SOURCE_SALES_COLL}/{intervalId}`)
   .onWrite(async (change) => {
     const update = change.after.data() as Partial<SalesIntervalDoc>;
     if (update.hasUnaggregatedSales === true) {
@@ -78,7 +78,7 @@ export const aggregateSourceSales = functions
       if (!sourceStatsRef) {
         throw new Error('No collection ref found');
       }
-      const statsCollectionRef = sourceStatsRef.collection('sourceStats');
+      const statsCollectionRef = sourceStatsRef.collection(firestoreConstants.SOURCE_STATS_COLL);
       await aggregateSourceStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });

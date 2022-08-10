@@ -33,7 +33,7 @@
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.150.1",
+    "@infinityxyz/lib": "^1.152.0",
     "date-fns": "^2.29.1",
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",

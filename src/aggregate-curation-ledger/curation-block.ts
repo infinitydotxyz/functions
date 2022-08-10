@@ -10,6 +10,7 @@ import {
   CurationBlockUser,
   CurationBlockUsers
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { formatEther } from 'ethers/lib/utils';
 import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../firestore/stream-query';
@@ -40,7 +41,7 @@ export class CurationBlock {
   ): Promise<CurationBlockUsers> {
     const users: CurationBlockUsers = {};
     const usersQuery = blockRewardsRef.collection(
-      'curationBlockUserRewards'
+      firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL
     ) as FirebaseFirestore.CollectionReference<CurationBlockUser>;
     const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     for await (const { data: user } of usersStream) {

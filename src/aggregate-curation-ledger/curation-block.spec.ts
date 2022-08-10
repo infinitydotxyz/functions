@@ -47,7 +47,8 @@ const getVotesRemovedEvent = (userAddress: string, votes: number): CurationVotes
     isAggregated: false,
     isDeleted: false,
     address: '0x0',
-    chainId: ChainId.Mainnet
+    chainId: ChainId.Mainnet,
+    txHash: '0x0'
   };
 };
 
@@ -389,7 +390,7 @@ describe('curation block', () => {
     const block1 = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
 
     const sale = getSaleEvent(1, 2.5);
-    const expectedBlock1FeesGeneratedWei = BigInt(sale.protocolFeeWei)
+    const expectedBlock1FeesGeneratedWei = BigInt(sale.protocolFeeWei);
     block1.addEvent(sale);
 
     const { blockRewards: block1Rewards, usersAdded, usersRemoved } = block1.getBlockRewards(defaultPrevBlockRewards);
@@ -420,14 +421,17 @@ describe('curation block', () => {
     expect(blockProtocolFeesAccruedWei).toBe(expectedBlock1FeesGeneratedWei.toString());
     expect(arbitrageProtocolFeesAccruedWei).toBe(expectedBlock1FeesGeneratedWei.toString());
 
-
     const block2 = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
     const address1 = '0x1';
     const vote = getVotesAddedEvent(address1, 1);
     block2.addEvent(vote);
     block2.addEvent(sale);
 
-    const { blockRewards: block2Rewards, usersAdded: block2UsersAdded, usersRemoved: block2UsersRemoved } = block2.getBlockRewards(block1Rewards);
+    const {
+      blockRewards: block2Rewards,
+      usersAdded: block2UsersAdded,
+      usersRemoved: block2UsersRemoved
+    } = block2.getBlockRewards(block1Rewards);
     expect(Object.values(block2UsersAdded).length).toBe(1);
     expect(Object.values(block2UsersRemoved).length).toBe(0);
     expect(block2Rewards.numCuratorVotes).toBe(1);
@@ -442,13 +446,19 @@ describe('curation block', () => {
     expect(block2Rewards.numCuratorsRemoved).toBe(0);
     expect(block2Rewards.numCuratorVotesAdded).toBe(1);
     expect(block2Rewards.numCuratorVotesRemoved).toBe(0);
-    expect(block2Rewards.totalProtocolFeesAccruedWei).toBe((expectedBlock1FeesGeneratedWei + expectedBlock2FeesGeneratedWei).toString());
+    expect(block2Rewards.totalProtocolFeesAccruedWei).toBe(
+      (expectedBlock1FeesGeneratedWei + expectedBlock2FeesGeneratedWei).toString()
+    );
     expect(block2Rewards.blockProtocolFeesAccruedWei).toBe(expectedBlock2FeesGeneratedWei.toString());
     expect(block2Rewards.arbitrageProtocolFeesAccruedWei).toBe('0');
 
     const user = block2Rewards.users[address1];
-    expect(user.blockProtocolFeesAccruedWei).toBe((expectedBlock2FeesGeneratedWei + arbitrageFeesFromBlock1).toString());
-    expect(user.totalProtocolFeesAccruedWei).toBe((expectedBlock2FeesGeneratedWei + arbitrageFeesFromBlock1).toString());
+    expect(user.blockProtocolFeesAccruedWei).toBe(
+      (expectedBlock2FeesGeneratedWei + arbitrageFeesFromBlock1).toString()
+    );
+    expect(user.totalProtocolFeesAccruedWei).toBe(
+      (expectedBlock2FeesGeneratedWei + arbitrageFeesFromBlock1).toString()
+    );
     expect(user.votes).toBe(1);
-  })
+  });
 });

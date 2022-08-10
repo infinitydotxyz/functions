@@ -32,7 +32,9 @@ export class CurationBlock {
   private _votes: CurationVotesAdded[] = [];
   private _votesRemoved: CurationVotesRemoved[] = [];
 
-  static async getBlockUsers(blockRewardsRef: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc>): Promise<CurationUsers> {
+  static async getBlockUsers(
+    blockRewardsRef: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc>
+  ): Promise<CurationUsers> {
     const users: CurationUsers = {};
     const usersQuery = blockRewardsRef.collection(
       'curationBlockUserRewards'
@@ -93,14 +95,13 @@ export class CurationBlock {
       numCuratorVotesAdded
     } = this.applyVoteAdditions(updatedUsersAfterRemovals, this._votes);
 
-    
     const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterAdditions), (user) => BigInt(user.votes));
     const blockProtocolFeesAccruedWei = BigInt(this.feesGeneratedWei);
     const totalProtocolFeesAccruedWei =
-    blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.totalProtocolFeesAccruedWei);
+      blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.totalProtocolFeesAccruedWei);
     const numCuratorVotes = parseInt(voteStats.sum.toString(), 10);
     const numCurators = voteStats.numItems;
-    
+
     const updatedUsersAfterStatsUpdate = this.updateVoteStats(updatedUsersAfterAdditions, numCurators, numCuratorVotes);
 
     const blockRewardsBeforeDistribution: CurationBlockRewards = {
@@ -158,7 +159,6 @@ export class CurationBlock {
 
     return { updatedUsers: currentUsers, usersRemoved, numCuratorVotesRemoved };
   }
-
 
   protected updateVoteStats(users: CurationUsers, numCurators: number, numCuratorVotes: number): CurationUsers {
     const updatedUsers: CurationUsers = JSON.parse(JSON.stringify(users));

@@ -109,7 +109,7 @@ export class CurationPeriodAggregator {
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
       totalProtocolFeesAccruedEth: mostRecentBlock.totalProtocolFeesAccruedEth,
       periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
-      users: {} as CurationPeriodUsers,
+      users: {} as CurationPeriodUsers
     };
 
     const usersBlockRewards: { [userAddress: string]: CurationUser[] } = {};

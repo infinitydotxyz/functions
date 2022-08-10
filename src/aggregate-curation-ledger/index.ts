@@ -21,7 +21,7 @@ export const triggerCurationLedgerAggregation = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('0,10,20,30,40,50 * * * *') 
+  .pubsub.schedule('0,10,20,30,40,50 * * * *')
   .onRun(async () => {
     /**
      * query for ledgers that need to be aggregated

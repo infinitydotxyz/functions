@@ -128,7 +128,7 @@ export interface CurrentCurationSnippet {
 
   prevPeriod: CurationPeriod;
   prevBlock: CurationPeriod;
-} 
+}
 
 export interface CurrentCurationSnippetDoc {
   currentPeriod: CurationPeriodDoc | null;

@@ -147,28 +147,31 @@ export function getCurrentCurationSnippet(
   };
 }
 
-export async function saveCurrentCurationSnippet({curationSnippet, users}: { curationSnippet: CurrentCurationSnippetDoc; users: CurationUsers }, curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>) { 
-    const curationSnippetRef = curationMetadataRef.parent.doc('curationSnippet');
-    const curationSnippetUsersRef = curationMetadataRef.parent.doc('curationSnippet').collection('curationSnippetUsers');
-    await curationSnippetRef.set(curationSnippet, { merge: true });
-    
-    const usersUpdatedAt = Date.now();
-    const batchHandler = new FirestoreBatchHandler();
-    for(const [address, user] of Object.entries(users)) {
-        if(address) {
-            user.updatedAt = usersUpdatedAt;
-            const ref = curationSnippetUsersRef.doc(address);
-            batchHandler.add(ref, user, {merge: false});
-        }
+export async function saveCurrentCurationSnippet(
+  { curationSnippet, users }: { curationSnippet: CurrentCurationSnippetDoc; users: CurationUsers },
+  curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
+) {
+  const curationSnippetRef = curationMetadataRef.parent.doc('curationSnippet');
+  const curationSnippetUsersRef = curationMetadataRef.parent.doc('curationSnippet').collection('curationSnippetUsers');
+  await curationSnippetRef.set(curationSnippet, { merge: true });
+
+  const usersUpdatedAt = Date.now();
+  const batchHandler = new FirestoreBatchHandler();
+  for (const [address, user] of Object.entries(users)) {
+    if (address) {
+      user.updatedAt = usersUpdatedAt;
+      const ref = curationSnippetUsersRef.doc(address);
+      batchHandler.add(ref, user, { merge: false });
     }
+  }
 
-    await batchHandler.flush();
+  await batchHandler.flush();
 
-    const expiredUsers = curationSnippetUsersRef.where('updatedAt', '<', usersUpdatedAt);
-    const usersToDelete = streamQueryWithRef(expiredUsers, (item,ref) => [ref], { pageSize: 300 });
-    for await (const { data, ref } of usersToDelete) {
-        batchHandler.delete(ref);
-    }
+  const expiredUsers = curationSnippetUsersRef.where('updatedAt', '<', usersUpdatedAt);
+  const usersToDelete = streamQueryWithRef(expiredUsers, (item, ref) => [ref], { pageSize: 300 });
+  for await (const { data, ref } of usersToDelete) {
+    batchHandler.delete(ref);
+  }
 
-    await batchHandler.flush();
+  await batchHandler.flush();
 }

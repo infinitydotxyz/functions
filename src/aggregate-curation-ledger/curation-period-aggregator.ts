@@ -3,16 +3,17 @@ import { calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { formatEth } from '../utils';
 import { CurationBlock } from './curation-block';
+import { CurationPeriodState } from './types';
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
+  CurationBlockUser,
+  CurationPeriod,
+  CurationPeriod as ICurationPeriod,
   CurationPeriodDoc,
-  CurationPeriodState,
   CurationPeriodUser,
-  CurationPeriodUsers,
-  CurationUser
-} from './types';
-import { CurationPeriod as ICurationPeriod } from './types';
+  CurationPeriodUsers
+} from '@infinityxyz/lib/types/core/curation-ledger';
 
 export class CurationPeriodAggregator {
   static getCurationPeriodRange(timestamp: number): {
@@ -101,7 +102,7 @@ export class CurationPeriodAggregator {
   getPeriodRewards(blocks: CurationBlockRewards[]): ICurationPeriod {
     const mostRecentBlock = blocks[blocks.length - 1];
     const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) => BigInt(block.blockProtocolFeesAccruedWei));
-    const curationPeriod: ICurationPeriod = {
+    const curationPeriod: CurationPeriod = {
       collectionAddress: this._collectionAddress,
       chainId: this._chainId,
       timestamp: this._startTimestamp,
@@ -112,7 +113,7 @@ export class CurationPeriodAggregator {
       users: {} as CurationPeriodUsers
     };
 
-    const usersBlockRewards: { [userAddress: string]: CurationUser[] } = {};
+    const usersBlockRewards: { [userAddress: string]: CurationBlockUser[] } = {};
 
     for (const block of blocks) {
       for (const blockUser of Object.values(block.users)) {
@@ -130,7 +131,7 @@ export class CurationPeriodAggregator {
     return curationPeriod;
   }
 
-  protected calculateUserPeriodRewards(userBlockRewards: CurationUser[]) {
+  protected calculateUserPeriodRewards(userBlockRewards: CurationBlockUser[]) {
     const blockProtocolFeeStats = calculateStatsBigInt(userBlockRewards, (block) =>
       BigInt(block.blockProtocolFeesAccruedWei)
     );

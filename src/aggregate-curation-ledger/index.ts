@@ -1,7 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
-import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';

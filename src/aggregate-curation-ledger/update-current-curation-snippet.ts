@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  CurationBlockRewards,
+  CurationBlockRewardsDoc,
+  CurationBlockUser,
+  CurationBlockUsers,
+  CurationPeriod,
+  CurationPeriodDoc,
+  CurrentCurationSnippetDoc
+} from '@infinityxyz/lib/types/core/curation-ledger';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
-import {
-  CurationBlockRewards,
-  CurationBlockRewardsDoc,
-  CurationMetadata,
-  CurationPeriod,
-  CurationPeriodDoc,
-  CurationUser,
-  CurationUsers,
-  CurrentCurationSnippetDoc
-} from './types';
+import { CurationMetadata } from './types';
 
 export async function getCurrentBlocks(
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
@@ -81,7 +81,7 @@ export async function getCurrentPeriods(
           users: periodUsers,
           isCurrent,
           isPrev
-        };
+        } as CurationPeriod & { isCurrent: boolean; isPrev: boolean };
       })
     )
   ).reduce(
@@ -103,19 +103,19 @@ export async function getCurrentPeriods(
 export function getCurrentCurationSnippet(
   periods: { current: CurationPeriod | null; mostRecent: CurationPeriod | null },
   blocks: { current: CurationBlockRewards | null; mostRecent: CurationBlockRewards | null }
-): { curationSnippet: CurrentCurationSnippetDoc; users: CurationUsers } {
-  const sortUsersByTotalProtocolFees = (users: CurationUsers): CurationUser[] => {
+): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
+  const sortUsersByTotalProtocolFees = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
       return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth;
     });
   };
 
-  const sortUsersByVotes = (users: CurationUsers): CurationUser[] => {
+  const sortUsersByVotes = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
       return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth;
     });
   };
-  const sortUsersByFirstVotedAt = (users: CurationUsers): CurationUser[] => {
+  const sortUsersByFirstVotedAt = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
       return a.firstVotedAt - b.firstVotedAt;
     });
@@ -148,7 +148,7 @@ export function getCurrentCurationSnippet(
 }
 
 export async function saveCurrentCurationSnippet(
-  { curationSnippet, users }: { curationSnippet: CurrentCurationSnippetDoc; users: CurationUsers },
+  { curationSnippet, users }: { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers },
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
 ) {
   const curationSnippetRef = curationMetadataRef.parent.doc('curationSnippet');

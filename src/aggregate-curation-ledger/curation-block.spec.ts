@@ -1,14 +1,15 @@
 import { ChainId, InfinityNftSale, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
-import { parseEther } from 'ethers/lib/utils';
 import {
-  CurationLedgerEvent,
-  CurationLedgerSale,
   CurationVotesAdded,
-  CurationVotesRemoved
-} from '../aggregate-sales-stats/curation.types';
+  CurationLedgerEvent,
+  CurationVotesRemoved,
+  CurationLedgerSale,
+  CurationBlockRewards,
+  CurationBlockUsers
+} from '@infinityxyz/lib/types/core/curation-ledger';
+import { parseEther } from 'ethers/lib/utils';
 import { formatEth } from '../utils';
 import { CurationBlock } from './curation-block';
-import { CurationBlockRewards, CurationUsers } from './types';
 
 const getFees = (price: number, feePercent = 2.5) => {
   const priceWei = parseEther(price.toString());
@@ -94,16 +95,16 @@ class MockCurationBlock extends CurationBlock {
   }
 
   public testApplyVoteRemovals(
-    users: CurationUsers,
+    users: CurationBlockUsers,
     votesRemoved: CurationVotesRemoved[]
-  ): { updatedUsers: CurationUsers; usersRemoved: CurationUsers; numCuratorVotesRemoved: number } {
+  ): { updatedUsers: CurationBlockUsers; usersRemoved: CurationBlockUsers; numCuratorVotesRemoved: number } {
     return this.applyVoteRemovals(users, votesRemoved);
   }
 
   public testApplyVoteAdditions(
-    users: CurationUsers,
+    users: CurationBlockUsers,
     votesAdded: CurationVotesAdded[]
-  ): { updatedUsers: CurationUsers; newUsers: CurationUsers; numCuratorVotesAdded: number } {
+  ): { updatedUsers: CurationBlockUsers; newUsers: CurationBlockUsers; numCuratorVotesAdded: number } {
     return this.applyVoteAdditions(users, votesAdded);
   }
 

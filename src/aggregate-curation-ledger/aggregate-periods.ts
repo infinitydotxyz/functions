@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+import {
+  CurationBlockRewardsDoc,
+  CurationPeriodDoc,
+  CurationPeriodUser
+} from '@infinityxyz/lib/types/core/curation-ledger';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
-import { CurationBlockRewardsDoc, CurationMetadata, CurationPeriodDoc, CurationPeriodUser } from './types';
+import { CurationMetadata } from './types';
 
 export async function aggregatePeriods(
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,

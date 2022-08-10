@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
-import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
+import { CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { CurationBlockAggregator } from './curation-block-aggregator';

@@ -1,8 +1,8 @@
 import { ChainId, InfinityNftSale, NftSale, SaleSource } from '@infinityxyz/lib/types/core';
+import { CurationLedgerEvent, CurationLedgerSale } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQueryWithRef } from '../firestore/stream-query';
-import { CurationLedgerEvent, CurationLedgerSale } from './curation.types';
 import { AggregationInterval, SalesIntervalDoc } from './types';
 import { getIntervalAggregationId } from './utils';
 

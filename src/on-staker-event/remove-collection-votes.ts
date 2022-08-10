@@ -3,7 +3,7 @@ import { RageQuitEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto/user/user-profile.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { CurationVotesRemoved, CurationLedgerEvent } from '../aggregate-sales-stats/curation.types';
+import { CurationLedgerEvent, CurationVotesRemoved } from '@infinityxyz/lib/types/core/curation-ledger';
 
 export async function removeUserCollectionVotes(
   user: string,

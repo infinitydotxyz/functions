@@ -1,16 +1,19 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
-import { formatEther } from 'ethers/lib/utils';
 import {
-  CurationLedgerEvent,
-  CurationLedgerEventType,
   CurationLedgerSale,
   CurationVotesAdded,
-  CurationVotesRemoved
-} from '../aggregate-sales-stats/curation.types';
+  CurationVotesRemoved,
+  CurationBlockRewardsDoc,
+  CurationLedgerEventType,
+  CurationLedgerEvent,
+  CurationBlockRewards,
+  CurationBlockUser,
+  CurationBlockUsers
+} from '@infinityxyz/lib/types/core/curation-ledger';
+import { formatEther } from 'ethers/lib/utils';
 import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { formatEth, round } from '../utils';
-import { CurationBlockRewards, CurationBlockRewardsDoc, CurationUser, CurationUsers } from './types';
 
 interface BlockMetadata {
   /**
@@ -34,11 +37,11 @@ export class CurationBlock {
 
   static async getBlockUsers(
     blockRewardsRef: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc>
-  ): Promise<CurationUsers> {
-    const users: CurationUsers = {};
+  ): Promise<CurationBlockUsers> {
+    const users: CurationBlockUsers = {};
     const usersQuery = blockRewardsRef.collection(
       'curationBlockUserRewards'
-    ) as FirebaseFirestore.CollectionReference<CurationUser>;
+    ) as FirebaseFirestore.CollectionReference<CurationBlockUser>;
     const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     for await (const { data: user } of usersStream) {
       if (user.userAddress) {
@@ -79,8 +82,8 @@ export class CurationBlock {
 
   public getBlockRewards(prevBlockRewards: CurationBlockRewards): {
     blockRewards: CurationBlockRewards;
-    usersAdded: CurationUsers;
-    usersRemoved: CurationUsers;
+    usersAdded: CurationBlockUsers;
+    usersRemoved: CurationBlockUsers;
   } {
     const prevUsers = prevBlockRewards.users;
     const {
@@ -132,10 +135,10 @@ export class CurationBlock {
   }
 
   protected applyVoteRemovals(
-    users: CurationUsers,
+    users: CurationBlockUsers,
     votesRemoved: CurationVotesRemoved[]
-  ): { updatedUsers: CurationUsers; usersRemoved: CurationUsers; numCuratorVotesRemoved: number } {
-    const currentUsers: CurationUsers = JSON.parse(JSON.stringify(users));
+  ): { updatedUsers: CurationBlockUsers; usersRemoved: CurationBlockUsers; numCuratorVotesRemoved: number } {
+    const currentUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
     let numCuratorVotesRemoved = 0;
     for (const voteRemoved of votesRemoved) {
       const existingUser = currentUsers[voteRemoved.userAddress];
@@ -148,7 +151,7 @@ export class CurationBlock {
       }
     }
 
-    const usersRemoved = {} as CurationUsers;
+    const usersRemoved = {} as CurationBlockUsers;
     for (const [address, user] of Object.entries(currentUsers)) {
       if (user.votes <= 0) {
         user.votes = 0;
@@ -160,8 +163,12 @@ export class CurationBlock {
     return { updatedUsers: currentUsers, usersRemoved, numCuratorVotesRemoved };
   }
 
-  protected updateVoteStats(users: CurationUsers, numCurators: number, numCuratorVotes: number): CurationUsers {
-    const updatedUsers: CurationUsers = JSON.parse(JSON.stringify(users));
+  protected updateVoteStats(
+    users: CurationBlockUsers,
+    numCurators: number,
+    numCuratorVotes: number
+  ): CurationBlockUsers {
+    const updatedUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
     for (const [, user] of Object.entries(updatedUsers)) {
       user.numCurators = numCurators;
       user.numCuratorVotes = numCuratorVotes;
@@ -171,11 +178,11 @@ export class CurationBlock {
   }
 
   protected applyVoteAdditions(
-    users: CurationUsers,
+    users: CurationBlockUsers,
     votesAdded: CurationVotesAdded[]
-  ): { updatedUsers: CurationUsers; newUsers: CurationUsers; numCuratorVotesAdded: number } {
-    const currentUsers: CurationUsers = JSON.parse(JSON.stringify(users));
-    const newUsers = {} as CurationUsers;
+  ): { updatedUsers: CurationBlockUsers; newUsers: CurationBlockUsers; numCuratorVotesAdded: number } {
+    const currentUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
+    const newUsers = {} as CurationBlockUsers;
     let numCuratorVotesAdded = 0;
     for (const voteAdded of votesAdded) {
       const existingUser = currentUsers[voteAdded.userAddress];
@@ -185,7 +192,7 @@ export class CurationBlock {
         existingUser.votes = updatedVotes;
         existingUser.lastVotedAt = this.metadata.blockStart;
       } else {
-        const newUser: CurationUser = {
+        const newUser: CurationBlockUser = {
           userAddress: voteAdded.userAddress,
           votes: voteAdded.votes,
           totalProtocolFeesAccruedWei: '0',

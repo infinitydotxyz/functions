@@ -1,10 +1,16 @@
 import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
-import { CurationLedgerEventType } from '../aggregate-sales-stats/curation.types';
+import {
+  CurationBlockRewardsDoc,
+  CurationLedgerEventType,
+  CurationBlockRewards,
+  CurationBlockUsers,
+  CurationBlockUser
+} from '@infinityxyz/lib/types/core/curation-ledger';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQuery } from '../firestore/stream-query';
 import { CurationBlock } from './curation-block';
-import { CurationBlockRewardsDoc, CurationBlockRewards, CurationUser, CurationUsers, CurationMetadata } from './types';
+import { CurationMetadata } from './types';
 
 export class CurationBlockAggregator {
   static getCurationBlockRange(timestamp: number) {
@@ -59,7 +65,7 @@ export class CurationBlockAggregator {
     }
   }
 
-  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards, usersRemoved: CurationUsers) {
+  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards, usersRemoved: CurationBlockUsers) {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
     const docId = `${curationBlockRewardsDoc.timestamp}`;
@@ -116,9 +122,9 @@ export class CurationBlockAggregator {
     }
     const usersQuery = prevBlockRewardsDoc.ref.collection(
       'curationBlockUserRewards'
-    ) as FirebaseFirestore.CollectionReference<CurationUser>;
+    ) as FirebaseFirestore.CollectionReference<CurationBlockUser>;
     const usersStream = streamQuery(usersQuery, (item, ref) => [ref], { pageSize: 300 });
-    const users: CurationUsers = {};
+    const users: CurationBlockUsers = {};
     for await (const user of usersStream) {
       users[user.userAddress] = user;
     }

@@ -53,9 +53,8 @@
 - [x] how do we handle the case where a user should be removed from `curationPeriodUserRewards`?
 - [x] How do we query for rewards by user? 
     * collection group query on `curationSnippetUsers` - what about historical data? 
-- [ ] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers 
+- [x] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers 
 - [ ] Write vote events to ledger when user votes 
-
     * Refactor handling of votes to use contract listeners to remove race conditions allowing double spending
         * User stakes/un-stakes/rage quits => update votes available in db, remove votes from collections if necessary
 - [ ] Calculate APR for collections and users? - how do you calculate user APR? Should it be relative to eth or usd? 

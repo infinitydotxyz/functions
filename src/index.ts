@@ -1,15 +1,16 @@
-import { addOrdersToNfts } from './add-orders-to-nfts';
-import { updateOrderStatus } from './update-order-status';
-import { syncNftCollectionData } from './sync-nft-collection-data';
-import { onOrderChange } from './on-order-change';
-import { onOrderTrigger } from './on-order-trigger';
+import { addOrdersToNfts } from './functions/add-orders-to-nfts';
+import { updateOrderStatus } from './functions/update-order-status';
+import { syncNftCollectionData } from './functions/sync-nft-collection-data';
+import { onOrderChange } from './functions/on-order-change';
+import { onOrderTrigger } from './functions/on-order-trigger';
 import {
   saveSalesToBeAggregated,
   aggregateCollectionSales,
-  aggregateNftSales,
   aggregateSourceSales
-} from './aggregate-sales-stats';
-import { syncStatsCollectionData } from './sync-stats-collection-data';
+} from './functions/aggregate-sales-stats';
+import { syncStatsCollectionData } from './functions/sync-stats-collection-data';
+import { aggregateCurationLedger, triggerCurationLedgerAggregation } from './functions/aggregate-curation-ledger';
+import { onStakerEvent, triggerStakerEvents } from './functions/on-staker-event';
 
 export {
   addOrdersToNfts,
@@ -19,7 +20,10 @@ export {
   onOrderTrigger,
   saveSalesToBeAggregated,
   aggregateCollectionSales,
-  aggregateNftSales,
   aggregateSourceSales,
-  syncStatsCollectionData
+  syncStatsCollectionData,
+  triggerCurationLedgerAggregation,
+  aggregateCurationLedger,
+  onStakerEvent,
+  triggerStakerEvents
 };

@@ -10,7 +10,7 @@
     "start": "npm run shell",
     "deploy:dev": "npm run build && firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "npm run build && firebase deploy --only functions --project nftc-infinity",
-    "deploy:test": "npm run build && firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateNftSales,functions:aggregateSourceSales,functions:syncStatsCollectionData --project nftc-test-270df",
+    "deploy:test": "npm run build && firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateSourceSales,functions:syncStatsCollectionData,functions:triggerCurationLedgerAggregation,functions:aggregateCurationLedger,functions:onStakerEvent,functions:triggerStakerEvents  --project nftc-test-270df",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",

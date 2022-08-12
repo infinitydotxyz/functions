@@ -31,6 +31,7 @@ export const triggerCurationLedgerAggregation = functions
       .collectionGroup(firestoreConstants.CURATION_LEDGER_COLL)
       .where('isAggregated', '==', false)
       .where('isDeleted', '==', false) as FirebaseFirestore.Query<CurationLedgerEventType>;
+
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
 
     const updates = new Set<string>();
@@ -58,6 +59,46 @@ export const triggerCurationLedgerAggregation = functions
       }
     }
     await batchHandler.flush();
+  });
+
+export const triggerCurationMetadataAggregation = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .pubsub.schedule('5,15,25,35,45,55 * * * *')
+  .onRun(async () => {
+    const db = getDb();
+    const tenMin = 10 * 60 * 1000;
+
+    const currentSnippetsToAggregate = db
+      .collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
+      .where('currentSnippetRequiresAggregation', '==', false)
+      .where('updatedAt', '<', Date.now() - tenMin) as FirebaseFirestore.Query<CurationMetadata>;
+
+    const periodsToAggregate = db
+      .collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
+      .where('periodsRequireAggregation', '==', false)
+      .where('updatedAt', '<', Date.now() - tenMin) as FirebaseFirestore.Query<CurationMetadata>;
+
+    const currentSnippetsToAggregateStream = streamQueryWithRef(currentSnippetsToAggregate, (item, ref) => [ref], {
+      pageSize: 300
+    });
+    const periodsToAggregateStream = streamQueryWithRef(periodsToAggregate, (item, ref) => [ref], { pageSize: 300 });
+
+    const updates = new Set<string>();
+    const batchHandler = new FirestoreBatchHandler();
+    const streamAndTrigger = async (stream: AsyncIterableIterator<{ ref: FirebaseFirestore.DocumentReference }>) => {
+      for await (const { ref } of stream) {
+        if (!updates.has(ref.path)) {
+          updates.add(ref.path);
+          batchHandler.add(ref, { updatedAt: Date.now() }, { merge: true });
+        }
+      }
+    };
+
+    await streamAndTrigger(currentSnippetsToAggregateStream);
+    await streamAndTrigger(periodsToAggregateStream);
   });
 
 export const aggregateCurationLedger = functions

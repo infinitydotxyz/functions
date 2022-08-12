@@ -9,7 +9,11 @@ import {
   aggregateSourceSales
 } from './functions/aggregate-sales-stats';
 import { syncStatsCollectionData } from './functions/sync-stats-collection-data';
-import { aggregateCurationLedger, triggerCurationLedgerAggregation } from './functions/aggregate-curation-ledger';
+import {
+  aggregateCurationLedger,
+  triggerCurationLedgerAggregation,
+  triggerCurationMetadataAggregation
+} from './functions/aggregate-curation-ledger';
 import { onStakerEvent, triggerStakerEvents } from './functions/on-staker-event';
 
 export {
@@ -25,5 +29,6 @@ export {
   triggerCurationLedgerAggregation,
   aggregateCurationLedger,
   onStakerEvent,
-  triggerStakerEvents
+  triggerStakerEvents,
+  triggerCurationMetadataAggregation
 };

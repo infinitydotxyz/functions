@@ -8,6 +8,8 @@ import { streamQueryWithRef } from '../../firestore/stream-query';
 import { REGION } from '../../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';
+import { CurationBlockAggregator } from './curation-block-aggregator';
+import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
 import {
   getCurrentBlocks,
@@ -73,18 +75,22 @@ export const triggerCurationMetadataAggregation = functions
 
     const currentSnippetsToAggregate = db
       .collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
-      .where('currentSnippetRequiresAggregation', '==', false)
+      .where('currentSnippetRequiresAggregation', '==', true)
       .where('updatedAt', '<', Date.now() - tenMin) as FirebaseFirestore.Query<CurationMetadata>;
 
     const periodsToAggregate = db
       .collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
-      .where('periodsRequireAggregation', '==', false)
+      .where('periodsRequireAggregation', '==', true)
       .where('updatedAt', '<', Date.now() - tenMin) as FirebaseFirestore.Query<CurationMetadata>;
+
+    const currentSnippetsToRefresh = db.collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
+    .where('refreshCurrentSnippetBy', '<=', Date.now()) as FirebaseFirestore.Query<CurationMetadata>;
 
     const currentSnippetsToAggregateStream = streamQueryWithRef(currentSnippetsToAggregate, (item, ref) => [ref], {
       pageSize: 300
     });
     const periodsToAggregateStream = streamQueryWithRef(periodsToAggregate, (item, ref) => [ref], { pageSize: 300 });
+    const currentSnippetsToRefreshStream = streamQueryWithRef(currentSnippetsToRefresh, (item, ref) => [ref], { pageSize: 300 });
 
     const updates = new Set<string>();
     const batchHandler = new FirestoreBatchHandler();
@@ -99,6 +105,7 @@ export const triggerCurationMetadataAggregation = functions
 
     await streamAndTrigger(currentSnippetsToAggregateStream);
     await streamAndTrigger(periodsToAggregateStream);
+    await streamAndTrigger(currentSnippetsToRefreshStream);
   });
 
 export const aggregateCurationLedger = functions
@@ -157,10 +164,14 @@ export const aggregateCurationLedger = functions
         stakerContractAddress,
         stakerContractChainId
       );
+      const currentBlockExpiresAt = currentBlocks.current?.timestamp ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.timestamp).endTimestamp : null;
+      const currentPeriodExpiresAt = currentPeriods.current?.timestamp ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.timestamp).endTimestamp : null;
+      const refreshCurrentSnippetBy = currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;
       await saveCurrentCurationSnippet(currentSnippet, stakerContractMetadataRef);
       const metadataUpdate: Partial<CurationMetadata> = {
         currentSnippetRequiresAggregation: false,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
+        refreshCurrentSnippetBy
       };
       await stakerContractMetadataRef.set(metadataUpdate, { merge: true });
     }

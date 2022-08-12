@@ -13,11 +13,14 @@ import { streamQuery } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';
 
+
+const ONE_HOUR = 60 * 60 * 1000;
 export class CurationBlockAggregator {
+  static readonly DURATION = ONE_HOUR;
+
   static getCurationBlockRange(timestamp: number) {
     const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Hourly).timestamp;
-    const oneHour = 60 * 60 * 1000;
-    const endTimestamp = startTimestamp + oneHour;
+    const endTimestamp = startTimestamp + CurationBlockAggregator.DURATION;
     const prevTimestamp = getStatsDocInfo(startTimestamp - 1, StatsPeriod.Hourly).timestamp;
     return { startTimestamp, endTimestamp, prevTimestamp };
   }

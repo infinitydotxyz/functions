@@ -89,15 +89,16 @@ export async function* getUnVoter(
       }
       let totalCuratedVotes = userStake.totalCuratedVotes ?? 0;
       let totalCurated = userStake.totalCurated ?? 0;
-      const userVotesAvailable = userStake.stakePower;
-      const userVotesToRemove = userVotesAvailable - totalCuratedVotes;
+      const userVotesAvailable = userStake.stakePower ?? 0;
+      const userVotesToRemove = totalCuratedVotes - userVotesAvailable;
+
       if (userVotesToRemove <= 0) {
         return { userStake };
       }
 
       const collectionsSnap = await txn.get(pageQuery());
       if (collectionsSnap.size === 0) {
-        throw new Error(`No more collections to remove`);
+        throw new Error(`No more collections to remove. Votes to remove: ${userVotesToRemove}`);
       }
 
       const { totalVotesRemoved, numCollectionsRemoved } = removeVotesOnCollections(

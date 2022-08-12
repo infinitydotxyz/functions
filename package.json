@@ -10,7 +10,7 @@
     "start": "npm run shell",
     "deploy:dev": "npm run build && firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "npm run build && firebase deploy --only functions --project nftc-infinity",
-    "deploy:test": "npm run build && firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateSourceSales,functions:syncStatsCollectionData,functions:triggerCurationLedgerAggregation,functions:aggregateCurationLedger,functions:onStakerEvent,functions:triggerStakerEvents,functions:triggerCurationMetadataAggregation  --project nftc-test-270df",
+    "deploy:test": "npm run build && firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateSourceSales,functions:aggregateNftSales,functions:syncStatsCollectionData,functions:triggerCurationLedgerAggregation,functions:aggregateCurationLedger,functions:onStakerEvent,functions:triggerStakerEvents,functions:triggerCurationMetadataAggregation  --project nftc-test-270df",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -33,7 +33,7 @@
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.162.0",
+    "@infinityxyz/lib": "^1.162.1",
     "date-fns": "^2.29.1",
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",

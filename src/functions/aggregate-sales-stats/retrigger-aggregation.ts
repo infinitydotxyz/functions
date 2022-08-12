@@ -1,6 +1,7 @@
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
+import { SalesIntervalDoc } from './types';
 
 export async function retriggerAggregation() {
   const db = getDb();
@@ -14,10 +15,11 @@ export async function retriggerAggregation() {
   const batchHandler = new FirestoreBatchHandler();
 
   const updatePaths = new Set<string>();
-  const trigger = (ref?: FirebaseFirestore.DocumentReference | null) => {
+  const trigger = <T extends { updatedAt: number, hasUnaggregatedSales: boolean }>(ref?: FirebaseFirestore.DocumentReference<T> | null) => {
     if (ref && !updatePaths.has(ref.path)) {
       updatePaths.add(ref.path);
-      batchHandler.add(ref, { updatedAt: Date.now(), hasUnaggregatedSales: true }, { merge: true });
+      const update: Partial<T> = { updatedAt: Date.now(), hasUnaggregatedSales: true } as Partial<T>;
+      batchHandler.add(ref, update, { merge: true });
       console.log(`Re-triggering aggregation for ${ref.path}`);
     }
   };
@@ -28,13 +30,12 @@ export async function retriggerAggregation() {
     .where('updatedAt', '<', retriggerIfUpdatedBefore);
   const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
   for await (const item of stream) {
-    const aggregatedSalesDoc = item.ref.parent.parent;
+    const aggregatedSalesDoc = item.ref.parent.parent as FirebaseFirestore.DocumentReference<SalesIntervalDoc>;
     trigger(aggregatedSalesDoc);
-    batchHandler.add(item.ref, { updatedAt: Date.now() }, { merge: true });
   }
 
   for (const collection of collectionGroups) {
-    const query = collection.where('isAggregated', '==', false).where('updatedAt', '<', retriggerIfUpdatedBefore);
+    const query = collection.where('isAggregated', '==', false).where('updatedAt', '<', retriggerIfUpdatedBefore) as FirebaseFirestore.Query<SalesIntervalDoc>;
     const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
     for await (const item of stream) {
       trigger(item.ref);

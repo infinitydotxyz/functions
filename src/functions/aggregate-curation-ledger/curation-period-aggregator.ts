@@ -16,15 +16,17 @@ import {
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
+const ONE_WEEK = 60 * 60 * 24 * 7 * 1000
 export class CurationPeriodAggregator {
+  static readonly DURATION = ONE_WEEK;
+
   static getCurationPeriodRange(timestamp: number): {
     startTimestamp: number;
     endTimestamp: number;
     prevTimestamp: number;
   } {
     const startTimestamp = getStatsDocInfo(timestamp, StatsPeriod.Weekly).timestamp;
-    const oneWeek = 60 * 60 * 24 * 7 * 1000;
-    const endTimestamp = startTimestamp + oneWeek;
+    const endTimestamp = startTimestamp + CurationPeriodAggregator.DURATION;
     const prevTimestamp = getStatsDocInfo(startTimestamp - 1, StatsPeriod.Weekly).timestamp;
     return { startTimestamp, endTimestamp, prevTimestamp };
   }

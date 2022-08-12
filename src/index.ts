@@ -6,7 +6,8 @@ import { onOrderTrigger } from './functions/on-order-trigger';
 import {
   saveSalesToBeAggregated,
   aggregateCollectionSales,
-  aggregateSourceSales
+  aggregateSourceSales,
+  aggregateNftSales
 } from './functions/aggregate-sales-stats';
 import { syncStatsCollectionData } from './functions/sync-stats-collection-data';
 import {
@@ -24,6 +25,7 @@ export {
   onOrderTrigger,
   saveSalesToBeAggregated,
   aggregateCollectionSales,
+  aggregateNftSales,
   aggregateSourceSales,
   syncStatsCollectionData,
   triggerCurationLedgerAggregation,

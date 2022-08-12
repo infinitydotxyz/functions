@@ -114,7 +114,6 @@ export function getCurrentCurationSnippet(
       return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth;
     });
   };
-
   const sortUsersByVotes = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
       return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth;
@@ -145,7 +144,7 @@ export function getCurrentCurationSnippet(
     topCuratorsByTotalProtocolFees: topUsersByTotalProtocolFees.slice(0, numTopUsers),
     earliestCurators: earliestUsers.slice(0, numTopUsers),
     stakerContractAddress,
-    stakerContractChainId
+    stakerContractChainId,
   };
 
   return {

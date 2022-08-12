@@ -10,28 +10,18 @@ export async function saveSalesForAggregation() {
   const db = getDb();
   const unaggregatedSales = db
     .collection(firestoreConstants.SALES_COLL)
-    .where('isAggregated', '==', false) as FirebaseFirestore.Query<NftSale | undefined>;
+    .where('isAggregated', '==', false) as FirebaseFirestore.Query<NftSale>;
   const unaggregatedSalesStream = streamQueryWithRef(unaggregatedSales, (item, ref) => [ref], {
     pageSize: 300
   });
 
-  const salesArray: {
-    sale: NftSale & { docId: string };
-    ref: FirebaseFirestore.DocumentReference<NftSale | undefined>;
-  }[] = [];
-  for await (const { data, ref } of unaggregatedSalesStream) {
-    if (data) {
-      salesArray.push({ sale: { ...data, docId: ref.id }, ref });
-    }
-  }
-
-  for (const { ref } of salesArray) {
+  const saveSale = async (ref: FirebaseFirestore.DocumentReference<NftSale>) => {
     try {
       await db.runTransaction(async (tx) => {
         const saleSnap = await tx.get(ref);
         const sale = saleSnap.data();
         if (!sale) {
-          return;
+          throw new Error(`Sale not found at ${ref.path}`);
         }
         const saleWithDocId = {
           ...sale,
@@ -52,6 +42,10 @@ export async function saveSalesForAggregation() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  for await (const { ref } of unaggregatedSalesStream) {
+    await saveSale(ref);
   }
 }
 

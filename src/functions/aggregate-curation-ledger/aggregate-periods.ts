@@ -22,7 +22,7 @@ export async function aggregatePeriods(
     firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   const snapshot = await curationBlockRewardsRef
-    .where('isAggregate', '==', false)
+    .where('isAggregated', '==', false)
     .orderBy('timestamp', 'asc')
     .limit(1)
     .get();

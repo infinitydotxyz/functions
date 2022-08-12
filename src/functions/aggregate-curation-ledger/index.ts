@@ -83,14 +83,17 @@ export const triggerCurationMetadataAggregation = functions
       .where('periodsRequireAggregation', '==', true)
       .where('updatedAt', '<', Date.now() - tenMin) as FirebaseFirestore.Query<CurationMetadata>;
 
-    const currentSnippetsToRefresh = db.collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
-    .where('refreshCurrentSnippetBy', '<=', Date.now()) as FirebaseFirestore.Query<CurationMetadata>;
+    const currentSnippetsToRefresh = db
+      .collectionGroup(firestoreConstants.COLLECTION_CURATION_COLL)
+      .where('refreshCurrentSnippetBy', '<=', Date.now()) as FirebaseFirestore.Query<CurationMetadata>;
 
     const currentSnippetsToAggregateStream = streamQueryWithRef(currentSnippetsToAggregate, (item, ref) => [ref], {
       pageSize: 300
     });
     const periodsToAggregateStream = streamQueryWithRef(periodsToAggregate, (item, ref) => [ref], { pageSize: 300 });
-    const currentSnippetsToRefreshStream = streamQueryWithRef(currentSnippetsToRefresh, (item, ref) => [ref], { pageSize: 300 });
+    const currentSnippetsToRefreshStream = streamQueryWithRef(currentSnippetsToRefresh, (item, ref) => [ref], {
+      pageSize: 300
+    });
 
     const updates = new Set<string>();
     const batchHandler = new FirestoreBatchHandler();
@@ -164,9 +167,14 @@ export const aggregateCurationLedger = functions
         stakerContractAddress,
         stakerContractChainId
       );
-      const currentBlockExpiresAt = currentBlocks.current?.timestamp ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.timestamp).endTimestamp : null;
-      const currentPeriodExpiresAt = currentPeriods.current?.timestamp ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.timestamp).endTimestamp : null;
-      const refreshCurrentSnippetBy = currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;
+      const currentBlockExpiresAt = currentBlocks.current?.timestamp
+        ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.timestamp).endTimestamp
+        : null;
+      const currentPeriodExpiresAt = currentPeriods.current?.timestamp
+        ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.timestamp).endTimestamp
+        : null;
+      const refreshCurrentSnippetBy =
+        currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;
       await saveCurrentCurationSnippet(currentSnippet, stakerContractMetadataRef);
       const metadataUpdate: Partial<CurationMetadata> = {
         currentSnippetRequiresAggregation: false,

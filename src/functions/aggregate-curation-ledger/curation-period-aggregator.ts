@@ -16,7 +16,7 @@ import {
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
-const ONE_WEEK = 60 * 60 * 24 * 7 * 1000
+const ONE_WEEK = 60 * 60 * 24 * 7 * 1000;
 export class CurationPeriodAggregator {
   static readonly DURATION = ONE_WEEK;
 

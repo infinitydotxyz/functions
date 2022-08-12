@@ -15,7 +15,9 @@ export async function retriggerAggregation() {
   const batchHandler = new FirestoreBatchHandler();
 
   const updatePaths = new Set<string>();
-  const trigger = <T extends { updatedAt: number, hasUnaggregatedSales: boolean }>(ref?: FirebaseFirestore.DocumentReference<T> | null) => {
+  const trigger = <T extends { updatedAt: number; hasUnaggregatedSales: boolean }>(
+    ref?: FirebaseFirestore.DocumentReference<T> | null
+  ) => {
     if (ref && !updatePaths.has(ref.path)) {
       updatePaths.add(ref.path);
       const update: Partial<T> = { updatedAt: Date.now(), hasUnaggregatedSales: true } as Partial<T>;
@@ -35,7 +37,9 @@ export async function retriggerAggregation() {
   }
 
   for (const collection of collectionGroups) {
-    const query = collection.where('isAggregated', '==', false).where('updatedAt', '<', retriggerIfUpdatedBefore) as FirebaseFirestore.Query<SalesIntervalDoc>;
+    const query = collection
+      .where('isAggregated', '==', false)
+      .where('updatedAt', '<', retriggerIfUpdatedBefore) as FirebaseFirestore.Query<SalesIntervalDoc>;
     const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
     for await (const item of stream) {
       trigger(item.ref);

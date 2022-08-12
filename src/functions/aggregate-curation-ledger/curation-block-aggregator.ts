@@ -13,7 +13,6 @@ import { streamQuery } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';
 
-
 const ONE_HOUR = 60 * 60 * 1000;
 export class CurationBlockAggregator {
   static readonly DURATION = ONE_HOUR;

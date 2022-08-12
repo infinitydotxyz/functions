@@ -144,7 +144,7 @@ export function getCurrentCurationSnippet(
     topCuratorsByTotalProtocolFees: topUsersByTotalProtocolFees.slice(0, numTopUsers),
     earliestCurators: earliestUsers.slice(0, numTopUsers),
     stakerContractAddress,
-    stakerContractChainId,
+    stakerContractChainId
   };
 
   return {

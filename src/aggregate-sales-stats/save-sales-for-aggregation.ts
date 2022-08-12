@@ -4,7 +4,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQueryWithRef } from '../firestore/stream-query';
 import { AggregationInterval, SalesIntervalDoc } from './types';
-import { getIntervalAggregationId } from './utils';
+import { getIntervalAggregationId, getRelevantStakerContracts } from './utils';
 
 export async function saveSalesForAggregation() {
   const db = getDb();
@@ -39,7 +39,7 @@ export async function saveSalesForAggregation() {
           updatedAt: Date.now()
         };
         if (saleWithDocId.source === SaleSource.Infinity) {
-          saveSaleToCollectionCurationLedger(saleWithDocId, tx);
+          saveSaleToCollectionCurationLedgers(saleWithDocId, tx);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);
@@ -55,22 +55,35 @@ export async function saveSalesForAggregation() {
   }
 }
 
-function saveSaleToCollectionCurationLedger(
+function saveSaleToCollectionCurationLedgers(
   sale: InfinityNftSale & { docId: string; updatedAt: number },
   tx: FirebaseFirestore.Transaction
 ) {
   const db = getDb();
-  const curationSale: CurationLedgerSale = {
-    ...sale,
-    address: sale.collectionAddress,
-    chainId: sale.chainId as ChainId,
-    discriminator: CurationLedgerEvent.Sale
-  };
-  const collectionDocRef = db
-    .collection(firestoreConstants.COLLECTIONS_COLL)
-    .doc(`${sale.chainId}:${sale.collectionAddress}`);
-  const saleRef = collectionDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc(sale.docId);
-  tx.set(saleRef, curationSale, { merge: false });
+  const stakerContracts = getRelevantStakerContracts(sale);
+  const curationSales = stakerContracts.map((stakerContract) => {
+    const curationSale: CurationLedgerSale = {
+      ...sale,
+      discriminator: CurationLedgerEvent.Sale,
+      chainId: sale.chainId as ChainId,
+      collectionAddress: sale.collectionAddress,
+      collectionChainId: sale.chainId as ChainId,
+      stakerContractAddress: stakerContract,
+      stakerContractChainId: sale.chainId as ChainId
+    };
+    return curationSale;
+  });
+
+  for (const curationSale of curationSales) {
+    const collectionDocRef = db
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(`${curationSale.collectionChainId}:${curationSale.collectionAddress}`);
+    const stakerContractDocRef = collectionDocRef
+      .collection(firestoreConstants.COLLECTION_CURATION_COLL)
+      .doc(`${curationSale.stakerContractChainId}:${curationSale.stakerContractAddress}`);
+    const saleRef = stakerContractDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc(sale.docId);
+    tx.set(saleRef, curationSale, { merge: false });
+  }
 }
 
 function saveSaleToCollectionSales(

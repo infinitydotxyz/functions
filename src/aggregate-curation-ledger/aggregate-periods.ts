@@ -12,11 +12,13 @@ import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
 
 export async function aggregatePeriods(
-  curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
+  stakerContractCurationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
   collectionAddress: string,
-  chainId: ChainId
+  collectionChainId: ChainId,
+  stakerContractAddress: string,
+  stakerContractChainId: ChainId
 ) {
-  const curationBlockRewardsRef = curationMetadataRef.collection(
+  const curationBlockRewardsRef = stakerContractCurationMetadataRef.collection(
     firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   const snapshot = await curationBlockRewardsRef
@@ -28,7 +30,7 @@ export async function aggregatePeriods(
   const firstUnaggregatedBlock = firstUnaggregatedDoc?.data() as CurationBlockRewardsDoc | undefined;
 
   if (!firstUnaggregatedBlock) {
-    console.error(`Failed to find unaggregated block for ${curationMetadataRef.path}`);
+    console.error(`Failed to find unaggregated block for ${stakerContractCurationMetadataRef.path}`);
     return;
   }
 
@@ -40,12 +42,18 @@ export async function aggregatePeriods(
       curationBlockRewardsRef
     );
     const periodBlocks = periodBlockWithRefs.map((item) => item.block);
-    const aggregator = new CurationPeriodAggregator(curationPeriodRange.startTimestamp, collectionAddress, chainId);
+    const aggregator = new CurationPeriodAggregator(
+      curationPeriodRange.startTimestamp,
+      collectionAddress,
+      collectionChainId,
+      stakerContractAddress,
+      stakerContractChainId
+    );
     const rewards = aggregator.getPeriodRewards(periodBlocks);
     const { users, ...curationPeriodDocData } = rewards;
     const batchHandler = new FirestoreBatchHandler();
     const curationPeriodDocId = `${curationPeriodRange.startTimestamp}`;
-    const curationPeriodDocRef = curationMetadataRef
+    const curationPeriodDocRef = stakerContractCurationMetadataRef
       .collection(firestoreConstants.CURATION_PERIOD_REWARDS_COLL)
       .doc(curationPeriodDocId) as FirebaseFirestore.DocumentReference<CurationPeriodDoc>;
     const curationPeriodUpdate: CurationPeriodDoc = {

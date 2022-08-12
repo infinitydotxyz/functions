@@ -3,10 +3,10 @@
 ### Firestore structure
 - collections
     - {collectionId}
-        - curationCollection
-            - {curationMetadata} // used as a trigger to aggregate the ledger/blocks/periods
+        - curationCollection 
+            - {chainId:address} // staking contract curation metadata used as a trigger to aggregate the ledger/blocks/periods
                 - curationLedger  
-                    {random id} // sale event, vote event or un-vote event
+                    {random id} // sale event, vote event or un-vote event 
                 - curationBlockRewards 
                     - {curationBlockId} // a block containing the aggregated data from an hour of ledger events
                         - curationBlockUserRewards 
@@ -15,9 +15,20 @@
                     - {curationPeriodId} // stores aggregated curation rewards for a full curation period (must be an integer number of blocks)
                         - curationPeriodUserRewards
                             - {user address} // user data for the corresponding period
-            - {curationSnippet} // current curation data for this collection
-                - curationSnippetUsers 
-                    - {userAddress} // current user curation data for this collection
+                - curationSnippets
+                    {curationSnippet} current curation data for this collection and staking contract
+                        - curationSnippetUsers 
+                            - {userAddress} // current user curation data for this collection
+                - curators // curators for this collection 
+                    - {userId} // contains the live curator data (CuratedCollectionDto) for a single user (updated immediately on votes)
+- stakingContracts
+    - {chainId:address} // staking contract chain id and address
+        - stakingLedger 
+            - {txHash} staker event logs for the relevant contract
+- users
+    - {userId}
+        - userCuration
+            - {stakingContractChainId:stakingContractAddress} // user stake power, stake info, total curated, total curated votes
 
 ## How it works
 ### Cloud Functions
@@ -54,7 +65,7 @@
 - [x] How do we query for rewards by user? 
     * collection group query on `curationSnippetUsers` - what about historical data? 
 - [x] Contract listener for un-stake events, determine votes to remove, write un-vote events to ledgers 
-- [ ] Write vote events to ledger when user votes 
+- [X] Write vote events to ledger when user votes 
     * Refactor handling of votes to use contract listeners to remove race conditions allowing double spending
         * User stakes/un-stakes/rage quits => update votes available in db, remove votes from collections if necessary
 - [ ] Calculate APR for collections and users? - how do you calculate user APR? Should it be relative to eth or usd? 

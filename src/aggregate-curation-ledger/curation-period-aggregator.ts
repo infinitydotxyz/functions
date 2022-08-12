@@ -71,7 +71,13 @@ export class CurationPeriodAggregator {
   protected _endTimestamp: number;
   protected _prevTimestamp: number;
 
-  constructor(timestamp: number, protected _collectionAddress: string, protected _chainId: ChainId) {
+  constructor(
+    timestamp: number,
+    protected _collectionAddress: string,
+    protected _chainId: ChainId,
+    protected _stakerContractAddress: string,
+    protected _stakerContractChainId: ChainId
+  ) {
     const { startTimestamp, endTimestamp, prevTimestamp } = CurationPeriodAggregator.getCurationPeriodRange(timestamp);
     this._startTimestamp = startTimestamp;
     this._endTimestamp = endTimestamp;
@@ -111,6 +117,8 @@ export class CurationPeriodAggregator {
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
       totalProtocolFeesAccruedEth: mostRecentBlock.totalProtocolFeesAccruedEth,
       periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
+      stakerContractAddress: this._stakerContractAddress,
+      stakerContractChainId: this._stakerContractChainId,
       users: {} as CurationPeriodUsers
     };
 
@@ -148,6 +156,8 @@ export class CurationPeriodAggregator {
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
       totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
       periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
+      stakerContractAddress: this._stakerContractAddress,
+      stakerContractChainId: this._stakerContractChainId,
       updatedAt: Date.now()
     };
     return curationPeriodUser;

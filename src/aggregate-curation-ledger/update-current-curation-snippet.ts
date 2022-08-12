@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { ChainId } from '@infinityxyz/lib/types/core';
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
@@ -103,7 +104,9 @@ export async function getCurrentPeriods(
 
 export function getCurrentCurationSnippet(
   periods: { current: CurationPeriod | null; mostRecent: CurationPeriod | null },
-  blocks: { current: CurationBlockRewards | null; mostRecent: CurationBlockRewards | null }
+  blocks: { current: CurationBlockRewards | null; mostRecent: CurationBlockRewards | null },
+  stakerContractAddress: string,
+  stakerContractChainId: ChainId
 ): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
   const sortUsersByTotalProtocolFees = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
@@ -139,7 +142,9 @@ export function getCurrentCurationSnippet(
     updatedAt: Date.now(),
     topCuratorsByVotes: topUsersByVotes.slice(0, numTopUsers),
     topCuratorsByTotalProtocolFees: topUsersByTotalProtocolFees.slice(0, numTopUsers),
-    earliestCurators: earliestUsers.slice(0, numTopUsers)
+    earliestCurators: earliestUsers.slice(0, numTopUsers),
+    stakerContractAddress,
+    stakerContractChainId
   };
 
   return {

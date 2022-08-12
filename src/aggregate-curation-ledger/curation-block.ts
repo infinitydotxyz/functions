@@ -23,6 +23,8 @@ interface BlockMetadata {
   blockStart: number;
   collectionAddress: string;
   chainId: ChainId;
+  stakerContractAddress: string;
+  stakerContractChainId: ChainId;
 }
 
 /**
@@ -127,7 +129,9 @@ export class CurationBlock {
       arbitrageProtocolFeesAccruedWei: prevBlockRewards.arbitrageProtocolFeesAccruedWei,
       arbitrageProtocolFeesAccruedEth: prevBlockRewards.arbitrageProtocolFeesAccruedEth,
       timestamp: this.metadata.blockStart,
-      isAggregated: false
+      isAggregated: false,
+      stakerContractAddress: this.metadata.stakerContractAddress,
+      stakerContractChainId: this.metadata.stakerContractChainId
     };
 
     const blockRewards = this.distributeRewards(blockRewardsBeforeDistribution);
@@ -207,7 +211,9 @@ export class CurationBlock {
           blockProtocolFeesAccruedEth: 0,
           curatorShare: 0,
           numCurators: 0,
-          numCuratorVotes: 0
+          numCuratorVotes: 0,
+          stakerContractAddress: this.metadata.stakerContractAddress,
+          stakerContractChainId: this.metadata.stakerContractChainId
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };

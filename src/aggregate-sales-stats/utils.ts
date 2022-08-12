@@ -1,6 +1,6 @@
-import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
+import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP, getStakerAddress } from '@infinityxyz/lib/utils';
 import { isAddress } from '@ethersproject/address';
-import { StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, InfinityNftSale, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { format, parse } from 'date-fns';
 import { AggregationInterval, CurrentStats } from './types';
 import { formatEther } from 'ethers/lib/utils';
@@ -265,3 +265,10 @@ export const parseAggregationId = (id: string, interval: AggregationInterval) =>
 
   throw new Error(`Parsing not supported for interval: ${interval}`);
 };
+
+export function getRelevantStakerContracts(sale: InfinityNftSale) {
+  if (sale.chainId === ChainId.Mainnet) {
+    return [getStakerAddress(ChainId.Mainnet)]; // TODO add real staker address for mainnet once deployed
+  }
+  return [getStakerAddress(sale.chainId)];
+}

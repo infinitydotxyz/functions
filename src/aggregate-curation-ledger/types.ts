@@ -1,8 +1,14 @@
+import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+
 export interface CurationMetadata {
   ledgerRequiresAggregation: boolean;
   updatedAt: number;
   periodsRequireAggregation: boolean;
   currentSnippetRequiresAggregation: boolean;
+  collectionAddress: string;
+  collectionChainId: ChainId;
+  stakerContractAddress: string;
+  stakerContractChainId: ChainId;
 }
 
 export enum CurationPeriodState {

@@ -7,11 +7,13 @@ import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationMetadata } from './types';
 
 export async function aggregateLedger(
-  curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
+  stakerContractCurationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
   collectionAddress: string,
-  chainId: ChainId
+  chainId: ChainId,
+  stakerContractAddress: string,
+  stakerContractChainId: ChainId
 ) {
-  const curationLedgerRef = curationMetadataRef.collection(firestoreConstants.CURATION_LEDGER_COLL);
+  const curationLedgerRef = stakerContractCurationMetadataRef.collection(firestoreConstants.CURATION_LEDGER_COLL);
   const snapshot = await curationLedgerRef
     .where('isAggregated', '==', false)
     .where('isDeleted', '==', false)
@@ -21,7 +23,7 @@ export async function aggregateLedger(
   const firstUnaggregatedDoc = snapshot.docs[0];
   const firstUnaggregatedEvent = firstUnaggregatedDoc?.data() as CurationLedgerEventType | undefined;
   if (!firstUnaggregatedEvent) {
-    console.error(`Failed to find unaggregated event for ${curationMetadataRef.path}`);
+    console.error(`Failed to find unaggregated event for ${stakerContractCurationMetadataRef.path}`);
     return;
   }
 
@@ -40,7 +42,14 @@ export async function aggregateLedger(
     eventsWithRefs.push({ ...data, ref });
   }
 
-  const curationAggregator = new CurationBlockAggregator(events, curationMetadataRef, collectionAddress, chainId);
+  const curationAggregator = new CurationBlockAggregator(
+    events,
+    stakerContractCurationMetadataRef,
+    collectionAddress,
+    chainId,
+    stakerContractAddress,
+    stakerContractChainId
+  );
   await curationAggregator.aggregate();
 
   const batchHandler = new FirestoreBatchHandler();

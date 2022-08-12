@@ -12,7 +12,9 @@ export const onStakerEvent = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`${firestoreConstants.STAKING_LEDGER_COLL}/{txnHash}`)
+  .firestore.document(
+    `${firestoreConstants.STAKING_CONTRACTS_COLL}/{contractId}/${firestoreConstants.STAKING_LEDGER_COLL}/{eventId}`
+  )
   .onWrite(async (change) => {
     const event = change.after.data() as StakerEvents | undefined;
 
@@ -31,7 +33,7 @@ export const triggerStakerEvents = functions
   .pubsub.schedule('0,10,20,30,40,50 * * * *')
   .onRun(async () => {
     const db = getDb();
-    const stakingLedger = db.collection(firestoreConstants.STAKING_LEDGER_COLL);
+    const stakingLedger = db.collectionGroup(firestoreConstants.STAKING_LEDGER_COLL);
     const tenMin = 1000 * 60 * 10;
     const maxProcessingDelay = tenMin;
     const unProcessedStakingEvents = stakingLedger

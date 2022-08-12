@@ -32,8 +32,10 @@ const getVotesAddedEvent = (userAddress: string, votes: number): CurationVotesAd
     updatedAt: Date.now(),
     isAggregated: false,
     isDeleted: false,
-    address: '0x0',
-    chainId: ChainId.Mainnet
+    collectionAddress: '0x0',
+    collectionChainId: ChainId.Mainnet,
+    stakerContractAddress: '0x0',
+    stakerContractChainId: ChainId.Mainnet
   };
 };
 
@@ -47,8 +49,10 @@ const getVotesRemovedEvent = (userAddress: string, votes: number): CurationVotes
     updatedAt: Date.now(),
     isAggregated: false,
     isDeleted: false,
-    address: '0x0',
-    chainId: ChainId.Mainnet,
+    collectionAddress: '0x0',
+    collectionChainId: ChainId.Mainnet,
+    stakerContractAddress: '0x0',
+    stakerContractChainId: ChainId.Mainnet,
     txHash: '0x0'
   };
 };
@@ -76,7 +80,10 @@ const getSaleEvent = (price: number, feePercent: number) => {
     docId: 'saleOne',
     chainId: ChainId.Mainnet,
     discriminator: CurationLedgerEvent.Sale,
-    address: '0x0',
+    collectionAddress: '0x0',
+    collectionChainId: sale.chainId as ChainId,
+    stakerContractAddress: '0x0',
+    stakerContractChainId: sale.chainId as ChainId,
     updatedAt: Date.now()
   };
 
@@ -86,6 +93,7 @@ const getSaleEvent = (price: number, feePercent: number) => {
 class MockCurationBlock extends CurationBlock {
   addSales(num: number, price: number, feePercent: number) {
     const sale = getSaleEvent(price, feePercent);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const _ of new Array(num)) {
       this.addEvent({ ...sale });
     }
@@ -133,13 +141,21 @@ describe('curation block', () => {
     totalProtocolFeesAccruedEth: 0,
     blockProtocolFeesAccruedEth: 0,
     arbitrageProtocolFeesAccruedEth: 0,
-    timestamp: Date.now() - 30_000,
+    timestamp: Date.now() - 30000,
     isAggregated: false,
-    users: {}
+    users: {},
+    stakerContractAddress: '0x0',
+    stakerContractChainId: ChainId.Mainnet
   };
 
   it('sums protocol fees to get the total protocol fees for the block', () => {
-    const block = new CurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block = new CurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const sale = getSaleEvent(1, 2.5);
     block.addEvent({ ...sale });
     block.addEvent({ ...sale });
@@ -152,7 +168,13 @@ describe('curation block', () => {
     expect(rewards.blockRewards.arbitrageProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
     expect(rewards.blockRewards.blockProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
 
-    const block2 = new CurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block2 = new CurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     block2.addEvent({ ...sale });
     block2.addEvent({ ...sale });
     block2.addEvent({ ...sale });
@@ -166,7 +188,13 @@ describe('curation block', () => {
   });
 
   it('adds a user when a new user votes', () => {
-    const block = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const address1 = '0x1';
     const vote1 = getVotesAddedEvent(address1, 1);
     const res = block.testApplyVoteAdditions({}, [vote1]);
@@ -181,7 +209,13 @@ describe('curation block', () => {
   });
 
   it('removes a user when they no longer have votes', () => {
-    const block = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
     const voteResult = block.testApplyVoteAdditions({}, [vote]);
@@ -201,7 +235,13 @@ describe('curation block', () => {
   });
 
   it('distributes rewards to a single user if they have all of the votes', () => {
-    const block = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
     const sale = getSaleEvent(1, 2.5);
@@ -245,7 +285,13 @@ describe('curation block', () => {
   });
 
   it('distributes rewards according to user vote percentage', () => {
-    const block = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const address1 = '0x1';
     const address2 = '0x2';
     const vote1 = getVotesAddedEvent(address1, 1);
@@ -300,7 +346,13 @@ describe('curation block', () => {
   });
 
   it('updates total rewards after multiple blocks', () => {
-    const block1 = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block1 = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const address1 = '0x1';
     const address2 = '0x2';
     const vote1 = getVotesAddedEvent(address1, 1);
@@ -344,7 +396,13 @@ describe('curation block', () => {
     expect(user1.totalProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
     expect(user1.votes).toBe(1);
 
-    const block2 = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block2 = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const sale2 = getSaleEvent(1, 2.5);
     const expectedBlock2FeesGeneratedWei = BigInt(sale2.protocolFeeWei);
     const vote2 = getVotesAddedEvent(address2, 1);
@@ -388,7 +446,13 @@ describe('curation block', () => {
   });
 
   it('carries over arbitrage protocol fees until votes are added', () => {
-    const block1 = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block1 = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
 
     const sale = getSaleEvent(1, 2.5);
     const expectedBlock1FeesGeneratedWei = BigInt(sale.protocolFeeWei);
@@ -422,7 +486,13 @@ describe('curation block', () => {
     expect(blockProtocolFeesAccruedWei).toBe(expectedBlock1FeesGeneratedWei.toString());
     expect(arbitrageProtocolFeesAccruedWei).toBe(expectedBlock1FeesGeneratedWei.toString());
 
-    const block2 = new MockCurationBlock({ blockStart, collectionAddress: '0x0', chainId: ChainId.Mainnet });
+    const block2 = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet
+    });
     const address1 = '0x1';
     const vote = getVotesAddedEvent(address1, 1);
     block2.addEvent(vote);

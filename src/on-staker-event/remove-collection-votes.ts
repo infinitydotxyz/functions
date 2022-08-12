@@ -1,64 +1,72 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { RageQuitEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
-import { UserProfileDto } from '@infinityxyz/lib/types/dto/user/user-profile.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { CurationLedgerEvent, CurationVotesRemoved } from '@infinityxyz/lib/types/core/curation-ledger';
+import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 
 export async function removeUserCollectionVotes(
   user: string,
   db: FirebaseFirestore.Firestore,
   event: TokensUnStakedEvent | RageQuitEvent
 ) {
-  const userRef = db
+  const userStakeRef = db
     .collection(firestoreConstants.USERS_COLL)
-    .doc(user) as FirebaseFirestore.DocumentReference<UserProfileDto>;
+    .doc(user)
+    .collection(firestoreConstants.USER_CURATION_COLL)
+    .doc(
+      `${event.stakerContractChainId}:${event.stakerContractAddress}`
+    ) as FirebaseFirestore.DocumentReference<UserStakeDto>;
 
-  const unVoter = getUnVoter(userRef, event);
+  const unVoter = getUnVoter(user, userStakeRef, event);
 
   console.log(`[${user}] Starting vote removal...`);
   let votesRemoved = 0;
   let collectionsRemoved = 0;
   let page = 0;
-  let currentUser;
+  let currentUserStake;
   try {
     for await (const { updatedUser, totalCollectionsRemoved, totalVotesRemoved } of unVoter) {
       votesRemoved = totalVotesRemoved;
       collectionsRemoved = totalCollectionsRemoved;
       page += 1;
-      currentUser = updatedUser;
+      currentUserStake = updatedUser;
       console.log(
         `[${user}] Page: ${page} Total collections removed: ${totalCollectionsRemoved} Total votes removed: ${totalVotesRemoved} User stake power: ${
-          currentUser.stake.stakePower
-        } User votes: ${currentUser.totalCuratedVotes} Votes to remove: ${
-          currentUser.stake.stakePower - currentUser.totalCuratedVotes
+          currentUserStake.stakePower
+        } User votes: ${currentUserStake.totalCuratedVotes} Votes to remove: ${
+          currentUserStake.stakePower - currentUserStake.totalCuratedVotes
         }`
       );
     }
     console.log(
-      `[${user}] Vote removal complete. Votes removed: ${votesRemoved} Collections removed: ${collectionsRemoved}. User stake power: ${currentUser?.stake.stakePower} User votes: ${currentUser?.totalCuratedVotes}`
+      `[${user}] Vote removal complete. Votes removed: ${votesRemoved} Collections removed: ${collectionsRemoved}. User stake power: ${currentUserStake?.stakePower} User votes: ${currentUserStake?.totalCuratedVotes}`
     );
     if (
-      currentUser?.stake?.stakePower &&
-      currentUser?.totalCuratedVotes &&
-      currentUser.stake.stakePower < currentUser.totalCuratedVotes
+      currentUserStake?.stakePower &&
+      currentUserStake?.totalCuratedVotes &&
+      currentUserStake.stakePower < currentUserStake.totalCuratedVotes
     ) {
       throw new Error(
-        `[${user} User stake power is less than total votes. User stake power: ${currentUser.stake.stakePower} User votes: ${currentUser.totalCuratedVotes}`
+        `[${user} User stake power is less than total votes. User stake power: ${currentUserStake.stakePower} User votes: ${currentUserStake.totalCuratedVotes}`
       );
     }
   } catch (err) {
     console.error(`[${user} Failed to complete vote removal`, err);
+    throw err;
   }
 }
 
 export async function* getUnVoter(
-  userRef: FirebaseFirestore.DocumentReference<UserProfileDto>,
+  userAddress: string,
+  userStakeRef: FirebaseFirestore.DocumentReference<UserStakeDto>,
   event: TokensUnStakedEvent | RageQuitEvent
 ) {
-  const curatedCollectionsQuery = userRef.firestore
+  const curatedCollectionsQuery = userStakeRef.firestore
     .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-    .where('user', '==', userRef.id) as FirebaseFirestore.Query<CuratedCollectionDto>;
+    .where('user', '==', userAddress)
+    .where('stakerContractChainId', '==', event.stakerContractChainId)
+    .where('stakerContractAddress', '==', event.stakerContractAddress) as FirebaseFirestore.Query<CuratedCollectionDto>;
   const pageSize = 200;
   let lastCollectionProcessed: FirebaseFirestore.DocumentReference<CuratedCollectionDto> | undefined = undefined;
   const pageQuery = () => {
@@ -73,28 +81,31 @@ export async function* getUnVoter(
   let votesRemovedInAllPages = 0;
 
   while (true) {
-    const { user } = await userRef.firestore.runTransaction<{ user: UserProfileDto }>(async (txn) => {
-      const userSnap = await txn.get(userRef);
-      const user = userSnap.data();
-      if (!user) {
-        throw new Error(`User ${userRef.id} not found`);
+    const { userStake } = await userStakeRef.firestore.runTransaction<{ userStake: UserStakeDto }>(async (txn) => {
+      const userStakeSnap = await txn.get(userStakeRef);
+      const userStake = userStakeSnap.data();
+      if (!userStake) {
+        throw new Error(`User ${userStakeRef.path} not found`);
       }
-      let totalCuratedVotes = user.totalCuratedVotes ?? 0;
-      let totalCurated = user.totalCurated ?? 0;
-      const userVotesAvailable = user.stake.stakePower;
+      let totalCuratedVotes = userStake.totalCuratedVotes ?? 0;
+      let totalCurated = userStake.totalCurated ?? 0;
+      const userVotesAvailable = userStake.stakePower;
       const userVotesToRemove = userVotesAvailable - totalCuratedVotes;
       if (userVotesToRemove <= 0) {
-        return { user };
+        return { userStake };
       }
 
       const collectionsSnap = await txn.get(pageQuery());
+      if (collectionsSnap.size === 0) {
+        throw new Error(`No more collections to remove`);
+      }
 
       const { totalVotesRemoved, numCollectionsRemoved } = removeVotesOnCollections(
         collectionsSnap,
         userVotesToRemove,
         event,
         txn,
-        userRef.firestore,
+        userStakeRef.firestore,
         totalCuratedVotes
       );
       totalCurated -= numCollectionsRemoved;
@@ -105,20 +116,20 @@ export async function* getUnVoter(
       const lastItem = collectionsSnap.docs.pop();
       lastCollectionProcessed = lastItem?.ref;
 
-      user.totalCurated = totalCurated;
-      user.totalCuratedVotes = totalCuratedVotes;
+      userStake.totalCurated = totalCurated;
+      userStake.totalCuratedVotes = totalCuratedVotes;
 
-      txn.set(userRef, user, { merge: true });
-      return { user };
+      txn.set(userStakeRef, userStake, { merge: true });
+      return { userStake };
     });
 
     yield {
-      updatedUser: user,
+      updatedUser: userStake,
       totalVotesRemoved: votesRemovedInAllPages,
       totalCollectionsRemoved: collectionsRemovedInAllPages
     };
 
-    if (user.stake.stakePower >= user.totalCuratedVotes) {
+    if (userStake.stakePower >= userStake.totalCuratedVotes) {
       break;
     }
   }
@@ -174,7 +185,13 @@ export function removeVotesOnCollections(
         collectionAddress: curatedCollection.address,
         chainId: curatedCollection.chainId as ChainId
       });
-      const ledgerEventRef = db.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
+      const stakingContractCurationMetadataRef = curatedCollectionSnap.ref.parent.parent;
+      if (!stakingContractCurationMetadataRef) {
+        throw new Error(`stakingContractCurationMetadataRef not found in ${curatedCollectionSnap.ref.path}`);
+      }
+      const ledgerEventRef = stakingContractCurationMetadataRef
+        .collection(firestoreConstants.CURATION_LEDGER_COLL)
+        .doc();
       txn.set(ledgerEventRef, ledgerEvent);
     }
   }
@@ -197,8 +214,10 @@ export function getCurationLedgerVoteRemovedEvent(
     updatedAt: Date.now(),
     isAggregated: false,
     isDeleted: false,
-    address: collection.collectionAddress,
-    chainId: collection.chainId
+    collectionAddress: collection.collectionAddress,
+    collectionChainId: collection.chainId,
+    stakerContractAddress: stakerEvent.stakerContractAddress,
+    stakerContractChainId: stakerEvent.stakerContractChainId
   };
 
   return event;

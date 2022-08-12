@@ -25,16 +25,18 @@ export class CurationBlockAggregator {
   private _curationBlocks: Map<number, CurationBlock> = new Map();
 
   private get _blockRewards(): FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc> {
-    return this._curationMetadataDocRef.collection(
+    return this._stakerContractCurationMetadataRef.collection(
       firestoreConstants.CURATION_BLOCK_REWARDS_COLL
     ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   }
 
   constructor(
     private _curationEvents: CurationLedgerEventType[],
-    private _curationMetadataDocRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
+    private _stakerContractCurationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
     private _collectionAddress: string,
-    private _chainId: ChainId
+    private _chainId: ChainId,
+    private _stakerContractAddress: string,
+    private _stakerContractChainId: ChainId
   ) {
     this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.timestamp);
     for (const event of this._curationEvents) {
@@ -46,7 +48,9 @@ export class CurationBlockAggregator {
         block = new CurationBlock({
           blockStart: startTimestamp,
           collectionAddress: this._collectionAddress,
-          chainId: this._chainId
+          chainId: this._chainId,
+          stakerContractAddress: this._stakerContractAddress,
+          stakerContractChainId: this._stakerContractChainId
         });
         this._curationBlocks.set(startTimestamp, block);
         block.addEvent(event);
@@ -113,7 +117,9 @@ export class CurationBlockAggregator {
         blockProtocolFeesAccruedEth: 0,
         arbitrageProtocolFeesAccruedEth: 0,
         timestamp,
-        isAggregated: false
+        isAggregated: false,
+        stakerContractAddress: this._stakerContractAddress,
+        stakerContractChainId: this._stakerContractChainId
       };
       const prevBlockRewards = {
         ...prevBlockRewardsData,

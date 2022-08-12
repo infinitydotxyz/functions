@@ -7,7 +7,7 @@ import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { REGION } from '../../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
-import { aggregatePeriods } from './aggregate-periods';
+import { aggregateBlocks } from './aggregate-periods';
 import { CurationMetadata } from './types';
 import {
   getCurrentBlocks,
@@ -135,7 +135,7 @@ export const aggregateCurationLedger = functions
       };
       await stakerContractMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (stakerContractMetadata.periodsRequireAggregation) {
-      await aggregatePeriods(
+      await aggregateBlocks(
         stakerContractMetadataRef,
         collectionAddress,
         collectionChainId,

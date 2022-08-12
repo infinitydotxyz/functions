@@ -11,7 +11,7 @@ import { streamQueryWithRef } from '../../firestore/stream-query';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
 
-export async function aggregatePeriods(
+export async function aggregateBlocks(
   stakerContractCurationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
   collectionAddress: string,
   collectionChainId: ChainId,
@@ -65,6 +65,12 @@ export async function aggregatePeriods(
         .collection(firestoreConstants.CURATION_PERIOD_USER_REWARDS_COLL)
         .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationPeriodUser>;
       batchHandler.add(userDoc, user, { merge: false });
+    }
+    for (const { ref } of periodBlockWithRefs) {
+      const blockUpdate: Partial<CurationBlockRewardsDoc> = {
+        isAggregated: true
+      };
+      batchHandler.add(ref, blockUpdate, { merge: true });
     }
 
     await batchHandler.flush();

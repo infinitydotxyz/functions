@@ -41,9 +41,6 @@ export const aggregateCollectionSales = functions
     }
   });
 
-/**
- * 
- */
 // export const aggregateNftSales = functions
 //   .region(REGION)
 //   .runWith({

@@ -107,15 +107,15 @@ export class CurationPeriodAggregator {
   }
 
   getPeriodRewards(blocks: CurationBlockRewards[]): ICurationPeriod {
-    const mostRecentBlock = blocks[blocks.length - 1];
+    const mostRecentBlock = blocks[blocks.length - 1] as CurationBlockRewards | undefined;
     const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) => BigInt(block.blockProtocolFeesAccruedWei));
     const curationPeriod: CurationPeriod = {
       collectionAddress: this._collectionAddress,
       chainId: this._chainId,
       timestamp: this._startTimestamp,
-      totalProtocolFeesAccruedWei: mostRecentBlock.totalProtocolFeesAccruedWei,
+      totalProtocolFeesAccruedWei: mostRecentBlock?.totalProtocolFeesAccruedWei ?? '0',
       periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
-      totalProtocolFeesAccruedEth: mostRecentBlock.totalProtocolFeesAccruedEth,
+      totalProtocolFeesAccruedEth: mostRecentBlock?.totalProtocolFeesAccruedEth ?? 0,
       periodProtocolFeesAccruedEth: formatEth(blockProtocolFeeStats.sum),
       stakerContractAddress: this._stakerContractAddress,
       stakerContractChainId: this._stakerContractChainId,

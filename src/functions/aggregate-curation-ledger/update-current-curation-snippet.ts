@@ -49,7 +49,8 @@ export async function getCurrentBlocks(
         const { isPrev, isCurrent, ...rest } = curr;
         acc.current = rest;
       } else if (acc.mostRecent == null || acc.mostRecent.timestamp < curr.timestamp) {
-        acc.mostRecent = curr;
+        const { isPrev, isCurrent, ...rest } = curr;
+        acc.mostRecent = rest;
       }
       return acc;
     },
@@ -157,7 +158,9 @@ export async function saveCurrentCurationSnippet(
   { curationSnippet, users }: { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers },
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
 ) {
-  const curationSnippetRef = curationMetadataRef.parent.doc(firestoreConstants.CURATION_SNIPPET_DOC);
+  const curationSnippetRef = curationMetadataRef
+    .collection('curationSnippets')
+    .doc(firestoreConstants.CURATION_SNIPPET_DOC);
   const curationSnippetUsersRef = curationSnippetRef.collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL);
   await curationSnippetRef.set(curationSnippet, { merge: true });
 

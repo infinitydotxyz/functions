@@ -35,7 +35,8 @@ const getVotesAddedEvent = (userAddress: string, votes: number): CurationVotesAd
     collectionAddress: '0x0',
     collectionChainId: ChainId.Mainnet,
     stakerContractAddress: '0x0',
-    stakerContractChainId: ChainId.Mainnet
+    stakerContractChainId: ChainId.Mainnet,
+    isFeedUpdated: false
   };
 };
 
@@ -53,7 +54,8 @@ const getVotesRemovedEvent = (userAddress: string, votes: number): CurationVotes
     collectionChainId: ChainId.Mainnet,
     stakerContractAddress: '0x0',
     stakerContractChainId: ChainId.Mainnet,
-    txHash: '0x0'
+    txHash: '0x0',
+    isFeedUpdated: false
   };
 };
 

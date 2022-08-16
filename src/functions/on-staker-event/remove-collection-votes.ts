@@ -213,6 +213,7 @@ export function getCurationLedgerVoteRemovedEvent(
     updatedAt: Date.now(),
     isAggregated: false,
     isDeleted: false,
+    isFeedUpdated: false,
     collectionAddress: collection.collectionAddress,
     collectionChainId: collection.chainId,
     stakerContractAddress: stakerEvent.stakerContractAddress,

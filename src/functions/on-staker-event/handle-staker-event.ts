@@ -1,4 +1,10 @@
-import { RageQuitEvent, StakerEvents, StakerEventType, TokensStakedEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core';
+import {
+  RageQuitEvent,
+  StakerEvents,
+  StakerEventType,
+  TokensStakedEvent,
+  TokensUnStakedEvent
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { removeUserCollectionVotes } from './remove-collection-votes';
 import { UserProfileDto, UserStakeDto } from '@infinityxyz/lib/types/dto/user';
@@ -24,7 +30,9 @@ export async function handleStakerEvent(
 
 async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.DocumentReference<StakerEvents>) {
   const user = event.user;
-  const userRef = eventRef.firestore.collection(firestoreConstants.USERS_COLL).doc(user) as FirebaseFirestore.DocumentReference<UserProfileDto>;
+  const userRef = eventRef.firestore
+    .collection(firestoreConstants.USERS_COLL)
+    .doc(user) as FirebaseFirestore.DocumentReference<UserProfileDto>;
   await eventRef.firestore.runTransaction(async (txn) => {
     const userStakeRef = userRef
       .collection(firestoreConstants.USER_CURATION_COLL)
@@ -32,7 +40,10 @@ async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.
         `${event.stakerContractChainId}:${event.stakerContractAddress}`
       ) as FirebaseFirestore.DocumentReference<UserStakeDto>;
 
-    const [userStakeSnap, userProfileSnap] = await txn.getAll<any>(userStakeRef, userRef) as [FirebaseFirestore.DocumentSnapshot<UserStakeDto>, FirebaseFirestore.DocumentSnapshot<UserProfileDto>];
+    const [userStakeSnap, userProfileSnap] = (await txn.getAll<any>(userStakeRef, userRef)) as [
+      FirebaseFirestore.DocumentSnapshot<UserStakeDto>,
+      FirebaseFirestore.DocumentSnapshot<UserProfileDto>
+    ];
     let userStake: Partial<UserStakeDto> = userStakeSnap.data() ?? {};
     const userProfile: Partial<UserProfileDto> = userProfileSnap.data() ?? {};
 
@@ -50,7 +61,6 @@ async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.
       };
       userStake = { ...userStake, ...update };
 
-      
       txn.set(userStakeRef, update, { merge: true });
     }
     const feedEvent = stakerEventToFeedEventAdapter(event, userProfile);
@@ -60,42 +70,45 @@ async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.
 }
 
 export function stakerEventToFeedEventAdapter<T extends StakerEvents>(stakerEvent: T, user: Partial<UserProfileDto>) {
-    switch(stakerEvent.discriminator) {
-      case StakerEventType.Staked: 
-        return stakeEventToStakeFeedEvent(stakerEvent, user);
-      case StakerEventType.UnStaked:
-        return unStakeEventToUnStakeFeedEvent(stakerEvent, user);
-      case StakerEventType.RageQuit:
-        return rageQuitEventToRageQuitFeedEvent(stakerEvent, user);
-    }
+  switch (stakerEvent.discriminator) {
+    case StakerEventType.Staked:
+      return stakeEventToStakeFeedEvent(stakerEvent, user);
+    case StakerEventType.UnStaked:
+      return unStakeEventToUnStakeFeedEvent(stakerEvent, user);
+    case StakerEventType.RageQuit:
+      return rageQuitEventToRageQuitFeedEvent(stakerEvent, user);
+  }
 }
 
 function stakeEventToStakeFeedEvent(stakeEvent: TokensStakedEvent, user: Partial<UserProfileDto>): UserStakedEvent {
-    const feedEvent: UserStakedEvent = { 
-      type: EventType.TokensStaked,
-      duration: stakeEvent.duration,
-      stakeInfo: stakeEvent.stakeInfo,
-      stakePower: stakeEvent.stakePower,
-      amount: stakeEvent.amount,
-      timestamp: stakeEvent.timestamp,
-      blockNumber: stakeEvent.blockNumber,
-      txHash: stakeEvent.txHash,
-      stakerContractChainId: stakeEvent.stakerContractChainId,
-      stakerContractAddress: stakeEvent.stakerContractAddress,
-      userUsername: user.username ?? '',
-      userAddress: stakeEvent.user,
-      userDisplayName: '',
-      userProfileImage: '',
-      likes: 0,
-      comments: 0,
-      usersInvolved: [stakeEvent.user],
-    };
+  const feedEvent: UserStakedEvent = {
+    type: EventType.TokensStaked,
+    duration: stakeEvent.duration,
+    stakeInfo: stakeEvent.stakeInfo,
+    stakePower: stakeEvent.stakePower,
+    amount: stakeEvent.amount,
+    timestamp: stakeEvent.timestamp,
+    blockNumber: stakeEvent.blockNumber,
+    txHash: stakeEvent.txHash,
+    stakerContractChainId: stakeEvent.stakerContractChainId,
+    stakerContractAddress: stakeEvent.stakerContractAddress,
+    userAddress: stakeEvent.user,
+    userUsername: user.username ?? '',
+    userDisplayName: user.displayName ?? '',
+    userProfileImage: user.profileImage ?? '',
+    likes: 0,
+    comments: 0,
+    usersInvolved: [stakeEvent.user]
+  };
 
-    return feedEvent;
-} 
+  return feedEvent;
+}
 
-function unStakeEventToUnStakeFeedEvent(unStakeEvent: TokensUnStakedEvent, user: Partial<UserProfileDto>): UserUnStakedEvent {
-  const feedEvent: UserUnStakedEvent = { 
+function unStakeEventToUnStakeFeedEvent(
+  unStakeEvent: TokensUnStakedEvent,
+  user: Partial<UserProfileDto>
+): UserUnStakedEvent {
+  const feedEvent: UserUnStakedEvent = {
     type: EventType.TokensUnStaked,
     stakeInfo: unStakeEvent.stakeInfo,
     stakePower: unStakeEvent.stakePower,
@@ -107,18 +120,21 @@ function unStakeEventToUnStakeFeedEvent(unStakeEvent: TokensUnStakedEvent, user:
     stakerContractAddress: unStakeEvent.stakerContractAddress,
     userAddress: unStakeEvent.user,
     userUsername: user.username ?? '',
-    userDisplayName: '',
-    userProfileImage: '',
+    userDisplayName: user.displayName ?? '',
+    userProfileImage: user.profileImage ?? '',
     likes: 0,
     comments: 0,
-    usersInvolved: [unStakeEvent.user],
+    usersInvolved: [unStakeEvent.user]
   };
 
   return feedEvent;
 }
 
-function rageQuitEventToRageQuitFeedEvent(rageQuitEvent: RageQuitEvent, user: Partial<UserProfileDto>): UserRageQuitEvent {
-  const feedEvent: UserRageQuitEvent = { 
+function rageQuitEventToRageQuitFeedEvent(
+  rageQuitEvent: RageQuitEvent,
+  user: Partial<UserProfileDto>
+): UserRageQuitEvent {
+  const feedEvent: UserRageQuitEvent = {
     type: EventType.TokensRageQuit,
     stakeInfo: rageQuitEvent.stakeInfo,
     stakePower: rageQuitEvent.stakePower,
@@ -128,14 +144,14 @@ function rageQuitEventToRageQuitFeedEvent(rageQuitEvent: RageQuitEvent, user: Pa
     txHash: rageQuitEvent.txHash,
     stakerContractChainId: rageQuitEvent.stakerContractChainId,
     stakerContractAddress: rageQuitEvent.stakerContractAddress,
-    userUsername: user.username ?? '',
     userAddress: rageQuitEvent.user,
-    userDisplayName: user.displayName || '',
-    userProfileImage: user.profileImage || '',
+    userUsername: user.username ?? '',
+    userDisplayName: user.displayName ?? '',
+    userProfileImage: user.profileImage ?? '',
     likes: 0,
     comments: 0,
     usersInvolved: [rageQuitEvent.user],
-    penaltyAmount: rageQuitEvent.penaltyAmount,
+    penaltyAmount: rageQuitEvent.penaltyAmount
   };
 
   return feedEvent;

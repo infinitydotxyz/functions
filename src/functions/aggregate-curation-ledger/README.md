@@ -70,6 +70,29 @@
         * User stakes/un-stakes/rage quits => update votes available in db, remove votes from collections if necessary
 - [ ] Calculate APR for collections and users? - how do you calculate user APR? Should it be relative to eth or usd? 
     - [ ] Get current token price
+- [ ] Write feed events for stake/un-stake/rage quit
+- [ ] How do we handle integrating the sales listener with existing sales? 
+    - Infinity sales => delete and handle again 
+        - Requires us to delete existing feed events 
+        - Do we need to delete old stats? - they are currently useless besides social stats
+    - OpenSea sales => ?
+    - SeaPort sales => ?
 - [ ] backfill sales
 - [ ] How do we handle the times when rewards aren't live/when users shouldn't get curation rewards for? 
 - [ ] Do we need to store some minimum collection level data in the docs to allow displaying data without an additional query? What about some minimum user level data? 
+
+- [ ] Backend 
+    **USER**
+    - Get current user total stats
+        * blended APR, stake info, staked tokens, token balance, power, votes, collections voted on
+    - Get user stats for a specific collection
+    - Get a list of collections the user has curated
+    **COLLECTION**
+    - Get current collection period stats
+    - Get current collection block stats
+    - Get last completed collection period stats
+    - Get last completed collection block stats
+        * APR, total fees, total votes, total num curators, top curators 
+    
+    - Get historical collection period/block stats 
+    - 

@@ -2,7 +2,7 @@ import { computePoolAddress } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 import { Price, Token } from '@uniswap/sdk-core';
 import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json';
-import { PoolImmutables, PoolState, TokenPairType, TokenPrice } from './types';
+import { TokenPairType, TokenPrice } from './types';
 import { TokenPair as AbstractTokenPair } from './token-pair.abstract';
 import JSBI from 'jsbi';
 
@@ -45,7 +45,6 @@ export class TokenPair extends AbstractTokenPair {
 
   protected async _getTokenPriceFromPool(blockNumber?: number): Promise<TokenPrice> {
     const block = await this._provider.getBlock(blockNumber ?? 'latest');
-    console.log(`Getting token price from pool at block ${block.number}`);
     const prices = await this._getTokenPrices(block.number);
     return {
       ...this.tokenPair,
@@ -80,12 +79,10 @@ export class TokenPair extends AbstractTokenPair {
   protected async _getPrices(
     blockNumber?: number
   ): Promise<{ token0Price: Price<Token, Token>; token1Price: Price<Token, Token> }> {
-    const [state] = await Promise.all([this._getPoolState(blockNumber)]);
-    const price = state.sqrtPriceX96;
-    console.log({ price: price.toString() });
-    const token0Price = this.getToken0Price(JSBI.BigInt(price.toString()));
-
+    const sqrtPriceX96 = await this._getSqrtPriceX96(blockNumber);
+    const token0Price = this.getToken0Price(JSBI.BigInt(sqrtPriceX96.toString()));
     const token1Price = token0Price.invert();
+
     return {
       token0Price,
       token1Price
@@ -102,57 +99,16 @@ export class TokenPair extends AbstractTokenPair {
     return token0Price;
   }
 
-  protected async _getPoolImmutables(blockNumber?: number) {
-    const functions = [
-      this._poolContract.functions.factory,
-      this._poolContract.functions.token0,
-      this._poolContract.functions.token1,
-      this._poolContract.functions.fee,
-      this._poolContract.functions.tickSpacing,
-      this._poolContract.functions.maxLiquidityPerTick
-    ];
+  protected async _getSqrtPriceX96(blockNumber?: number): Promise<JSBI> {
+    const fn = this._poolContract.functions.slot0;
+    let slot;
+    if (typeof blockNumber === 'number' && !Number.isNaN(blockNumber)) {
+      slot = await fn({ blockTag: blockNumber });
+    } else {
+      slot = await fn();
+    }
 
-    const promises = functions.map((fn) => {
-      if (typeof blockNumber === 'number' && !Number.isNaN(blockNumber)) {
-        return fn({ blockTag: blockNumber });
-      }
-      return fn();
-    });
-    const [factory, token0, token1, fee, tickSpacing, maxLiquidityPerTick] = await Promise.all(promises);
-
-    const immutables: PoolImmutables = {
-      factory,
-      token0,
-      token1,
-      fee,
-      tickSpacing,
-      maxLiquidityPerTick
-    };
-    return immutables;
-  }
-
-  protected async _getPoolState(blockNumber?: number) {
-    const functions = [this._poolContract.functions.liquidity, this._poolContract.functions.slot0];
-    const promises = functions.map((fn) => {
-      if (typeof blockNumber === 'number' && !Number.isNaN(blockNumber)) {
-        return fn({ blockTag: blockNumber });
-      }
-      return fn();
-    });
-
-    const [liquidity, slot] = await Promise.all(promises);
-
-    const PoolState: PoolState = {
-      liquidity,
-      sqrtPriceX96: slot[0],
-      tick: slot[1],
-      observationIndex: slot[2],
-      observationCardinality: slot[3],
-      observationCardinalityNext: slot[4],
-      feeProtocol: slot[5],
-      unlocked: slot[6]
-    };
-
-    return PoolState;
+    const sqrtPriceX96 = await slot[0];
+    return sqrtPriceX96;
   }
 }

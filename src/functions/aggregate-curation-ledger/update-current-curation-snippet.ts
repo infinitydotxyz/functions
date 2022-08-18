@@ -107,7 +107,9 @@ export function getCurrentCurationSnippet(
   periods: { current: CurationPeriod | null; mostRecent: CurationPeriod | null },
   blocks: { current: CurationBlockRewards | null; mostRecent: CurationBlockRewards | null },
   stakerContractAddress: string,
-  stakerContractChainId: ChainId
+  stakerContractChainId: ChainId,
+  tokenContractAddress: string,
+  tokenContractChainId: ChainId
 ): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
   const sortUsersByTotalProtocolFees = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
@@ -144,7 +146,9 @@ export function getCurrentCurationSnippet(
     topCuratorsByTotalProtocolFees: topUsersByTotalProtocolFees.slice(0, numTopUsers),
     earliestCurators: earliestUsers.slice(0, numTopUsers),
     stakerContractAddress,
-    stakerContractChainId
+    stakerContractChainId,
+    tokenContractAddress,
+    tokenContractChainId
   };
 
   return {

@@ -1,9 +1,14 @@
-import { CurationLedgerSale, CurationVotesAdded, CurationVotesRemoved } from '@infinityxyz/lib/types/core';
+import {
+  CurationLedgerEvents,
+  CurationLedgerSale,
+  CurationVotesAdded,
+  CurationVotesRemoved
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { REGION } from '../../utils/constants';
-import { createFeedEventForLedgerEvent, CurationLedgerEvents } from './create-feed-event';
+import { createFeedEventForLedgerEvent } from './create-feed-event';
 import * as functions from 'firebase-functions';
 
 export const saveLedgerEventsToFeed = functions

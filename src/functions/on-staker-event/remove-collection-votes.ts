@@ -2,7 +2,11 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { RageQuitEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { CurationLedgerEvent, CurationVotesRemoved } from '@infinityxyz/lib/types/core/curation-ledger';
+import {
+  CurationLedgerEvent,
+  CurationLedgerVotesRemovedWithStake,
+  CurationVotesRemoved
+} from '@infinityxyz/lib/types/core/curation-ledger';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 
 export async function removeUserCollectionVotes(
@@ -203,7 +207,7 @@ export function getCurationLedgerVoteRemovedEvent(
   votesRemoved: number,
   collection: { collectionAddress: string; chainId: ChainId }
 ): CurationVotesRemoved {
-  const event: CurationVotesRemoved = {
+  const event: CurationLedgerVotesRemovedWithStake = {
     votes: votesRemoved,
     txHash: stakerEvent.txHash,
     userAddress: stakerEvent.user,
@@ -217,7 +221,17 @@ export function getCurationLedgerVoteRemovedEvent(
     collectionAddress: collection.collectionAddress,
     collectionChainId: collection.chainId,
     stakerContractAddress: stakerEvent.stakerContractAddress,
-    stakerContractChainId: stakerEvent.stakerContractChainId
+    stakerContractChainId: stakerEvent.stakerContractChainId,
+    stake: {
+      stakeInfo: stakerEvent.stakeInfo,
+      stakePower: stakerEvent.stakePower,
+      stakePowerPerToken: stakerEvent.stakePowerPerToken,
+      stakerEventTxHash: stakerEvent.txHash,
+      stakerEventBlockNumber: stakerEvent.blockNumber
+    },
+    isStakeMerged: true,
+    tokenContractAddress: '0x0',
+    tokenContractChainId: ChainId.Mainnet
   };
 
   return event;

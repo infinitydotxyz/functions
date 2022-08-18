@@ -39,7 +39,10 @@ async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.
       .doc(
         `${event.stakerContractChainId}:${event.stakerContractAddress}`
       ) as FirebaseFirestore.DocumentReference<UserStakeDto>;
-
+    const feedEventRef = eventRef.firestore
+      .collection(firestoreConstants.FEED_COLL)
+      .doc(`${event.discriminator}:${event.txHash}`);
+    const feedEventSnap = await txn.get(feedEventRef);
     const [userStakeSnap, userProfileSnap] = (await txn.getAll<any>(userStakeRef, userRef)) as [
       FirebaseFirestore.DocumentSnapshot<UserStakeDto>,
       FirebaseFirestore.DocumentSnapshot<UserProfileDto>
@@ -64,8 +67,10 @@ async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.
       txn.set(userStakeRef, update, { merge: true });
     }
     const feedEvent = stakerEventToFeedEventAdapter(event, userProfile);
-    const feedRef = eventRef.firestore.collection(firestoreConstants.FEED_COLL).doc();
-    txn.create(feedRef, feedEvent);
+
+    if (!feedEventSnap.exists) {
+      txn.create(feedEventRef, feedEvent);
+    }
   });
 }
 
@@ -98,7 +103,9 @@ function stakeEventToStakeFeedEvent(stakeEvent: TokensStakedEvent, user: Partial
     userProfileImage: user.profileImage ?? '',
     likes: 0,
     comments: 0,
-    usersInvolved: [stakeEvent.user]
+    usersInvolved: [stakeEvent.user],
+    tokenContractAddress: stakeEvent.tokenContractAddress,
+    tokenContractChainId: stakeEvent.tokenContractChainId
   };
 
   return feedEvent;
@@ -124,7 +131,9 @@ function unStakeEventToUnStakeFeedEvent(
     userProfileImage: user.profileImage ?? '',
     likes: 0,
     comments: 0,
-    usersInvolved: [unStakeEvent.user]
+    usersInvolved: [unStakeEvent.user],
+    tokenContractAddress: unStakeEvent.tokenContractAddress,
+    tokenContractChainId: unStakeEvent.tokenContractChainId
   };
 
   return feedEvent;
@@ -151,7 +160,9 @@ function rageQuitEventToRageQuitFeedEvent(
     likes: 0,
     comments: 0,
     usersInvolved: [rageQuitEvent.user],
-    penaltyAmount: rageQuitEvent.penaltyAmount
+    penaltyAmount: rageQuitEvent.penaltyAmount,
+    tokenContractAddress: rageQuitEvent.tokenContractAddress,
+    tokenContractChainId: rageQuitEvent.tokenContractChainId
   };
 
   return feedEvent;

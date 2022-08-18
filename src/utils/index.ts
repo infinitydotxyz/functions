@@ -1,3 +1,5 @@
+import { StakeDuration } from '@infinityxyz/lib/types/core';
+import { ONE_YEAR } from '@infinityxyz/lib/utils/constants';
 import { formatEther } from 'ethers/lib/utils';
 
 export function sleep(duration: number): Promise<void> {
@@ -10,4 +12,71 @@ export function formatEth(wei: string | bigint | number): number {
 
 export function round(value: number, decimals = 4): number {
   return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+export function calculateCuratorApr(
+  curatorPeriodInterest: number,
+  tokenPrice: number,
+  stakePowerPerToken: number,
+  votes: number,
+  periodDuration: number,
+  precision = 8
+) {
+  if (stakePowerPerToken === 0) {
+    return 0;
+  }
+  /**
+   * ETH/vote = ETH/TOKEN / votes/TOKEN
+   */
+  const costPerVote = tokenPrice / stakePowerPerToken;
+
+  if (votes === 0) {
+    return 0;
+  }
+  /**
+   * ETH = ETH/vote * votes
+   */
+  const principal = costPerVote / votes;
+
+  if (principal === 0) {
+    return 0;
+  }
+  const periodicInterestRate = curatorPeriodInterest / principal;
+
+  const periodsInOneYear = ONE_YEAR / periodDuration;
+
+  const aprDecimal = periodicInterestRate * periodsInOneYear;
+
+  const aprPercent = round(aprDecimal * 100, precision);
+
+  return aprPercent;
+}
+
+export function calculateCollectionAprByMultiplier(
+  periodInterest: number,
+  tokenPrice: number,
+  numCuratorVotes: number,
+  periodDuration: number,
+  precision = 8
+) {
+  const multipliers: Record<StakeDuration, number> = {
+    [StakeDuration.X0]: 1,
+    [StakeDuration.X3]: 2,
+    [StakeDuration.X6]: 3,
+    [StakeDuration.X12]: 4
+  };
+
+  const aprByMultiplier: Record<StakeDuration, number> = {
+    [StakeDuration.X0]: 0,
+    [StakeDuration.X3]: 0,
+    [StakeDuration.X6]: 0,
+    [StakeDuration.X12]: 0
+  };
+
+  for (const [stakeDuration, multiplier] of Object.entries(multipliers) as unknown as [StakeDuration, number][]) {
+    const apr = calculateCuratorApr(periodInterest, tokenPrice, multiplier, numCuratorVotes, periodDuration, precision);
+    aprByMultiplier[stakeDuration] = apr;
+  }
+
+  return aprByMultiplier;
 }

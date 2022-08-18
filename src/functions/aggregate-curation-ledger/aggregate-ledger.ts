@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
-import { CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
+import { CurationLedgerEventsWithStake, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
@@ -11,17 +11,20 @@ export async function aggregateLedger(
   collectionAddress: string,
   chainId: ChainId,
   stakerContractAddress: string,
-  stakerContractChainId: ChainId
+  stakerContractChainId: ChainId,
+  tokenContractAddress: string,
+  tokenContractChainId: ChainId
 ) {
   const curationLedgerRef = stakerContractCurationMetadataRef.collection(firestoreConstants.CURATION_LEDGER_COLL);
   const snapshot = await curationLedgerRef
     .where('isAggregated', '==', false)
+    .where('isStakeMerged', '==', true)
     .where('isDeleted', '==', false)
     .orderBy('blockNumber', 'asc')
     .limit(1)
     .get();
   const firstUnaggregatedDoc = snapshot.docs[0];
-  const firstUnaggregatedEvent = firstUnaggregatedDoc?.data() as CurationLedgerEventType | undefined;
+  const firstUnaggregatedEvent = firstUnaggregatedDoc?.data() as CurationLedgerEventsWithStake | undefined;
   if (!firstUnaggregatedEvent) {
     console.error(`Failed to find unaggregated event for ${stakerContractCurationMetadataRef.path}`);
     return;
@@ -29,13 +32,14 @@ export async function aggregateLedger(
 
   const curationBlockRange = CurationBlockAggregator.getCurationBlockRange(firstUnaggregatedEvent.timestamp);
   const curationLedgerEventsQuery = curationLedgerRef
+    .where('isStakeMerged', '==', true)
     .where('timestamp', '>=', curationBlockRange.startTimestamp)
-    .orderBy('timestamp', 'asc') as FirebaseFirestore.Query<CurationLedgerEventType>;
+    .orderBy('timestamp', 'asc') as FirebaseFirestore.Query<CurationLedgerEventsWithStake>;
   const curationLedgerEventsStream = streamQueryWithRef(curationLedgerEventsQuery, (item, ref) => [ref], {
     pageSize: 300
   });
 
-  const events: CurationLedgerEventType[] = [];
+  const events: CurationLedgerEventsWithStake[] = [];
   const eventsWithRefs = [];
   for await (const { data, ref } of curationLedgerEventsStream) {
     events.push({ ...data });
@@ -48,7 +52,9 @@ export async function aggregateLedger(
     collectionAddress,
     chainId,
     stakerContractAddress,
-    stakerContractChainId
+    stakerContractChainId,
+    tokenContractAddress,
+    tokenContractChainId
   );
   await curationAggregator.aggregate();
 

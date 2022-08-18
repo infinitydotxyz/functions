@@ -1,7 +1,7 @@
 import {
   Collection,
   CurationLedgerEvent,
-  CurationLedgerSale,
+  CurationLedgerEvents,
   CurationVotesAdded,
   CurationVotesRemoved,
   EventType,
@@ -11,8 +11,6 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto/user/user-profile.dto';
 import { firestoreConstants, getInfinityLink } from '@infinityxyz/lib/utils';
-
-export type CurationLedgerEvents = CurationLedgerSale | CurationVotesAdded | CurationVotesRemoved;
 
 export async function createFeedEventForLedgerEvent(
   ledgerEventRef: FirebaseFirestore.DocumentReference<CurationLedgerEvents>
@@ -60,7 +58,9 @@ export async function createFeedEventForLedgerEvent(
               type: InfinityLinkType.Collection,
               addressOrSlug: ledgerEvent.collectionAddress,
               chainId: ledgerEvent.collectionChainId
-            })
+            }),
+            tokenContractAddress: ledgerEvent.tokenContractAddress,
+            tokenContractChainId: ledgerEvent.tokenContractChainId
           };
           event = voteEvent;
           break;
@@ -89,7 +89,9 @@ export async function createFeedEventForLedgerEvent(
               type: InfinityLinkType.Collection,
               addressOrSlug: ledgerEvent.collectionAddress,
               chainId: ledgerEvent.collectionChainId
-            })
+            }),
+            tokenContractAddress: ledgerEvent.tokenContractAddress,
+            tokenContractChainId: ledgerEvent.tokenContractChainId
           };
           event = voteRemovedEvent;
           break;

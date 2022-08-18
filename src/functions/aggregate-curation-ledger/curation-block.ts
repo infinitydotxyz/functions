@@ -1,20 +1,22 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import {
   CurationLedgerSale,
-  CurationVotesAdded,
-  CurationVotesRemoved,
   CurationBlockRewardsDoc,
-  CurationLedgerEventType,
   CurationLedgerEvent,
   CurationBlockRewards,
   CurationBlockUser,
-  CurationBlockUsers
+  CurationBlockUsers,
+  CurationLedgerVotesAddedWithStake,
+  CurationLedgerVotesRemovedWithStake,
+  CurationLedgerEventsWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { formatEther } from 'ethers/lib/utils';
-import { calcPercentChange, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
+import { calcPercentChange, calculateStats, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../../firestore/stream-query';
-import { formatEth, round } from '../../utils';
+import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth, round } from '../../utils';
+import { CurationBlockAggregator } from './curation-block-aggregator';
+import { StakeDuration } from '@infinityxyz/lib/types/core';
 
 interface BlockMetadata {
   /**
@@ -25,6 +27,8 @@ interface BlockMetadata {
   chainId: ChainId;
   stakerContractAddress: string;
   stakerContractChainId: ChainId;
+  tokenContractAddress: string;
+  tokenContractChainId: ChainId;
 }
 
 /**
@@ -35,8 +39,13 @@ interface BlockMetadata {
  */
 export class CurationBlock {
   private _sales: CurationLedgerSale[] = [];
-  private _votes: CurationVotesAdded[] = [];
-  private _votesRemoved: CurationVotesRemoved[] = [];
+  private _votes: CurationLedgerVotesAddedWithStake[] = [];
+  private _votesRemoved: CurationLedgerVotesRemovedWithStake[] = [];
+  private _blockNumber: number;
+
+  public get blockNumber(): number {
+    return this._blockNumber;
+  }
 
   static async getBlockUsers(
     blockRewardsRef: FirebaseFirestore.DocumentReference<CurationBlockRewardsDoc>
@@ -54,18 +63,23 @@ export class CurationBlock {
     return users;
   }
 
-  constructor(public readonly metadata: BlockMetadata) {}
+  constructor(public readonly metadata: BlockMetadata) {
+    this._blockNumber = Number.NaN;
+  }
 
-  public addEvent(event: CurationLedgerEventType) {
+  public addEvent(event: CurationLedgerEventsWithStake) {
+    if (!this._blockNumber || event.blockNumber < this._blockNumber) {
+      this._blockNumber = event.blockNumber;
+    }
     switch (event.discriminator) {
       case CurationLedgerEvent.Sale:
-        this._sales.push(event as CurationLedgerSale);
+        this._sales.push(event);
         break;
       case CurationLedgerEvent.VotesAdded:
-        this._votes.push(event as CurationVotesAdded);
+        this._votes.push(event);
         break;
       case CurationLedgerEvent.VotesRemoved:
-        this._votesRemoved.push(event as CurationVotesRemoved);
+        this._votesRemoved.push(event);
         break;
     }
   }
@@ -83,7 +97,10 @@ export class CurationBlock {
     return this._votesRemoved.reduce((acc, vote) => vote.votes + acc, 0);
   }
 
-  public getBlockRewards(prevBlockRewards: CurationBlockRewards): {
+  public getBlockRewards(
+    prevBlockRewards: CurationBlockRewards,
+    tokenPrice: number
+  ): {
     blockRewards: CurationBlockRewards;
     usersAdded: CurationBlockUsers;
     usersRemoved: CurationBlockUsers;
@@ -131,17 +148,32 @@ export class CurationBlock {
       timestamp: this.metadata.blockStart,
       isAggregated: false,
       stakerContractAddress: this.metadata.stakerContractAddress,
-      stakerContractChainId: this.metadata.stakerContractChainId
+      stakerContractChainId: this.metadata.stakerContractChainId,
+      tokenContractAddress: this.metadata.tokenContractAddress,
+      tokenContractChainId: this.metadata.tokenContractChainId,
+      blockDuration: CurationBlockAggregator.DURATION,
+      blockNumber: this._blockNumber,
+      tokenPrice: tokenPrice,
+      avgStakePowerPerToken: 0,
+      blockApr: 0,
+      blockAprByMultiplier: {
+        [StakeDuration.X0]: 0,
+        [StakeDuration.X3]: 0,
+        [StakeDuration.X6]: 0,
+        [StakeDuration.X12]: 0
+      }
     };
 
-    const blockRewards = this.distributeRewards(blockRewardsBeforeDistribution);
+    const blockRewardsAfterDistribution = this.distributeRewards(blockRewardsBeforeDistribution);
+
+    const blockRewards = this.updateAPRs(blockRewardsAfterDistribution);
 
     return { blockRewards, usersRemoved, usersAdded: newUsers };
   }
 
   protected applyVoteRemovals(
     users: CurationBlockUsers,
-    votesRemoved: CurationVotesRemoved[]
+    votesRemoved: CurationLedgerVotesRemovedWithStake[]
   ): { updatedUsers: CurationBlockUsers; usersRemoved: CurationBlockUsers; numCuratorVotesRemoved: number } {
     const currentUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
     let numCuratorVotesRemoved = 0;
@@ -184,7 +216,7 @@ export class CurationBlock {
 
   protected applyVoteAdditions(
     users: CurationBlockUsers,
-    votesAdded: CurationVotesAdded[]
+    votesAdded: CurationLedgerVotesAddedWithStake[]
   ): { updatedUsers: CurationBlockUsers; newUsers: CurationBlockUsers; numCuratorVotesAdded: number } {
     const currentUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
     const newUsers = {} as CurationBlockUsers;
@@ -196,6 +228,9 @@ export class CurationBlock {
         const updatedVotes = existingUser.votes + voteAdded.votes;
         existingUser.votes = updatedVotes;
         existingUser.lastVotedAt = this.metadata.blockStart;
+        if (existingUser.stake.stakerEventBlockNumber < voteAdded.stake.stakerEventBlockNumber) {
+          existingUser.stake = voteAdded.stake;
+        }
       } else {
         const newUser: CurationBlockUser = {
           userAddress: voteAdded.userAddress,
@@ -213,7 +248,15 @@ export class CurationBlock {
           numCurators: 0,
           numCuratorVotes: 0,
           stakerContractAddress: this.metadata.stakerContractAddress,
-          stakerContractChainId: this.metadata.stakerContractChainId
+          stakerContractChainId: this.metadata.stakerContractChainId,
+          tokenContractAddress: this.metadata.tokenContractAddress,
+          tokenContractChainId: this.metadata.tokenContractChainId,
+          blockNumber: 0,
+          timestamp: 0,
+          tokenPrice: 0,
+          blockDuration: 0,
+          blockApr: 0,
+          stake: voteAdded.stake
         };
         currentUsers[newUser.userAddress] = newUser;
         newUsers[newUser.userAddress] = { ...newUser };
@@ -248,5 +291,40 @@ export class CurationBlock {
       arbitrageProtocolFeesAccruedWei: feesRemaining.toString(),
       arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString()))
     };
+  }
+
+  protected updateAPRs(_rewards: CurationBlockRewards): CurationBlockRewards {
+    const rewards: CurationBlockRewards = JSON.parse(JSON.stringify(_rewards));
+    const collectionApr = calculateCollectionAprByMultiplier(
+      rewards.blockProtocolFeesAccruedEth,
+      rewards.tokenPrice,
+      rewards.numCuratorVotes,
+      rewards.blockDuration
+    );
+    rewards.blockAprByMultiplier = collectionApr;
+    for (const user of Object.values(rewards.users)) {
+      user.tokenPrice = rewards.tokenPrice;
+      user.blockApr = calculateCuratorApr(
+        user.blockProtocolFeesAccruedEth,
+        user.tokenPrice,
+        user.stake.stakePowerPerToken,
+        user.votes,
+        user.blockDuration
+      );
+    }
+
+    const avgStakePowerPerToken = calculateStats(
+      Object.values(rewards.users),
+      (user) => user.stake.stakePowerPerToken
+    ).avg;
+    rewards.avgStakePowerPerToken = avgStakePowerPerToken ?? 0;
+    rewards.blockApr = calculateCuratorApr(
+      rewards.blockProtocolFeesAccruedEth,
+      rewards.tokenPrice,
+      rewards.avgStakePowerPerToken,
+      rewards.numCuratorVotes,
+      rewards.blockDuration
+    );
+    return rewards;
   }
 }

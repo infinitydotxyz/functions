@@ -8,6 +8,8 @@ export interface CurationMetadata {
   collectionChainId: ChainId;
   stakerContractAddress: string;
   stakerContractChainId: ChainId;
+  tokenContractAddress: string;
+  tokenContractChainId: ChainId;
   refreshCurrentSnippetBy: number;
   updatedAt: number;
 }

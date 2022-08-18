@@ -1,10 +1,10 @@
-import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, StakeDuration, StatsPeriod } from '@infinityxyz/lib/types/core';
 import {
   CurationBlockRewardsDoc,
-  CurationLedgerEventType,
   CurationBlockRewards,
   CurationBlockUsers,
-  CurationBlockUser
+  CurationBlockUser,
+  CurationLedgerEventsWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
@@ -12,6 +12,7 @@ import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQuery } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';
+import { getTokenPrice } from '../../token-price';
 
 const ONE_HOUR = 60 * 60 * 1000;
 export class CurationBlockAggregator {
@@ -33,12 +34,14 @@ export class CurationBlockAggregator {
   }
 
   constructor(
-    private _curationEvents: CurationLedgerEventType[],
+    private _curationEvents: CurationLedgerEventsWithStake[],
     private _stakerContractCurationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
     private _collectionAddress: string,
     private _chainId: ChainId,
     private _stakerContractAddress: string,
-    private _stakerContractChainId: ChainId
+    private _stakerContractChainId: ChainId,
+    private _tokenContractAddress: string,
+    private _tokenContractChainId: ChainId
   ) {
     this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.timestamp);
     for (const event of this._curationEvents) {
@@ -52,7 +55,9 @@ export class CurationBlockAggregator {
           collectionAddress: this._collectionAddress,
           chainId: this._chainId,
           stakerContractAddress: this._stakerContractAddress,
-          stakerContractChainId: this._stakerContractChainId
+          stakerContractChainId: this._stakerContractChainId,
+          tokenContractAddress: this._tokenContractAddress,
+          tokenContractChainId: this._tokenContractChainId
         });
         this._curationBlocks.set(startTimestamp, block);
         block.addEvent(event);
@@ -66,7 +71,16 @@ export class CurationBlockAggregator {
       if (!prevBlockRewards) {
         prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
       }
-      const { blockRewards, usersRemoved } = block.getBlockRewards(prevBlockRewards);
+      const { relevantTokenPrice: tokenPrice } = await getTokenPrice(
+        this._tokenContractAddress,
+        this._tokenContractChainId,
+        18,
+        'NFT',
+        'Infinity',
+        block.blockNumber
+      );
+
+      const { blockRewards, usersRemoved } = block.getBlockRewards(prevBlockRewards, tokenPrice);
       await this.saveCurationBlockRewards(blockRewards, usersRemoved);
       prevBlockRewards = blockRewards;
     }
@@ -121,7 +135,20 @@ export class CurationBlockAggregator {
         timestamp,
         isAggregated: false,
         stakerContractAddress: this._stakerContractAddress,
-        stakerContractChainId: this._stakerContractChainId
+        stakerContractChainId: this._stakerContractChainId,
+        blockNumber: 0,
+        tokenContractAddress: this._tokenContractAddress,
+        tokenContractChainId: this._tokenContractChainId,
+        blockDuration: CurationBlockAggregator.DURATION,
+        tokenPrice: 0,
+        avgStakePowerPerToken: 0,
+        blockApr: 0,
+        blockAprByMultiplier: {
+          [StakeDuration.X0]: 0,
+          [StakeDuration.X3]: 0,
+          [StakeDuration.X6]: 0,
+          [StakeDuration.X12]: 0
+        }
       };
       const prevBlockRewards = {
         ...prevBlockRewardsData,

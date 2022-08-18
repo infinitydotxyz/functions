@@ -1,15 +1,20 @@
-import { ChainId, InfinityNftSale, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ChainId, InfinityNftSale, SaleSource, StakeDuration, TokenStandard } from '@infinityxyz/lib/types/core';
 import {
-  CurationVotesAdded,
   CurationLedgerEvent,
-  CurationVotesRemoved,
   CurationLedgerSale,
   CurationBlockRewards,
-  CurationBlockUsers
+  CurationBlockUsers,
+  CurationLedgerVotesAddedWithStake,
+  CurationLedgerVotesRemovedWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { ONE_HOUR } from '@infinityxyz/lib/utils';
 import { parseEther } from 'ethers/lib/utils';
 import { formatEth } from '../../utils';
 import { CurationBlock } from './curation-block';
+
+const USDC_PER_WETH_PRICE = 2000;
+const NFT_PER_USDC_PRICE = 0.07;
+const TOKEN_PRICE = NFT_PER_USDC_PRICE / USDC_PER_WETH_PRICE; // NFT per WETH
 
 const getFees = (price: number, feePercent = 2.5) => {
   const priceWei = parseEther(price.toString());
@@ -22,7 +27,11 @@ const getFees = (price: number, feePercent = 2.5) => {
   return { protocolFeeBPS, protocolFeeWei, protocolFee, price };
 };
 
-const getVotesAddedEvent = (userAddress: string, votes: number): CurationVotesAdded => {
+const getVotesAddedEvent = (
+  userAddress: string,
+  votes: number,
+  stakePowerPerToken = 1
+): CurationLedgerVotesAddedWithStake => {
   return {
     votes,
     userAddress,
@@ -36,11 +45,25 @@ const getVotesAddedEvent = (userAddress: string, votes: number): CurationVotesAd
     collectionChainId: ChainId.Mainnet,
     stakerContractAddress: '0x0',
     stakerContractChainId: ChainId.Mainnet,
-    isFeedUpdated: false
+    isFeedUpdated: false,
+    isStakeMerged: true,
+    stake: {
+      stakeInfo: {} as any,
+      stakePower: stakePowerPerToken * votes,
+      stakePowerPerToken: stakePowerPerToken,
+      stakerEventTxHash: '0x0',
+      stakerEventBlockNumber: 0
+    },
+    tokenContractAddress: '0x0',
+    tokenContractChainId: ChainId.Mainnet
   };
 };
 
-const getVotesRemovedEvent = (userAddress: string, votes: number): CurationVotesRemoved => {
+const getVotesRemovedEvent = (
+  userAddress: string,
+  votes: number,
+  stakePowerPerToken = 1
+): CurationLedgerVotesRemovedWithStake => {
   return {
     votes,
     userAddress,
@@ -55,7 +78,17 @@ const getVotesRemovedEvent = (userAddress: string, votes: number): CurationVotes
     stakerContractAddress: '0x0',
     stakerContractChainId: ChainId.Mainnet,
     txHash: '0x0',
-    isFeedUpdated: false
+    isFeedUpdated: false,
+    isStakeMerged: true,
+    stake: {
+      stakeInfo: {} as any,
+      stakePower: stakePowerPerToken * votes,
+      stakePowerPerToken: stakePowerPerToken,
+      stakerEventTxHash: '0x0',
+      stakerEventBlockNumber: 0
+    },
+    tokenContractAddress: '0x0',
+    tokenContractChainId: ChainId.Mainnet
   };
 };
 
@@ -86,7 +119,10 @@ const getSaleEvent = (price: number, feePercent: number) => {
     collectionChainId: sale.chainId as ChainId,
     stakerContractAddress: '0x0',
     stakerContractChainId: sale.chainId as ChainId,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    isStakeMerged: true,
+    tokenContractAddress: '0x0',
+    tokenContractChainId: ChainId.Mainnet
   };
 
   return saleOne;
@@ -106,14 +142,14 @@ class MockCurationBlock extends CurationBlock {
 
   public testApplyVoteRemovals(
     users: CurationBlockUsers,
-    votesRemoved: CurationVotesRemoved[]
+    votesRemoved: CurationLedgerVotesRemovedWithStake[]
   ): { updatedUsers: CurationBlockUsers; usersRemoved: CurationBlockUsers; numCuratorVotesRemoved: number } {
     return this.applyVoteRemovals(users, votesRemoved);
   }
 
   public testApplyVoteAdditions(
     users: CurationBlockUsers,
-    votesAdded: CurationVotesAdded[]
+    votesAdded: CurationLedgerVotesAddedWithStake[]
   ): { updatedUsers: CurationBlockUsers; newUsers: CurationBlockUsers; numCuratorVotesAdded: number } {
     return this.applyVoteAdditions(users, votesAdded);
   }
@@ -147,7 +183,20 @@ describe('curation block', () => {
     isAggregated: false,
     users: {},
     stakerContractAddress: '0x0',
-    stakerContractChainId: ChainId.Mainnet
+    stakerContractChainId: ChainId.Mainnet,
+    blockDuration: ONE_HOUR,
+    blockNumber: 0,
+    tokenContractAddress: '0x0',
+    tokenContractChainId: ChainId.Mainnet,
+    tokenPrice: 0,
+    blockAprByMultiplier: {
+      [StakeDuration.X0]: 0,
+      [StakeDuration.X3]: 0,
+      [StakeDuration.X6]: 0,
+      [StakeDuration.X12]: 0
+    },
+    avgStakePowerPerToken: 0,
+    blockApr: 0
   };
 
   it('sums protocol fees to get the total protocol fees for the block', () => {
@@ -156,7 +205,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const sale = getSaleEvent(1, 2.5);
     block.addEvent({ ...sale });
@@ -165,7 +216,7 @@ describe('curation block', () => {
     const expectedFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(3);
     expect(block.feesGeneratedWei).toBe(expectedFeesGeneratedWei.toString());
 
-    const rewards = block.getBlockRewards(defaultPrevBlockRewards);
+    const rewards = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
     expect(rewards.blockRewards.totalProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
     expect(rewards.blockRewards.arbitrageProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
     expect(rewards.blockRewards.blockProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
@@ -175,7 +226,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     block2.addEvent({ ...sale });
     block2.addEvent({ ...sale });
@@ -183,7 +236,7 @@ describe('curation block', () => {
     const expectedBlockFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(3);
     const expectedTotalFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(6);
 
-    const rewards2 = block.getBlockRewards(rewards.blockRewards);
+    const rewards2 = block.getBlockRewards(rewards.blockRewards, TOKEN_PRICE);
     expect(rewards2.blockRewards.totalProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
     expect(rewards2.blockRewards.arbitrageProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
     expect(rewards2.blockRewards.blockProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
@@ -195,7 +248,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const address1 = '0x1';
     const vote1 = getVotesAddedEvent(address1, 1);
@@ -216,7 +271,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
@@ -242,7 +299,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
@@ -252,7 +311,7 @@ describe('curation block', () => {
     block.addEvent(vote);
     block.addEvent(sale);
 
-    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(defaultPrevBlockRewards);
+    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
     expect(Object.values(usersAdded).length).toBe(1);
     expect(Object.values(usersRemoved).length).toBe(0);
     expect(blockRewards.numCuratorVotes).toBe(1);
@@ -292,7 +351,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const address1 = '0x1';
     const address2 = '0x2';
@@ -305,7 +366,7 @@ describe('curation block', () => {
     block.addEvent(vote2);
     block.addEvent(sale);
 
-    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(defaultPrevBlockRewards);
+    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
     expect(Object.values(usersAdded).length).toBe(2);
     expect(Object.values(usersRemoved).length).toBe(0);
     expect(blockRewards.numCuratorVotes).toBe(4);
@@ -353,7 +414,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const address1 = '0x1';
     const address2 = '0x2';
@@ -364,7 +427,11 @@ describe('curation block', () => {
     block1.addEvent(vote1);
     block1.addEvent(sale);
 
-    const { blockRewards: block1Rewards, usersAdded, usersRemoved } = block1.getBlockRewards(defaultPrevBlockRewards);
+    const {
+      blockRewards: block1Rewards,
+      usersAdded,
+      usersRemoved
+    } = block1.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
     expect(Object.values(usersAdded).length).toBe(1);
     expect(Object.values(usersRemoved).length).toBe(0);
     expect(block1Rewards.numCuratorVotes).toBe(1);
@@ -403,7 +470,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const sale2 = getSaleEvent(1, 2.5);
     const expectedBlock2FeesGeneratedWei = BigInt(sale2.protocolFeeWei);
@@ -415,7 +484,7 @@ describe('curation block', () => {
       blockRewards: block2Rewards,
       usersAdded: users2Added,
       usersRemoved: users2Removed
-    } = block2.getBlockRewards(block1Rewards);
+    } = block2.getBlockRewards(block1Rewards, TOKEN_PRICE);
 
     const expectedBlock2UserRewards = expectedBlock2FeesGeneratedWei / BigInt(2);
 
@@ -453,14 +522,20 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
 
     const sale = getSaleEvent(1, 2.5);
     const expectedBlock1FeesGeneratedWei = BigInt(sale.protocolFeeWei);
     block1.addEvent(sale);
 
-    const { blockRewards: block1Rewards, usersAdded, usersRemoved } = block1.getBlockRewards(defaultPrevBlockRewards);
+    const {
+      blockRewards: block1Rewards,
+      usersAdded,
+      usersRemoved
+    } = block1.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
     expect(Object.values(usersAdded).length).toBe(0);
     expect(Object.values(usersRemoved).length).toBe(0);
     expect(block1Rewards.numCuratorVotes).toBe(0);
@@ -493,7 +568,9 @@ describe('curation block', () => {
       collectionAddress: '0x0',
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
-      stakerContractChainId: ChainId.Mainnet
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     });
     const address1 = '0x1';
     const vote = getVotesAddedEvent(address1, 1);
@@ -504,7 +581,7 @@ describe('curation block', () => {
       blockRewards: block2Rewards,
       usersAdded: block2UsersAdded,
       usersRemoved: block2UsersRemoved
-    } = block2.getBlockRewards(block1Rewards);
+    } = block2.getBlockRewards(block1Rewards, TOKEN_PRICE);
     expect(Object.values(block2UsersAdded).length).toBe(1);
     expect(Object.values(block2UsersRemoved).length).toBe(0);
     expect(block2Rewards.numCuratorVotes).toBe(1);

@@ -63,7 +63,10 @@ function saveSaleToCollectionCurationLedgers(
       collectionAddress: sale.collectionAddress,
       collectionChainId: sale.chainId as ChainId,
       stakerContractAddress: stakerContract,
-      stakerContractChainId: sale.chainId as ChainId
+      stakerContractChainId: sale.chainId as ChainId,
+      isStakeMerged: true,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet
     };
     return curationSale;
   });

@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { CurationLedgerEvents, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
+import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
@@ -10,6 +10,7 @@ import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
+import { mergeStake } from './merge-stake';
 import { CurationMetadata } from './types';
 import {
   getCurrentBlocks,
@@ -18,6 +19,45 @@ import {
   saveCurrentCurationSnippet
 } from './update-current-curation-snippet';
 
+export const onCurationLedgerEvent = functions
+  .region(REGION)
+  .firestore.document(
+    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakerContractId}/${firestoreConstants.CURATION_LEDGER_COLL}`
+  )
+  .onWrite(async (change) => {
+    const curationLedgerEvent = change.after.data() as CurationLedgerEvents;
+    if (curationLedgerEvent.isStakeMerged === false) {
+      await mergeStake(change.after.ref as FirebaseFirestore.DocumentReference<CurationLedgerEvents>);
+    }
+  });
+
+export const triggerCurationLedgerEventMerge = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .pubsub.schedule('0,10,20,30,40,50 * * * *')
+  .onRun(async () => {
+    const db = getDb();
+    const fifteenMin = ONE_MIN * 15;
+    const curationEventsToAggregate = db
+      .collectionGroup(firestoreConstants.CURATION_LEDGER_COLL)
+      .where('isStakeMerged', '==', false)
+      .where('isDeleted', '==', false)
+      .where('updatedAt', '<', Date.now() - fifteenMin) as FirebaseFirestore.Query<CurationLedgerEventType>;
+
+    const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
+
+    const batch = new FirestoreBatchHandler();
+    for await (const item of stream) {
+      const triggerUpdate: Partial<CurationLedgerEventType> = {
+        updatedAt: Date.now()
+      };
+      batch.add(item.ref, triggerUpdate, { merge: true });
+    }
+  });
+
+// TODO update staker contract metadata to have token contract address and chain ID
 export const triggerCurationLedgerAggregation = functions
   .region(REGION)
   .runWith({
@@ -32,6 +72,7 @@ export const triggerCurationLedgerAggregation = functions
     const curationEventsToAggregate = db
       .collectionGroup(firestoreConstants.CURATION_LEDGER_COLL)
       .where('isAggregated', '==', false)
+      .where('isStakeMerged', '==', true)
       .where('isDeleted', '==', false) as FirebaseFirestore.Query<CurationLedgerEventType>;
 
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
@@ -132,7 +173,9 @@ export const aggregateCurationLedger = functions
         collectionAddress,
         collectionChainId,
         stakerContractAddress,
-        stakerContractChainId
+        stakerContractChainId,
+        stakerContractMetadata.tokenContractAddress,
+        stakerContractMetadata.tokenContractChainId
       );
       const triggerPeriodAggregationUpdate: Partial<CurationMetadata> = {
         ledgerRequiresAggregation: false,
@@ -165,7 +208,9 @@ export const aggregateCurationLedger = functions
         currentPeriods,
         currentBlocks,
         stakerContractAddress,
-        stakerContractChainId
+        stakerContractChainId,
+        stakerContractMetadata.tokenContractAddress,
+        stakerContractMetadata.tokenContractChainId
       );
       const currentBlockExpiresAt = currentBlocks.current?.timestamp
         ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.timestamp).endTimestamp

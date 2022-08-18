@@ -15,7 +15,7 @@ export class CachedTokenPair implements ITokenPair {
       .collection('poolPrices') as FirebaseFirestore.CollectionReference<TokenPrice>;
   }
 
-  public readonly MAX_BLOCK_AGE = 100
+  public readonly MAX_BLOCK_AGE = 100;
   public readonly MAX_AGE = ONE_HOUR;
 
   constructor(protected _db: FirebaseFirestore.Firestore, protected _tokenPair: TokenPair) {}
@@ -42,7 +42,8 @@ export class CachedTokenPair implements ITokenPair {
     const mostRecentSnap = await mostRecentQuery.limit(1).get();
     const mostRecentPrice = mostRecentSnap.docs[0]?.data?.();
     const blockNumberExpired = blockNumber && mostRecentPrice.blockNumber < blockNumber - this.MAX_BLOCK_AGE;
-    const timestampExpired = !blockNumber && mostRecentPrice.timestamp && mostRecentPrice.timestamp < Date.now() - this.MAX_AGE;
+    const timestampExpired =
+      !blockNumber && mostRecentPrice.timestamp && mostRecentPrice.timestamp < Date.now() - this.MAX_AGE;
     if (!mostRecentPrice || blockNumberExpired || timestampExpired) {
       return null;
     }

@@ -16,7 +16,7 @@ import { calcPercentChange, calculateStats, calculateStatsBigInt } from '../aggr
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth, round } from '../../utils';
 import { CurationBlockAggregator } from './curation-block-aggregator';
-import { StakeDuration } from '@infinityxyz/lib/types/core';
+import { CollectionDisplayData, StakeDuration } from '@infinityxyz/lib/types/core';
 
 interface BlockMetadata {
   /**
@@ -56,8 +56,8 @@ export class CurationBlock {
     ) as FirebaseFirestore.CollectionReference<CurationBlockUser>;
     const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     for await (const { data: user } of usersStream) {
-      if (user.userAddress) {
-        users[user.userAddress] = user;
+      if (user?.metadata?.userAddress) {
+        users[user.metadata.userAddress] = user;
       }
     }
     return users;
@@ -99,7 +99,8 @@ export class CurationBlock {
 
   public getBlockRewards(
     prevBlockRewards: CurationBlockRewards,
-    tokenPrice: number
+    tokenPrice: number,
+    collection: CollectionDisplayData
   ): {
     blockRewards: CurationBlockRewards;
     usersAdded: CurationBlockUsers;
@@ -116,51 +117,58 @@ export class CurationBlock {
       updatedUsers: updatedUsersAfterAdditions,
       newUsers,
       numCuratorVotesAdded
-    } = this.applyVoteAdditions(updatedUsersAfterRemovals, this._votes);
+    } = this.applyVoteAdditions(updatedUsersAfterRemovals, this._votes, collection);
 
-    const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterAdditions), (user) => BigInt(user.votes));
+    const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterAdditions), (user) =>
+      BigInt(user.stats.votes)
+    );
     const blockProtocolFeesAccruedWei = BigInt(this.feesGeneratedWei);
     const totalProtocolFeesAccruedWei =
-      blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.totalProtocolFeesAccruedWei);
+      blockProtocolFeesAccruedWei + BigInt(prevBlockRewards.stats.totalProtocolFeesAccruedWei);
     const numCuratorVotes = parseInt(voteStats.sum.toString(), 10);
     const numCurators = voteStats.numItems;
 
     const updatedUsersAfterStatsUpdate = this.updateVoteStats(updatedUsersAfterAdditions, numCurators, numCuratorVotes);
 
     const blockRewardsBeforeDistribution: CurationBlockRewards = {
+      collection,
       users: updatedUsersAfterStatsUpdate,
-      collectionAddress: this.metadata.collectionAddress,
-      chainId: this.metadata.chainId,
-      numCurators,
-      numCuratorVotes: numCuratorVotes,
-      numCuratorsAdded: Object.keys(newUsers).length,
-      numCuratorsRemoved: Object.keys(usersRemoved).length,
-      numCuratorVotesRemoved,
-      numCuratorVotesAdded,
-      numCuratorsPercentChange: calcPercentChange(prevBlockRewards.numCurators, numCurators),
-      numCuratorVotesPercentChange: calcPercentChange(prevBlockRewards.numCuratorVotes, numCuratorVotes),
-      totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
-      totalProtocolFeesAccruedEth: parseFloat(formatEther(totalProtocolFeesAccruedWei.toString())),
-      blockProtocolFeesAccruedWei: blockProtocolFeesAccruedWei.toString(),
-      blockProtocolFeesAccruedEth: parseFloat(formatEther(blockProtocolFeesAccruedWei.toString())),
-      arbitrageProtocolFeesAccruedWei: prevBlockRewards.arbitrageProtocolFeesAccruedWei,
-      arbitrageProtocolFeesAccruedEth: prevBlockRewards.arbitrageProtocolFeesAccruedEth,
-      timestamp: this.metadata.blockStart,
-      isAggregated: false,
-      stakerContractAddress: this.metadata.stakerContractAddress,
-      stakerContractChainId: this.metadata.stakerContractChainId,
-      tokenContractAddress: this.metadata.tokenContractAddress,
-      tokenContractChainId: this.metadata.tokenContractChainId,
-      blockDuration: CurationBlockAggregator.DURATION,
-      blockNumber: this._blockNumber,
-      tokenPrice: tokenPrice,
-      avgStakePowerPerToken: 0,
-      blockApr: 0,
-      blockAprByMultiplier: {
-        [StakeDuration.X0]: 0,
-        [StakeDuration.X3]: 0,
-        [StakeDuration.X6]: 0,
-        [StakeDuration.X12]: 0
+      metadata: {
+        collectionAddress: this.metadata.collectionAddress,
+        collectionChainId: this.metadata.chainId,
+        timestamp: this.metadata.blockStart,
+        isAggregated: false,
+        stakerContractAddress: this.metadata.stakerContractAddress,
+        stakerContractChainId: this.metadata.stakerContractChainId,
+        tokenContractAddress: this.metadata.tokenContractAddress,
+        tokenContractChainId: this.metadata.tokenContractChainId,
+        blockDuration: CurationBlockAggregator.DURATION,
+        blockNumber: this._blockNumber
+      },
+      stats: {
+        numCurators,
+        numCuratorVotes: numCuratorVotes,
+        numCuratorsAdded: Object.keys(newUsers).length,
+        numCuratorsRemoved: Object.keys(usersRemoved).length,
+        numCuratorVotesRemoved,
+        numCuratorVotesAdded,
+        numCuratorsPercentChange: calcPercentChange(prevBlockRewards.stats.numCurators, numCurators),
+        numCuratorVotesPercentChange: calcPercentChange(prevBlockRewards.stats.numCuratorVotes, numCuratorVotes),
+        totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
+        totalProtocolFeesAccruedEth: parseFloat(formatEther(totalProtocolFeesAccruedWei.toString())),
+        blockProtocolFeesAccruedWei: blockProtocolFeesAccruedWei.toString(),
+        blockProtocolFeesAccruedEth: parseFloat(formatEther(blockProtocolFeesAccruedWei.toString())),
+        arbitrageProtocolFeesAccruedWei: prevBlockRewards.stats.arbitrageProtocolFeesAccruedWei,
+        arbitrageProtocolFeesAccruedEth: prevBlockRewards.stats.arbitrageProtocolFeesAccruedEth,
+        tokenPrice: tokenPrice,
+        avgStakePowerPerToken: 0,
+        blockApr: 0,
+        blockAprByMultiplier: {
+          [StakeDuration.X0]: 0,
+          [StakeDuration.X3]: 0,
+          [StakeDuration.X6]: 0,
+          [StakeDuration.X12]: 0
+        }
       }
     };
 
@@ -182,16 +190,16 @@ export class CurationBlock {
       if (!existingUser) {
         console.error(`User ${voteRemoved.userAddress} not found in history. Cannot remove votes`);
       } else {
-        const userVotesRemaining = Math.max(existingUser.votes - voteRemoved.votes, 0);
-        existingUser.votes = userVotesRemaining;
+        const userVotesRemaining = Math.max(existingUser.stats.votes - voteRemoved.votes, 0);
+        existingUser.stats.votes = userVotesRemaining;
         numCuratorVotesRemoved += voteRemoved.votes;
       }
     }
 
     const usersRemoved = {} as CurationBlockUsers;
     for (const [address, user] of Object.entries(currentUsers)) {
-      if (user.votes <= 0) {
-        user.votes = 0;
+      if (user.stats.votes <= 0) {
+        user.stats.votes = 0;
         delete currentUsers[address];
         usersRemoved[address] = user;
       }
@@ -207,16 +215,17 @@ export class CurationBlock {
   ): CurationBlockUsers {
     const updatedUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
     for (const [, user] of Object.entries(updatedUsers)) {
-      user.numCurators = numCurators;
-      user.numCuratorVotes = numCuratorVotes;
-      user.curatorShare = round((user.votes / numCuratorVotes) * 100);
+      user.stats.numCurators = numCurators;
+      user.stats.numCuratorVotes = numCuratorVotes;
+      user.stats.curatorShare = round((user.stats.votes / numCuratorVotes) * 100);
     }
     return updatedUsers;
   }
 
   protected applyVoteAdditions(
     users: CurationBlockUsers,
-    votesAdded: CurationLedgerVotesAddedWithStake[]
+    votesAdded: CurationLedgerVotesAddedWithStake[],
+    collection: CollectionDisplayData
   ): { updatedUsers: CurationBlockUsers; newUsers: CurationBlockUsers; numCuratorVotesAdded: number } {
     const currentUsers: CurationBlockUsers = JSON.parse(JSON.stringify(users));
     const newUsers = {} as CurationBlockUsers;
@@ -225,41 +234,54 @@ export class CurationBlock {
       const existingUser = currentUsers[voteAdded.userAddress];
       numCuratorVotesAdded += voteAdded.votes;
       if (existingUser) {
-        const updatedVotes = existingUser.votes + voteAdded.votes;
-        existingUser.votes = updatedVotes;
-        existingUser.lastVotedAt = this.metadata.blockStart;
-        if (existingUser.stake.stakerEventBlockNumber < voteAdded.stake.stakerEventBlockNumber) {
-          existingUser.stake = voteAdded.stake;
+        const updatedVotes = existingUser.stats.votes + voteAdded.votes;
+        existingUser.stats.votes = updatedVotes;
+        existingUser.stats.lastVotedAt = this.metadata.blockStart;
+        if (existingUser.stats.stake.stakerEventBlockNumber < voteAdded.stake.stakerEventBlockNumber) {
+          existingUser.stats.stake = voteAdded.stake;
         }
       } else {
         const newUser: CurationBlockUser = {
-          userAddress: voteAdded.userAddress,
-          votes: voteAdded.votes,
-          totalProtocolFeesAccruedWei: '0',
-          blockProtocolFeesAccruedWei: '0',
-          firstVotedAt: this.metadata.blockStart,
-          lastVotedAt: this.metadata.blockStart,
-          collectionAddress: this.metadata.collectionAddress,
-          chainId: this.metadata.chainId,
-          updatedAt: Date.now(),
-          totalProtocolFeesAccruedEth: 0,
-          blockProtocolFeesAccruedEth: 0,
-          curatorShare: 0,
-          numCurators: 0,
-          numCuratorVotes: 0,
-          stakerContractAddress: this.metadata.stakerContractAddress,
-          stakerContractChainId: this.metadata.stakerContractChainId,
-          tokenContractAddress: this.metadata.tokenContractAddress,
-          tokenContractChainId: this.metadata.tokenContractChainId,
-          blockNumber: this._blockNumber,
-          timestamp: this.metadata.blockStart,
-          tokenPrice: 0,
-          blockDuration: CurationBlockAggregator.DURATION,
-          blockApr: 0,
-          stake: voteAdded.stake
+          collection,
+          user: {
+            // TODO update the users
+            address: voteAdded.userAddress,
+            displayName: '',
+            username: '',
+            profileImage: '',
+            bannerImage: ''
+          },
+          metadata: {
+            userAddress: voteAdded.userAddress,
+            stakerContractAddress: this.metadata.stakerContractAddress,
+            stakerContractChainId: this.metadata.stakerContractChainId,
+            tokenContractAddress: this.metadata.tokenContractAddress,
+            tokenContractChainId: this.metadata.tokenContractChainId,
+            collectionAddress: this.metadata.collectionAddress,
+            collectionChainId: this.metadata.chainId,
+            updatedAt: Date.now(),
+            blockNumber: this._blockNumber,
+            timestamp: this.metadata.blockStart,
+            blockDuration: CurationBlockAggregator.DURATION
+          },
+          stats: {
+            votes: voteAdded.votes,
+            totalProtocolFeesAccruedWei: '0',
+            blockProtocolFeesAccruedWei: '0',
+            firstVotedAt: this.metadata.blockStart,
+            lastVotedAt: this.metadata.blockStart,
+            totalProtocolFeesAccruedEth: 0,
+            blockProtocolFeesAccruedEth: 0,
+            curatorShare: 0,
+            numCurators: 0,
+            numCuratorVotes: 0,
+            tokenPrice: 0,
+            blockApr: 0,
+            stake: voteAdded.stake
+          }
         };
-        currentUsers[newUser.userAddress] = newUser;
-        newUsers[newUser.userAddress] = { ...newUser };
+        currentUsers[newUser.metadata.userAddress] = newUser;
+        newUsers[newUser.metadata.userAddress] = { ...newUser };
       }
     }
 
@@ -268,18 +290,19 @@ export class CurationBlock {
 
   protected distributeRewards(_rewards: CurationBlockRewards): CurationBlockRewards {
     const rewards: CurationBlockRewards = JSON.parse(JSON.stringify(_rewards));
-    const totalVotes = rewards.numCuratorVotes;
-    const fees = BigInt(rewards.blockProtocolFeesAccruedWei) + BigInt(rewards.arbitrageProtocolFeesAccruedWei);
+    const totalVotes = rewards.stats.numCuratorVotes;
+    const fees =
+      BigInt(rewards.stats.blockProtocolFeesAccruedWei) + BigInt(rewards.stats.arbitrageProtocolFeesAccruedWei);
     let feesDistributed = BigInt(0);
     for (const user of Object.values(rewards.users)) {
-      const userVotes = user.votes;
+      const userVotes = user.stats.votes;
       const userFees = (BigInt(userVotes) * BigInt(fees)) / BigInt(totalVotes);
-      user.blockProtocolFeesAccruedWei = userFees.toString();
+      user.stats.blockProtocolFeesAccruedWei = userFees.toString();
       feesDistributed += userFees;
-      user.totalProtocolFeesAccruedWei = (BigInt(user.totalProtocolFeesAccruedWei) + userFees).toString();
-      user.updatedAt = Date.now();
-      user.totalProtocolFeesAccruedEth = formatEth(user.totalProtocolFeesAccruedWei);
-      user.blockProtocolFeesAccruedEth = formatEth(user.blockProtocolFeesAccruedWei);
+      user.stats.totalProtocolFeesAccruedWei = (BigInt(user.stats.totalProtocolFeesAccruedWei) + userFees).toString();
+      user.metadata.updatedAt = Date.now();
+      user.stats.totalProtocolFeesAccruedEth = formatEth(user.stats.totalProtocolFeesAccruedWei);
+      user.stats.blockProtocolFeesAccruedEth = formatEth(user.stats.blockProtocolFeesAccruedWei);
     }
     const feesRemaining = fees - feesDistributed;
     if (feesDistributed > fees) {
@@ -288,42 +311,45 @@ export class CurationBlock {
 
     return {
       ...rewards,
-      arbitrageProtocolFeesAccruedWei: feesRemaining.toString(),
-      arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString()))
+      stats: {
+        ...rewards.stats,
+        arbitrageProtocolFeesAccruedWei: feesRemaining.toString(),
+        arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString()))
+      }
     };
   }
 
   protected updateAPRs(_rewards: CurationBlockRewards): CurationBlockRewards {
     const rewards: CurationBlockRewards = JSON.parse(JSON.stringify(_rewards));
     const collectionApr = calculateCollectionAprByMultiplier(
-      rewards.blockProtocolFeesAccruedEth,
-      rewards.tokenPrice,
-      rewards.numCuratorVotes,
-      rewards.blockDuration
+      rewards.stats.blockProtocolFeesAccruedEth,
+      rewards.stats.tokenPrice,
+      rewards.stats.numCuratorVotes,
+      rewards.metadata.blockDuration
     );
-    rewards.blockAprByMultiplier = collectionApr;
+    rewards.stats.blockAprByMultiplier = collectionApr;
     for (const user of Object.values(rewards.users)) {
-      user.tokenPrice = rewards.tokenPrice;
-      user.blockApr = calculateCuratorApr(
-        user.blockProtocolFeesAccruedEth,
-        user.tokenPrice,
-        user.stake.stakePowerPerToken,
-        user.votes,
-        user.blockDuration
+      user.stats.tokenPrice = rewards.stats.tokenPrice;
+      user.stats.blockApr = calculateCuratorApr(
+        user.stats.blockProtocolFeesAccruedEth,
+        user.stats.tokenPrice,
+        user.stats.stake.stakePowerPerToken,
+        user.stats.votes,
+        user.metadata.blockDuration
       );
     }
 
     const avgStakePowerPerToken = calculateStats(
       Object.values(rewards.users),
-      (user) => user.stake.stakePowerPerToken
+      (user) => user.stats.stake.stakePowerPerToken
     ).avg;
-    rewards.avgStakePowerPerToken = avgStakePowerPerToken ?? 0;
-    rewards.blockApr = calculateCuratorApr(
-      rewards.blockProtocolFeesAccruedEth,
-      rewards.tokenPrice,
-      rewards.avgStakePowerPerToken,
-      rewards.numCuratorVotes,
-      rewards.blockDuration
+    rewards.stats.avgStakePowerPerToken = avgStakePowerPerToken ?? 0;
+    rewards.stats.blockApr = calculateCuratorApr(
+      rewards.stats.blockProtocolFeesAccruedEth,
+      rewards.stats.tokenPrice,
+      rewards.stats.avgStakePowerPerToken,
+      rewards.stats.numCuratorVotes,
+      rewards.metadata.blockDuration
     );
     return rewards;
   }

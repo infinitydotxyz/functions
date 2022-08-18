@@ -1,4 +1,11 @@
-import { ChainId, InfinityNftSale, SaleSource, StakeDuration, TokenStandard } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  CollectionDisplayData,
+  InfinityNftSale,
+  SaleSource,
+  StakeDuration,
+  TokenStandard
+} from '@infinityxyz/lib/types/core';
 import {
   CurationLedgerEvent,
   CurationLedgerSale,
@@ -15,6 +22,7 @@ import { CurationBlock } from './curation-block';
 const USDC_PER_WETH_PRICE = 2000;
 const NFT_PER_USDC_PRICE = 0.07;
 const TOKEN_PRICE = NFT_PER_USDC_PRICE / USDC_PER_WETH_PRICE; // NFT per WETH
+const COLLECTION = {} as any as CollectionDisplayData;
 
 const getFees = (price: number, feePercent = 2.5) => {
   const priceWei = parseEther(price.toString());
@@ -151,7 +159,7 @@ class MockCurationBlock extends CurationBlock {
     users: CurationBlockUsers,
     votesAdded: CurationLedgerVotesAddedWithStake[]
   ): { updatedUsers: CurationBlockUsers; newUsers: CurationBlockUsers; numCuratorVotesAdded: number } {
-    return this.applyVoteAdditions(users, votesAdded);
+    return this.applyVoteAdditions(users, votesAdded, {} as any);
   }
 
   public testDistributeRewards(rewards: CurationBlockRewards): CurationBlockRewards {
@@ -163,40 +171,45 @@ describe('curation block', () => {
   const blockStart = Date.now() - 1000;
 
   const defaultPrevBlockRewards: CurationBlockRewards = {
-    collectionAddress: '0x0',
-    chainId: ChainId.Mainnet,
-    numCurators: 0,
-    numCuratorVotes: 0,
-    numCuratorsAdded: 0,
-    numCuratorsRemoved: 0,
-    numCuratorVotesAdded: 0,
-    numCuratorVotesRemoved: 0,
-    numCuratorsPercentChange: 0,
-    numCuratorVotesPercentChange: 0,
-    totalProtocolFeesAccruedWei: '0',
-    blockProtocolFeesAccruedWei: '0',
-    arbitrageProtocolFeesAccruedWei: '0',
-    totalProtocolFeesAccruedEth: 0,
-    blockProtocolFeesAccruedEth: 0,
-    arbitrageProtocolFeesAccruedEth: 0,
-    timestamp: Date.now() - 30000,
-    isAggregated: false,
-    users: {},
-    stakerContractAddress: '0x0',
-    stakerContractChainId: ChainId.Mainnet,
-    blockDuration: ONE_HOUR,
-    blockNumber: 0,
-    tokenContractAddress: '0x0',
-    tokenContractChainId: ChainId.Mainnet,
-    tokenPrice: 0,
-    blockAprByMultiplier: {
-      [StakeDuration.X0]: 0,
-      [StakeDuration.X3]: 0,
-      [StakeDuration.X6]: 0,
-      [StakeDuration.X12]: 0
+    collection: COLLECTION,
+    metadata: {
+      collectionAddress: '0x0',
+      collectionChainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet,
+      tokenContractAddress: '0x0',
+      tokenContractChainId: ChainId.Mainnet,
+      timestamp: Date.now() - 30000,
+      isAggregated: false,
+      blockDuration: ONE_HOUR,
+      blockNumber: 0
     },
-    avgStakePowerPerToken: 0,
-    blockApr: 0
+    stats: {
+      numCurators: 0,
+      numCuratorVotes: 0,
+      numCuratorsAdded: 0,
+      numCuratorsRemoved: 0,
+      numCuratorVotesAdded: 0,
+      numCuratorVotesRemoved: 0,
+      numCuratorsPercentChange: 0,
+      numCuratorVotesPercentChange: 0,
+      totalProtocolFeesAccruedWei: '0',
+      blockProtocolFeesAccruedWei: '0',
+      arbitrageProtocolFeesAccruedWei: '0',
+      totalProtocolFeesAccruedEth: 0,
+      blockProtocolFeesAccruedEth: 0,
+      arbitrageProtocolFeesAccruedEth: 0,
+      tokenPrice: 0,
+      blockAprByMultiplier: {
+        [StakeDuration.X0]: 0,
+        [StakeDuration.X3]: 0,
+        [StakeDuration.X6]: 0,
+        [StakeDuration.X12]: 0
+      },
+      avgStakePowerPerToken: 0,
+      blockApr: 0
+    },
+    users: {}
   };
 
   it('sums protocol fees to get the total protocol fees for the block', () => {
@@ -216,10 +229,10 @@ describe('curation block', () => {
     const expectedFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(3);
     expect(block.feesGeneratedWei).toBe(expectedFeesGeneratedWei.toString());
 
-    const rewards = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
-    expect(rewards.blockRewards.totalProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
-    expect(rewards.blockRewards.arbitrageProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
-    expect(rewards.blockRewards.blockProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
+    const rewards = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE, COLLECTION);
+    expect(rewards.blockRewards.stats.totalProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
+    expect(rewards.blockRewards.stats.arbitrageProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
+    expect(rewards.blockRewards.stats.blockProtocolFeesAccruedWei).toBe(expectedFeesGeneratedWei.toString());
 
     const block2 = new CurationBlock({
       blockStart,
@@ -236,10 +249,10 @@ describe('curation block', () => {
     const expectedBlockFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(3);
     const expectedTotalFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(6);
 
-    const rewards2 = block.getBlockRewards(rewards.blockRewards, TOKEN_PRICE);
-    expect(rewards2.blockRewards.totalProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
-    expect(rewards2.blockRewards.arbitrageProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
-    expect(rewards2.blockRewards.blockProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
+    const rewards2 = block.getBlockRewards(rewards.blockRewards, TOKEN_PRICE, COLLECTION);
+    expect(rewards2.blockRewards.stats.totalProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
+    expect(rewards2.blockRewards.stats.arbitrageProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
+    expect(rewards2.blockRewards.stats.blockProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
   });
 
   it('adds a user when a new user votes', () => {
@@ -260,9 +273,9 @@ describe('curation block', () => {
     expect(Object.values(res.updatedUsers).length).toBe(1);
     const user1 = res.updatedUsers[address1];
     expect(user1).toBeDefined();
-    expect(user1.votes).toBe(1);
-    expect(user1.totalProtocolFeesAccruedWei).toBe('0');
-    expect(user1.blockProtocolFeesAccruedWei).toBe('0');
+    expect(user1.stats.votes).toBe(1);
+    expect(user1.stats.totalProtocolFeesAccruedWei).toBe('0');
+    expect(user1.stats.blockProtocolFeesAccruedWei).toBe('0');
   });
 
   it('removes a user when they no longer have votes', () => {
@@ -281,7 +294,7 @@ describe('curation block', () => {
     const user = voteResult.updatedUsers[address];
 
     expect(user).toBeDefined();
-    expect(user.votes).toBe(1);
+    expect(user.stats.votes).toBe(1);
 
     const unVote = getVotesRemovedEvent(address, 1);
     const unVoteResult = block.testApplyVoteRemovals(voteResult.updatedUsers, [unVote]);
@@ -289,7 +302,7 @@ describe('curation block', () => {
     expect(Object.values(unVoteResult.usersRemoved).length).toBe(1);
     const userRemoved = unVoteResult.usersRemoved[address];
     expect(userRemoved).toBeDefined();
-    expect(userRemoved.userAddress).toBe(address);
+    expect(userRemoved.metadata.userAddress).toBe(address);
     expect(Object.values(unVoteResult.updatedUsers).length).toBe(0);
   });
 
@@ -311,21 +324,27 @@ describe('curation block', () => {
     block.addEvent(vote);
     block.addEvent(sale);
 
-    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
+    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(
+      defaultPrevBlockRewards,
+      TOKEN_PRICE,
+      COLLECTION
+    );
     expect(Object.values(usersAdded).length).toBe(1);
     expect(Object.values(usersRemoved).length).toBe(0);
-    expect(blockRewards.numCuratorVotes).toBe(1);
+    expect(blockRewards.stats.numCuratorVotes).toBe(1);
     const {
       users,
-      numCurators,
-      numCuratorVotes,
-      numCuratorsAdded,
-      numCuratorsRemoved,
-      numCuratorVotesAdded,
-      numCuratorVotesRemoved,
-      totalProtocolFeesAccruedWei,
-      blockProtocolFeesAccruedWei,
-      arbitrageProtocolFeesAccruedWei
+      stats: {
+        numCurators,
+        numCuratorVotes,
+        numCuratorsAdded,
+        numCuratorsRemoved,
+        numCuratorVotesAdded,
+        numCuratorVotesRemoved,
+        totalProtocolFeesAccruedWei,
+        blockProtocolFeesAccruedWei,
+        arbitrageProtocolFeesAccruedWei
+      }
     } = blockRewards;
 
     expect(Object.values(users).length).toBe(1);
@@ -340,9 +359,9 @@ describe('curation block', () => {
     expect(arbitrageProtocolFeesAccruedWei).toBe('0');
 
     const user = users[address];
-    expect(user.blockProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
-    expect(user.totalProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
-    expect(user.votes).toBe(1);
+    expect(user.stats.blockProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
+    expect(user.stats.totalProtocolFeesAccruedWei).toBe(expectedBlockFeesGeneratedWei.toString());
+    expect(user.stats.votes).toBe(1);
   });
 
   it('distributes rewards according to user vote percentage', () => {
@@ -366,21 +385,27 @@ describe('curation block', () => {
     block.addEvent(vote2);
     block.addEvent(sale);
 
-    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
+    const { blockRewards, usersAdded, usersRemoved } = block.getBlockRewards(
+      defaultPrevBlockRewards,
+      TOKEN_PRICE,
+      COLLECTION
+    );
     expect(Object.values(usersAdded).length).toBe(2);
     expect(Object.values(usersRemoved).length).toBe(0);
-    expect(blockRewards.numCuratorVotes).toBe(4);
+    expect(blockRewards.stats.numCuratorVotes).toBe(4);
     const {
       users,
-      numCurators,
-      numCuratorVotes,
-      numCuratorsAdded,
-      numCuratorsRemoved,
-      numCuratorVotesAdded,
-      numCuratorVotesRemoved,
-      totalProtocolFeesAccruedWei,
-      blockProtocolFeesAccruedWei,
-      arbitrageProtocolFeesAccruedWei
+      stats: {
+        numCurators,
+        numCuratorVotes,
+        numCuratorsAdded,
+        numCuratorsRemoved,
+        numCuratorVotesAdded,
+        numCuratorVotesRemoved,
+        totalProtocolFeesAccruedWei,
+        blockProtocolFeesAccruedWei,
+        arbitrageProtocolFeesAccruedWei
+      }
     } = blockRewards;
 
     expect(Object.values(users).length).toBe(2);
@@ -399,13 +424,13 @@ describe('curation block', () => {
     const expectedUser1Rewards = expectedBlockFeesGeneratedWei / BigInt(4);
     const expectedUser2Rewards = expectedUser1Rewards * BigInt(3);
 
-    expect(user1.blockProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
-    expect(user1.totalProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
-    expect(user1.votes).toBe(1);
+    expect(user1.stats.blockProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
+    expect(user1.stats.totalProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
+    expect(user1.stats.votes).toBe(1);
 
-    expect(user2.blockProtocolFeesAccruedWei).toBe(expectedUser2Rewards.toString());
-    expect(user2.totalProtocolFeesAccruedWei).toBe(expectedUser2Rewards.toString());
-    expect(user2.votes).toBe(3);
+    expect(user2.stats.blockProtocolFeesAccruedWei).toBe(expectedUser2Rewards.toString());
+    expect(user2.stats.totalProtocolFeesAccruedWei).toBe(expectedUser2Rewards.toString());
+    expect(user2.stats.votes).toBe(3);
   });
 
   it('updates total rewards after multiple blocks', () => {
@@ -431,21 +456,23 @@ describe('curation block', () => {
       blockRewards: block1Rewards,
       usersAdded,
       usersRemoved
-    } = block1.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
+    } = block1.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE, COLLECTION);
     expect(Object.values(usersAdded).length).toBe(1);
     expect(Object.values(usersRemoved).length).toBe(0);
-    expect(block1Rewards.numCuratorVotes).toBe(1);
+    expect(block1Rewards.stats.numCuratorVotes).toBe(1);
     const {
       users,
-      numCurators,
-      numCuratorVotes,
-      numCuratorsAdded,
-      numCuratorsRemoved,
-      numCuratorVotesAdded,
-      numCuratorVotesRemoved,
-      totalProtocolFeesAccruedWei,
-      blockProtocolFeesAccruedWei,
-      arbitrageProtocolFeesAccruedWei
+      stats: {
+        numCurators,
+        numCuratorVotes,
+        numCuratorsAdded,
+        numCuratorsRemoved,
+        numCuratorVotesAdded,
+        numCuratorVotesRemoved,
+        totalProtocolFeesAccruedWei,
+        blockProtocolFeesAccruedWei,
+        arbitrageProtocolFeesAccruedWei
+      }
     } = block1Rewards;
 
     expect(Object.values(users).length).toBe(1);
@@ -461,9 +488,9 @@ describe('curation block', () => {
 
     const user1 = users[address1];
     const expectedUser1Rewards = expectedBlock1FeesGeneratedWei;
-    expect(user1.blockProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
-    expect(user1.totalProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
-    expect(user1.votes).toBe(1);
+    expect(user1.stats.blockProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
+    expect(user1.stats.totalProtocolFeesAccruedWei).toBe(expectedUser1Rewards.toString());
+    expect(user1.stats.votes).toBe(1);
 
     const block2 = new MockCurationBlock({
       blockStart,
@@ -484,36 +511,36 @@ describe('curation block', () => {
       blockRewards: block2Rewards,
       usersAdded: users2Added,
       usersRemoved: users2Removed
-    } = block2.getBlockRewards(block1Rewards, TOKEN_PRICE);
+    } = block2.getBlockRewards(block1Rewards, TOKEN_PRICE, COLLECTION);
 
     const expectedBlock2UserRewards = expectedBlock2FeesGeneratedWei / BigInt(2);
 
     expect(Object.values(users2Added).length).toBe(1);
     expect(Object.values(users2Removed).length).toBe(0);
     expect(Object.values(block2Rewards.users).length).toBe(2);
-    expect(block2Rewards.numCurators).toBe(2);
-    expect(block2Rewards.numCuratorVotes).toBe(2);
-    expect(block2Rewards.numCuratorsAdded).toBe(1);
-    expect(block2Rewards.numCuratorsRemoved).toBe(0);
-    expect(block2Rewards.numCuratorVotesAdded).toBe(1);
-    expect(block2Rewards.numCuratorVotesRemoved).toBe(0);
-    expect(block2Rewards.totalProtocolFeesAccruedWei).toBe(
+    expect(block2Rewards.stats.numCurators).toBe(2);
+    expect(block2Rewards.stats.numCuratorVotes).toBe(2);
+    expect(block2Rewards.stats.numCuratorsAdded).toBe(1);
+    expect(block2Rewards.stats.numCuratorsRemoved).toBe(0);
+    expect(block2Rewards.stats.numCuratorVotesAdded).toBe(1);
+    expect(block2Rewards.stats.numCuratorVotesRemoved).toBe(0);
+    expect(block2Rewards.stats.totalProtocolFeesAccruedWei).toBe(
       (expectedBlock1FeesGeneratedWei + expectedBlock2FeesGeneratedWei).toString()
     );
-    expect(block2Rewards.blockProtocolFeesAccruedWei).toBe(expectedBlock2FeesGeneratedWei.toString());
-    expect(block2Rewards.arbitrageProtocolFeesAccruedWei).toBe('0');
+    expect(block2Rewards.stats.blockProtocolFeesAccruedWei).toBe(expectedBlock2FeesGeneratedWei.toString());
+    expect(block2Rewards.stats.arbitrageProtocolFeesAccruedWei).toBe('0');
 
     const user1Block2 = block2Rewards.users[address1];
     const user2Block2 = block2Rewards.users[address2];
 
-    expect(user1Block2.blockProtocolFeesAccruedWei).toBe(expectedBlock2UserRewards.toString());
-    expect(user1Block2.totalProtocolFeesAccruedWei).toBe(
+    expect(user1Block2.stats.blockProtocolFeesAccruedWei).toBe(expectedBlock2UserRewards.toString());
+    expect(user1Block2.stats.totalProtocolFeesAccruedWei).toBe(
       (expectedBlock1FeesGeneratedWei + expectedBlock2UserRewards).toString()
     );
-    expect(user1Block2.votes).toBe(1);
-    expect(user2Block2.blockProtocolFeesAccruedWei).toBe(expectedBlock2UserRewards.toString());
-    expect(user2Block2.totalProtocolFeesAccruedWei).toBe(expectedBlock2UserRewards.toString());
-    expect(user2Block2.votes).toBe(1);
+    expect(user1Block2.stats.votes).toBe(1);
+    expect(user2Block2.stats.blockProtocolFeesAccruedWei).toBe(expectedBlock2UserRewards.toString());
+    expect(user2Block2.stats.totalProtocolFeesAccruedWei).toBe(expectedBlock2UserRewards.toString());
+    expect(user2Block2.stats.votes).toBe(1);
   });
 
   it('carries over arbitrage protocol fees until votes are added', () => {
@@ -535,21 +562,23 @@ describe('curation block', () => {
       blockRewards: block1Rewards,
       usersAdded,
       usersRemoved
-    } = block1.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE);
+    } = block1.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE, COLLECTION);
     expect(Object.values(usersAdded).length).toBe(0);
     expect(Object.values(usersRemoved).length).toBe(0);
-    expect(block1Rewards.numCuratorVotes).toBe(0);
+    expect(block1Rewards.stats.numCuratorVotes).toBe(0);
     const {
       users,
-      numCurators,
-      numCuratorVotes,
-      numCuratorsAdded,
-      numCuratorsRemoved,
-      numCuratorVotesAdded,
-      numCuratorVotesRemoved,
-      totalProtocolFeesAccruedWei,
-      blockProtocolFeesAccruedWei,
-      arbitrageProtocolFeesAccruedWei
+      stats: {
+        numCurators,
+        numCuratorVotes,
+        numCuratorsAdded,
+        numCuratorsRemoved,
+        numCuratorVotesAdded,
+        numCuratorVotesRemoved,
+        totalProtocolFeesAccruedWei,
+        blockProtocolFeesAccruedWei,
+        arbitrageProtocolFeesAccruedWei
+      }
     } = block1Rewards;
 
     expect(Object.values(users).length).toBe(0);
@@ -581,34 +610,34 @@ describe('curation block', () => {
       blockRewards: block2Rewards,
       usersAdded: block2UsersAdded,
       usersRemoved: block2UsersRemoved
-    } = block2.getBlockRewards(block1Rewards, TOKEN_PRICE);
+    } = block2.getBlockRewards(block1Rewards, TOKEN_PRICE, COLLECTION);
     expect(Object.values(block2UsersAdded).length).toBe(1);
     expect(Object.values(block2UsersRemoved).length).toBe(0);
-    expect(block2Rewards.numCuratorVotes).toBe(1);
+    expect(block2Rewards.stats.numCuratorVotes).toBe(1);
 
     const arbitrageFeesFromBlock1 = expectedBlock1FeesGeneratedWei;
     const expectedBlock2FeesGeneratedWei = BigInt(sale.protocolFeeWei);
 
     expect(Object.values(block2Rewards.users).length).toBe(1);
-    expect(block2Rewards.numCurators).toBe(1);
-    expect(block2Rewards.numCuratorVotes).toBe(1);
-    expect(block2Rewards.numCuratorsAdded).toBe(1);
-    expect(block2Rewards.numCuratorsRemoved).toBe(0);
-    expect(block2Rewards.numCuratorVotesAdded).toBe(1);
-    expect(block2Rewards.numCuratorVotesRemoved).toBe(0);
-    expect(block2Rewards.totalProtocolFeesAccruedWei).toBe(
+    expect(block2Rewards.stats.numCurators).toBe(1);
+    expect(block2Rewards.stats.numCuratorVotes).toBe(1);
+    expect(block2Rewards.stats.numCuratorsAdded).toBe(1);
+    expect(block2Rewards.stats.numCuratorsRemoved).toBe(0);
+    expect(block2Rewards.stats.numCuratorVotesAdded).toBe(1);
+    expect(block2Rewards.stats.numCuratorVotesRemoved).toBe(0);
+    expect(block2Rewards.stats.totalProtocolFeesAccruedWei).toBe(
       (expectedBlock1FeesGeneratedWei + expectedBlock2FeesGeneratedWei).toString()
     );
-    expect(block2Rewards.blockProtocolFeesAccruedWei).toBe(expectedBlock2FeesGeneratedWei.toString());
-    expect(block2Rewards.arbitrageProtocolFeesAccruedWei).toBe('0');
+    expect(block2Rewards.stats.blockProtocolFeesAccruedWei).toBe(expectedBlock2FeesGeneratedWei.toString());
+    expect(block2Rewards.stats.arbitrageProtocolFeesAccruedWei).toBe('0');
 
     const user = block2Rewards.users[address1];
-    expect(user.blockProtocolFeesAccruedWei).toBe(
+    expect(user.stats.blockProtocolFeesAccruedWei).toBe(
       (expectedBlock2FeesGeneratedWei + arbitrageFeesFromBlock1).toString()
     );
-    expect(user.totalProtocolFeesAccruedWei).toBe(
+    expect(user.stats.totalProtocolFeesAccruedWei).toBe(
       (expectedBlock2FeesGeneratedWei + arbitrageFeesFromBlock1).toString()
     );
-    expect(user.votes).toBe(1);
+    expect(user.stats.votes).toBe(1);
   });
 });

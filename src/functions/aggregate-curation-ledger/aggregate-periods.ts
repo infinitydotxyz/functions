@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { CollectionDisplayData } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import {
   CurationBlockRewardsDoc,
@@ -18,14 +19,15 @@ export async function aggregateBlocks(
   stakerContractAddress: string,
   stakerContractChainId: ChainId,
   tokenContractAddress: string,
-  tokenContractChainId: ChainId
+  tokenContractChainId: ChainId,
+  collection: CollectionDisplayData
 ) {
   const curationBlockRewardsRef = stakerContractCurationMetadataRef.collection(
     firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   const snapshot = await curationBlockRewardsRef
-    .where('isAggregated', '==', false)
-    .orderBy('timestamp', 'asc')
+  .where('metadata.isAggregated', '==', false)
+  .orderBy('metadata.timestamp', 'asc')
     .limit(1)
     .get();
   const firstUnaggregatedDoc = snapshot.docs[0];
@@ -36,7 +38,7 @@ export async function aggregateBlocks(
     return;
   }
 
-  let curationPeriodRange = CurationPeriodAggregator.getCurationPeriodRange(firstUnaggregatedBlock.timestamp);
+  let curationPeriodRange = CurationPeriodAggregator.getCurationPeriodRange(firstUnaggregatedBlock.metadata.timestamp);
   while (curationPeriodRange.startTimestamp < Date.now()) {
     const aggregationStartTime = Date.now();
     const periodBlockWithRefs = await CurationPeriodAggregator.getCurationPeriodBlocks(
@@ -53,7 +55,7 @@ export async function aggregateBlocks(
       tokenContractAddress,
       tokenContractChainId
     );
-    const rewards = aggregator.getPeriodRewards(periodBlocks);
+    const rewards = aggregator.getPeriodRewards(periodBlocks, collection);
     const { users, ...curationPeriodDocData } = rewards;
     const batchHandler = new FirestoreBatchHandler();
     const curationPeriodDocId = `${curationPeriodRange.startTimestamp}`;
@@ -67,12 +69,15 @@ export async function aggregateBlocks(
     for (const user of Object.values(users)) {
       const userDoc = curationPeriodDocRef
         .collection(firestoreConstants.CURATION_PERIOD_USER_REWARDS_COLL)
-        .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationPeriodUser>;
+        .doc(user.metadata.userAddress) as FirebaseFirestore.DocumentReference<CurationPeriodUser>;
       batchHandler.add(userDoc, user, { merge: false });
     }
-    for (const { ref } of periodBlockWithRefs) {
+    for (const { ref, block } of periodBlockWithRefs) {
       const blockUpdate: Partial<CurationBlockRewardsDoc> = {
-        isAggregated: true
+        metadata: {
+          ...block.metadata,
+          isAggregated: true
+        }
       };
       batchHandler.add(ref, blockUpdate, { merge: true });
     }

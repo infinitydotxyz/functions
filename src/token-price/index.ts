@@ -20,7 +20,7 @@ export async function getTokenPrice(
   const res = {
     price,
     tokenPerOther: price.token0.address === tokenAddress ? price.token0PriceNum : price.token1PriceNum,
-    otherPerToken: price.token0.address === tokenAddress ? price.token1PriceNum : price.token0PriceNum,
+    otherPerToken: price.token0.address === tokenAddress ? price.token1PriceNum : price.token0PriceNum
   };
   return res;
 }

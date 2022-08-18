@@ -1,4 +1,4 @@
-import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, CollectionDisplayData, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { calculateStats, calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth } from '../../utils';
@@ -40,8 +40,8 @@ export class CurationPeriodAggregator {
     ) as FirebaseFirestore.CollectionReference<CurationPeriodUser>;
     const usersStream = streamQueryWithRef(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     for await (const { data: user } of usersStream) {
-      if (user.userAddress) {
-        users[user.userAddress] = user;
+      if (user.metadata.userAddress) {
+        users[user.metadata.userAddress] = user;
       }
     }
     return users;
@@ -55,9 +55,9 @@ export class CurationPeriodAggregator {
       [];
     const { startTimestamp, endTimestamp } = this.getCurationPeriodRange(timestamp);
     const blocksQuery = curationBlockRewardsRef
-      .where('timestamp', '>=', startTimestamp)
-      .where('timestamp', '<', endTimestamp)
-      .orderBy('timestamp', 'asc');
+      .where('metadata.timestamp', '>=', startTimestamp)
+      .where('metadata.timestamp', '<', endTimestamp)
+      .orderBy('metadata.timestamp', 'asc');
     const blocksStream = streamQueryWithRef(blocksQuery, (item, ref) => [ref], { pageSize: 300 });
     for await (const { data: blockDocData, ref } of blocksStream) {
       const block: CurationBlockRewards = {
@@ -101,7 +101,7 @@ export class CurationPeriodAggregator {
 
   getBlocksByPeriod(blocks: CurationBlockRewardsDoc[]): { [periodId: string]: CurationBlockRewardsDoc[] } {
     const blocksByPeriod = blocks.reduce((acc, block) => {
-      const key = CurationPeriodAggregator.getCurationPeriodRange(block.timestamp).startTimestamp;
+      const key = CurationPeriodAggregator.getCurationPeriodRange(block.metadata.timestamp).startTimestamp;
       const blocks = acc[`${key}`] ?? [];
       blocks.push(block);
       acc[key] = blocks;
@@ -110,13 +110,15 @@ export class CurationPeriodAggregator {
     return blocksByPeriod;
   }
 
-  getPeriodRewards(blocks: CurationBlockRewards[]): ICurationPeriod {
+  getPeriodRewards(blocks: CurationBlockRewards[], collection: CollectionDisplayData): ICurationPeriod {
     const mostRecentBlock = blocks[blocks.length - 1] as CurationBlockRewards | undefined;
-    const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) => BigInt(block.blockProtocolFeesAccruedWei));
+    const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) =>
+      BigInt(block.stats.blockProtocolFeesAccruedWei)
+    );
     const periodProtocolFeesAccruedEth = formatEth(blockProtocolFeeStats.sum);
-    const avgTokenPrice = calculateStats(blocks, (block) => block.tokenPrice).avg ?? 0;
-    const avgStakePowerPerToken = calculateStats(blocks, (block) => block.avgStakePowerPerToken).avg ?? 0;
-    const avgVotes = calculateStats(blocks, (block) => block.numCuratorVotes).avg ?? 0;
+    const avgTokenPrice = calculateStats(blocks, (block) => block.stats.tokenPrice).avg ?? 0;
+    const avgStakePowerPerToken = calculateStats(blocks, (block) => block.stats.avgStakePowerPerToken).avg ?? 0;
+    const avgVotes = calculateStats(blocks, (block) => block.stats.numCuratorVotes).avg ?? 0;
     const periodApr = calculateCuratorApr(
       periodProtocolFeesAccruedEth,
       avgTokenPrice,
@@ -131,54 +133,74 @@ export class CurationPeriodAggregator {
       CurationPeriodAggregator.DURATION
     );
     const curationPeriod: CurationPeriod = {
-      collectionAddress: this._collectionAddress,
-      chainId: this._chainId,
-      timestamp: this._startTimestamp,
-      totalProtocolFeesAccruedWei: mostRecentBlock?.totalProtocolFeesAccruedWei ?? '0',
-      periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
-      totalProtocolFeesAccruedEth: mostRecentBlock?.totalProtocolFeesAccruedEth ?? 0,
-      periodProtocolFeesAccruedEth,
-      stakerContractAddress: this._stakerContractAddress,
-      stakerContractChainId: this._stakerContractChainId,
-      tokenContractAddress: this._tokenContractAddress,
-      tokenContractChainId: this._tokenContractChainId,
-      users: {} as CurationPeriodUsers,
-      tokenPrice: avgTokenPrice,
-      periodAprByMultiplier: periodAprByMultiplier,
-      avgStakePowerPerToken: avgStakePowerPerToken,
-      periodApr
+      collection,
+      metadata: {
+        collectionAddress: this._collectionAddress,
+        collectionChainId: this._chainId,
+        timestamp: this._startTimestamp,
+        stakerContractAddress: this._stakerContractAddress,
+        stakerContractChainId: this._stakerContractChainId,
+        tokenContractAddress: this._tokenContractAddress,
+        tokenContractChainId: this._tokenContractChainId,
+        periodDuration: CurationPeriodAggregator.DURATION
+      },
+      stats: {
+        totalProtocolFeesAccruedWei: mostRecentBlock?.stats?.totalProtocolFeesAccruedWei ?? '0',
+        periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
+        totalProtocolFeesAccruedEth: mostRecentBlock?.stats?.totalProtocolFeesAccruedEth ?? 0,
+        periodProtocolFeesAccruedEth,
+        tokenPrice: avgTokenPrice,
+        periodAprByMultiplier: periodAprByMultiplier,
+        avgStakePowerPerToken: avgStakePowerPerToken,
+        periodApr
+      },
+      users: {} as CurationPeriodUsers
     };
 
     const usersBlockRewards: { [userAddress: string]: CurationBlockUser[] } = {};
 
     for (const block of blocks) {
       for (const blockUser of Object.values(block.users)) {
-        const userBlockRewards = usersBlockRewards[blockUser.userAddress] ?? [];
+        const userBlockRewards = usersBlockRewards[blockUser.metadata.userAddress] ?? [];
         userBlockRewards.push(blockUser);
-        usersBlockRewards[blockUser.userAddress] = userBlockRewards;
+        usersBlockRewards[blockUser.metadata.userAddress] = userBlockRewards;
       }
     }
 
     for (const [userAddress, userBlockRewards] of Object.entries(usersBlockRewards)) {
       const userPeriodRewards = this.calculateUserPeriodRewards(userBlockRewards, avgTokenPrice);
-      curationPeriod.users[userAddress] = userPeriodRewards;
+      const mostRecentUser = userBlockRewards?.[userBlockRewards.length - 1]?.user ?? {
+        address: userAddress,
+        displayName: '',
+        username: '',
+        profileImage: '',
+        bannerImage: ''
+      };
+      curationPeriod.users[userAddress] = {
+        ...userPeriodRewards,
+        collection,
+        user: mostRecentUser
+      };
     }
 
     return curationPeriod;
   }
 
-  protected calculateUserPeriodRewards(userBlockRewards: CurationBlockUser[], tokenPrice: number) {
+  protected calculateUserPeriodRewards(
+    userBlockRewards: CurationBlockUser[],
+    tokenPrice: number
+  ): Omit<CurationPeriodUser, 'collection' | 'user'> {
     const blockProtocolFeeStats = calculateStatsBigInt(userBlockRewards, (block) =>
-      BigInt(block.blockProtocolFeesAccruedWei)
+      BigInt(block.stats.blockProtocolFeesAccruedWei)
     );
     const totalProtocolFeesAccruedStats = calculateStatsBigInt(userBlockRewards, (block) => {
-      return BigInt(block.totalProtocolFeesAccruedWei);
+      return BigInt(block.stats.totalProtocolFeesAccruedWei);
     });
     const totalProtocolFeesAccruedWei = (totalProtocolFeesAccruedStats.max ?? '0').toString();
     const periodProtocolFeesAccruedEth = formatEth(blockProtocolFeeStats.sum);
     const avgUserStakePowerPerToken =
-      calculateStats(userBlockRewards, (block) => block.stake.stakePowerPerToken).avg ?? 0;
-    const avgVotes = calculateStats(userBlockRewards, (block) => block.votes).avg ?? 0;
+      calculateStats(userBlockRewards, (block) => block.stats.stake.stakePowerPerToken).avg ?? 0;
+    const avgVotes = calculateStats(userBlockRewards, (block) => block.stats.votes).avg ?? 0;
     const periodApr = calculateCuratorApr(
       periodProtocolFeesAccruedEth,
       tokenPrice,
@@ -186,21 +208,27 @@ export class CurationPeriodAggregator {
       avgVotes,
       CurationPeriodAggregator.DURATION
     );
-    const curationPeriodUser: CurationPeriodUser = {
-      userAddress: userBlockRewards[0].userAddress,
-      chainId: this._chainId,
-      collectionAddress: this._collectionAddress,
-      totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
-      periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
-      totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
-      periodProtocolFeesAccruedEth,
-      stakerContractAddress: this._stakerContractAddress,
-      stakerContractChainId: this._stakerContractChainId,
-      updatedAt: Date.now(),
-      tokenContractAddress: this._tokenContractAddress,
-      tokenContractChainId: this._tokenContractChainId,
-      tokenPrice,
-      periodApr
+    const curationPeriodUser: Omit<CurationPeriodUser, 'collection' | 'user'> = {
+      metadata: {
+        userAddress: userBlockRewards[0]?.metadata?.userAddress,
+        collectionAddress: this._collectionAddress,
+        collectionChainId: this._chainId,
+        stakerContractAddress: this._stakerContractAddress,
+        stakerContractChainId: this._stakerContractChainId,
+        updatedAt: Date.now(),
+        tokenContractAddress: this._tokenContractAddress,
+        tokenContractChainId: this._tokenContractChainId,
+        timestamp: this._startTimestamp,
+        periodDuration: CurationPeriodAggregator.DURATION
+      },
+      stats: {
+        totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),
+        periodProtocolFeesAccruedWei: blockProtocolFeeStats.sum.toString(),
+        totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
+        periodProtocolFeesAccruedEth,
+        tokenPrice,
+        periodApr
+      }
     };
     return curationPeriodUser;
   }

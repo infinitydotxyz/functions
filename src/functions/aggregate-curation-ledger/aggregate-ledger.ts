@@ -3,6 +3,7 @@ import { CurationLedgerEventsWithStake, CurationLedgerEventType } from '@infinit
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
+import { getCollectionDisplayData } from '../../utils';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationMetadata } from './types';
 
@@ -46,6 +47,7 @@ export async function aggregateLedger(
     eventsWithRefs.push({ ...data, ref });
   }
 
+  const collection = await getCollectionDisplayData(curationLedgerRef.firestore, collectionAddress, chainId);
   const curationAggregator = new CurationBlockAggregator(
     events,
     stakerContractCurationMetadataRef,
@@ -56,7 +58,7 @@ export async function aggregateLedger(
     tokenContractAddress,
     tokenContractChainId
   );
-  await curationAggregator.aggregate();
+  await curationAggregator.aggregate(collection);
 
   const batchHandler = new FirestoreBatchHandler();
   for (const event of eventsWithRefs) {

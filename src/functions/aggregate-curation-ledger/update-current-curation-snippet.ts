@@ -23,7 +23,10 @@ export async function getCurrentBlocks(
   const blockRewards = curationMetadataRef.collection(
     firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
-  const mostRecentBlocksQuery = blockRewards.where('isAggregated', '==', true).orderBy('timestamp', 'desc').limit(2);
+  const mostRecentBlocksQuery = blockRewards
+    .where('metadata.isAggregated', '==', true)
+    .orderBy('metadata.timestamp', 'desc')
+    .limit(2);
   const mostRecentBlocksSnapshot = await mostRecentBlocksQuery.get();
 
   const currentBlockTimestampRange = CurationBlockAggregator.getCurationBlockRange(Date.now());
@@ -31,8 +34,8 @@ export async function getCurrentBlocks(
     await Promise.all(
       mostRecentBlocksSnapshot.docs.map(async (doc) => {
         const docData = doc.data();
-        const isCurrent = docData.timestamp === currentBlockTimestampRange.startTimestamp;
-        const isPrev = docData.timestamp === currentBlockTimestampRange.prevTimestamp;
+        const isCurrent = docData.metadata.timestamp === currentBlockTimestampRange.startTimestamp;
+        const isPrev = docData.metadata.timestamp === currentBlockTimestampRange.prevTimestamp;
         const blockUsers = await CurationBlock.getBlockUsers(doc.ref);
 
         return {
@@ -48,7 +51,7 @@ export async function getCurrentBlocks(
       if (curr.isCurrent) {
         const { isPrev, isCurrent, ...rest } = curr;
         acc.current = rest;
-      } else if (acc.mostRecent == null || acc.mostRecent.timestamp < curr.timestamp) {
+      } else if (acc.mostRecent == null || acc.mostRecent.metadata.timestamp < curr.metadata.timestamp) {
         const { isPrev, isCurrent, ...rest } = curr;
         acc.mostRecent = rest;
       }
@@ -67,7 +70,7 @@ export async function getCurrentPeriods(
     firestoreConstants.CURATION_PERIOD_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationPeriodDoc>;
 
-  const mostRecentPeriodQuery = periodRewards.orderBy('timestamp', 'desc').limit(2);
+  const mostRecentPeriodQuery = periodRewards.orderBy('metadata.timestamp', 'desc').limit(2);
 
   const mostRecentPeriodsSnapshot = await mostRecentPeriodQuery.get();
 
@@ -76,8 +79,8 @@ export async function getCurrentPeriods(
     await Promise.all(
       mostRecentPeriodsSnapshot.docs.map(async (doc) => {
         const docData = doc.data();
-        const isCurrent = docData.timestamp === currentPeriodTimestampRange.startTimestamp;
-        const isPrev = docData.timestamp === currentPeriodTimestampRange.prevTimestamp;
+        const isCurrent = docData.metadata.timestamp === currentPeriodTimestampRange.startTimestamp;
+        const isPrev = docData.metadata.timestamp === currentPeriodTimestampRange.prevTimestamp;
         const periodUsers = await CurationPeriodAggregator.getCurationPeriodUsers(doc.ref);
         return {
           ...docData,
@@ -92,7 +95,7 @@ export async function getCurrentPeriods(
       if (curr.isCurrent) {
         const { isPrev, isCurrent, ...rest } = curr;
         acc.current = rest;
-      } else if (acc.mostRecent == null || acc.mostRecent.timestamp < curr.timestamp) {
+      } else if (acc.mostRecent == null || acc.mostRecent.metadata.timestamp < curr.metadata.timestamp) {
         acc.mostRecent = curr;
       }
       return acc;
@@ -110,21 +113,23 @@ export function getCurrentCurationSnippet(
   stakerContractChainId: ChainId,
   tokenContractAddress: string,
   tokenContractChainId: ChainId,
+  collectionAddress: string,
+  collectionChainId: ChainId,
   collection: CollectionDisplayData
 ): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
   const sortUsersByTotalProtocolFees = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
-      return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth;
+      return b.stats.totalProtocolFeesAccruedEth - a.stats.totalProtocolFeesAccruedEth;
     });
   };
   const sortUsersByVotes = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
-      return b.totalProtocolFeesAccruedEth - a.totalProtocolFeesAccruedEth;
+      return b.stats.totalProtocolFeesAccruedEth - a.stats.totalProtocolFeesAccruedEth;
     });
   };
   const sortUsersByFirstVotedAt = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
-      return a.firstVotedAt - b.firstVotedAt;
+      return a.stats.firstVotedAt - b.stats.firstVotedAt;
     });
   };
   const { users: currentPeriodUsers, ...currentPeriodDoc } = periods.current ?? {};
@@ -137,19 +142,32 @@ export function getCurrentCurationSnippet(
   const earliestUsers = sortUsersByFirstVotedAt(currentBlockUsers ?? mostRecentBlockUsers ?? {});
 
   const numTopUsers = 5;
+
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
-    currentPeriod: 'timestamp' in currentPeriodDoc ? currentPeriodDoc : null,
-    currentBlock: 'timestamp' in currentBlockDoc ? currentBlockDoc : null,
-    mostRecentCompletedBlock: 'timestamp' in mostRecentBlockDoc ? mostRecentBlockDoc : null,
-    mostRecentCompletedPeriod: 'timestamp' in mostRecentPeriodDoc ? mostRecentPeriodDoc : null,
-    updatedAt: Date.now(),
+    currentPeriod:
+      'metadata' in currentPeriodDoc ? { metadata: currentPeriodDoc.metadata, stats: currentPeriodDoc.stats } : null,
+    currentBlock:
+      'metadata' in currentBlockDoc ? { metadata: currentBlockDoc.metadata, stats: currentBlockDoc.stats } : null,
+    mostRecentCompletedBlock:
+      'metadata' in mostRecentBlockDoc
+        ? { metadata: mostRecentBlockDoc.metadata, stats: mostRecentBlockDoc.stats }
+        : null,
+    mostRecentCompletedPeriod:
+      'metadata' in mostRecentPeriodDoc
+        ? { metadata: mostRecentPeriodDoc.metadata, stats: mostRecentPeriodDoc.stats }
+        : null,
     topCuratorsByVotes: topUsersByVotes.slice(0, numTopUsers),
     topCuratorsByTotalProtocolFees: topUsersByTotalProtocolFees.slice(0, numTopUsers),
     earliestCurators: earliestUsers.slice(0, numTopUsers),
-    stakerContractAddress,
-    stakerContractChainId,
-    tokenContractAddress,
-    tokenContractChainId,
+    metadata: {
+      updatedAt: Date.now(),
+      collectionAddress,
+      collectionChainId,
+      stakerContractAddress,
+      stakerContractChainId,
+      tokenContractAddress,
+      tokenContractChainId
+    },
     collection
   };
 
@@ -173,7 +191,7 @@ export async function saveCurrentCurationSnippet(
   const batchHandler = new FirestoreBatchHandler();
   for (const [address, user] of Object.entries(users)) {
     if (address) {
-      user.updatedAt = usersUpdatedAt;
+      user.metadata.updatedAt = usersUpdatedAt;
       const ref = curationSnippetUsersRef.doc(address);
       batchHandler.add(ref, user, { merge: false });
     }
@@ -181,7 +199,7 @@ export async function saveCurrentCurationSnippet(
 
   await batchHandler.flush();
 
-  const expiredUsers = curationSnippetUsersRef.where('updatedAt', '<', usersUpdatedAt);
+  const expiredUsers = curationSnippetUsersRef.where('metadata.updatedAt', '<', usersUpdatedAt);
   const usersToDelete = streamQueryWithRef(expiredUsers, (item, ref) => [ref], { pageSize: 300 });
   for await (const { data, ref } of usersToDelete) {
     batchHandler.delete(ref);

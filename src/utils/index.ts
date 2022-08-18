@@ -82,9 +82,15 @@ export function calculateCollectionAprByMultiplier(
   return aprByMultiplier;
 }
 
-
-export async function getCollectionDisplayData(db: FirebaseFirestore.Firestore, collectionAddress: string, collectionChainId: ChainId): Promise<CollectionDisplayData> {
-  const snap = await db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({ collectionAddress, chainId: collectionChainId })).get();
+export async function getCollectionDisplayData(
+  db: FirebaseFirestore.Firestore,
+  collectionAddress: string,
+  collectionChainId: ChainId
+): Promise<CollectionDisplayData> {
+  const snap = await db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .doc(getCollectionDocId({ collectionAddress, chainId: collectionChainId }))
+    .get();
   const data = snap.data() as Partial<Collection>;
 
   return {
@@ -95,5 +101,5 @@ export async function getCollectionDisplayData(db: FirebaseFirestore.Firestore, 
     name: data?.metadata?.name || '',
     profileImage: data?.metadata?.profileImage || '',
     bannerImage: data?.metadata?.bannerImage || ''
-  }
+  };
 }

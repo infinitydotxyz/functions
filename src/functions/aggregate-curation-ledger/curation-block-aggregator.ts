@@ -1,4 +1,4 @@
-import { ChainId, StakeDuration, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, CollectionDisplayData, StakeDuration, StatsPeriod } from '@infinityxyz/lib/types/core';
 import {
   CurationBlockRewardsDoc,
   CurationBlockRewards,
@@ -13,6 +13,7 @@ import { streamQuery } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';
 import { getTokenPrice } from '../../token-price';
+import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 
 const ONE_HOUR = 60 * 60 * 1000;
 export class CurationBlockAggregator {
@@ -65,7 +66,7 @@ export class CurationBlockAggregator {
     }
   }
 
-  async aggregate() {
+  async aggregate(collection: CollectionDisplayData) {
     let prevBlockRewards: CurationBlockRewards | undefined;
     for (const [, block] of this._curationBlocks) {
       if (!prevBlockRewards) {
@@ -80,16 +81,24 @@ export class CurationBlockAggregator {
         block.blockNumber
       );
 
-      const { blockRewards, usersRemoved } = block.getBlockRewards(prevBlockRewards, tokenPrice);
-      await this.saveCurationBlockRewards(blockRewards, usersRemoved);
+      const { blockRewards, usersRemoved, usersAdded } = block.getBlockRewards(
+        prevBlockRewards,
+        tokenPrice,
+        collection
+      );
+      await this.saveCurationBlockRewards(blockRewards, usersRemoved, usersAdded);
       prevBlockRewards = blockRewards;
     }
   }
 
-  async saveCurationBlockRewards(curationBlockRewards: CurationBlockRewards, usersRemoved: CurationBlockUsers) {
+  async saveCurationBlockRewards(
+    curationBlockRewards: CurationBlockRewards,
+    usersRemoved: CurationBlockUsers,
+    usersAdded: CurationBlockUsers
+  ) {
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
-    const docId = `${curationBlockRewardsDoc.timestamp}`;
+    const docId = `${curationBlockRewardsDoc.metadata.timestamp}`;
     const blockRewardsRef = this._blockRewards.doc(docId);
 
     const batch = new FirestoreBatchHandler();
@@ -100,6 +109,20 @@ export class CurationBlockAggregator {
     }
 
     for (const [userAddress, user] of Object.entries(users)) {
+      if (usersAdded[userAddress]) {
+        const userSnap = await this._blockRewards.firestore
+          .collection(firestoreConstants.USERS_COLL)
+          .doc(userAddress)
+          .get();
+        const userProfile = userSnap.data() ?? ({} as UserProfileDto);
+        user.user = {
+          address: userAddress,
+          displayName: userProfile.displayName || '',
+          username: userProfile.username || '',
+          profileImage: userProfile.profileImage || '',
+          bannerImage: userProfile.bannerImage || ''
+        };
+      }
       const userRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL).doc(userAddress);
       batch.add(userRef, user, { merge: false });
     }
@@ -111,43 +134,52 @@ export class CurationBlockAggregator {
     curationRewardsRef: FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>
   ): Promise<CurationBlockRewards> {
     const timestamp = CurationBlockAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
-    const snapshot = await curationRewardsRef.where('timestamp', '<=', timestamp).orderBy('timestamp', 'desc').limit(1).get();
+    const snapshot = await curationRewardsRef
+      .where('timestamp', '<=', timestamp)
+      .orderBy('timestamp', 'desc')
+      .limit(1)
+      .get();
     const prevBlockRewardsDoc = snapshot.docs[0];
     let prevBlockRewardsData = prevBlockRewardsDoc?.data();
     if (!prevBlockRewardsData) {
       prevBlockRewardsData = {
-        collectionAddress: this._collectionAddress,
-        chainId: this._chainId,
-        numCurators: 0,
-        numCuratorVotes: 0,
-        numCuratorsAdded: 0,
-        numCuratorsRemoved: 0,
-        numCuratorVotesAdded: 0,
-        numCuratorVotesRemoved: 0,
-        numCuratorsPercentChange: 0,
-        numCuratorVotesPercentChange: 0,
-        totalProtocolFeesAccruedWei: '0',
-        blockProtocolFeesAccruedWei: '0',
-        arbitrageProtocolFeesAccruedWei: '0',
-        totalProtocolFeesAccruedEth: 0,
-        blockProtocolFeesAccruedEth: 0,
-        arbitrageProtocolFeesAccruedEth: 0,
-        timestamp,
-        isAggregated: false,
-        stakerContractAddress: this._stakerContractAddress,
-        stakerContractChainId: this._stakerContractChainId,
-        blockNumber: 0,
-        tokenContractAddress: this._tokenContractAddress,
-        tokenContractChainId: this._tokenContractChainId,
-        blockDuration: CurationBlockAggregator.DURATION,
-        tokenPrice: 0,
-        avgStakePowerPerToken: 0,
-        blockApr: 0,
-        blockAprByMultiplier: {
-          [StakeDuration.X0]: 0,
-          [StakeDuration.X3]: 0,
-          [StakeDuration.X6]: 0,
-          [StakeDuration.X12]: 0
+        collection: {} as any,
+        metadata: {
+          collectionAddress: this._collectionAddress,
+          collectionChainId: this._chainId,
+          timestamp,
+          isAggregated: false,
+          stakerContractAddress: this._stakerContractAddress,
+          stakerContractChainId: this._stakerContractChainId,
+          blockNumber: 0,
+          tokenContractAddress: this._tokenContractAddress,
+          tokenContractChainId: this._tokenContractChainId,
+          blockDuration: CurationBlockAggregator.DURATION
+        },
+        stats: {
+          numCurators: 0,
+          numCuratorVotes: 0,
+          numCuratorsAdded: 0,
+          numCuratorsRemoved: 0,
+          numCuratorVotesAdded: 0,
+          numCuratorVotesRemoved: 0,
+          numCuratorsPercentChange: 0,
+          numCuratorVotesPercentChange: 0,
+          totalProtocolFeesAccruedWei: '0',
+          blockProtocolFeesAccruedWei: '0',
+          arbitrageProtocolFeesAccruedWei: '0',
+          totalProtocolFeesAccruedEth: 0,
+          blockProtocolFeesAccruedEth: 0,
+          arbitrageProtocolFeesAccruedEth: 0,
+          tokenPrice: 0,
+          avgStakePowerPerToken: 0,
+          blockApr: 0,
+          blockAprByMultiplier: {
+            [StakeDuration.X0]: 0,
+            [StakeDuration.X3]: 0,
+            [StakeDuration.X6]: 0,
+            [StakeDuration.X12]: 0
+          }
         }
       };
       const prevBlockRewards = {
@@ -162,7 +194,7 @@ export class CurationBlockAggregator {
     const usersStream = streamQuery(usersQuery, (item, ref) => [ref], { pageSize: 300 });
     const users: CurationBlockUsers = {};
     for await (const user of usersStream) {
-      users[user.userAddress] = user;
+      users[user.metadata.userAddress] = user;
     }
     return {
       ...prevBlockRewardsData,

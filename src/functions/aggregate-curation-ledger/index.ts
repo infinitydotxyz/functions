@@ -199,6 +199,11 @@ export const aggregateCurationLedger = functions
       };
       await stakerContractMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (stakerContractMetadata.periodsRequireAggregation) {
+      const collection = await getCollectionDisplayData(
+        stakerContractMetadataRef.firestore,
+        collectionAddress,
+        collectionChainId
+      );
       await aggregateBlocks(
         stakerContractMetadataRef,
         collectionAddress,
@@ -206,7 +211,8 @@ export const aggregateCurationLedger = functions
         stakerContractAddress,
         stakerContractChainId,
         stakerContractMetadata.tokenContractAddress,
-        stakerContractMetadata.tokenContractChainId
+        stakerContractMetadata.tokenContractChainId,
+        collection
       );
       const metadataUpdate: Partial<CurationMetadata> = {
         periodsRequireAggregation: false,
@@ -217,7 +223,11 @@ export const aggregateCurationLedger = functions
     } else if (stakerContractMetadata.currentSnippetRequiresAggregation) {
       const currentBlocks = await getCurrentBlocks(stakerContractMetadataRef);
       const currentPeriods = await getCurrentPeriods(stakerContractMetadataRef);
-      const collection = await getCollectionDisplayData(stakerContractMetadataRef.firestore, collectionAddress, collectionChainId);
+      const collection = await getCollectionDisplayData(
+        stakerContractMetadataRef.firestore,
+        collectionAddress,
+        collectionChainId
+      );
       const currentSnippet = getCurrentCurationSnippet(
         currentPeriods,
         currentBlocks,
@@ -225,13 +235,15 @@ export const aggregateCurationLedger = functions
         stakerContractChainId,
         stakerContractMetadata.tokenContractAddress,
         stakerContractMetadata.tokenContractChainId,
+        collectionAddress,
+        collectionChainId,
         collection
       );
-      const currentBlockExpiresAt = currentBlocks.current?.timestamp
-        ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.timestamp).endTimestamp
+      const currentBlockExpiresAt = currentBlocks.current?.metadata?.timestamp
+        ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.metadata?.timestamp).endTimestamp
         : null;
-      const currentPeriodExpiresAt = currentPeriods.current?.timestamp
-        ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.timestamp).endTimestamp
+      const currentPeriodExpiresAt = currentPeriods.current?.metadata?.timestamp
+        ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.metadata?.timestamp).endTimestamp
         : null;
       const refreshCurrentSnippetBy =
         currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;

@@ -251,10 +251,10 @@ export class CurationBlock {
           stakerContractChainId: this.metadata.stakerContractChainId,
           tokenContractAddress: this.metadata.tokenContractAddress,
           tokenContractChainId: this.metadata.tokenContractChainId,
-          blockNumber: 0,
-          timestamp: 0,
+          blockNumber: this._blockNumber,
+          timestamp: this.metadata.blockStart,
           tokenPrice: 0,
-          blockDuration: 0,
+          blockDuration: CurationBlockAggregator.DURATION,
           blockApr: 0,
           stake: voteAdded.stake
         };

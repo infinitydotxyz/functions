@@ -28,7 +28,7 @@ export async function createFeedEventForLedgerEvent(
       }
       const collectionSnap = await txn.get(collectionRef);
       const userProfileSnap = await txn.get(userRef);
-      const userProfile = userProfileSnap.data() as Partial<UserProfileDto>;
+      const userProfile = (userProfileSnap.data() ?? {}) as Partial<UserProfileDto>;
       const collection: Partial<Collection> = collectionSnap.data() ?? {};
 
       let event: UserVoteEvent | UserVoteRemovedEvent;

@@ -60,7 +60,9 @@ async function updateUserStake(event: StakerEvents, eventRef: FirebaseFirestore.
         stakerContractChainId: event.stakerContractChainId,
         stakeInfo: event.stakeInfo,
         stakePower: event.stakePower,
-        blockUpdatedAt: event.blockNumber
+        blockUpdatedAt: event.blockNumber,
+        tokenContractAddress: event.tokenContractAddress,
+        tokenContractChainId: event.tokenContractChainId
       };
       userStake = { ...userStake, ...update };
 

@@ -56,7 +56,10 @@ function saveSaleToCollectionCurationLedgers(
   const db = getDb();
   const stakerContracts = getRelevantStakerContracts(sale);
   const curationSales = stakerContracts.map((stakerContract) => {
-    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(sale.chainId as ChainId, stakerContract);
+    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+      sale.chainId as ChainId,
+      stakerContract
+    );
     const curationSale: CurationLedgerSale = {
       ...sale,
       discriminator: CurationLedgerEvent.Sale,

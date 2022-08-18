@@ -1,5 +1,6 @@
-import { StakeDuration } from '@infinityxyz/lib/types/core';
-import { ONE_YEAR } from '@infinityxyz/lib/utils/constants';
+import { ChainId, Collection, CollectionDisplayData, StakeDuration } from '@infinityxyz/lib/types/core';
+import { getCollectionDocId } from '@infinityxyz/lib/utils';
+import { firestoreConstants, ONE_YEAR } from '@infinityxyz/lib/utils/constants';
 import { formatEther } from 'ethers/lib/utils';
 
 export function sleep(duration: number): Promise<void> {
@@ -79,4 +80,20 @@ export function calculateCollectionAprByMultiplier(
   }
 
   return aprByMultiplier;
+}
+
+
+export async function getCollectionDisplayData(db: FirebaseFirestore.Firestore, collectionAddress: string, collectionChainId: ChainId): Promise<CollectionDisplayData> {
+  const snap = await db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({ collectionAddress, chainId: collectionChainId })).get();
+  const data = snap.data() as Partial<Collection>;
+
+  return {
+    chainId: collectionChainId,
+    address: collectionAddress,
+    hasBlueCheck: data?.hasBlueCheck ?? false,
+    slug: data?.slug || '',
+    name: data?.metadata?.name || '',
+    profileImage: data?.metadata?.profileImage || '',
+    bannerImage: data?.metadata?.bannerImage || ''
+  }
 }

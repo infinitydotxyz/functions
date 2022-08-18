@@ -41,6 +41,9 @@ export class CachedTokenPair implements ITokenPair {
     }
     const mostRecentSnap = await mostRecentQuery.limit(1).get();
     const mostRecentPrice = mostRecentSnap.docs[0]?.data?.();
+    if (!mostRecentPrice) {
+      return null;
+    }
     const blockNumberExpired = blockNumber && mostRecentPrice.blockNumber < blockNumber - this.MAX_BLOCK_AGE;
     const timestampExpired =
       !blockNumber && mostRecentPrice.timestamp && mostRecentPrice.timestamp < Date.now() - this.MAX_AGE;

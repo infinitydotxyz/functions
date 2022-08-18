@@ -5,6 +5,7 @@ import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
+import { getCollectionDisplayData } from '../../utils';
 import { REGION } from '../../utils/constants';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';
@@ -216,13 +217,15 @@ export const aggregateCurationLedger = functions
     } else if (stakerContractMetadata.currentSnippetRequiresAggregation) {
       const currentBlocks = await getCurrentBlocks(stakerContractMetadataRef);
       const currentPeriods = await getCurrentPeriods(stakerContractMetadataRef);
+      const collection = await getCollectionDisplayData(stakerContractMetadataRef.firestore, collectionAddress, collectionChainId);
       const currentSnippet = getCurrentCurationSnippet(
         currentPeriods,
         currentBlocks,
         stakerContractAddress,
         stakerContractChainId,
         stakerContractMetadata.tokenContractAddress,
-        stakerContractMetadata.tokenContractChainId
+        stakerContractMetadata.tokenContractChainId,
+        collection
       );
       const currentBlockExpiresAt = currentBlocks.current?.timestamp
         ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.timestamp).endTimestamp

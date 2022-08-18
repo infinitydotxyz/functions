@@ -71,7 +71,7 @@ export class CurationBlockAggregator {
       if (!prevBlockRewards) {
         prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
       }
-      const { relevantTokenPrice: tokenPrice } = await getTokenPrice(
+      const { otherPerToken: tokenPrice } = await getTokenPrice(
         this._tokenContractAddress,
         this._tokenContractChainId,
         18,
@@ -111,7 +111,7 @@ export class CurationBlockAggregator {
     curationRewardsRef: FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>
   ): Promise<CurationBlockRewards> {
     const timestamp = CurationBlockAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
-    const snapshot = await curationRewardsRef.where('timestamp', '<=', timestamp).limit(1).get();
+    const snapshot = await curationRewardsRef.where('timestamp', '<=', timestamp).orderBy('timestamp', 'desc').limit(1).get();
     const prevBlockRewardsDoc = snapshot.docs[0];
     let prevBlockRewardsData = prevBlockRewardsDoc?.data();
     if (!prevBlockRewardsData) {

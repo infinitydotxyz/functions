@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, CollectionDisplayData } from '@infinityxyz/lib/types/core';
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
@@ -109,7 +109,8 @@ export function getCurrentCurationSnippet(
   stakerContractAddress: string,
   stakerContractChainId: ChainId,
   tokenContractAddress: string,
-  tokenContractChainId: ChainId
+  tokenContractChainId: ChainId,
+  collection: CollectionDisplayData
 ): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
   const sortUsersByTotalProtocolFees = (users: CurationBlockUsers): CurationBlockUser[] => {
     return Object.values(users).sort((a, b) => {
@@ -135,7 +136,7 @@ export function getCurrentCurationSnippet(
   const topUsersByTotalProtocolFees = sortUsersByTotalProtocolFees(currentBlockUsers ?? mostRecentBlockUsers ?? {});
   const earliestUsers = sortUsersByFirstVotedAt(currentBlockUsers ?? mostRecentBlockUsers ?? {});
 
-  const numTopUsers = 10;
+  const numTopUsers = 5;
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
     currentPeriod: 'timestamp' in currentPeriodDoc ? currentPeriodDoc : null,
     currentBlock: 'timestamp' in currentBlockDoc ? currentBlockDoc : null,
@@ -148,7 +149,8 @@ export function getCurrentCurationSnippet(
     stakerContractAddress,
     stakerContractChainId,
     tokenContractAddress,
-    tokenContractChainId
+    tokenContractChainId,
+    collection
   };
 
   return {

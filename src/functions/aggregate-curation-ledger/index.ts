@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEvents, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getTokenAddressByStakerAddress, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
@@ -22,7 +22,7 @@ import {
 export const onCurationLedgerEvent = functions
   .region(REGION)
   .firestore.document(
-    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakerContractId}/${firestoreConstants.CURATION_LEDGER_COLL}`
+    `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakerContractId}/${firestoreConstants.CURATION_LEDGER_COLL}/{eventId}`
   )
   .onWrite(async (change) => {
     const curationLedgerEvent = change.after.data() as CurationLedgerEvents;
@@ -57,7 +57,6 @@ export const triggerCurationLedgerEventMerge = functions
     }
   });
 
-// TODO update staker contract metadata to have token contract address and chain ID
 export const triggerCurationLedgerAggregation = functions
   .region(REGION)
   .runWith({
@@ -89,14 +88,23 @@ export const triggerCurationLedgerAggregation = functions
         ];
         const [collectionChainId, collectionAddress] = collectionRef.id.split(':') as [ChainId, string];
         updates.add(stakerContractMetadataRef.path);
-        const curationMetadataUpdate: Partial<CurationMetadata> = {
+        const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+          stakerContractChainId,
+          stakerContractAddress
+        );
+        const curationMetadataUpdate: Omit<
+          CurationMetadata,
+          'refreshCurrentSnippetBy' | 'currentSnippetRequiresAggregation'
+        > = {
           updatedAt: Date.now(),
           ledgerRequiresAggregation: true,
           periodsRequireAggregation: false,
           collectionAddress,
           collectionChainId,
           stakerContractAddress,
-          stakerContractChainId
+          stakerContractChainId,
+          tokenContractAddress,
+          tokenContractChainId
         };
         batchHandler.add(stakerContractMetadataRef, curationMetadataUpdate, { merge: true });
       }

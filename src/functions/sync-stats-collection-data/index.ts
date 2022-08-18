@@ -43,7 +43,7 @@ export const syncStatsCollectionData = functions
       await updateStatsWithCollection(after, change.after.ref.collection(firestoreConstants.COLLECTION_STATS_COLL));
 
       /**
-       * TODO - update nfts with collection data (once used)
+       * TODO - update nfts with collection data
        * additionally, add a listener to keep nft stats in sync with the nft
        */
     }

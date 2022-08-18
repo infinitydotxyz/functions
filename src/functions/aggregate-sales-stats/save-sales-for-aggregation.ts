@@ -1,6 +1,6 @@
 import { ChainId, InfinityNftSale, NftSale, SaleSource } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEvent, CurationLedgerSale } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { AggregationInterval, SalesIntervalDoc } from './types';
@@ -56,6 +56,7 @@ function saveSaleToCollectionCurationLedgers(
   const db = getDb();
   const stakerContracts = getRelevantStakerContracts(sale);
   const curationSales = stakerContracts.map((stakerContract) => {
+    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(sale.chainId as ChainId, stakerContract);
     const curationSale: CurationLedgerSale = {
       ...sale,
       discriminator: CurationLedgerEvent.Sale,
@@ -65,8 +66,8 @@ function saveSaleToCollectionCurationLedgers(
       stakerContractAddress: stakerContract,
       stakerContractChainId: sale.chainId as ChainId,
       isStakeMerged: true,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      tokenContractAddress,
+      tokenContractChainId
     };
     return curationSale;
   });

@@ -184,7 +184,9 @@ export const aggregateCurationLedger = functions
         collectionAddress,
         collectionChainId,
         stakerContractAddress,
-        stakerContractChainId
+        stakerContractChainId,
+        tokenContractAddress: stakerContractMetadata.tokenContractAddress,
+        tokenContractChainId: stakerContractMetadata.tokenContractChainId
       };
       await stakerContractMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (stakerContractMetadata.periodsRequireAggregation) {
@@ -193,7 +195,9 @@ export const aggregateCurationLedger = functions
         collectionAddress,
         collectionChainId,
         stakerContractAddress,
-        stakerContractChainId
+        stakerContractChainId,
+        stakerContractMetadata.tokenContractAddress,
+        stakerContractMetadata.tokenContractChainId
       );
       const metadataUpdate: Partial<CurationMetadata> = {
         periodsRequireAggregation: false,

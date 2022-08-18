@@ -16,7 +16,9 @@ export async function aggregateBlocks(
   collectionAddress: string,
   collectionChainId: ChainId,
   stakerContractAddress: string,
-  stakerContractChainId: ChainId
+  stakerContractChainId: ChainId,
+  tokenContractAddress: string,
+  tokenContractChainId: ChainId
 ) {
   const curationBlockRewardsRef = stakerContractCurationMetadataRef.collection(
     firestoreConstants.CURATION_BLOCK_REWARDS_COLL
@@ -47,7 +49,9 @@ export async function aggregateBlocks(
       collectionAddress,
       collectionChainId,
       stakerContractAddress,
-      stakerContractChainId
+      stakerContractChainId,
+      tokenContractAddress,
+      tokenContractChainId
     );
     const rewards = aggregator.getPeriodRewards(periodBlocks);
     const { users, ...curationPeriodDocData } = rewards;

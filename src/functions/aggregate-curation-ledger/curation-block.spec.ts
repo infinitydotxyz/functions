@@ -116,7 +116,8 @@ const getSaleEvent = (price: number, feePercent: number) => {
     quantity: 1,
     tokenStandard: TokenStandard.ERC721,
     isAggregated: false,
-    isDeleted: false
+    isDeleted: false,
+    isFeedUpdated: true
   };
   const saleOne: CurationLedgerSale = {
     ...sale,

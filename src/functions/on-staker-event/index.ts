@@ -30,7 +30,7 @@ export const onStakerEvent = functions
 export const triggerStakerEvents = functions
   .region(REGION)
   .runWith({ timeoutSeconds: 540 })
-  .pubsub.schedule('0,10,20,30,40,50 * * * *')
+  .pubsub.schedule('every 5 minutes')
   .onRun(async () => {
     const db = getDb();
     const stakingLedger = db.collectionGroup(firestoreConstants.STAKING_LEDGER_COLL);

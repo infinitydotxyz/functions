@@ -70,7 +70,8 @@ function saveSaleToCollectionCurationLedgers(
       stakerContractChainId: sale.chainId as ChainId,
       isStakeMerged: true,
       tokenContractAddress,
-      tokenContractChainId
+      tokenContractChainId,
+      isAggregated: false
     };
     return curationSale;
   });

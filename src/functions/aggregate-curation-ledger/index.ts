@@ -37,7 +37,7 @@ export const triggerCurationLedgerEventMerge = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('0,10,20,30,40,50 * * * *')
+  .pubsub.schedule('every 2 minutes')
   .onRun(async () => {
     const db = getDb();
     const fifteenMin = ONE_MIN * 15;
@@ -63,7 +63,7 @@ export const triggerCurationLedgerAggregation = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('0,10,20,30,40,50 * * * *')
+  .pubsub.schedule('every 2 minutes')
   .onRun(async () => {
     /**
      * query for ledgers that need to be aggregated
@@ -118,7 +118,7 @@ export const triggerCurationMetadataAggregation = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('5,15,25,35,45,55 * * * *')
+  .pubsub.schedule('every 5 minutes')
   .onRun(async () => {
     const db = getDb();
     const tenMin = 10 * 60 * 1000;

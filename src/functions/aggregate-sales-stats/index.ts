@@ -12,7 +12,7 @@ export const saveSalesToBeAggregated = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('0,5,10,15,20,25,30,35,40,45,50,55 * * * *') // every 5 min
+  .pubsub.schedule('every 1 minutes') // every 5 min
   .onRun(async () => {
     await saveSalesForAggregation();
     await retriggerAggregation();

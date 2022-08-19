@@ -248,7 +248,6 @@ export class CurationBlock {
         const newUser: CurationBlockUser = {
           collection,
           user: {
-            // TODO update the users
             address: voteAdded.userAddress,
             displayName: '',
             username: '',

@@ -26,8 +26,8 @@ export async function aggregateBlocks(
     firestoreConstants.CURATION_BLOCK_REWARDS_COLL
   ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
   const snapshot = await curationBlockRewardsRef
-  .where('metadata.isAggregated', '==', false)
-  .orderBy('metadata.timestamp', 'asc')
+    .where('metadata.isAggregated', '==', false)
+    .orderBy('metadata.timestamp', 'asc')
     .limit(1)
     .get();
   const firstUnaggregatedDoc = snapshot.docs[0];

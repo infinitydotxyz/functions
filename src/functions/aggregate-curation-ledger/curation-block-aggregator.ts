@@ -174,6 +174,10 @@ export class CurationBlockAggregator {
           tokenPrice: 0,
           avgStakePowerPerToken: 0,
           blockApr: 0,
+          arbitrageClaimedWei: '0',
+          arbitrageClaimedEth: 0,
+          blockPayoutWei: '0',
+          blockPayoutEth: 0,
           blockAprByMultiplier: {
             [StakeDuration.X0]: 0,
             [StakeDuration.X3]: 0,

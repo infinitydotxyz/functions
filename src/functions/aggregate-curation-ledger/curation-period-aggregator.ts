@@ -119,6 +119,10 @@ export class CurationPeriodAggregator {
     const avgTokenPrice = calculateStats(blocks, (block) => block.stats.tokenPrice).avg ?? 0;
     const avgStakePowerPerToken = calculateStats(blocks, (block) => block.stats.avgStakePowerPerToken).avg ?? 0;
     const avgVotes = calculateStats(blocks, (block) => block.stats.numCuratorVotes).avg ?? 0;
+    const arbitrageClaimedWei =
+      calculateStatsBigInt(blocks, (block) => BigInt(block.stats.arbitrageClaimedWei)).sum ?? BigInt(0);
+    const periodPayoutWei =
+      calculateStatsBigInt(blocks, (block) => BigInt(block.stats.blockPayoutWei)).sum ?? BigInt(0);
     const periodApr = calculateCuratorApr(
       periodProtocolFeesAccruedEth,
       avgTokenPrice,
@@ -152,7 +156,11 @@ export class CurationPeriodAggregator {
         tokenPrice: avgTokenPrice,
         periodAprByMultiplier: periodAprByMultiplier,
         avgStakePowerPerToken: avgStakePowerPerToken,
-        periodApr
+        periodApr,
+        periodPayoutWei: periodPayoutWei.toString(),
+        periodPayoutEth: formatEth(periodPayoutWei),
+        arbitrageClaimedWei: arbitrageClaimedWei.toString(),
+        arbitrageClaimedEth: formatEth(arbitrageClaimedWei)
       },
       users: {} as CurationPeriodUsers
     };

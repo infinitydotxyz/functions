@@ -161,6 +161,10 @@ export class CurationBlock {
         arbitrageProtocolFeesAccruedWei: prevBlockRewards.stats.arbitrageProtocolFeesAccruedWei,
         arbitrageProtocolFeesAccruedEth: prevBlockRewards.stats.arbitrageProtocolFeesAccruedEth,
         tokenPrice: tokenPrice,
+        blockPayoutEth: 0,
+        blockPayoutWei: '0',
+        arbitrageClaimedWei: '0',
+        arbitrageClaimedEth: 0,
         avgStakePowerPerToken: 0,
         blockApr: 0,
         blockAprByMultiplier: {
@@ -291,8 +295,8 @@ export class CurationBlock {
   protected distributeRewards(_rewards: CurationBlockRewards): CurationBlockRewards {
     const rewards: CurationBlockRewards = JSON.parse(JSON.stringify(_rewards));
     const totalVotes = rewards.stats.numCuratorVotes;
-    const fees =
-      BigInt(rewards.stats.blockProtocolFeesAccruedWei) + BigInt(rewards.stats.arbitrageProtocolFeesAccruedWei);
+    const arbitrageFees = BigInt(rewards.stats.arbitrageProtocolFeesAccruedWei);
+    const fees = BigInt(rewards.stats.blockProtocolFeesAccruedWei) + arbitrageFees;
     let feesDistributed = BigInt(0);
     for (const user of Object.values(rewards.users)) {
       const userVotes = user.stats.votes;
@@ -309,12 +313,18 @@ export class CurationBlock {
       throw new Error(`Fees distributed (${feesDistributed}) > fees (${fees})`);
     }
 
+    const arbitrageFeesClaimed = arbitrageFees > BigInt(0) && feesDistributed > BigInt(0) ? arbitrageFees : BigInt(0);
+
     return {
       ...rewards,
       stats: {
         ...rewards.stats,
         arbitrageProtocolFeesAccruedWei: feesRemaining.toString(),
-        arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString()))
+        arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString())),
+        arbitrageClaimedWei: arbitrageFeesClaimed.toString(),
+        arbitrageClaimedEth: formatEth(arbitrageFeesClaimed),
+        blockPayoutWei: fees.toString(),
+        blockPayoutEth: formatEth(fees)
       }
     };
   }

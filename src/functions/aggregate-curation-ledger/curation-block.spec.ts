@@ -200,6 +200,10 @@ describe('curation block', () => {
       blockProtocolFeesAccruedEth: 0,
       arbitrageProtocolFeesAccruedEth: 0,
       tokenPrice: 0,
+      blockPayoutEth: 0,
+      blockPayoutWei: '0',
+      arbitrageClaimedEth: 0,
+      arbitrageClaimedWei: '0',
       blockAprByMultiplier: {
         [StakeDuration.X0]: 0,
         [StakeDuration.X3]: 0,

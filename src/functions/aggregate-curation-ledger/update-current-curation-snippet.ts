@@ -137,12 +137,6 @@ export function getCurrentCurationSnippet(
   const { users: currentBlockUsers, ...currentBlockDoc } = blocks.current ?? {};
   const { users: mostRecentBlockUsers, ...mostRecentBlockDoc } = blocks.mostRecent ?? {};
 
-  const topUsersByVotes = sortUsersByVotes(currentBlockUsers ?? mostRecentBlockUsers ?? {});
-  const topUsersByTotalProtocolFees = sortUsersByTotalProtocolFees(currentBlockUsers ?? mostRecentBlockUsers ?? {});
-  const earliestUsers = sortUsersByFirstVotedAt(currentBlockUsers ?? mostRecentBlockUsers ?? {});
-
-  const numTopUsers = 5;
-
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
     currentPeriod:
       'metadata' in currentPeriodDoc ? { metadata: currentPeriodDoc.metadata, stats: currentPeriodDoc.stats } : null,
@@ -156,9 +150,6 @@ export function getCurrentCurationSnippet(
       'metadata' in mostRecentPeriodDoc
         ? { metadata: mostRecentPeriodDoc.metadata, stats: mostRecentPeriodDoc.stats }
         : null,
-    topCuratorsByVotes: topUsersByVotes.slice(0, numTopUsers),
-    topCuratorsByTotalProtocolFees: topUsersByTotalProtocolFees.slice(0, numTopUsers),
-    earliestCurators: earliestUsers.slice(0, numTopUsers),
     metadata: {
       updatedAt: Date.now(),
       collectionAddress,
@@ -184,9 +175,9 @@ export async function saveCurrentCurationSnippet(
   const curationSnippetRef = curationMetadataRef
     .collection('curationSnippets')
     .doc(firestoreConstants.CURATION_SNIPPET_DOC);
-  const curationSnippetUsersRef = curationSnippetRef.collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL);
   await curationSnippetRef.set(curationSnippet, { merge: true });
 
+  const curationSnippetUsersRef = curationSnippetRef.collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL);
   const usersUpdatedAt = Date.now();
   const batchHandler = new FirestoreBatchHandler();
   for (const [address, user] of Object.entries(users)) {
@@ -196,7 +187,6 @@ export async function saveCurrentCurationSnippet(
       batchHandler.add(ref, user, { merge: false });
     }
   }
-
   await batchHandler.flush();
 
   const expiredUsers = curationSnippetUsersRef.where('metadata.updatedAt', '<', usersUpdatedAt);

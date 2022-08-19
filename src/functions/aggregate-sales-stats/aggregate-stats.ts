@@ -321,14 +321,14 @@ export async function saveCollectionStats(
   stats: Omit<CollectionSalesStats & CollectionLinkData, 'updatedAt' | 'timestamp' | 'period'>,
   batch?: FirebaseFirestore.WriteBatch
 ) {
-  const socialsStatsSnap = (await statsCollectionRef.parent
+  const socialsStatsQuery = statsCollectionRef.parent
     ?.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL)
     .where('period', '==', period)
     .where('timestamp', '<=', ts)
     .orderBy('timestamp', 'desc')
-    .limit(1)
-    .get()) as FirebaseFirestore.QuerySnapshot<SocialsStats> | undefined;
-  const socialsStats: Omit<SocialsStats, 'collectionAddress' | 'chainId' | 'period' | 'timestamp' | 'updatedAt'> =
+    .limit(1) as FirebaseFirestore.Query<SocialsStats>;
+  const socialsStatsSnap = await socialsStatsQuery?.get();
+  const socialsStats: Omit<SocialsStats, 'collectionAddress' | 'chainId' | 'period' | 'updatedAt'> =
     socialsStatsSnap?.docs?.[0]?.data() ?? {
       discordFollowers: null,
       discordPresence: null,
@@ -346,8 +346,10 @@ export async function saveCollectionStats(
       prevTwitterFollowers: null,
       twitterFollowersPercentChange: null,
       prevTwitterFollowing: null,
-      twitterFollowingPercentChange: null
+      twitterFollowingPercentChange: null,
+      timestamp: 0
     };
+
   const statsWithSocials: Omit<CollectionStats, 'updatedAt' | 'timestamp' | 'period'> = {
     ...socialsStats,
     ...stats

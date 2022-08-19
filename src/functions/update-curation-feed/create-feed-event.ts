@@ -20,7 +20,7 @@ export async function createFeedEventForLedgerEvent(
     const feedRef = db.collection(firestoreConstants.FEED_COLL);
     const ledgerEventSnap = await txn.get(ledgerEventRef);
     const ledgerEvent = ledgerEventSnap.data();
-    if (ledgerEvent && 'isFeedUpdated' in ledgerEvent && ledgerEvent.isFeedUpdated === false) {
+    if (ledgerEvent && 'isFeedUpdated' in ledgerEvent && ledgerEvent.isFeedUpdated === false && ledgerEvent.discriminator === CurationLedgerEvent.VotesAdded || ledgerEvent?.discriminator === CurationLedgerEvent.VotesRemoved) {
       const userRef = db.collection(firestoreConstants.USERS_COLL).doc(ledgerEvent.userAddress);
       const collectionRef = ledgerEventRef.parent.parent?.parent.parent;
       if (!collectionRef) {

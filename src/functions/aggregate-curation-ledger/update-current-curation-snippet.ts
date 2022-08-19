@@ -117,21 +117,6 @@ export function getCurrentCurationSnippet(
   collectionChainId: ChainId,
   collection: CollectionDisplayData
 ): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
-  const sortUsersByTotalProtocolFees = (users: CurationBlockUsers): CurationBlockUser[] => {
-    return Object.values(users).sort((a, b) => {
-      return b.stats.totalProtocolFeesAccruedEth - a.stats.totalProtocolFeesAccruedEth;
-    });
-  };
-  const sortUsersByVotes = (users: CurationBlockUsers): CurationBlockUser[] => {
-    return Object.values(users).sort((a, b) => {
-      return b.stats.totalProtocolFeesAccruedEth - a.stats.totalProtocolFeesAccruedEth;
-    });
-  };
-  const sortUsersByFirstVotedAt = (users: CurationBlockUsers): CurationBlockUser[] => {
-    return Object.values(users).sort((a, b) => {
-      return a.stats.firstVotedAt - b.stats.firstVotedAt;
-    });
-  };
   const { users: currentPeriodUsers, ...currentPeriodDoc } = periods.current ?? {};
   const { users: mostRecentPeriodUsers, ...mostRecentPeriodDoc } = periods.mostRecent ?? {};
   const { users: currentBlockUsers, ...currentBlockDoc } = blocks.current ?? {};
@@ -164,7 +149,7 @@ export function getCurrentCurationSnippet(
 
   return {
     curationSnippet: currentCurationSnippet,
-    users: mostRecentBlockUsers ?? {}
+    users: currentBlockUsers ?? mostRecentBlockUsers ?? {}
   };
 }
 

@@ -206,10 +206,10 @@ describe('curation block', () => {
       arbitrageClaimedEth: 0,
       arbitrageClaimedWei: '0',
       blockAprByMultiplier: {
-        [StakeDuration.X0]: 0,
-        [StakeDuration.X3]: 0,
-        [StakeDuration.X6]: 0,
-        [StakeDuration.X12]: 0
+        [StakeDuration.None]: 0,
+        [StakeDuration.ThreeMonths]: 0,
+        [StakeDuration.SixMonths]: 0,
+        [StakeDuration.TwelveMonths]: 0
       },
       avgStakePowerPerToken: 0,
       blockApr: 0

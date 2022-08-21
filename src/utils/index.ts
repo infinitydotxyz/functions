@@ -61,17 +61,17 @@ export function calculateCollectionAprByMultiplier(
   precision = 8
 ) {
   const multipliers: Record<StakeDuration, number> = {
-    [StakeDuration.X0]: 1,
-    [StakeDuration.X3]: 2,
-    [StakeDuration.X6]: 3,
-    [StakeDuration.X12]: 4
+    [StakeDuration.None]: 1,
+    [StakeDuration.ThreeMonths]: 2,
+    [StakeDuration.SixMonths]: 3,
+    [StakeDuration.TwelveMonths]: 4
   };
 
   const aprByMultiplier: Record<StakeDuration, number> = {
-    [StakeDuration.X0]: 0,
-    [StakeDuration.X3]: 0,
-    [StakeDuration.X6]: 0,
-    [StakeDuration.X12]: 0
+    [StakeDuration.None]: 0,
+    [StakeDuration.ThreeMonths]: 0,
+    [StakeDuration.SixMonths]: 0,
+    [StakeDuration.TwelveMonths]: 0
   };
 
   for (const [stakeDuration, multiplier] of Object.entries(multipliers) as unknown as [StakeDuration, number][]) {

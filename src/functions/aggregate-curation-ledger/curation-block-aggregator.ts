@@ -1,4 +1,10 @@
-import { ChainId, CollectionDisplayData, StakeDuration, StatsPeriod } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  CollectionDisplayData,
+  Erc20TokenMetadata,
+  StakeDuration,
+  StatsPeriod
+} from '@infinityxyz/lib/types/core';
 import {
   CurationBlockRewardsDoc,
   CurationBlockRewards,
@@ -41,8 +47,7 @@ export class CurationBlockAggregator {
     private _chainId: ChainId,
     private _stakerContractAddress: string,
     private _stakerContractChainId: ChainId,
-    private _tokenContractAddress: string,
-    private _tokenContractChainId: ChainId
+    private _token: Erc20TokenMetadata
   ) {
     this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.timestamp);
     for (const event of this._curationEvents) {
@@ -57,8 +62,7 @@ export class CurationBlockAggregator {
           chainId: this._chainId,
           stakerContractAddress: this._stakerContractAddress,
           stakerContractChainId: this._stakerContractChainId,
-          tokenContractAddress: this._tokenContractAddress,
-          tokenContractChainId: this._tokenContractChainId
+          token: this._token
         });
         this._curationBlocks.set(startTimestamp, block);
         block.addEvent(event);
@@ -72,14 +76,7 @@ export class CurationBlockAggregator {
       if (!prevBlockRewards) {
         prevBlockRewards = await this.getPrevCurationBlockRewards(block.metadata.blockStart, this._blockRewards);
       }
-      const { otherPerToken: tokenPrice } = await getTokenPrice(
-        this._tokenContractAddress,
-        this._tokenContractChainId,
-        18,
-        'NFT',
-        'Infinity',
-        block.blockNumber
-      );
+      const { otherPerToken: tokenPrice } = await getTokenPrice(this._token, block.blockNumber);
 
       const { blockRewards, usersRemoved, usersAdded } = block.getBlockRewards(
         prevBlockRewards,
@@ -152,8 +149,8 @@ export class CurationBlockAggregator {
           stakerContractAddress: this._stakerContractAddress,
           stakerContractChainId: this._stakerContractChainId,
           blockNumber: 0,
-          tokenContractAddress: this._tokenContractAddress,
-          tokenContractChainId: this._tokenContractChainId,
+          tokenContractAddress: this._token.address,
+          tokenContractChainId: this._token.chainId,
           blockDuration: CurationBlockAggregator.DURATION
         },
         stats: {

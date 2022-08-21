@@ -1,3 +1,4 @@
+import { Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 
 export interface CurationMetadata {
@@ -8,8 +9,7 @@ export interface CurationMetadata {
   collectionChainId: ChainId;
   stakerContractAddress: string;
   stakerContractChainId: ChainId;
-  tokenContractAddress: string;
-  tokenContractChainId: ChainId;
+  token: Erc20TokenMetadata;
   refreshCurrentSnippetBy: number;
   updatedAt: number;
 }

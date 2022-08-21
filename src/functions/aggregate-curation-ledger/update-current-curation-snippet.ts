@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ChainId, CollectionDisplayData } from '@infinityxyz/lib/types/core';
+import { ChainId, CollectionDisplayData, Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
@@ -111,8 +111,7 @@ export function getCurrentCurationSnippet(
   blocks: { current: CurationBlockRewards | null; mostRecent: CurationBlockRewards | null },
   stakerContractAddress: string,
   stakerContractChainId: ChainId,
-  tokenContractAddress: string,
-  tokenContractChainId: ChainId,
+  token: Erc20TokenMetadata,
   collectionAddress: string,
   collectionChainId: ChainId,
   collection: CollectionDisplayData
@@ -141,8 +140,8 @@ export function getCurrentCurationSnippet(
       collectionChainId,
       stakerContractAddress,
       stakerContractChainId,
-      tokenContractAddress,
-      tokenContractChainId
+      tokenContractAddress: token.address,
+      tokenContractChainId: token.chainId
     },
     collection
   };

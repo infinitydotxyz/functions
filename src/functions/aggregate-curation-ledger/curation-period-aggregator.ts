@@ -1,4 +1,4 @@
-import { ChainId, CollectionDisplayData, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, CollectionDisplayData, Erc20TokenMetadata, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { calculateStats, calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth } from '../../utils';
@@ -79,8 +79,7 @@ export class CurationPeriodAggregator {
     protected _chainId: ChainId,
     protected _stakerContractAddress: string,
     protected _stakerContractChainId: ChainId,
-    protected _tokenContractAddress: string,
-    protected _tokenContractChainId: ChainId
+    protected _token: Erc20TokenMetadata
   ) {
     const { startTimestamp, endTimestamp, prevTimestamp } = CurationPeriodAggregator.getCurationPeriodRange(timestamp);
     this._startTimestamp = startTimestamp;
@@ -144,8 +143,8 @@ export class CurationPeriodAggregator {
         timestamp: this._startTimestamp,
         stakerContractAddress: this._stakerContractAddress,
         stakerContractChainId: this._stakerContractChainId,
-        tokenContractAddress: this._tokenContractAddress,
-        tokenContractChainId: this._tokenContractChainId,
+        tokenContractAddress: this._token.address,
+        tokenContractChainId: this._token.chainId,
         periodDuration: CurationPeriodAggregator.DURATION
       },
       stats: {
@@ -224,8 +223,8 @@ export class CurationPeriodAggregator {
         stakerContractAddress: this._stakerContractAddress,
         stakerContractChainId: this._stakerContractChainId,
         updatedAt: Date.now(),
-        tokenContractAddress: this._tokenContractAddress,
-        tokenContractChainId: this._tokenContractChainId,
+        tokenContractAddress: this._token.address,
+        tokenContractChainId: this._token.chainId,
         timestamp: this._startTimestamp,
         periodDuration: CurationPeriodAggregator.DURATION
       },

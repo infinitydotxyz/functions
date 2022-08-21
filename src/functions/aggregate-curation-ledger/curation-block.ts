@@ -16,7 +16,7 @@ import { calcPercentChange, calculateStats, calculateStatsBigInt } from '../aggr
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth, round } from '../../utils';
 import { CurationBlockAggregator } from './curation-block-aggregator';
-import { CollectionDisplayData, StakeDuration } from '@infinityxyz/lib/types/core';
+import { CollectionDisplayData, Erc20TokenMetadata, StakeDuration } from '@infinityxyz/lib/types/core';
 
 interface BlockMetadata {
   /**
@@ -27,8 +27,7 @@ interface BlockMetadata {
   chainId: ChainId;
   stakerContractAddress: string;
   stakerContractChainId: ChainId;
-  tokenContractAddress: string;
-  tokenContractChainId: ChainId;
+  token: Erc20TokenMetadata;
 }
 
 /**
@@ -140,8 +139,8 @@ export class CurationBlock {
         isAggregated: false,
         stakerContractAddress: this.metadata.stakerContractAddress,
         stakerContractChainId: this.metadata.stakerContractChainId,
-        tokenContractAddress: this.metadata.tokenContractAddress,
-        tokenContractChainId: this.metadata.tokenContractChainId,
+        tokenContractAddress: this.metadata.token.address,
+        tokenContractChainId: this.metadata.token.chainId,
         blockDuration: CurationBlockAggregator.DURATION,
         blockNumber: this._blockNumber
       },
@@ -258,8 +257,8 @@ export class CurationBlock {
             userAddress: voteAdded.userAddress,
             stakerContractAddress: this.metadata.stakerContractAddress,
             stakerContractChainId: this.metadata.stakerContractChainId,
-            tokenContractAddress: this.metadata.tokenContractAddress,
-            tokenContractChainId: this.metadata.tokenContractChainId,
+            tokenContractAddress: this.metadata.token.address,
+            tokenContractChainId: this.metadata.token.chainId,
             collectionAddress: this.metadata.collectionAddress,
             collectionChainId: this.metadata.chainId,
             updatedAt: Date.now(),

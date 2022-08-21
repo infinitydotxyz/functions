@@ -1,3 +1,4 @@
+import { Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { CurationLedgerEventsWithStake, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
@@ -13,8 +14,7 @@ export async function aggregateLedger(
   chainId: ChainId,
   stakerContractAddress: string,
   stakerContractChainId: ChainId,
-  tokenContractAddress: string,
-  tokenContractChainId: ChainId
+  token: Erc20TokenMetadata
 ) {
   const curationLedgerRef = stakerContractCurationMetadataRef.collection(firestoreConstants.CURATION_LEDGER_COLL);
   const snapshot = await curationLedgerRef
@@ -55,8 +55,7 @@ export async function aggregateLedger(
     chainId,
     stakerContractAddress,
     stakerContractChainId,
-    tokenContractAddress,
-    tokenContractChainId
+    token
   );
   await curationAggregator.aggregate(collection);
 

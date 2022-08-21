@@ -1,6 +1,7 @@
 import {
   ChainId,
   CollectionDisplayData,
+  Erc20TokenMetadata,
   InfinityNftSale,
   SaleSource,
   StakeDuration,
@@ -23,6 +24,13 @@ const USDC_PER_WETH_PRICE = 2000;
 const NFT_PER_USDC_PRICE = 0.07;
 const TOKEN_PRICE = NFT_PER_USDC_PRICE / USDC_PER_WETH_PRICE; // NFT per WETH
 const COLLECTION = {} as any as CollectionDisplayData;
+const TOKEN: Erc20TokenMetadata = {
+  address: '0x0',
+  chainId: ChainId.Mainnet,
+  name: 'Infinity',
+  symbol: 'NFT',
+  decimals: 18,
+}
 
 const getFees = (price: number, feePercent = 2.5) => {
   const priceWei = parseEther(price.toString());
@@ -224,8 +232,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const sale = getSaleEvent(1, 2.5);
     block.addEvent({ ...sale });
@@ -245,8 +252,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     block2.addEvent({ ...sale });
     block2.addEvent({ ...sale });
@@ -267,8 +273,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const address1 = '0x1';
     const vote1 = getVotesAddedEvent(address1, 1);
@@ -290,8 +295,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
@@ -318,8 +322,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
@@ -376,8 +379,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const address1 = '0x1';
     const address2 = '0x2';
@@ -445,8 +447,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const address1 = '0x1';
     const address2 = '0x2';
@@ -503,8 +504,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const sale2 = getSaleEvent(1, 2.5);
     const expectedBlock2FeesGeneratedWei = BigInt(sale2.protocolFeeWei);
@@ -555,8 +555,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
 
     const sale = getSaleEvent(1, 2.5);
@@ -603,8 +602,7 @@ describe('curation block', () => {
       chainId: ChainId.Mainnet,
       stakerContractAddress: '0x0',
       stakerContractChainId: ChainId.Mainnet,
-      tokenContractAddress: '0x0',
-      tokenContractChainId: ChainId.Mainnet
+      token: TOKEN
     });
     const address1 = '0x1';
     const vote = getVotesAddedEvent(address1, 1);

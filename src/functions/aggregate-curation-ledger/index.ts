@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEvents, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants, getTokenAddressByStakerAddress, ONE_MIN } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getTokenByStaker, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
@@ -89,10 +89,7 @@ export const triggerCurationLedgerAggregation = functions
         ];
         const [collectionChainId, collectionAddress] = collectionRef.id.split(':') as [ChainId, string];
         updates.add(stakerContractMetadataRef.path);
-        const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
-          stakerContractChainId,
-          stakerContractAddress
-        );
+        const token = getTokenByStaker(stakerContractChainId, stakerContractAddress);
         const curationMetadataUpdate: Omit<
           CurationMetadata,
           'refreshCurrentSnippetBy' | 'currentSnippetRequiresAggregation'
@@ -104,8 +101,7 @@ export const triggerCurationLedgerAggregation = functions
           collectionChainId,
           stakerContractAddress,
           stakerContractChainId,
-          tokenContractAddress,
-          tokenContractChainId
+          token
         };
         batchHandler.add(stakerContractMetadataRef, curationMetadataUpdate, { merge: true });
       }
@@ -183,8 +179,7 @@ export const aggregateCurationLedger = functions
         collectionChainId,
         stakerContractAddress,
         stakerContractChainId,
-        stakerContractMetadata.tokenContractAddress,
-        stakerContractMetadata.tokenContractChainId
+        stakerContractMetadata.token
       );
       const triggerPeriodAggregationUpdate: Partial<CurationMetadata> = {
         ledgerRequiresAggregation: false,
@@ -194,8 +189,7 @@ export const aggregateCurationLedger = functions
         collectionChainId,
         stakerContractAddress,
         stakerContractChainId,
-        tokenContractAddress: stakerContractMetadata.tokenContractAddress,
-        tokenContractChainId: stakerContractMetadata.tokenContractChainId
+        token: stakerContractMetadata.token
       };
       await stakerContractMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
     } else if (stakerContractMetadata.periodsRequireAggregation) {
@@ -210,8 +204,7 @@ export const aggregateCurationLedger = functions
         collectionChainId,
         stakerContractAddress,
         stakerContractChainId,
-        stakerContractMetadata.tokenContractAddress,
-        stakerContractMetadata.tokenContractChainId,
+        stakerContractMetadata.token,
         collection
       );
       const metadataUpdate: Partial<CurationMetadata> = {
@@ -233,8 +226,7 @@ export const aggregateCurationLedger = functions
         currentBlocks,
         stakerContractAddress,
         stakerContractChainId,
-        stakerContractMetadata.tokenContractAddress,
-        stakerContractMetadata.tokenContractChainId,
+        stakerContractMetadata.token,
         collectionAddress,
         collectionChainId,
         collection

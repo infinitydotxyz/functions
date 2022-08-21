@@ -1,3 +1,4 @@
+import { Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { Env, getTokenAddress } from '@infinityxyz/lib/utils';
 import { Token } from '@uniswap/sdk-core';
@@ -15,22 +16,16 @@ export class TokenPairFactory {
 
   static readonly EST_DOLLARS_PER_NFT = 0.07;
 
-  public create(
-    tokenAddress: string,
-    tokenChainId: ChainId,
-    decimals: number,
-    symbol: string,
-    name: string
-  ): ITokenPair {
+  public create(token: Erc20TokenMetadata): ITokenPair {
     const goerliToken = getTokenAddress(ChainId.Goerli);
     const mainnetTokenDev = getTokenAddress(ChainId.Mainnet, Env.Dev);
-    const chainIdInt = parseInt(tokenChainId, 10);
+    const chainIdInt = parseInt(token.chainId, 10);
     const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'.toLowerCase();
     const wethToken = new Token(parseInt(ChainId.Mainnet, 10), WETH, 18, 'WETH', 'Wrapped Ether');
-    switch (tokenAddress) {
+    switch (token.address) {
       case goerliToken:
       case mainnetTokenDev: {
-        const token0 = new Token(chainIdInt, tokenAddress, decimals, symbol, name);
+        const token0 = new Token(chainIdInt, token.address, token.decimals, token.symbol, token.name);
         const tokenPair = new TokenPairEstimate(
           this._db,
           token0,
@@ -42,10 +37,10 @@ export class TokenPairFactory {
         return cachedTokenPair;
       }
       default: {
-        if (tokenChainId !== ChainId.Mainnet) {
-          throw new Error(`Token not yet supported ${tokenChainId} ${tokenAddress}`);
+        if (token.chainId !== ChainId.Mainnet) {
+          throw new Error(`Token not yet supported ${token.chainId} ${token.address}`);
         }
-        const token0 = new Token(chainIdInt, tokenAddress, decimals, symbol, name);
+        const token0 = new Token(chainIdInt, token.address, token.decimals, token.symbol, token.name);
         const tokenPair = new TokenPair(token0, wethToken, this._mainnetProvider);
         const cachedTokenPair = new CachedTokenPair(this._db, tokenPair);
         return cachedTokenPair;

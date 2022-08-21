@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { CollectionDisplayData } from '@infinityxyz/lib/types/core';
+import { CollectionDisplayData, Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import {
   CurationBlockRewardsDoc,
@@ -18,8 +18,7 @@ export async function aggregateBlocks(
   collectionChainId: ChainId,
   stakerContractAddress: string,
   stakerContractChainId: ChainId,
-  tokenContractAddress: string,
-  tokenContractChainId: ChainId,
+  token: Erc20TokenMetadata,
   collection: CollectionDisplayData
 ) {
   const curationBlockRewardsRef = stakerContractCurationMetadataRef.collection(
@@ -52,8 +51,7 @@ export async function aggregateBlocks(
       collectionChainId,
       stakerContractAddress,
       stakerContractChainId,
-      tokenContractAddress,
-      tokenContractChainId
+      token
     );
     const rewards = aggregator.getPeriodRewards(periodBlocks, collection);
     const { users, ...curationPeriodDocData } = rewards;

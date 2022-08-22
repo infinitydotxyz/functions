@@ -30,8 +30,7 @@
     "custom-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/custom-order.ts",
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
     "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
-    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts",
-    "webhooks": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/functions/order-matches"
+    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts"
   },
   "engines": {
     "node": "16"

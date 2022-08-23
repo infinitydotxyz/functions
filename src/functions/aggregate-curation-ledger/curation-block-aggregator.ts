@@ -168,11 +168,11 @@ export class CurationBlockAggregator {
           totalProtocolFeesAccruedEth: 0,
           blockProtocolFeesAccruedEth: 0,
           arbitrageProtocolFeesAccruedEth: 0,
+          totalArbitrageProtocolFeesAccruedWei: '0',
+          totalArbitrageProtocolFeesAccruedEth: 0,
           tokenPrice: 0,
           avgStakePowerPerToken: 0,
           blockApr: 0,
-          arbitrageClaimedWei: '0',
-          arbitrageClaimedEth: 0,
           blockPayoutWei: '0',
           blockPayoutEth: 0,
           blockAprByMultiplier: {

@@ -29,8 +29,8 @@ const TOKEN: Erc20TokenMetadata = {
   chainId: ChainId.Mainnet,
   name: 'Infinity',
   symbol: 'NFT',
-  decimals: 18,
-}
+  decimals: 18
+};
 
 const getFees = (price: number, feePercent = 2.5) => {
   const priceWei = parseEther(price.toString());
@@ -211,8 +211,6 @@ describe('curation block', () => {
       tokenPrice: 0,
       blockPayoutEth: 0,
       blockPayoutWei: '0',
-      arbitrageClaimedEth: 0,
-      arbitrageClaimedWei: '0',
       blockAprByMultiplier: {
         [StakeDuration.None]: 0,
         [StakeDuration.ThreeMonths]: 0,
@@ -220,7 +218,9 @@ describe('curation block', () => {
         [StakeDuration.TwelveMonths]: 0
       },
       avgStakePowerPerToken: 0,
-      blockApr: 0
+      blockApr: 0,
+      totalArbitrageProtocolFeesAccruedWei: '0',
+      totalArbitrageProtocolFeesAccruedEth: 0
     },
     users: {}
   };

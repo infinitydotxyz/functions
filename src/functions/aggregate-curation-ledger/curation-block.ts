@@ -4,11 +4,12 @@ import {
   CurationBlockRewardsDoc,
   CurationLedgerEvent,
   CurationBlockRewards,
-  CurationBlockUser,
-  CurationBlockUsers,
   CurationLedgerVotesAddedWithStake,
   CurationLedgerVotesRemovedWithStake,
-  CurationLedgerEventsWithStake
+  CurationLedgerEventsWithStake,
+  CurationLedgerEventStake,
+  CurationBlockUser,
+  CurationBlockUsers
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { formatEther } from 'ethers/lib/utils';
@@ -107,16 +108,16 @@ export class CurationBlock {
   } {
     const prevUsers = prevBlockRewards.users;
     const {
-      updatedUsers: updatedUsersAfterRemovals,
-      usersRemoved,
-      numCuratorVotesRemoved
-    } = this.applyVoteRemovals(prevUsers, this._votesRemoved);
-
-    const {
       updatedUsers: updatedUsersAfterAdditions,
       newUsers,
       numCuratorVotesAdded
-    } = this.applyVoteAdditions(updatedUsersAfterRemovals, this._votes, collection);
+    } = this.applyVoteAdditions(prevUsers, this._votes, collection);
+
+    const {
+      updatedUsers: updatedUsersAfterRemovals,
+      usersRemoved,
+      numCuratorVotesRemoved
+    } = this.applyVoteRemovals(updatedUsersAfterAdditions, this._votesRemoved);
 
     const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterAdditions), (user) =>
       BigInt(user.stats.votes)
@@ -127,7 +128,7 @@ export class CurationBlock {
     const numCuratorVotes = parseInt(voteStats.sum.toString(), 10);
     const numCurators = voteStats.numItems;
 
-    const updatedUsersAfterStatsUpdate = this.updateVoteStats(updatedUsersAfterAdditions, numCurators, numCuratorVotes);
+    const updatedUsersAfterStatsUpdate = this.updateVoteStats(updatedUsersAfterRemovals, numCurators, numCuratorVotes);
 
     const blockRewardsBeforeDistribution: CurationBlockRewards = {
       collection,
@@ -157,13 +158,13 @@ export class CurationBlock {
         totalProtocolFeesAccruedEth: parseFloat(formatEther(totalProtocolFeesAccruedWei.toString())),
         blockProtocolFeesAccruedWei: blockProtocolFeesAccruedWei.toString(),
         blockProtocolFeesAccruedEth: parseFloat(formatEther(blockProtocolFeesAccruedWei.toString())),
-        arbitrageProtocolFeesAccruedWei: prevBlockRewards.stats.arbitrageProtocolFeesAccruedWei,
-        arbitrageProtocolFeesAccruedEth: prevBlockRewards.stats.arbitrageProtocolFeesAccruedEth,
+        arbitrageProtocolFeesAccruedWei: '0',
+        arbitrageProtocolFeesAccruedEth: 0,
+        totalArbitrageProtocolFeesAccruedWei: prevBlockRewards.stats.arbitrageProtocolFeesAccruedWei,
+        totalArbitrageProtocolFeesAccruedEth: prevBlockRewards.stats.arbitrageProtocolFeesAccruedEth,
         tokenPrice: tokenPrice,
         blockPayoutEth: 0,
         blockPayoutWei: '0',
-        arbitrageClaimedWei: '0',
-        arbitrageClaimedEth: 0,
         avgStakePowerPerToken: 0,
         blockApr: 0,
         blockAprByMultiplier: {
@@ -244,44 +245,7 @@ export class CurationBlock {
           existingUser.stats.stake = voteAdded.stake;
         }
       } else {
-        const newUser: CurationBlockUser = {
-          collection,
-          user: {
-            address: voteAdded.userAddress,
-            displayName: '',
-            username: '',
-            profileImage: '',
-            bannerImage: ''
-          },
-          metadata: {
-            userAddress: voteAdded.userAddress,
-            stakerContractAddress: this.metadata.stakerContractAddress,
-            stakerContractChainId: this.metadata.stakerContractChainId,
-            tokenContractAddress: this.metadata.token.address,
-            tokenContractChainId: this.metadata.token.chainId,
-            collectionAddress: this.metadata.collectionAddress,
-            collectionChainId: this.metadata.chainId,
-            updatedAt: Date.now(),
-            blockNumber: this._blockNumber,
-            timestamp: this.metadata.blockStart,
-            blockDuration: CurationBlockAggregator.DURATION
-          },
-          stats: {
-            votes: voteAdded.votes,
-            totalProtocolFeesAccruedWei: '0',
-            blockProtocolFeesAccruedWei: '0',
-            firstVotedAt: this.metadata.blockStart,
-            lastVotedAt: this.metadata.blockStart,
-            totalProtocolFeesAccruedEth: 0,
-            blockProtocolFeesAccruedEth: 0,
-            curatorShare: 0,
-            numCurators: 0,
-            numCuratorVotes: 0,
-            tokenPrice: 0,
-            blockApr: 0,
-            stake: voteAdded.stake
-          }
-        };
+        const newUser = this.getNewUser(voteAdded.userAddress, voteAdded.stake, voteAdded.votes, collection);
         currentUsers[newUser.metadata.userAddress] = newUser;
         newUsers[newUser.metadata.userAddress] = { ...newUser };
       }
@@ -293,9 +257,9 @@ export class CurationBlock {
   protected distributeRewards(_rewards: CurationBlockRewards): CurationBlockRewards {
     const rewards: CurationBlockRewards = JSON.parse(JSON.stringify(_rewards));
     const totalVotes = rewards.stats.numCuratorVotes;
-    const arbitrageFees = BigInt(rewards.stats.arbitrageProtocolFeesAccruedWei);
-    const fees = BigInt(rewards.stats.blockProtocolFeesAccruedWei) + arbitrageFees;
+    const fees = BigInt(rewards.stats.blockProtocolFeesAccruedWei);
     let feesDistributed = BigInt(0);
+
     for (const user of Object.values(rewards.users)) {
       const userVotes = user.stats.votes;
       const userFees = (BigInt(userVotes) * BigInt(fees)) / BigInt(totalVotes);
@@ -310,17 +274,18 @@ export class CurationBlock {
     if (feesDistributed > fees) {
       throw new Error(`Fees distributed (${feesDistributed}) > fees (${fees})`);
     }
-
-    const arbitrageFeesClaimed = arbitrageFees > BigInt(0) && feesDistributed > BigInt(0) ? arbitrageFees : BigInt(0);
+    const blockArbitrage = feesRemaining.toString();
+    const totalArbitrageProtocolFeesAccruedWei =
+      BigInt(rewards.stats.totalArbitrageProtocolFeesAccruedWei) + BigInt(blockArbitrage);
 
     return {
       ...rewards,
       stats: {
         ...rewards.stats,
-        arbitrageProtocolFeesAccruedWei: feesRemaining.toString(),
-        arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(feesRemaining.toString())),
-        arbitrageClaimedWei: arbitrageFeesClaimed.toString(),
-        arbitrageClaimedEth: formatEth(arbitrageFeesClaimed),
+        arbitrageProtocolFeesAccruedWei: blockArbitrage,
+        arbitrageProtocolFeesAccruedEth: parseFloat(formatEther(blockArbitrage)),
+        totalArbitrageProtocolFeesAccruedWei: totalArbitrageProtocolFeesAccruedWei.toString(),
+        totalArbitrageProtocolFeesAccruedEth: parseFloat(formatEther(totalArbitrageProtocolFeesAccruedWei.toString())),
         blockPayoutWei: fees.toString(),
         blockPayoutEth: formatEth(fees)
       }
@@ -360,5 +325,53 @@ export class CurationBlock {
       rewards.metadata.blockDuration
     );
     return rewards;
+  }
+
+  protected getNewUser(
+    userAddress: string,
+    stake: CurationLedgerEventStake,
+    votes: number,
+    collection: CollectionDisplayData
+  ): CurationBlockUser {
+    const newUser: CurationBlockUser = {
+      collection,
+      user: {
+        address: userAddress,
+        displayName: '',
+        username: '',
+        profileImage: '',
+        bannerImage: ''
+      },
+      metadata: {
+        userAddress,
+        stakerContractAddress: this.metadata.stakerContractAddress,
+        stakerContractChainId: this.metadata.stakerContractChainId,
+        tokenContractAddress: this.metadata.token.address,
+        tokenContractChainId: this.metadata.token.chainId,
+        collectionAddress: this.metadata.collectionAddress,
+        collectionChainId: this.metadata.chainId,
+        updatedAt: Date.now(),
+        blockNumber: this._blockNumber,
+        timestamp: this.metadata.blockStart,
+        blockDuration: CurationBlockAggregator.DURATION
+      },
+      stats: {
+        votes,
+        stake: stake,
+        firstVotedAt: this.metadata.blockStart,
+        lastVotedAt: this.metadata.blockStart,
+        totalProtocolFeesAccruedWei: '0',
+        blockProtocolFeesAccruedWei: '0',
+        totalProtocolFeesAccruedEth: 0,
+        blockProtocolFeesAccruedEth: 0,
+        curatorShare: 0,
+        numCurators: 0,
+        numCuratorVotes: 0,
+        tokenPrice: 0,
+        blockApr: 0
+      }
+    };
+
+    return newUser;
   }
 }

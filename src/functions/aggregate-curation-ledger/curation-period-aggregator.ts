@@ -118,8 +118,6 @@ export class CurationPeriodAggregator {
     const avgTokenPrice = calculateStats(blocks, (block) => block.stats.tokenPrice).avg ?? 0;
     const avgStakePowerPerToken = calculateStats(blocks, (block) => block.stats.avgStakePowerPerToken).avg ?? 0;
     const avgVotes = calculateStats(blocks, (block) => block.stats.numCuratorVotes).avg ?? 0;
-    const arbitrageClaimedWei =
-      calculateStatsBigInt(blocks, (block) => BigInt(block.stats.arbitrageClaimedWei)).sum ?? BigInt(0);
     const periodPayoutWei =
       calculateStatsBigInt(blocks, (block) => BigInt(block.stats.blockPayoutWei)).sum ?? BigInt(0);
     const periodApr = calculateCuratorApr(
@@ -135,6 +133,10 @@ export class CurationPeriodAggregator {
       avgVotes,
       CurationPeriodAggregator.DURATION
     );
+    const periodArbitrage = calculateStatsBigInt(blocks, (block) =>
+      BigInt(block.stats.arbitrageProtocolFeesAccruedWei)
+    ).sum;
+    const totalArbitrage = mostRecentBlock?.stats?.totalArbitrageProtocolFeesAccruedWei ?? '0';
     const curationPeriod: CurationPeriod = {
       collection,
       metadata: {
@@ -158,8 +160,10 @@ export class CurationPeriodAggregator {
         periodApr,
         periodPayoutWei: periodPayoutWei.toString(),
         periodPayoutEth: formatEth(periodPayoutWei),
-        arbitrageClaimedWei: arbitrageClaimedWei.toString(),
-        arbitrageClaimedEth: formatEth(arbitrageClaimedWei)
+        arbitrageProtocolFeesAccruedWei: periodArbitrage.toString(),
+        arbitrageProtocolFeesAccruedEth: formatEth(periodArbitrage),
+        totalArbitrageProtocolFeesAccruedWei: totalArbitrage,
+        totalArbitrageProtocolFeesAccruedEth: formatEth(totalArbitrage)
       },
       users: {} as CurationPeriodUsers
     };

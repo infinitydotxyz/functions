@@ -32,6 +32,16 @@ export default class FirestoreBatchHandler {
     this.currentBatch.size += 1;
   }
 
+  async addAsync(
+    doc: FirebaseFirestore.DocumentReference,
+    object: Partial<FirebaseFirestore.DocumentData>,
+    options: FirebaseFirestore.SetOptions
+  ): Promise<void> {
+    await this.checkSizeAsync();
+    this.currentBatch.batch.set(doc, object, options);
+    this.currentBatch.size += 1;
+  }
+
   delete(doc: FirebaseFirestore.DocumentReference): void {
     this.checkSize();
     this.currentBatch.batch.delete(doc);
@@ -43,6 +53,12 @@ export default class FirestoreBatchHandler {
       this.flush().catch((err) => {
         console.error(err);
       });
+    }
+  }
+
+  private async checkSizeAsync(): Promise<void> {
+    if (this.currentBatch.size >= MAX_BATCH_SIZE) {
+      await this.flush();
     }
   }
 

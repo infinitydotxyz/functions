@@ -87,7 +87,7 @@ export async function getCurrentPeriods(
           users: periodUsers,
           isCurrent,
           isPrev
-        } as CurationPeriod & { isCurrent: boolean; isPrev: boolean };
+        };
       })
     )
   ).reduce(

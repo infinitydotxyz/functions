@@ -1,5 +1,4 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { getTokenPrice } from '../token-price';
 import { epochs } from './config';
 import { RewardProgram, RewardsProgram } from './epoch.type';
 import { RewardPhase } from './reward-phase';

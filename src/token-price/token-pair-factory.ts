@@ -4,6 +4,7 @@ import { Env, getTokenAddress } from '@infinityxyz/lib/utils';
 import { Token } from '@uniswap/sdk-core';
 import { ethers } from 'ethers';
 import { CachedTokenPair } from './cached-token-pair';
+import { WETH_MAINNET } from './constants';
 import { TokenPair } from './token-pair';
 import { TokenPairEstimate } from './token-pair-estimate';
 import { TokenPair as ITokenPair } from './token-pair.interface';
@@ -20,8 +21,7 @@ export class TokenPairFactory {
     const goerliToken = getTokenAddress(ChainId.Goerli);
     const mainnetTokenDev = getTokenAddress(ChainId.Mainnet, Env.Dev);
     const chainIdInt = parseInt(token.chainId, 10);
-    const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'.toLowerCase();
-    const wethToken = new Token(parseInt(ChainId.Mainnet, 10), WETH, 18, 'WETH', 'Wrapped Ether');
+    const wethToken = new Token(parseInt(ChainId.Mainnet, 10), WETH_MAINNET.address, WETH_MAINNET.decimals, WETH_MAINNET.symbol, WETH_MAINNET.name);
     switch (token.address) {
       case goerliToken:
       case mainnetTokenDev: {

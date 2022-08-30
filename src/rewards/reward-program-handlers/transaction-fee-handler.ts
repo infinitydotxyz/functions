@@ -46,7 +46,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
       throw new Error('Phase is not active');
     }
 
-    const { total: reward, buyerReward, sellerReward } = this._getSaleReward(sale, config, 1600); // TODO need token price
+    const { total: reward, buyerReward, sellerReward } = this._getSaleReward(sale, config, sale.ethPrice);
 
     const phaseSupplyRemaining = config.rewardSupply - config.rewardSupplyUsed;
 
@@ -96,28 +96,6 @@ export class TransactionFeeHandler extends RewardProgramHandler {
           isSplit: true
         } as any
       }
-    };
-  }
-
-  onVotesAdded(vote: CurationVotesAdded, phase: RewardPhase): RewardProgramEventHandlerResponse {
-    return {
-      applicable: false,
-      phase,
-      saveEvent: () => {
-        return;
-      },
-      split: undefined
-    };
-  }
-
-  onVotesRemoved(votes: CurationVotesRemoved, phase: RewardPhase): RewardProgramEventHandlerResponse {
-    return {
-      applicable: false,
-      phase,
-      saveEvent: () => {
-        return;
-      },
-      split: undefined
     };
   }
 

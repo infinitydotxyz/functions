@@ -52,7 +52,7 @@ export async function saveSalesForAggregation() {
 function saveSaleToCollectionCurationLedgers(
   sale: InfinityNftSale & { docId: string; updatedAt: number },
   tx: FirebaseFirestore.Transaction
-) {
+) { // TODO remove this and route sales through the rewards program
   const db = getDb();
   const stakerContracts = getRelevantStakerContracts(sale);
   const curationSales = stakerContracts.map((stakerContract) => {

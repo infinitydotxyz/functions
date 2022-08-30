@@ -1,4 +1,4 @@
-import { CurationVotesAdded, CurationVotesRemoved, InfinityNftSale } from '@infinityxyz/lib/types/core';
+import { InfinityNftSale } from '@infinityxyz/lib/types/core';
 import { RewardPhase } from './reward-phase';
 
 export interface RewardProgramEventHandler {
@@ -15,9 +15,6 @@ export interface RewardProgramEventHandler {
 
 type Split<T> = T & { isSplit?: true };
 
-export type RewardSaleEvent = Split<InfinityNftSale>;
-export type RewardVoteEvent = Split<CurationVotesAdded>;
-export type RewardVotesRemovedEvent = Split<CurationVotesRemoved>;
- 
+export type RewardSaleEvent = Split<InfinityNftSale & { ethPrice: number }>;
 
-export type RawRewardEvent = RewardSaleEvent | RewardVoteEvent | RewardVotesRemovedEvent;
+export type RawRewardEvent = RewardSaleEvent;

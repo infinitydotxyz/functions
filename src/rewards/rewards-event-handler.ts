@@ -1,4 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { getTokenPrice } from '../token-price';
 import { epochs } from './config';
 import { RewardProgram, RewardsProgram } from './epoch.type';
 import { RewardPhase } from './reward-phase';
@@ -27,6 +28,7 @@ export class RewardsEventHandler {
       const currentPhase = currentEpoch?.phases?.[currentPhaseIndex];
       const nextPhaseIndexes = currentEpoch?.phases?.[currentPhaseIndex + 1] ? [currentEpochIndex, currentPhaseIndex + 1] : [currentEpochIndex + 1, 0];
       const nextPhase = currentState?.epochs?.[nextPhaseIndexes[0]]?.phases?.[nextPhaseIndexes[1]] ?? null;
+      // TODO add token price to sales
 
       if (currentPhase?.isActive) {
         const rewardPhase = new RewardPhase(currentPhase);

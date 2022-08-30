@@ -44,14 +44,15 @@ export class RewardsEventHandler {
     event: RawRewardEvent,
     phase: RewardPhase,
     nextPhase: RewardPhase | null,
-    txn?: FirebaseFirestore.Transaction
+    txn?: FirebaseFirestore.Transaction,
+    db?: FirebaseFirestore.Firestore
   ): { phase: RewardPhase; nextPhase: RewardPhase | null } {
-    let saves: ((txn: FirebaseFirestore.Transaction) => void)[] = [];
+    let saves: ((txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void)[] = [];
 
     const save = () => {
-      if (txn) {
+      if (txn && db) {
         for (const s of saves) {
-          s(txn);
+          s(txn, db);
         }
       }
     };

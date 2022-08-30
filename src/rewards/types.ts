@@ -1,4 +1,4 @@
-import { CurationLedgerEvents } from '@infinityxyz/lib/types/core';
+import { CurationVotesAdded, CurationVotesRemoved, InfinityNftSale } from '@infinityxyz/lib/types/core';
 import { RewardPhase } from './reward-phase';
 
 export interface RewardProgramEventHandler {
@@ -8,9 +8,16 @@ export interface RewardProgramEventHandler {
   ): {
     applicable: boolean;
     phase: RewardPhase;
-    saveEvent: (txn: FirebaseFirestore.Transaction) => void;
-    split?: { current: RawRewardEvent, remainder: RawRewardEvent };
+    saveEvent: (txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void;
+    split?: { current: RawRewardEvent; remainder: RawRewardEvent };
   };
 }
 
-export type RawRewardEvent = CurationLedgerEvents;
+type Split<T> = T & { isSplit?: true };
+
+export type RewardSaleEvent = Split<InfinityNftSale>;
+export type RewardVoteEvent = Split<CurationVotesAdded>;
+export type RewardVotesRemovedEvent = Split<CurationVotesRemoved>;
+ 
+
+export type RawRewardEvent = RewardSaleEvent | RewardVoteEvent | RewardVotesRemovedEvent;

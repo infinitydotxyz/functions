@@ -1,12 +1,15 @@
-import { RewardEpoch, RewardProgram, RewardType } from "./epoch.type";
+import { Epoch, Phase, RewardEpoch, RewardProgram, RewardType } from "./epoch.type";
+
+
 
 export const epoch1: RewardEpoch = {
-    name: "Epoch 1",
+    name: Epoch.One,
     isActive: false,
     startsAt: Number.MAX_SAFE_INTEGER,
     phases: [
         {
-            name: 'Phase 1',
+            name: Phase.One,
+            epoch: Epoch.One,
             isActive: false,
             [RewardProgram.TradingFee]: {
                 maxReward: Number.POSITIVE_INFINITY,
@@ -15,6 +18,8 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC20,
                 rewardSupply: 40_000_000,
                 rewardSupplyUsed: 0,
+                buyerPortion: 0.3,
+                sellerPortion: 0.7
             },
             [RewardProgram.NftReward]: {
                 maxReward: 1,
@@ -23,11 +28,14 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC721,
                 rewardSupply: Number.POSITIVE_INFINITY,
                 rewardSupplyUsed: 0,
+                buyerPortion: 1,
+                sellerPortion: 1
             },
             [RewardProgram.Curation]: false,
         },
         {
-            name: 'Phase 2',
+            name: Phase.Two,
+            epoch: Epoch.One,
             isActive: false,
             [RewardProgram.TradingFee]: {
                 maxReward: Number.POSITIVE_INFINITY,
@@ -36,6 +44,8 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC20,
                 rewardSupply: 60_000_000,
                 rewardSupplyUsed: 0,
+                buyerPortion: 0.3,
+                sellerPortion: 0.7
             },
             [RewardProgram.NftReward]: {
                 maxReward: 1,
@@ -44,11 +54,14 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC721,
                 rewardSupply: Number.POSITIVE_INFINITY,
                 rewardSupplyUsed: 0,
+                buyerPortion: 1,
+                sellerPortion: 1
             },
             [RewardProgram.Curation]: false,
         },
         {
-            name: 'Phase 3',
+            name: Phase.Three,
+            epoch: Epoch.One,
             isActive: false,
             [RewardProgram.TradingFee]: {
                 maxReward: Number.POSITIVE_INFINITY,
@@ -57,6 +70,8 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC20,
                 rewardSupply: 80_000_000,
                 rewardSupplyUsed: 0,
+                buyerPortion: 0.3,
+                sellerPortion: 0.7
             },
             [RewardProgram.NftReward]: {
                 maxReward: 1,
@@ -65,12 +80,15 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC721,
                 rewardSupply: Number.POSITIVE_INFINITY,
                 rewardSupplyUsed: 0,
+                buyerPortion: 1,
+                sellerPortion: 1
             },
             [RewardProgram.Curation]: false,
         },
 
         {
-            name: 'Phase 4',
+            name: Phase.Four,
+            epoch: Epoch.One,
             isActive: false,
             [RewardProgram.TradingFee]: {
                 maxReward: Number.POSITIVE_INFINITY,
@@ -79,6 +97,8 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC20,
                 rewardSupply: 100_000_000,
                 rewardSupplyUsed: 0,
+                buyerPortion: 0.3,
+                sellerPortion: 0.7
             },
             [RewardProgram.NftReward]: {
                 maxReward: 1,
@@ -87,6 +107,8 @@ export const epoch1: RewardEpoch = {
                 rewardType: RewardType.ERC721,
                 rewardSupply: Number.POSITIVE_INFINITY,
                 rewardSupplyUsed: 0,
+                buyerPortion: 1,
+                sellerPortion: 1
             },
             [RewardProgram.Curation]: false,
         },   
@@ -94,12 +116,13 @@ export const epoch1: RewardEpoch = {
 }
 
 export const epoch2: RewardEpoch = {
-    name: "Epoch 2",
+    name: Epoch.Two,
     isActive: false,
     startsAt: Number.MAX_SAFE_INTEGER,
     phases: [
         {
-            name: 'Phase 5',
+            name: Phase.Five,
+            epoch: Epoch.Two,
             isActive: false,
             [RewardProgram.TradingFee]: {
                 maxReward: Number.POSITIVE_INFINITY,
@@ -108,6 +131,8 @@ export const epoch2: RewardEpoch = {
                 rewardType: RewardType.ERC20,
                 rewardSupply: 140_000_000,
                 rewardSupplyUsed: 0,
+                buyerPortion: 0.3,
+                sellerPortion: 0.7
             },
             [RewardProgram.NftReward]: null,
             [RewardProgram.Curation]: true,
@@ -116,12 +141,13 @@ export const epoch2: RewardEpoch = {
 }
 
 export const epoch3: RewardEpoch = {
-    name: "Epoch 3",
+    name: Epoch.Three,
     isActive: false,
     startsAt: Number.MAX_SAFE_INTEGER,
     phases: [
         {
-            name: 'Phase 6',
+            name: Phase.Six,
+            epoch: Epoch.Three,
             isActive: false,
             [RewardProgram.TradingFee]: null,
             [RewardProgram.NftReward]: null,

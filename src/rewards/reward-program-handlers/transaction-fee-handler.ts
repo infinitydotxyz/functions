@@ -7,7 +7,7 @@ import { RewardPhase } from '../reward-phase';
 import { RewardSaleEvent } from '../types';
 import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
 
-interface TransactionFeeReward {
+export interface TransactionFeeReward {
   userAddress: string;
   chainId: ChainId;
   sale: InfinityNftSale;
@@ -59,8 +59,8 @@ export class TransactionFeeHandler extends RewardProgramHandler {
             const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
             const buyerRef = db.collection(firestoreConstants.USERS_COLL).doc(buyer.userAddress);
             const sellerRef = db.collection(firestoreConstants.USERS_COLL).doc(seller.userAddress);
-            const buyerTransactionFeeRewards = buyerRef.collection('userRewards').doc('userTransactionFeeRewards').collection('userTransactionFeeRewardsLedger');
-            const sellerTransactionFeeRewards = sellerRef.collection('userRewards').doc('userTransactionFeeRewards').collection('userTransactionFeeRewardsLedger');
+            const buyerTransactionFeeRewards = buyerRef.collection('userRewards').doc(sale.chainId).collection('userTransactionFeeRewardsLedger');
+            const sellerTransactionFeeRewards = sellerRef.collection('userRewards').doc(sale.chainId).collection('userTransactionFeeRewardsLedger');
             txn.create(buyerTransactionFeeRewards.doc(), buyer);
             txn.create(sellerTransactionFeeRewards.doc(), seller);
         },
@@ -112,7 +112,8 @@ export class TransactionFeeHandler extends RewardProgramHandler {
       phase: phase.toJSON(),
       isAggregated: false,
       volumeWei: parseEther(sale.price.toString()).toString(),
-      volumeEth: sale.price
+      volumeEth: sale.price,
+      updatedAt: Date.now(),
     };
 
     const buyer = {

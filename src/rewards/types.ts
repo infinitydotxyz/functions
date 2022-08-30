@@ -15,6 +15,6 @@ export interface RewardProgramEventHandler {
 
 type Split<T> = T & { isSplit?: true };
 
-export type RewardSaleEvent = Split<InfinityNftSale & { ethPrice: number }>;
+export type RewardSaleEvent = Split<InfinityNftSale & { ethPrice: number, docId: string, updatedAt: number }>;
 
 export type RawRewardEvent = RewardSaleEvent;

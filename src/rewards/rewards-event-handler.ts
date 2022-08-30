@@ -2,17 +2,26 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { epochs } from './config';
 import { RewardProgram, RewardsProgram } from './epoch.type';
 import { RewardPhase } from './reward-phase';
+import { CurationHandler } from './reward-program-handlers/curation-handler';
+import { NftHandler } from './reward-program-handlers/nft-handler.abstract';
+import { TransactionFeeHandler } from './reward-program-handlers/transaction-fee-handler';
 import { RawRewardEvent, RewardProgramEventHandler } from './types';
 
 /**
  * takes raw events and applies them to the rewards program
  */
 export class RewardsEventHandler {
+  protected _programEventHandler: Record<RewardProgram, RewardProgramEventHandler>;
+  
   constructor(
-    protected _rewardsProgram: RewardsProgram,
     protected _db: FirebaseFirestore.Firestore,
-    protected _programEventHandler: Record<RewardProgram, RewardProgramEventHandler>
-  ) {}
+  ) {
+    this._programEventHandler = {
+      [RewardProgram.NftReward]: new NftHandler(),
+      [RewardProgram.TradingFee]: new TransactionFeeHandler(),
+      [RewardProgram.Curation]: new CurationHandler(),
+    }
+  }
 
   public async onEvents(
     chainId: ChainId,
@@ -27,7 +36,6 @@ export class RewardsEventHandler {
       const currentPhase = currentEpoch?.phases?.[currentPhaseIndex];
       const nextPhaseIndexes = currentEpoch?.phases?.[currentPhaseIndex + 1] ? [currentEpochIndex, currentPhaseIndex + 1] : [currentEpochIndex + 1, 0];
       const nextPhase = currentState?.epochs?.[nextPhaseIndexes[0]]?.phases?.[nextPhaseIndexes[1]] ?? null;
-      // TODO add token price to sales
 
       if (currentPhase?.isActive) {
         const rewardPhase = new RewardPhase(currentPhase);

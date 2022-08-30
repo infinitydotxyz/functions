@@ -5,7 +5,6 @@ import { getDb } from '../firestore';
 import { TokenPairFactory } from './token-pair-factory';
 import { TokenPair } from './token-pair';
 import { CachedTokenPair } from './cached-token-pair';
-import { USDC_MAINNET, WETH_MAINNET } from './constants';
 
 export async function getTokenPrice(token: Erc20TokenMetadata, blockNumber?: number) {
   const db = getDb();
@@ -22,7 +21,7 @@ export async function getTokenPrice(token: Erc20TokenMetadata, blockNumber?: num
   return res;
 }
 
-export async function getPairPrice(_token0: Erc20TokenMetadata, _token1: Erc20TokenMetadata, blockNumber?: number) {
+export async function getTokenPairPrice(_token0: Erc20TokenMetadata, _token1: Erc20TokenMetadata, blockNumber?: number) {
   if (_token0.chainId !== ChainId.Mainnet) {
     throw new Error(`Token not yet supported ${_token0.chainId} ${_token0.address}`);
   }

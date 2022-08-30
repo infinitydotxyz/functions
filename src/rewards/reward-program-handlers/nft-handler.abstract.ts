@@ -4,7 +4,7 @@ import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './rewar
 
 /**
  * nft rewards are handled by the transaction fee handler
- */ 
+ */
 export class NftHandler extends RewardProgramHandler {
   onSale(sale: InfinityNftSale, phase: RewardPhase): RewardProgramEventHandlerResponse {
     return this._nonApplicableResponse(phase);

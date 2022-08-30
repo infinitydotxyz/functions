@@ -1,14 +1,10 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { TransactionFeeReward } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
-import { Epoch, Phase, RewardProgram, TradingReward } from '../../rewards/epoch.type';
-import { TransactionFeeReward } from '../../rewards/reward-program-handlers/transaction-fee-handler';
-import { getEpochByPhase } from '../../rewards/utils';
 import { REGION } from '../../utils/constants';
-import { calculateStats } from '../aggregate-sales-stats/utils';
 import { aggregateTransactionFeeRewards } from './aggregate-transaction-fee-rewards';
 
 export const onUserTransactionFeeRewardEvent = functions
@@ -54,22 +50,3 @@ export const triggerUserTransactionFeeRewardAggregation = functions
     }
     await batch.flush();
   });
-
-
-export interface TransactionFeePhaseRewardsDoc {
-  epoch: Epoch;
-  chainId: ChainId;
-  phase: Phase;
-  tradingFeeRewards: Omit<TradingReward, 'rewardSupplyUsed'> | null;
-  nftRewards: Omit<TradingReward, 'rewardSupplyUsed'> | null;
-  rewards: number;
-  volume: number;
-  updatedAt: number;
-}
-
-export interface AllTimeTransactionFeeRewardsDoc {
-  chainId: ChainId;
-  rewards: number;
-  volume: number;
-  updatedAt: number;
-}

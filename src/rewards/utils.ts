@@ -1,5 +1,5 @@
+import { Phase, RewardEpoch, RewardPhase } from '@infinityxyz/lib/types/core';
 import { epochs } from './config';
-import { Phase, RewardEpoch, RewardPhase } from './epoch.type';
 
 export function getEpochByPhase(phase: Phase): { epoch: RewardEpoch; phase: RewardPhase } {
   const result = epochs.reduce((acc: null | { epoch: RewardEpoch; phase: RewardPhase }, epoch) => {

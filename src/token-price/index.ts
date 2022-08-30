@@ -21,7 +21,11 @@ export async function getTokenPrice(token: Erc20TokenMetadata, blockNumber?: num
   return res;
 }
 
-export async function getTokenPairPrice(_token0: Erc20TokenMetadata, _token1: Erc20TokenMetadata, blockNumber?: number) {
+export async function getTokenPairPrice(
+  _token0: Erc20TokenMetadata,
+  _token1: Erc20TokenMetadata,
+  blockNumber?: number
+) {
   if (_token0.chainId !== ChainId.Mainnet) {
     throw new Error(`Token not yet supported ${_token0.chainId} ${_token0.address}`);
   }
@@ -44,5 +48,5 @@ export async function getTokenPairPrice(_token0: Erc20TokenMetadata, _token1: Er
     price: res.price,
     token1PerToken0: res.tokenPerOther,
     token0PerToken1: res.otherPerToken
-  }
+  };
 }

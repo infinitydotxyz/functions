@@ -21,7 +21,13 @@ export class TokenPairFactory {
     const goerliToken = getTokenAddress(ChainId.Goerli);
     const mainnetTokenDev = getTokenAddress(ChainId.Mainnet, Env.Dev);
     const chainIdInt = parseInt(token.chainId, 10);
-    const wethToken = new Token(parseInt(ChainId.Mainnet, 10), WETH_MAINNET.address, WETH_MAINNET.decimals, WETH_MAINNET.symbol, WETH_MAINNET.name);
+    const wethToken = new Token(
+      parseInt(ChainId.Mainnet, 10),
+      WETH_MAINNET.address,
+      WETH_MAINNET.decimals,
+      WETH_MAINNET.symbol,
+      WETH_MAINNET.name
+    );
     switch (token.address) {
       case goerliToken:
       case mainnetTokenDev: {

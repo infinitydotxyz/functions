@@ -1,23 +1,15 @@
-import { InfinityNftSale, CurationVotesAdded, CurationVotesRemoved, ChainId } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  RewardProgram,
+  RewardSaleEvent,
+  TradingReward,
+  TransactionFeeReward
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { parseEther } from 'ethers/lib/utils';
 import { REWARD_BUFFER } from '../constants';
-import { RewardProgram, RewardPhase as IRewardPhase, TradingReward } from '../epoch.type';
 import { RewardPhase } from '../reward-phase';
-import { RewardSaleEvent } from '../types';
 import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
-
-export interface TransactionFeeReward {
-  userAddress: string;
-  chainId: ChainId;
-  sale: InfinityNftSale;
-  volumeWei: string;
-  volumeEth: number;
-  isSplit: boolean;
-  phase: IRewardPhase;
-  isAggregated: boolean;
-  reward: number;
-}
 
 export class TransactionFeeHandler extends RewardProgramHandler {
   protected _getSaleReward(
@@ -56,13 +48,19 @@ export class TransactionFeeHandler extends RewardProgramHandler {
         applicable: true,
         phase,
         saveEvent: (txn, db) => {
-            const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
-            const buyerRef = db.collection(firestoreConstants.USERS_COLL).doc(buyer.userAddress);
-            const sellerRef = db.collection(firestoreConstants.USERS_COLL).doc(seller.userAddress);
-            const buyerTransactionFeeRewards = buyerRef.collection('userRewards').doc(sale.chainId).collection('userTransactionFeeRewardsLedger');
-            const sellerTransactionFeeRewards = sellerRef.collection('userRewards').doc(sale.chainId).collection('userTransactionFeeRewardsLedger');
-            txn.create(buyerTransactionFeeRewards.doc(), buyer);
-            txn.create(sellerTransactionFeeRewards.doc(), seller);
+          const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
+          const buyerRef = db.collection(firestoreConstants.USERS_COLL).doc(buyer.userAddress);
+          const sellerRef = db.collection(firestoreConstants.USERS_COLL).doc(seller.userAddress);
+          const buyerTransactionFeeRewards = buyerRef
+            .collection('userRewards')
+            .doc(sale.chainId)
+            .collection('userTransactionFeeRewardsLedger');
+          const sellerTransactionFeeRewards = sellerRef
+            .collection('userRewards')
+            .doc(sale.chainId)
+            .collection('userTransactionFeeRewardsLedger');
+          txn.create(buyerTransactionFeeRewards.doc(), buyer);
+          txn.create(sellerTransactionFeeRewards.doc(), seller);
         },
         split: undefined
       };
@@ -87,14 +85,14 @@ export class TransactionFeeHandler extends RewardProgramHandler {
           protocolFee: currentProtocolFee,
           protocolFeeWei: currentProtocolFeeWei,
           isSplit: true
-        } as any,
+        },
         remainder: {
           ...sale,
           price: sale.price * (1 - split),
           protocolFee: remainingProtocolFee,
           protocolFeeWei: remainingProtocolFeeWei,
           isSplit: true
-        } as any
+        }
       }
     };
   }
@@ -113,7 +111,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
       isAggregated: false,
       volumeWei: parseEther(sale.price.toString()).toString(),
       volumeEth: sale.price,
-      updatedAt: Date.now(),
+      updatedAt: Date.now()
     };
 
     const buyer = {
@@ -128,9 +126,9 @@ export class TransactionFeeHandler extends RewardProgramHandler {
       reward: sellerReward
     };
 
-    return  {
-        buyer,
-        seller
-    }
+    return {
+      buyer,
+      seller
+    };
   }
 }

@@ -1,40 +1,32 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, RewardEvent, RewardProgram, RewardsProgram } from '@infinityxyz/lib/types/core';
 import { epochs } from './config';
-import { RewardProgram, RewardsProgram } from './epoch.type';
 import { RewardPhase } from './reward-phase';
 import { CurationHandler } from './reward-program-handlers/curation-handler';
 import { NftHandler } from './reward-program-handlers/nft-handler.abstract';
 import { TransactionFeeHandler } from './reward-program-handlers/transaction-fee-handler';
-import { RawRewardEvent, RewardProgramEventHandler } from './types';
+import { RewardProgramEventHandler } from './types';
 
-/**
- * takes raw events and applies them to the rewards program
- */
 export class RewardsEventHandler {
   protected _programEventHandler: Record<RewardProgram, RewardProgramEventHandler>;
-  
-  constructor(
-    protected _db: FirebaseFirestore.Firestore,
-  ) {
+
+  constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
       [RewardProgram.NftReward]: new NftHandler(),
       [RewardProgram.TradingFee]: new TransactionFeeHandler(),
-      [RewardProgram.Curation]: new CurationHandler(),
-    }
+      [RewardProgram.Curation]: new CurationHandler()
+    };
   }
 
-  public async onEvents(
-    chainId: ChainId,
-    events: RawRewardEvent[],
-    txn?: FirebaseFirestore.Transaction
-  ): Promise<void> {
+  public async onEvents(chainId: ChainId, events: RewardEvent[], txn?: FirebaseFirestore.Transaction): Promise<void> {
     const currentState = await this._getRewardProgramState(chainId, txn);
     for (const event of events) {
       const currentEpochIndex = currentState.epochs.findIndex((item) => item.isActive);
       const currentEpoch = currentState.epochs[currentEpochIndex];
       const currentPhaseIndex = currentEpoch?.phases.findIndex((item) => item.isActive);
       const currentPhase = currentEpoch?.phases?.[currentPhaseIndex];
-      const nextPhaseIndexes = currentEpoch?.phases?.[currentPhaseIndex + 1] ? [currentEpochIndex, currentPhaseIndex + 1] : [currentEpochIndex + 1, 0];
+      const nextPhaseIndexes = currentEpoch?.phases?.[currentPhaseIndex + 1]
+        ? [currentEpochIndex, currentPhaseIndex + 1]
+        : [currentEpochIndex + 1, 0];
       const nextPhase = currentState?.epochs?.[nextPhaseIndexes[0]]?.phases?.[nextPhaseIndexes[1]] ?? null;
 
       if (currentPhase?.isActive) {
@@ -50,7 +42,7 @@ export class RewardsEventHandler {
   }
 
   protected _applyEvent(
-    event: RawRewardEvent,
+    event: RewardEvent,
     phase: RewardPhase,
     nextPhase: RewardPhase | null,
     txn?: FirebaseFirestore.Transaction,
@@ -81,7 +73,10 @@ export class RewardsEventHandler {
           saves = [];
           const currentPhaseResult = this._applyEvent(current, phase, nextPhase, txn);
           console.assert(currentPhaseResult.phase.isActive === false, 'current phase should be inactive');
-          console.assert(!currentPhaseResult.nextPhase || currentPhaseResult.nextPhase.isActive === true, 'next phase should be active');
+          console.assert(
+            !currentPhaseResult.nextPhase || currentPhaseResult.nextPhase.isActive === true,
+            'next phase should be active'
+          );
           if (currentPhaseResult && nextPhase) {
             const { phase: currentPhase } = currentPhaseResult;
             const remainderResult = this._applyEvent(remainder, nextPhase, null, txn);

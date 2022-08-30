@@ -1,15 +1,18 @@
-import { ChainId, CurationLedgerEvent, CurationLedgerSale } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  CurationLedgerEvent,
+  CurationLedgerSale,
+  RewardEvent,
+  RewardProgram,
+  RewardSaleEvent
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
-import { RewardProgram } from '../epoch.type';
 import { RewardPhase } from '../reward-phase';
-import { RawRewardEvent, RewardSaleEvent } from '../types';
 import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
 
 export class CurationHandler extends RewardProgramHandler {
-
-
-  protected _isApplicable(event: RawRewardEvent, phase: RewardPhase): boolean {
+  protected _isApplicable(event: RewardEvent, phase: RewardPhase): boolean {
     if (phase.getRewardProgram(RewardProgram.Curation) !== true) {
       return false;
     }

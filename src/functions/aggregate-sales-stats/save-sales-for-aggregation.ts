@@ -36,8 +36,8 @@ export async function saveSalesForAggregation() {
           const saleEvent = {
             ...saleWithDocId,
             chainId: saleWithDocId.chainId as ChainId,
-            ethPrice: tokenPrice.token1PerToken0,
-          }
+            ethPrice: tokenPrice.token1PerToken0
+          };
           await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);

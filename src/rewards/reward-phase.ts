@@ -1,5 +1,5 @@
 import { REWARD_BUFFER } from './constants';
-import { RewardPhase as IRewardPhase, RewardProgram } from './epoch.type';
+import { RewardPhase as IRewardPhase, RewardProgram } from '@infinityxyz/lib/types/core';
 
 export class RewardPhase {
   constructor(protected _rewardPhase: IRewardPhase) {}

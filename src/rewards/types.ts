@@ -1,20 +1,14 @@
-import { InfinityNftSale } from '@infinityxyz/lib/types/core';
+import { RewardEvent } from '@infinityxyz/lib/types/core';
 import { RewardPhase } from './reward-phase';
 
 export interface RewardProgramEventHandler {
   onEvent(
-    event: RawRewardEvent,
+    event: RewardEvent,
     phase: RewardPhase
   ): {
     applicable: boolean;
     phase: RewardPhase;
     saveEvent: (txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void;
-    split?: { current: RawRewardEvent; remainder: RawRewardEvent };
+    split?: { current: RewardEvent; remainder: RewardEvent };
   };
 }
-
-type Split<T> = T & { isSplit?: true };
-
-export type RewardSaleEvent = Split<InfinityNftSale & { ethPrice: number, docId: string, updatedAt: number }>;
-
-export type RawRewardEvent = RewardSaleEvent;

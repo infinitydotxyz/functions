@@ -38,8 +38,20 @@ export class TokenPairEstimate extends AbstractTokenPair {
 
   public async getTokenPrice(blockNumber?: number): Promise<TokenPrice> {
     const chainIdInt = parseInt(ChainId.Mainnet, 10);
-    const token0 = new Token(chainIdInt, USDC_MAINNET.address, USDC_MAINNET.decimals, USDC_MAINNET.symbol, USDC_MAINNET.name);
-    const token1 = new Token(chainIdInt, WETH_MAINNET.address, WETH_MAINNET.decimals, WETH_MAINNET.symbol, WETH_MAINNET.name);
+    const token0 = new Token(
+      chainIdInt,
+      USDC_MAINNET.address,
+      USDC_MAINNET.decimals,
+      USDC_MAINNET.symbol,
+      USDC_MAINNET.name
+    );
+    const token1 = new Token(
+      chainIdInt,
+      WETH_MAINNET.address,
+      WETH_MAINNET.decimals,
+      WETH_MAINNET.symbol,
+      WETH_MAINNET.name
+    );
     const tokenPair = new TokenPair(token0, token1, this._provider);
     const cachedTokenPair = new CachedTokenPair(this._db, tokenPair);
     const price = await cachedTokenPair.getTokenPrice(blockNumber);

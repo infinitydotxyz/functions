@@ -1,19 +1,16 @@
+import { RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { RewardPhase } from '../reward-phase';
-import {
-  RawRewardEvent,
-  RewardProgramEventHandler,
-  RewardSaleEvent,
-} from '../types';
+import { RewardProgramEventHandler } from '../types';
 
 export type RewardProgramEventHandlerResponse = {
   applicable: boolean;
   phase: RewardPhase;
   saveEvent: (txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void;
-  split?: { current: RawRewardEvent; remainder: RawRewardEvent } | undefined;
+  split?: { current: RewardEvent; remainder: RewardEvent } | undefined;
 };
 
 export abstract class RewardProgramHandler implements RewardProgramEventHandler {
-  onEvent(event: RawRewardEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
+  onEvent(event: RewardEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
     if ('txHash' in event && 'price' in event && 'buyer' in event && 'seller' in event) {
       return this.onSale(event, phase);
     } else {

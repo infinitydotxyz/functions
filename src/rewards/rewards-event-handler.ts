@@ -1,4 +1,5 @@
 import { ChainId, RewardEvent, RewardProgram, RewardsProgram } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { epochs } from './config';
 import { RewardEpoch } from './reward-epoch';
 import { RewardPhase } from './reward-phase';
@@ -93,7 +94,9 @@ export class RewardsEventHandler {
     chainId: ChainId,
     txn?: FirebaseFirestore.Transaction
   ): Promise<{ chainId: ChainId; epochs: RewardEpoch[] }> {
-    const ref = this._db.collection('rewards').doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
+    const ref = this._db
+      .collection(firestoreConstants.REWARDS_COLL)
+      .doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
 
     const doc = await (txn ? txn.get(ref) : ref.get());
 
@@ -121,7 +124,7 @@ export class RewardsEventHandler {
       epochs: state.epochs.map((item) => item.toJSON())
     };
     const ref = this._db
-      .collection('rewards')
+      .collection(firestoreConstants.REWARDS_COLL)
       .doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
     if (txn) {
       txn.set(ref, program);

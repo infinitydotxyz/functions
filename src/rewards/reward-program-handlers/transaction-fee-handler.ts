@@ -50,13 +50,13 @@ export class TransactionFeeHandler extends RewardProgramHandler {
           const buyerRef = db.collection(firestoreConstants.USERS_COLL).doc(buyer.userAddress);
           const sellerRef = db.collection(firestoreConstants.USERS_COLL).doc(seller.userAddress);
           const buyerTransactionFeeRewards = buyerRef
-            .collection('userRewards')
+            .collection(firestoreConstants.USER_REWARDS_COLL)
             .doc(sale.chainId)
-            .collection('userTransactionFeeRewardsLedger');
+            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL);
           const sellerTransactionFeeRewards = sellerRef
-            .collection('userRewards')
+            .collection(firestoreConstants.USER_REWARDS_COLL)
             .doc(sale.chainId)
-            .collection('userTransactionFeeRewardsLedger');
+            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL);
           txn.create(buyerTransactionFeeRewards.doc(), buyer);
           txn.create(sellerTransactionFeeRewards.doc(), seller);
         },

@@ -6,6 +6,7 @@ import {
   TransactionFeePhaseRewardsDoc,
   TransactionFeeReward
 } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getEpochByPhase } from '../../rewards/utils';
 import { calculateStats } from '../aggregate-sales-stats/utils';
 
@@ -24,9 +25,9 @@ export async function aggregateTransactionFeeRewards(
         return;
       }
       const allTimeDocRef = userTransactionFeeRewardsRef
-        .collection('userAllTimeRewards')
+        .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
         .doc(
-          'userAllTimeTransactionFeeRewards'
+          firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
         ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
       const allTimeDoc = await txn.get(allTimeDocRef);
       const allTimeRewards = allTimeDoc.data() ?? {
@@ -52,7 +53,7 @@ export async function aggregateTransactionFeeRewards(
 
         const phase = phaseRefsMap.get(event.phase.name) ?? {
           ref: userTransactionFeeRewardsRef
-            .collection('userRewardPhases')
+            .collection(firestoreConstants.USER_REWARD_PHASES_COLL)
             .doc(event.phase.name) as FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>,
           rewards: [] as TransactionFeeReward[]
         };

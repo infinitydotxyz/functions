@@ -10,8 +10,8 @@ import { aggregateTransactionFeeRewards } from './aggregate-transaction-fee-rewa
 export const onUserTransactionFeeRewardEvent = functions
   .region(REGION)
   .firestore.document(
-    `${firestoreConstants.USERS_COLL}/{userId}/userRewards/{chainId}/userTransactionFeeRewardsLedger/{eventId}`
-  ) // TODO constants
+    `${firestoreConstants.USERS_COLL}/{userId}/${firestoreConstants.USER_REWARDS_COLL}/{chainId}/${firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL}/{eventId}`
+  )
   .onWrite(async (snapshot) => {
     const event = snapshot.after.data() as TransactionFeeReward;
     if (!event || event.isAggregated) {
@@ -31,7 +31,7 @@ export const triggerUserTransactionFeeRewardAggregation = functions
     const db = getDb();
     const maxAge = ONE_MIN * 5;
     const unaggregatedUserRewardsQuery = db
-      .collectionGroup('userTransactionFeeRewardsLedger')
+      .collectionGroup(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL)
       .where('isAggregated', '==', false)
       .where('updatedAt', '<', Date.now() - maxAge)
       .orderBy('updatedAt', 'asc');

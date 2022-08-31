@@ -3,7 +3,7 @@ import { Epoch, Phase, RewardEpoch, RewardProgram, RewardType } from '@infinityx
 export const epoch1: RewardEpoch = {
   name: Epoch.One,
   isActive: false,
-  startsAt: Number.MAX_SAFE_INTEGER, // TODO update 
+  startsAt: Number.MAX_SAFE_INTEGER, // TODO update
   phases: [
     {
       name: Phase.One,

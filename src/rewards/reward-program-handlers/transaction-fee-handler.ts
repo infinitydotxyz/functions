@@ -76,7 +76,11 @@ export class TransactionFeeHandler extends RewardProgramHandler {
     };
   }
 
-  protected _splitSale(sale: RewardSaleEvent, reward: number, phaseSupplyRemaining: number): {
+  protected _splitSale(
+    sale: RewardSaleEvent,
+    reward: number,
+    phaseSupplyRemaining: number
+  ): {
     current: RewardSaleEvent;
     remainder: RewardSaleEvent;
   } {
@@ -101,7 +105,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
         protocolFeeWei: remainingProtocolFeeWei,
         isSplit: true
       }
-    }
+    };
   }
 
   protected _getBuyerAndSellerEvents(

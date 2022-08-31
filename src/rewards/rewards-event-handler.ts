@@ -2,7 +2,7 @@ import { ChainId, RewardEvent, RewardProgram, RewardsProgram } from '@infinityxy
 import { epochs } from './config';
 import { RewardPhase } from './reward-phase';
 import { CurationHandler } from './reward-program-handlers/curation-handler';
-import { NftHandler } from './reward-program-handlers/nft-handler.abstract';
+import { NftHandler } from './reward-program-handlers/nft-handler';
 import { TransactionFeeHandler } from './reward-program-handlers/transaction-fee-handler';
 import { RewardProgramEventHandler } from './types';
 

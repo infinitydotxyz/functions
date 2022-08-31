@@ -2,7 +2,12 @@ import { Epoch, Phase, RewardProgram, RewardType, RewardPhase as IRewardPhase } 
 import { REWARD_BUFFER } from './constants';
 import { RewardPhase } from './reward-phase';
 
-export const getMockRewardPhaseConfig = (supply: number, supplyUsed: number, epoch = Epoch.One, phase = Phase.One): IRewardPhase => {
+export const getMockRewardPhaseConfig = (
+  supply: number,
+  supplyUsed: number,
+  epoch = Epoch.One,
+  phase = Phase.One
+): IRewardPhase => {
   return {
     name: phase,
     epoch,
@@ -89,5 +94,5 @@ describe('RewardPhase', () => {
 
     expect(phase.isActive).toBe(true);
     expect(phase.toJSON().isActive).toBe(true);
-  })
+  });
 });

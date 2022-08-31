@@ -6,7 +6,7 @@ import { TransactionFeeHandler } from './transaction-fee-handler';
 class MockTransactionFeeHandler extends TransactionFeeHandler {
   getSaleReward(
     sale: RewardSaleEvent,
-    tradingReward: TradingReward,
+    tradingReward: TradingReward
   ): { total: number; buyerReward: number; sellerReward: number } {
     return this._getSaleReward(sale, tradingReward);
   }
@@ -99,8 +99,8 @@ describe('TransactionFeeHandler', () => {
     const phaseConfig = getMockRewardPhaseConfig(100, 0);
     const phase = new RewardPhase(phaseConfig);
     const tradingRewards = phase.getRewardProgram(RewardProgram.TradingFee);
-    if(!tradingRewards || typeof tradingRewards === 'boolean') {
-        throw new Error('Invalid rewards program');
+    if (!tradingRewards || typeof tradingRewards === 'boolean') {
+      throw new Error('Invalid rewards program');
     }
 
     const reward = handler.getSaleReward(sale, tradingRewards);
@@ -123,9 +123,11 @@ describe('TransactionFeeHandler', () => {
     } as any as RewardSaleEvent;
     const phaseConfig = getMockRewardPhaseConfig(2000, 0);
     const phase = new RewardPhase(phaseConfig);
-    const tradingRewardsBefore = JSON.parse(JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))) as TradingReward;
-    if(!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
-        throw new Error('Invalid rewards program');
+    const tradingRewardsBefore = JSON.parse(
+      JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))
+    ) as TradingReward;
+    if (!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
+      throw new Error('Invalid rewards program');
     }
 
     const rewards = handler.getSaleReward(sale, tradingRewardsBefore);
@@ -133,8 +135,8 @@ describe('TransactionFeeHandler', () => {
 
     const tradingRewardsAfter = result.phase.getRewardProgram(RewardProgram.TradingFee);
 
-    if(!tradingRewardsAfter || typeof tradingRewardsAfter === 'boolean') {
-        throw new Error('Invalid rewards program');
+    if (!tradingRewardsAfter || typeof tradingRewardsAfter === 'boolean') {
+      throw new Error('Invalid rewards program');
     }
 
     expect(result.split).toBeUndefined();
@@ -151,17 +153,19 @@ describe('TransactionFeeHandler', () => {
     } as any as RewardSaleEvent;
     const phaseConfig = getMockRewardPhaseConfig(1999, 0);
     const phase = new RewardPhase(phaseConfig);
-    const tradingRewardsBefore = JSON.parse(JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))) as TradingReward;
-    if(!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
-        throw new Error('Invalid rewards program');
+    const tradingRewardsBefore = JSON.parse(
+      JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))
+    ) as TradingReward;
+    if (!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
+      throw new Error('Invalid rewards program');
     }
 
     const result = handler.onSale(sale, phase);
 
     const tradingRewardsAfter = result.phase.getRewardProgram(RewardProgram.TradingFee);
 
-    if(!tradingRewardsAfter || typeof tradingRewardsAfter === 'boolean') {
-        throw new Error('Invalid rewards program');
+    if (!tradingRewardsAfter || typeof tradingRewardsAfter === 'boolean') {
+      throw new Error('Invalid rewards program');
     }
 
     expect(result.split).toBeDefined();

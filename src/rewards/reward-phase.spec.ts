@@ -2,10 +2,10 @@ import { Epoch, Phase, RewardProgram, RewardType, RewardPhase as IRewardPhase } 
 import { REWARD_BUFFER } from './constants';
 import { RewardPhase } from './reward-phase';
 
-const getRewardPhaseConfig = (supply: number, supplyUsed: number): IRewardPhase => {
+export const getMockRewardPhaseConfig = (supply: number, supplyUsed: number, epoch = Epoch.One, phase = Phase.One): IRewardPhase => {
   return {
-    name: Phase.One,
-    epoch: Epoch.One,
+    name: phase,
+    epoch,
     isActive: false,
     [RewardProgram.TradingFee]: {
       maxReward: 1,
@@ -24,7 +24,7 @@ const getRewardPhaseConfig = (supply: number, supplyUsed: number): IRewardPhase 
 
 describe('RewardPhase', () => {
   it('should be active if there is not a trading fee reward program', () => {
-    const phaseConfig = getRewardPhaseConfig(1, 0);
+    const phaseConfig = getMockRewardPhaseConfig(1, 0);
     phaseConfig[RewardProgram.TradingFee] = null;
     const phase = new RewardPhase(phaseConfig);
     expect(phaseConfig[RewardProgram.TradingFee]).toBe(null);
@@ -32,7 +32,7 @@ describe('RewardPhase', () => {
   });
 
   it('should be active if the supply used is less than the supply (including buffer)', () => {
-    const phaseConfig = getRewardPhaseConfig(100, 0);
+    const phaseConfig = getMockRewardPhaseConfig(100, 0);
     const phase = new RewardPhase(phaseConfig);
 
     const tradingFeeRewards = phase.getRewardProgram(RewardProgram.TradingFee);
@@ -46,7 +46,7 @@ describe('RewardPhase', () => {
   });
 
   it('should be inactive if the supply used is equal to the total supply', () => {
-    const phaseConfig = getRewardPhaseConfig(100, 100);
+    const phaseConfig = getMockRewardPhaseConfig(100, 100);
     const phase = new RewardPhase(phaseConfig);
 
     const tradingFeeRewards = phase.getRewardProgram(RewardProgram.TradingFee);
@@ -62,7 +62,7 @@ describe('RewardPhase', () => {
   it('should be inactive if the supply used is within the buffer of the reward supply', () => {
     const totalSupply = 10 * REWARD_BUFFER;
     const supplyUsed = 10 * REWARD_BUFFER - 1;
-    const phaseConfig = getRewardPhaseConfig(totalSupply, supplyUsed);
+    const phaseConfig = getMockRewardPhaseConfig(totalSupply, supplyUsed);
     const phase = new RewardPhase(phaseConfig);
 
     const tradingFeeRewards = phase.getRewardProgram(RewardProgram.TradingFee);
@@ -77,7 +77,7 @@ describe('RewardPhase', () => {
   });
 
   it('should update isActive when converting to JSON', () => {
-    const phaseConfig = getRewardPhaseConfig(100, 0);
+    const phaseConfig = getMockRewardPhaseConfig(100, 0);
     const phase = new RewardPhase(phaseConfig);
 
     const tradingFeeRewards = phase.getRewardProgram(RewardProgram.TradingFee);

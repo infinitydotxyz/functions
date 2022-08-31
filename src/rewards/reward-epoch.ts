@@ -10,7 +10,7 @@ export class RewardEpoch {
       return false;
     }
 
-    return this._rewardEpoch.startsAt > Date.now();
+    return this._rewardEpoch.startsAt < Date.now();
   }
 
   toJSON(): IRewardEpoch {

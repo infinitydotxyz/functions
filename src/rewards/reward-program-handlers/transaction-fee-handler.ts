@@ -28,7 +28,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
     };
   }
 
-  onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
+  protected _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
     const config = phase.getRewardProgram(RewardProgram.TradingFee);
     if (typeof config === 'boolean' || !config) {
       throw new Error('Invalid config');

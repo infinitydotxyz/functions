@@ -20,7 +20,7 @@ export class CurationHandler extends RewardProgramHandler {
     return true;
   }
 
-  onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
+  protected _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
     }

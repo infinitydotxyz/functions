@@ -12,14 +12,14 @@ export type RewardProgramEventHandlerResponse = {
 export abstract class RewardProgramHandler implements RewardProgramEventHandler {
   onEvent(event: RewardEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
     if ('txHash' in event && 'price' in event && 'buyer' in event && 'seller' in event) {
-      return this.onSale(event, phase);
+      return this._onSale(event, phase);
     } else {
       console.log(JSON.stringify(event, null, 2));
       throw new Error(`Unknown event ${(event as any)?.discriminator}`);
     }
   }
 
-  abstract onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse;
+  protected abstract _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse;
 
   protected _nonApplicableResponse(phase: RewardPhase): RewardProgramEventHandlerResponse {
     return {

@@ -58,45 +58,6 @@ export async function saveSalesForAggregation() {
   }
 }
 
-// function saveSaleToCollectionCurationLedgers(
-//   sale: InfinityNftSale & { docId: string; updatedAt: number },
-//   tx: FirebaseFirestore.Transaction
-// ) { // TODO remove this and route sales through the rewards program
-//   const db = getDb();
-//   const stakerContracts = getRelevantStakerContracts(sale);
-//   const curationSales = stakerContracts.map((stakerContract) => {
-//     const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
-//       sale.chainId as ChainId,
-//       stakerContract
-//     );
-//     const curationSale: CurationLedgerSale = {
-//       ...sale,
-//       discriminator: CurationLedgerEvent.Sale,
-//       chainId: sale.chainId as ChainId,
-//       collectionAddress: sale.collectionAddress,
-//       collectionChainId: sale.chainId as ChainId,
-//       stakerContractAddress: stakerContract,
-//       stakerContractChainId: sale.chainId as ChainId,
-//       isStakeMerged: true,
-//       tokenContractAddress,
-//       tokenContractChainId,
-//       isAggregated: false
-//     };
-//     return curationSale;
-//   });
-
-//   for (const curationSale of curationSales) {
-//     const collectionDocRef = db
-//       .collection(firestoreConstants.COLLECTIONS_COLL)
-//       .doc(`${curationSale.collectionChainId}:${curationSale.collectionAddress}`);
-//     const stakerContractDocRef = collectionDocRef
-//       .collection(firestoreConstants.COLLECTION_CURATION_COLL)
-//       .doc(`${curationSale.stakerContractChainId}:${curationSale.stakerContractAddress}`);
-//     const saleRef = stakerContractDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc(sale.docId);
-//     tx.set(saleRef, curationSale, { merge: false });
-//   }
-// }
-
 function saveSaleToCollectionSales(
   sale: NftSale & { docId: string; updatedAt: number },
   tx: FirebaseFirestore.Transaction

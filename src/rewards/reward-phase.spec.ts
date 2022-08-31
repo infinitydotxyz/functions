@@ -66,7 +66,7 @@ describe('RewardPhase', () => {
 
   it('should be inactive if the supply used is within the buffer of the reward supply', () => {
     const totalSupply = 10 * REWARD_BUFFER;
-    const supplyUsed = 10 * REWARD_BUFFER - (REWARD_BUFFER / 2);
+    const supplyUsed = 10 * REWARD_BUFFER - REWARD_BUFFER / 2;
     const phaseConfig = getMockRewardPhaseConfig(totalSupply, supplyUsed);
     const phase = new RewardPhase(phaseConfig);
 

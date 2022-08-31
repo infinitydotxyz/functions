@@ -102,7 +102,7 @@ export class RewardsEventHandler {
     return {
       chainId: program.chainId,
       epochs: program.epochs.map((item) => new RewardEpoch(item))
-    }
+    };
   }
 
   protected _defaultRewardsProgramState(chainId: ChainId): RewardsProgram {
@@ -119,8 +119,10 @@ export class RewardsEventHandler {
     const program = {
       chainId: state.chainId,
       epochs: state.epochs.map((item) => item.toJSON())
-    }
-    const ref = this._db.collection('rewards').doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
+    };
+    const ref = this._db
+      .collection('rewards')
+      .doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
     if (txn) {
       txn.set(ref, program);
     } else {

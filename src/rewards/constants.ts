@@ -1,1 +1,1 @@
-export const REWARD_BUFFER = 10;
+export const REWARD_BUFFER = 1;

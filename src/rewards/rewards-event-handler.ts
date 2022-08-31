@@ -1,5 +1,6 @@
 import { ChainId, RewardEvent, RewardProgram, RewardsProgram } from '@infinityxyz/lib/types/core';
 import { epochs } from './config';
+import { RewardEpoch } from './reward-epoch';
 import { RewardPhase } from './reward-phase';
 import { CurationHandler } from './reward-program-handlers/curation-handler';
 import { NftHandler } from './reward-program-handlers/nft-handler';
@@ -30,15 +31,10 @@ export class RewardsEventHandler {
       const nextPhase = currentState?.epochs?.[nextPhaseIndexes[0]]?.phases?.[nextPhaseIndexes[1]] ?? null;
 
       if (currentPhase?.isActive) {
-        const rewardPhase = new RewardPhase(currentPhase);
-        const nextRewardPhase = new RewardPhase(nextPhase);
-        const result = this._applyEvent(event, rewardPhase, nextRewardPhase, txn);
-        const { phase } = result;
-        currentState.epochs[currentEpochIndex].phases[currentPhaseIndex] = phase.toJSON();
-        currentState.epochs[nextPhaseIndexes[0]].phases[nextPhaseIndexes[1]] = nextRewardPhase.toJSON();
+        this._applyEvent(event, currentPhase, nextPhase, txn);
       }
     }
-    await this._saveRewardProgramState(chainId, currentState, txn);
+    await this._saveRewardProgramState(currentState, txn);
   }
 
   protected _applyEvent(
@@ -96,14 +92,17 @@ export class RewardsEventHandler {
   protected async _getRewardProgramState(
     chainId: ChainId,
     txn?: FirebaseFirestore.Transaction
-  ): Promise<RewardsProgram> {
+  ): Promise<{ chainId: ChainId; epochs: RewardEpoch[] }> {
     const ref = this._db.collection('rewards').doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
 
     const doc = await (txn ? txn.get(ref) : ref.get());
 
     const program = doc.data() ?? this._defaultRewardsProgramState(chainId);
 
-    return program;
+    return {
+      chainId: program.chainId,
+      epochs: program.epochs.map((item) => new RewardEpoch(item))
+    }
   }
 
   protected _defaultRewardsProgramState(chainId: ChainId): RewardsProgram {
@@ -114,15 +113,18 @@ export class RewardsEventHandler {
   }
 
   protected async _saveRewardProgramState(
-    chainId: ChainId,
-    state: RewardsProgram,
+    state: { chainId: ChainId; epochs: RewardEpoch[] },
     txn?: FirebaseFirestore.Transaction
   ) {
-    const ref = this._db.collection('rewards').doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
+    const program = {
+      chainId: state.chainId,
+      epochs: state.epochs.map((item) => item.toJSON())
+    }
+    const ref = this._db.collection('rewards').doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
     if (txn) {
-      txn.set(ref, state);
+      txn.set(ref, program);
     } else {
-      await ref.set(state);
+      await ref.set(program);
     }
   }
 }

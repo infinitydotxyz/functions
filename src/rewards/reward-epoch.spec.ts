@@ -1,8 +1,9 @@
 import { RewardEpoch } from './reward-epoch';
 import { RewardPhase } from './reward-phase';
+import { RewardPhase as IRewardPhase } from '@infinityxyz/lib/types/core';
 import { getMockRewardPhaseConfig } from './reward-phase.spec';
 
-const getMockRewardEpochConfig = (phases: RewardPhase[], startsAt: number = Date.now()) => {
+const getMockRewardEpochConfig = (phases: IRewardPhase[], startsAt: number = Date.now()) => {
   return {
     name: 'Test reward epoch',
     startsAt,
@@ -24,7 +25,7 @@ describe('RewardEpoch', () => {
     const phase = new RewardPhase(phaseConfig);
     expect(phase.isActive).toBe(true);
 
-    const epochConfig = getMockRewardEpochConfig([phase], Date.now() + 20_000);
+    const epochConfig = getMockRewardEpochConfig([phaseConfig], Date.now() + 20_000);
     const epoch = new RewardEpoch(epochConfig);
     expect(epoch.isActive).toBe(false);
   });
@@ -34,7 +35,7 @@ describe('RewardEpoch', () => {
     const phase = new RewardPhase(phaseConfig);
     expect(phase.isActive).toBe(true);
 
-    const epochConfig = getMockRewardEpochConfig([phase], Date.now() - 20_000);
+    const epochConfig = getMockRewardEpochConfig([phaseConfig], Date.now() - 20_000);
     const epoch = new RewardEpoch(epochConfig);
     expect(epoch.isActive).toBe(true);
   });
@@ -44,7 +45,7 @@ describe('RewardEpoch', () => {
     const phase = new RewardPhase(phaseConfig);
     expect(phase.isActive).toBe(true);
 
-    const epochConfig = getMockRewardEpochConfig([phase], Date.now() - 20_000);
+    const epochConfig = getMockRewardEpochConfig([phaseConfig], Date.now() - 20_000);
     expect(epochConfig.isActive).toBe(false);
 
     const epoch = new RewardEpoch(epochConfig);

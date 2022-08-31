@@ -2,7 +2,18 @@ import { RewardEpoch as IRewardEpoch } from '@infinityxyz/lib/types/core';
 import { RewardPhase } from './reward-phase';
 
 export class RewardEpoch {
-  constructor(protected _rewardEpoch: Omit<IRewardEpoch, 'phases'> & { phases: RewardPhase[] }) {}
+  protected _rewardEpoch: Omit<IRewardEpoch, 'phases'> & { phases: RewardPhase[] };
+  constructor(rewardEpoch: IRewardEpoch) {
+    const { phases, ...metadata } = rewardEpoch;
+    this._rewardEpoch = {
+      ...metadata,
+      phases: phases.map((item) => new RewardPhase(item))
+    };
+  }
+
+  get phases(): RewardPhase[] {
+    return this._rewardEpoch.phases;
+  }
 
   get isActive(): boolean {
     const currentPhase = this._rewardEpoch.phases?.find((item) => item.isActive);

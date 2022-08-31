@@ -28,12 +28,12 @@ export class TransactionFeeHandler extends RewardProgramHandler {
 
   protected _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
     const config = phase.getRewardProgram(RewardProgram.TradingFee);
-    if (typeof config === 'boolean' || !config) {
-      throw new Error('Invalid config');
-    }
-
     if (!phase.isActive) {
       throw new Error('Phase is not active');
+    }
+
+    if (typeof config === 'boolean' || !config) {
+      return this._nonApplicableResponse(phase);
     }
 
     const { total: reward, buyerReward, sellerReward } = this._getSaleReward(sale, config);

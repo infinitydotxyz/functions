@@ -1,4 +1,5 @@
-import { RewardProgram, RewardSaleEvent, RewardType, TradingReward } from '@infinityxyz/lib/types/core';
+import { RewardProgram, RewardSaleEvent, RewardType } from '@infinityxyz/lib/types/core';
+import { TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
 import { RewardPhase } from '../reward-phase';
 import { getMockRewardPhaseConfig } from '../reward-phase.spec';
 import { TransactionFeeHandler } from './transaction-fee-handler';
@@ -6,7 +7,7 @@ import { TransactionFeeHandler } from './transaction-fee-handler';
 class MockTransactionFeeHandler extends TransactionFeeHandler {
   getSaleReward(
     sale: RewardSaleEvent,
-    tradingReward: TradingReward
+    tradingReward: TradingRewardDto
   ): { total: number; buyerReward: number; sellerReward: number } {
     return this._getSaleReward(sale, tradingReward);
   }
@@ -31,7 +32,7 @@ describe('TransactionFeeHandler', () => {
       ethPrice: 2000
     } as any as RewardSaleEvent;
 
-    const tradingReward: TradingReward = {
+    const tradingReward: TradingRewardDto = {
       rewardRateNumerator: 2,
       rewardRateDenominator: 1,
       buyerPortion: 0.2,
@@ -125,7 +126,7 @@ describe('TransactionFeeHandler', () => {
     const phase = new RewardPhase(phaseConfig);
     const tradingRewardsBefore = JSON.parse(
       JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))
-    ) as TradingReward;
+    ) as TradingRewardDto;
     if (!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
       throw new Error('Invalid rewards program');
     }
@@ -155,7 +156,7 @@ describe('TransactionFeeHandler', () => {
     const phase = new RewardPhase(phaseConfig);
     const tradingRewardsBefore = JSON.parse(
       JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))
-    ) as TradingReward;
+    ) as TradingRewardDto;
     if (!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
       throw new Error('Invalid rewards program');
     }

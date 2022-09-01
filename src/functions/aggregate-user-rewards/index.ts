@@ -1,4 +1,4 @@
-import { TransactionFeeReward } from '@infinityxyz/lib/types/core';
+import { TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
@@ -16,13 +16,13 @@ export const onUserTransactionFeeRewardEvent = functions
     `${firestoreConstants.USERS_COLL}/{userId}/${firestoreConstants.USER_REWARDS_COLL}/{chainId}/${firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL}/{eventId}`
   )
   .onWrite(async (snapshot) => {
-    const event = snapshot.after.data() as TransactionFeeReward;
+    const event = snapshot.after.data() as TransactionFeeRewardDoc;
     if (!event || event.isAggregated) {
       return;
     }
 
     await aggregateTransactionFeeRewards(
-      snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TransactionFeeReward>,
+      snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
       event.chainId
     );
   });

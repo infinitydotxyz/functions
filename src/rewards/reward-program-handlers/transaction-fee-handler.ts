@@ -1,10 +1,5 @@
-import {
-  ChainId,
-  RewardProgram,
-  RewardSaleEvent,
-  TradingReward,
-  TransactionFeeReward
-} from '@infinityxyz/lib/types/core';
+import { ChainId, RewardProgram, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
+import { TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { parseEther } from 'ethers/lib/utils';
 import { RewardPhase } from '../reward-phase';
@@ -13,7 +8,7 @@ import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './rewar
 export class TransactionFeeHandler extends RewardProgramHandler {
   protected _getSaleReward(
     sale: RewardSaleEvent,
-    tradingReward: TradingReward
+    tradingReward: TradingRewardDto
   ): { total: number; buyerReward: number; sellerReward: number } {
     const protocolFeeUSDC = sale.protocolFee * sale.ethPrice;
     const reward = (protocolFeeUSDC * tradingReward.rewardRateNumerator) / tradingReward.rewardRateDenominator;
@@ -113,7 +108,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
     phase: RewardPhase,
     buyerReward: number,
     sellerReward: number
-  ): { buyer: TransactionFeeReward; seller: TransactionFeeReward } {
+  ): { buyer: TransactionFeeRewardDoc; seller: TransactionFeeRewardDoc } {
     const base = {
       sale,
       chainId: sale.chainId as ChainId,

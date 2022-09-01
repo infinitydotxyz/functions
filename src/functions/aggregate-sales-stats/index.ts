@@ -9,9 +9,6 @@ import { SalesIntervalDoc } from './types';
 
 export const saveSalesToBeAggregated = functions
   .region(REGION)
-  .runWith({
-    timeoutSeconds: 540
-  })
   .pubsub.schedule('every 1 minutes')
   .onRun(async () => {
     await saveSalesForAggregation();

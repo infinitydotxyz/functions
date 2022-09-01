@@ -59,7 +59,7 @@ export class CurationHandler extends RewardProgramHandler {
       );
       const curationSale: CurationLedgerSale = {
         ...sale,
-        docId: '',
+        docId: sale.docId,
         updatedAt: Date.now(),
         discriminator: CurationLedgerEvent.Sale,
         chainId: sale.chainId as ChainId,

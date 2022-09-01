@@ -4,14 +4,14 @@ import {
   Phase,
   RewardProgram,
   TransactionFeePhaseRewardsDoc,
-  TransactionFeeReward
+  TransactionFeeRewardDoc
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getEpochByPhase } from '../../rewards/utils';
 import { calculateStats } from '../aggregate-sales-stats/utils';
 
 export async function aggregateTransactionFeeRewards(
-  ledgerRef: FirebaseFirestore.CollectionReference<TransactionFeeReward>,
+  ledgerRef: FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
   chainId: ChainId
 ) {
   const query = ledgerRef.where('isAggregated', '==', false).orderBy('updatedAt', 'asc');
@@ -42,7 +42,7 @@ export async function aggregateTransactionFeeRewards(
 
       const phaseRefsMap = new Map<
         Phase,
-        { ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>; rewards: TransactionFeeReward[] }
+        { ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>; rewards: TransactionFeeRewardDoc[] }
       >();
 
       for (const doc of unaggregatedSalesSnap.docs) {
@@ -55,7 +55,7 @@ export async function aggregateTransactionFeeRewards(
           ref: userTransactionFeeRewardsRef
             .collection(firestoreConstants.USER_REWARD_PHASES_COLL)
             .doc(event.phase.name) as FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>,
-          rewards: [] as TransactionFeeReward[]
+          rewards: [] as TransactionFeeRewardDoc[]
         };
 
         phase.rewards.push(event);
@@ -65,15 +65,15 @@ export async function aggregateTransactionFeeRewards(
       const phases: {
         phase: Phase;
         ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
-        rewards: TransactionFeeReward[];
+        rewards: TransactionFeeRewardDoc[];
         data?: TransactionFeePhaseRewardsDoc;
       }[] = [...phaseRefsMap.entries()].map(([phase, { ref, rewards }]) => ({ phase, ref, rewards }));
 
-      const phaseDocs = await txn.getAll(...phases.map((item) => item.ref));
+      const phaseDocs = phases.length > 0 ? await txn.getAll(...phases.map((item) => item.ref)) : [];
       const phasesWithData: {
         phase: Phase;
         ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
-        rewards: TransactionFeeReward[];
+        rewards: TransactionFeeRewardDoc[];
         data: TransactionFeePhaseRewardsDoc;
       }[] = phaseDocs.map((doc, index) => {
         const phase = doc.data() as TransactionFeePhaseRewardsDoc;
@@ -122,13 +122,13 @@ export async function aggregateTransactionFeeRewards(
       }
 
       for (const doc of unaggregatedSalesSnap.docs) {
-        const update: Partial<TransactionFeeReward> = {
+        const update: Partial<TransactionFeeRewardDoc> = {
           isAggregated: true
         };
-        txn.update(doc.ref, update);
+        txn.set(doc.ref, update, { merge: true });
       }
 
-      txn.update(allTimeDocRef, { ...allTimeRewards, updatedAt: Date.now() });
+      txn.set(allTimeDocRef, { ...allTimeRewards, updatedAt: Date.now() }, { merge: true });
     });
   }
 }

@@ -1,4 +1,5 @@
-import { Epoch, Phase, RewardProgram, RewardType, RewardPhase as IRewardPhase } from '@infinityxyz/lib/types/core';
+import { Epoch, Phase, RewardProgram, RewardType } from '@infinityxyz/lib/types/core';
+import { RewardPhaseDto } from '@infinityxyz/lib/types/dto/rewards';
 import { REWARD_BUFFER } from './constants';
 import { RewardPhase } from './reward-phase';
 
@@ -7,7 +8,7 @@ export const getMockRewardPhaseConfig = (
   supplyUsed: number,
   epoch = Epoch.One,
   phase = Phase.One
-): IRewardPhase => {
+): RewardPhaseDto => {
   return {
     name: phase,
     epoch,

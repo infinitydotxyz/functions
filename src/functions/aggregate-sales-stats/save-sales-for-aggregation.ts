@@ -38,7 +38,7 @@ export async function saveSalesForAggregation() {
             chainId: saleWithDocId.chainId as ChainId,
             ethPrice: tokenPrice.token1PerToken0
           };
-          await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx);
+          await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);

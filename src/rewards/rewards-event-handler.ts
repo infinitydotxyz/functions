@@ -1,4 +1,5 @@
-import { ChainId, RewardEvent, RewardProgram, RewardsProgram } from '@infinityxyz/lib/types/core';
+import { ChainId, RewardEvent, RewardProgram } from '@infinityxyz/lib/types/core';
+import { RewardsProgramDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { epochs } from './config';
 import { RewardEpoch } from './reward-epoch';
@@ -19,7 +20,12 @@ export class RewardsEventHandler {
     };
   }
 
-  public async onEvents(chainId: ChainId, events: RewardEvent[], txn?: FirebaseFirestore.Transaction): Promise<void> {
+  public async onEvents(
+    chainId: ChainId,
+    events: RewardEvent[],
+    txn?: FirebaseFirestore.Transaction,
+    db?: FirebaseFirestore.Firestore
+  ): Promise<void> {
     const currentState = await this._getRewardProgramState(chainId, txn);
     for (const event of events) {
       const currentEpochIndex = currentState.epochs.findIndex((item) => item.isActive);
@@ -32,7 +38,7 @@ export class RewardsEventHandler {
       const nextPhase = currentState?.epochs?.[nextPhaseIndexes[0]]?.phases?.[nextPhaseIndexes[1]] ?? null;
 
       if (currentPhase?.isActive) {
-        this._applyEvent(event, currentPhase, nextPhase, txn);
+        this._applyEvent(event, currentPhase, nextPhase, txn, db);
       }
     }
     await this._saveRewardProgramState(currentState, txn);
@@ -96,7 +102,7 @@ export class RewardsEventHandler {
   ): Promise<{ chainId: ChainId; epochs: RewardEpoch[] }> {
     const ref = this._db
       .collection(firestoreConstants.REWARDS_COLL)
-      .doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
+      .doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgramDto>;
 
     const doc = await (txn ? txn.get(ref) : ref.get());
 
@@ -108,7 +114,7 @@ export class RewardsEventHandler {
     };
   }
 
-  protected _defaultRewardsProgramState(chainId: ChainId): RewardsProgram {
+  protected _defaultRewardsProgramState(chainId: ChainId): RewardsProgramDto {
     return {
       chainId,
       epochs: epochs
@@ -125,7 +131,7 @@ export class RewardsEventHandler {
     };
     const ref = this._db
       .collection(firestoreConstants.REWARDS_COLL)
-      .doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgram>;
+      .doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgramDto>;
     if (txn) {
       txn.set(ref, program);
     } else {

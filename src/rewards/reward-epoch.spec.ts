@@ -1,11 +1,12 @@
+import { Epoch } from '@infinityxyz/lib/types/core';
+import { RewardPhaseDto } from '@infinityxyz/lib/types/dto/rewards';
 import { RewardEpoch } from './reward-epoch';
 import { RewardPhase } from './reward-phase';
-import { RewardPhase as IRewardPhase } from '@infinityxyz/lib/types/core';
 import { getMockRewardPhaseConfig } from './reward-phase.spec';
 
-const getMockRewardEpochConfig = (phases: IRewardPhase[], startsAt: number = Date.now()) => {
+const getMockRewardEpochConfig = (phases: RewardPhaseDto[], startsAt: number = Date.now()) => {
   return {
-    name: 'Test reward epoch',
+    name: Epoch.One,
     startsAt,
     isActive: false,
     phases

@@ -1,22 +1,14 @@
-import {
-  ChainId,
-  Epoch,
-  Phase,
-  RewardProgram,
-  RewardSaleEvent,
-  RewardsProgram,
-  RewardType,
-  TradingReward
-} from '@infinityxyz/lib/types/core';
+import { ChainId, Epoch, Phase, RewardProgram, RewardSaleEvent, RewardType } from '@infinityxyz/lib/types/core';
+import { RewardsProgramDto, TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
 import { parseEther } from 'ethers/lib/utils';
 import { REWARD_BUFFER } from './constants';
 import { RewardEpoch } from './reward-epoch';
 import { RewardsEventHandler } from './rewards-event-handler';
 
 class MockRewardsEventHandler extends RewardsEventHandler {
-  public state: RewardsProgram;
+  public state: RewardsProgramDto;
 
-  constructor(state: RewardsProgram) {
+  constructor(state: RewardsProgramDto) {
     super({} as any);
     this.state = state;
   }
@@ -99,7 +91,7 @@ describe('RewardsEventHandler', () => {
       await handler.onEvents(ChainId.Mainnet, [s]);
       totalSupplyUsed += expectedRewardsPerSale;
 
-      const tradingRewards = handler.state.epochs[0].phases[0][RewardProgram.TradingFee] as any as TradingReward;
+      const tradingRewards = handler.state.epochs[0].phases[0][RewardProgram.TradingFee] as any as TradingRewardDto;
 
       if (totalSupplyUsed > tradingRewards.rewardSupply - REWARD_BUFFER) {
         expect(tradingRewards.rewardSupplyUsed).toBeGreaterThanOrEqual(tradingRewards.rewardSupply - REWARD_BUFFER);
@@ -180,7 +172,7 @@ describe('RewardsEventHandler', () => {
       await handler.onEvents(ChainId.Mainnet, [s]);
       totalSupplyUsed += expectedRewardsPerSale;
 
-      const tradingRewards = handler.state.epochs[0].phases[0][RewardProgram.TradingFee] as any as TradingReward;
+      const tradingRewards = handler.state.epochs[0].phases[0][RewardProgram.TradingFee] as any as TradingRewardDto;
 
       if (totalSupplyUsed > tradingRewards.rewardSupply - REWARD_BUFFER) {
         expect(tradingRewards.rewardSupplyUsed).toBeGreaterThanOrEqual(tradingRewards.rewardSupply - REWARD_BUFFER);

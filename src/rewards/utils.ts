@@ -1,8 +1,9 @@
-import { Phase, RewardEpoch, RewardPhase } from '@infinityxyz/lib/types/core';
+import { Phase } from '@infinityxyz/lib/types/core';
+import { RewardEpochDto, RewardPhaseDto } from '@infinityxyz/lib/types/dto/rewards';
 import { epochs } from './config';
 
-export function getEpochByPhase(phase: Phase): { epoch: RewardEpoch; phase: RewardPhase } {
-  const result = epochs.reduce((acc: null | { epoch: RewardEpoch; phase: RewardPhase }, epoch) => {
+export function getEpochByPhase(phase: Phase): { epoch: RewardEpochDto; phase: RewardPhaseDto } {
+  const result = epochs.reduce((acc: null | { epoch: RewardEpochDto; phase: RewardPhaseDto }, epoch) => {
     const rewardPhase = epoch.phases.find((item) => item.name === phase);
     if (rewardPhase) {
       return { epoch, phase: rewardPhase };

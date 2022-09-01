@@ -1,9 +1,9 @@
-import { RewardEpoch as IRewardEpoch } from '@infinityxyz/lib/types/core';
+import { RewardEpochDto } from '@infinityxyz/lib/types/dto/rewards';
 import { RewardPhase } from './reward-phase';
 
 export class RewardEpoch {
-  protected _rewardEpoch: Omit<IRewardEpoch, 'phases'> & { phases: RewardPhase[] };
-  constructor(rewardEpoch: IRewardEpoch) {
+  protected _rewardEpoch: Omit<RewardEpochDto, 'phases'> & { phases: RewardPhase[] };
+  constructor(rewardEpoch: RewardEpochDto) {
     const { phases, ...metadata } = rewardEpoch;
     this._rewardEpoch = {
       ...metadata,
@@ -24,7 +24,7 @@ export class RewardEpoch {
     return this._rewardEpoch.startsAt < Date.now();
   }
 
-  toJSON(): IRewardEpoch {
+  toJSON(): RewardEpochDto {
     const { phases, ...metadata } = this._rewardEpoch;
     return {
       ...metadata,

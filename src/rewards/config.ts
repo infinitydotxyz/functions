@@ -1,9 +1,12 @@
-import { Epoch, Phase, RewardEpoch, RewardProgram, RewardType } from '@infinityxyz/lib/types/core';
+import { Epoch, Phase, RewardProgram, RewardType } from '@infinityxyz/lib/types/core';
+import { RewardEpochDto } from '@infinityxyz/lib/types/dto/rewards';
 
-export const epoch1: RewardEpoch = {
+const startsAt = Number.MAX_SAFE_INTEGER; // TODO update
+
+export const epoch1: RewardEpochDto = {
   name: Epoch.One,
   isActive: false,
-  startsAt: Number.MAX_SAFE_INTEGER, // TODO update
+  startsAt,
   phases: [
     {
       name: Phase.One,
@@ -113,10 +116,10 @@ export const epoch1: RewardEpoch = {
   ]
 };
 
-export const epoch2: RewardEpoch = {
+export const epoch2: RewardEpochDto = {
   name: Epoch.Two,
   isActive: false,
-  startsAt: Number.MAX_SAFE_INTEGER, // TODO update
+  startsAt,
   phases: [
     {
       name: Phase.Five,
@@ -138,10 +141,10 @@ export const epoch2: RewardEpoch = {
   ]
 };
 
-export const epoch3: RewardEpoch = {
+export const epoch3: RewardEpochDto = {
   name: Epoch.Three,
   isActive: false,
-  startsAt: Number.MAX_SAFE_INTEGER, // TODO update
+  startsAt,
   phases: [
     {
       name: Phase.Six,

@@ -9,6 +9,9 @@ import { aggregateTransactionFeeRewards } from './aggregate-transaction-fee-rewa
 
 export const onUserTransactionFeeRewardEvent = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
   .firestore.document(
     `${firestoreConstants.USERS_COLL}/{userId}/${firestoreConstants.USER_REWARDS_COLL}/{chainId}/${firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL}/{eventId}`
   )
@@ -26,6 +29,9 @@ export const onUserTransactionFeeRewardEvent = functions
 
 export const triggerUserTransactionFeeRewardAggregation = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
   .pubsub.schedule('every 5 minutes')
   .onRun(async () => {
     const db = getDb();

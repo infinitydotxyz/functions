@@ -10,6 +10,10 @@
     "ui": {
       "enabled": true,
       "port": 8081
+    },
+    "pubsub": {
+      "enabled": true,
+      "port": 8085
     }
   },
   "firestore": {

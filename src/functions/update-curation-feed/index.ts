@@ -13,6 +13,9 @@ import * as functions from 'firebase-functions';
 
 export const saveLedgerEventsToFeed = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
   .firestore.document(
     `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakingContractId}/${firestoreConstants.CURATION_LEDGER_COLL}/{ledgerEventId}`
   )

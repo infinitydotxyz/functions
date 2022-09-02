@@ -147,7 +147,8 @@ export class CurationPeriodAggregator {
         stakerContractChainId: this._stakerContractChainId,
         tokenContractAddress: this._token.address,
         tokenContractChainId: this._token.chainId,
-        periodDuration: CurationPeriodAggregator.DURATION
+        periodDuration: CurationPeriodAggregator.DURATION,
+        isAggregated: false
       },
       stats: {
         totalProtocolFeesAccruedWei: mostRecentBlock?.stats?.totalProtocolFeesAccruedWei ?? '0',
@@ -230,7 +231,7 @@ export class CurationPeriodAggregator {
         tokenContractAddress: this._token.address,
         tokenContractChainId: this._token.chainId,
         timestamp: this._startTimestamp,
-        periodDuration: CurationPeriodAggregator.DURATION
+        periodDuration: CurationPeriodAggregator.DURATION,
       },
       stats: {
         totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),

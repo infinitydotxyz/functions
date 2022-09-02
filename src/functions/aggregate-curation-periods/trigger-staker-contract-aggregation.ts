@@ -2,16 +2,16 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { CurationPeriodAggregator } from '../aggregate-curation-ledger/curation-period-aggregator';
-import { StakerContractPeriodDoc } from './type';
+import { StakerContractPeriodDoc } from './types';
 import { unAggregatedStakingContractPeriods } from './un-aggregated-staking-contract-periods';
 
-export async function triggerStakerContractAggregation(db: FirebaseFirestore.Firestore) {
+export async function triggerStakerContractPeriodAggregation(db: FirebaseFirestore.Firestore) {
   const triggerAggregation = (contract: { address: string; chainId: ChainId; timestamp: number }) => {
     const stakerContractRef = db
       .collection(firestoreConstants.STAKING_CONTRACTS_COLL)
       .doc(`${contract.chainId}:${contract.address}`);
     const stakingContractPeriodRef = stakerContractRef
-      .collection('stakingContractCurationPeriods') // TODO - move to constants
+      .collection('stakerContractCurationPeriods') // TODO - move to constants
       .doc(`${contract.timestamp}`);
 
     const tokenContract = getTokenAddressByStakerAddress(contract.chainId, contract.address);

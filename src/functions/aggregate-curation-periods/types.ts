@@ -12,22 +12,27 @@ export interface StakerContractPeriodMetadata {
   periodDuration: number;
 }
 
-export interface StakerContractPeriodStats extends CurationPeriodStats {
+export interface StakerContractPeriodStats extends Omit<CurationPeriodStats, 'periodAprByMultiplier' | 'tokenPrice' | 'avgStakePowerPerToken' | 'periodApr'> {
   totalCurators: number;
-  totalCuratorVotes: number;
+  totalCollectionsCurated: number;
 }
 
 export interface StakerContractPeriodDoc {
   metadata: StakerContractPeriodMetadata;
-  stats: CurationPeriodStats;
+  stats: StakerContractPeriodStats;
 }
 
-export interface StakerContractPeriodUserStats extends CurationPeriodUserStats {
+export interface StakerContractPeriodUserStats extends Omit<CurationPeriodUserStats, 'periodApr' | 'tokenPrice'> {
   collectionsCurated: number;
 }
+
+export type StakerContractCurationPeriodUserMetadata = Omit<StakerContractPeriodMetadata, 'trigger'> & {
+  userAddress: string;
+  updatedAt: number;
+};
 
 export interface StakerContractPeriodUserDoc {
   user: UserDisplayData;
   stats: StakerContractPeriodUserStats;
-  metadata: Omit<StakerContractPeriodMetadata, 'trigger'>;
+  metadata: StakerContractCurationPeriodUserMetadata;
 }

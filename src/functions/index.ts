@@ -9,3 +9,4 @@ export * from './sync-nft-collection-data';
 export * from './sync-stats-collection-data';
 export * from './update-curation-feed';
 export * from './update-order-status';
+export * from './aggregate-curation-periods';

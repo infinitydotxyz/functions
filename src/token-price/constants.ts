@@ -1,9 +1,10 @@
 import { ChainId, Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
+import { ETHEREUM_WETH_ADDRESS } from '@infinityxyz/lib/utils';
 import JSBI from 'jsbi';
 
 export const WETH_MAINNET: Erc20TokenMetadata = {
   chainId: ChainId.Mainnet,
-  address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'.toLowerCase(),
+  address: ETHEREUM_WETH_ADDRESS.toLowerCase(),
   decimals: 18,
   symbol: 'WETH',
   name: 'Wrapped Ether'

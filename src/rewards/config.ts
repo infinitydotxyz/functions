@@ -5,13 +5,13 @@ const startsAt = Number.MAX_SAFE_INTEGER; // TODO update
 
 export const epoch1: RewardEpochDto = {
   name: Epoch.One,
-  isActive: false,
+  isActive: true,
   startsAt,
   phases: [
     {
       name: Phase.One,
       epoch: Epoch.One,
-      isActive: false,
+      isActive: true,
       [RewardProgram.TradingFee]: {
         maxReward: Number.POSITIVE_INFINITY,
         rewardRateNumerator: 50,
@@ -19,8 +19,8 @@ export const epoch1: RewardEpochDto = {
         rewardType: RewardType.ERC20,
         rewardSupply: 40_000_000,
         rewardSupplyUsed: 0,
-        buyerPortion: 0.3,
-        sellerPortion: 0.7
+        buyerPortion: 0.7,
+        sellerPortion: 0.3
       },
       [RewardProgram.NftReward]: {
         maxReward: 1,
@@ -45,8 +45,8 @@ export const epoch1: RewardEpochDto = {
         rewardType: RewardType.ERC20,
         rewardSupply: 60_000_000,
         rewardSupplyUsed: 0,
-        buyerPortion: 0.3,
-        sellerPortion: 0.7
+        buyerPortion: 0.7,
+        sellerPortion: 0.3
       },
       [RewardProgram.NftReward]: {
         maxReward: 1,
@@ -71,8 +71,8 @@ export const epoch1: RewardEpochDto = {
         rewardType: RewardType.ERC20,
         rewardSupply: 80_000_000,
         rewardSupplyUsed: 0,
-        buyerPortion: 0.3,
-        sellerPortion: 0.7
+        buyerPortion: 0.7,
+        sellerPortion: 0.3
       },
       [RewardProgram.NftReward]: {
         maxReward: 1,
@@ -98,8 +98,8 @@ export const epoch1: RewardEpochDto = {
         rewardType: RewardType.ERC20,
         rewardSupply: 100_000_000,
         rewardSupplyUsed: 0,
-        buyerPortion: 0.3,
-        sellerPortion: 0.7
+        buyerPortion: 0.7,
+        sellerPortion: 0.3
       },
       [RewardProgram.NftReward]: {
         maxReward: 1,
@@ -130,10 +130,10 @@ export const epoch2: RewardEpochDto = {
         rewardRateNumerator: 10,
         rewardRateDenominator: 1,
         rewardType: RewardType.ERC20,
-        rewardSupply: 140_000_000,
+        rewardSupply: 100_000_000,
         rewardSupplyUsed: 0,
-        buyerPortion: 0.3,
-        sellerPortion: 0.7
+        buyerPortion: 0.7,
+        sellerPortion: 0.3
       },
       [RewardProgram.NftReward]: null,
       [RewardProgram.Curation]: true

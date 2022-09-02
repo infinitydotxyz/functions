@@ -35,8 +35,8 @@ export async function aggregateTransactionFeeRewards(
         rewards: 0,
         volume: 0,
         updatedAt: Date.now(),
-        sales:0,
-        buys:0
+        userSells: 0,
+        userBuys: 0
       };
       const allTimeRewards = allTimeDoc.data() ?? newAllTimeRewardsDoc;
 
@@ -102,7 +102,6 @@ export async function aggregateTransactionFeeRewards(
             nftRewards: getProgramRewards(RewardProgram.NftReward),
             rewards: 0,
             volume: 0
-
           }
         };
       });
@@ -110,35 +109,38 @@ export async function aggregateTransactionFeeRewards(
       for (const { ref, rewards: rewardEvents, data } of phasesWithData) {
         const rewardsToAdd = calculateStats(rewardEvents, (item) => item.reward).sum;
         const volumeToAdd = calculateStats(rewardEvents, (item) => item.volumeEth).sum;
-        const { sells: sellsToAdd, buys: buysToAdd } = rewardEvents.reduce((acc, event) => {
-          const isSeller = event.userAddress === event.sale.seller;
-          if(isSeller) {
-            return {
-              sells: acc.sells + 1,
-              buys: acc.buys
+        const { sells: sellsToAdd, buys: buysToAdd } = rewardEvents.reduce(
+          (acc, event) => {
+            const isSeller = event.userAddress === event.sale.seller;
+            if (isSeller) {
+              return {
+                sells: acc.sells + 1,
+                buys: acc.buys
+              };
             }
-          }
-          return {
-            sells: acc.sells,
-            buys: acc.buys + 1
-          }
-        }, { sells: 0, buys: 0});
+            return {
+              sells: acc.sells,
+              buys: acc.buys + 1
+            };
+          },
+          { sells: 0, buys: 0 }
+        );
         const rewards = (data?.rewards ?? 0) + rewardsToAdd;
         const volume = (data?.volume ?? 0) + volumeToAdd;
-        const sales = (data?.sales ?? 0) + sellsToAdd;
-        const buys = (data?.buys ?? 0) + buysToAdd;
+        const userSells = (data?.userSells ?? 0) + sellsToAdd;
+        const userBuys = (data?.userBuys ?? 0) + buysToAdd;
 
         allTimeRewards.rewards += rewardsToAdd;
         allTimeRewards.volume += volumeToAdd;
-        allTimeRewards.sales += sellsToAdd;
-        allTimeRewards.buys += buysToAdd;
+        allTimeRewards.userSells += sellsToAdd;
+        allTimeRewards.userBuys += buysToAdd;
 
         const update: TransactionFeePhaseRewardsDoc = {
           ...data,
           rewards,
           volume,
-          sales,
-          buys,
+          userSells,
+          userBuys,
           updatedAt: Date.now()
         };
         txn.set(ref, update, { merge: true });

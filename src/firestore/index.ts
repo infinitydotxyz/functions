@@ -1,5 +1,6 @@
 import admin, { ServiceAccount } from 'firebase-admin';
-import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json'; // TODO adi change in release
+// import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json'; // TODO adi change in release
+import * as serviceAccount from '../creds/nftc-test-2.json';
 
 let db: FirebaseFirestore.Firestore;
 

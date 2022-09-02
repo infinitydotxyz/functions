@@ -1,7 +1,8 @@
 import { Epoch, Phase, RewardProgram, RewardType } from '@infinityxyz/lib/types/core';
 import { RewardEpochDto } from '@infinityxyz/lib/types/dto/rewards';
 
-const startsAt = Number.MAX_SAFE_INTEGER; // TODO update
+// epochs include all previous events
+const startsAt = 0; 
 
 export const epoch1: RewardEpochDto = {
   name: Epoch.One,

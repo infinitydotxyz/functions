@@ -5,13 +5,11 @@ import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/U
 import { TokenPairType, TokenPrice } from './types';
 import { TokenPair as AbstractTokenPair } from './token-pair.abstract';
 import JSBI from 'jsbi';
-
-export const Q96 = JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96));
-export const Q192 = JSBI.exponentiate(Q96, JSBI.BigInt(2));
+import { DEFAULT_POOL_FEE, FACTORY_ADDRESS, Q192 } from './constants';
 
 export class TokenPair extends AbstractTokenPair {
-  protected static _POOL_FEE = 3000;
-  protected static _FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984'.toLowerCase();
+  protected static _POOL_FEE = DEFAULT_POOL_FEE;
+  protected static _FACTORY_ADDRESS = FACTORY_ADDRESS;
   protected _poolContract: ethers.Contract;
   protected _poolAddress: string;
 

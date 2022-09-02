@@ -22,6 +22,9 @@ import {
 
 export const onCurationLedgerEvent = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
   .firestore.document(
     `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakerContractId}/${firestoreConstants.CURATION_LEDGER_COLL}/{eventId}`
   )
@@ -159,6 +162,9 @@ export const triggerCurationMetadataAggregation = functions
 
 export const aggregateCurationLedger = functions
   .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
   .firestore.document(
     `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakingContractId}`
   )

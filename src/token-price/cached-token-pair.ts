@@ -1,18 +1,19 @@
 import { TokenPair } from './token-pair.abstract';
 import { TokenPairType, TokenPrice } from './types';
 import { TokenPair as ITokenPair } from './token-pair.interface';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 const ONE_HOUR = 60 * 60 * 1000;
 export class CachedTokenPair implements ITokenPair {
   protected get ref() {
     return this._db
-      .collection('tokenPools')
+      .collection(firestoreConstants.TOKEN_POOLS_COLL)
       .doc(
         `${this._tokenPair.token0.chainId}:${this._tokenPair.token0.address.toLowerCase()}-${
           this._tokenPair.token1.chainId
         }:${this._tokenPair.token1.address.toLowerCase()}`
       )
-      .collection('poolPrices') as FirebaseFirestore.CollectionReference<TokenPrice>;
+      .collection(firestoreConstants.POOL_PRICES_COLL) as FirebaseFirestore.CollectionReference<TokenPrice>;
   }
 
   public readonly MAX_BLOCK_AGE = 100;

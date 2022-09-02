@@ -15,7 +15,7 @@ export async function updateStatsWithCollection(
 
   const docIds = [allTimeDocId, currYearDocId, currMonthDocId, currWeekDocId, currDayDocId, currHourDocId];
   const docRefs = docIds.map((docId) => statsCollectionRef.doc(docId));
-  const docs = await statsCollectionRef.firestore.getAll(...docRefs);
+  const docs = docRefs.length > 0 ? await statsCollectionRef.firestore.getAll(...docRefs) : [];
   const existingDocs = docs.filter((item) => item.exists);
   const batch = statsCollectionRef.firestore.batch();
 

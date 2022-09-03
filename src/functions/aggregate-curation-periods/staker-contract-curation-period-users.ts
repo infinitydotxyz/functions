@@ -1,17 +1,19 @@
-import { CurationPeriodUser, CurationPeriodUsers } from '@infinityxyz/lib/types/core';
+import {
+  CurationPeriodUser,
+  CurationPeriodUsers,
+  StakerContractPeriodMetadata,
+  StakerContractPeriodUserDoc
+} from '@infinityxyz/lib/types/core';
 import { formatEth } from '@infinityxyz/lib/utils';
-import { StakerContractPeriodMetadata, StakerContractPeriodUserDoc } from './types';
 
 export class StakerContractCurationPeriodUsers {
   protected _users: Map<string, StakerContractPeriodUserDoc>;
 
-  public get size(){ 
+  public get size() {
     return this._users.size;
   }
 
-  constructor(
-    protected _metadata: StakerContractPeriodMetadata
-  ) {
+  constructor(protected _metadata: StakerContractPeriodMetadata) {
     this._users = new Map();
   }
 
@@ -31,18 +33,13 @@ export class StakerContractCurationPeriodUsers {
     user: StakerContractPeriodUserDoc,
     curationPeriodUser: CurationPeriodUser
   ): StakerContractPeriodUserDoc {
-    const totalProtocolFeesAccruedWei = (
-      BigInt(user.stats.totalProtocolFeesAccruedWei) + BigInt(curationPeriodUser.stats.totalProtocolFeesAccruedWei)
-    ).toString();
     const periodProtocolFeesAccruedWei = (
       BigInt(user.stats.periodProtocolFeesAccruedWei) + BigInt(curationPeriodUser.stats.periodProtocolFeesAccruedWei)
     ).toString();
     return {
       ...user,
       stats: {
-        totalProtocolFeesAccruedWei,
         periodProtocolFeesAccruedWei,
-        totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
         periodProtocolFeesAccruedEth: formatEth(periodProtocolFeesAccruedWei),
         collectionsCurated: user.stats.collectionsCurated + 1
       }
@@ -61,9 +58,7 @@ export class StakerContractCurationPeriodUsers {
     return {
       user: user.user,
       stats: {
-        totalProtocolFeesAccruedWei: '0',
         periodProtocolFeesAccruedWei: '0',
-        totalProtocolFeesAccruedEth: 0,
         periodProtocolFeesAccruedEth: 0,
         collectionsCurated: 0
       },

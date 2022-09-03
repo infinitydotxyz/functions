@@ -1,10 +1,15 @@
-import { ChainId, CurationPeriod, CurationPeriodDoc, CurationPeriodUser } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  CurationPeriod,
+  CurationPeriodDoc,
+  CurationPeriodUser,
+  StakerContractPeriodMetadata
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { streamQuery, streamQueryWithRef } from '../../firestore/stream-query';
 import { StakerContractCurationPeriod } from './staker-contract-curation-period';
-import { StakerContractPeriodMetadata } from './types';
 
-export async function aggregateStakerContractPeriod(
+export async function aggregateStakerContractPeriods(
   db: FirebaseFirestore.Firestore,
   metadata: StakerContractPeriodMetadata
 ) {

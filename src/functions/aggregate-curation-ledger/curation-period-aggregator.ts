@@ -231,7 +231,7 @@ export class CurationPeriodAggregator {
         tokenContractAddress: this._token.address,
         tokenContractChainId: this._token.chainId,
         timestamp: this._startTimestamp,
-        periodDuration: CurationPeriodAggregator.DURATION,
+        periodDuration: CurationPeriodAggregator.DURATION
       },
       stats: {
         totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei.toString(),

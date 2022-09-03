@@ -1,13 +1,15 @@
-import { CurationPeriod, CurationPeriodDoc, CurationPeriodStats } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { StakerContractCurationPeriodUsers } from './staker-contract-curation-period-users';
 import {
+  CurationPeriod,
+  CurationPeriodDoc,
+  CurationPeriodStats,
   StakerContractPeriodDoc,
   StakerContractPeriodMetadata,
   StakerContractPeriodStats,
   StakerContractPeriodUserDoc
-} from './types';
+} from '@infinityxyz/lib/types/core';
+import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
+import FirestoreBatchHandler from '../../firestore/batch-handler';
+import { StakerContractCurationPeriodUsers } from './staker-contract-curation-period-users';
 
 export class StakerContractCurationPeriod {
   protected _users: StakerContractCurationPeriodUsers;
@@ -50,7 +52,7 @@ export class StakerContractCurationPeriod {
       const update: Partial<CurationPeriodDoc['metadata']> = {
         isAggregated: true
       };
-      await batch.addAsync(ref, { metadata: update }, { merge: false });
+      await batch.addAsync(ref, { metadata: update }, { merge: true });
     }
 
     const updatedAt = Date.now();
@@ -64,7 +66,7 @@ export class StakerContractCurationPeriod {
       metadata: {
         ...stakerContractPeriod.metadata,
         updatedAt,
-        trigger: false,
+        trigger: false
       }
     };
 
@@ -75,18 +77,14 @@ export class StakerContractCurationPeriod {
 
   protected _getInitialPeriodStats(): StakerContractPeriodStats {
     return {
-      totalProtocolFeesAccruedWei: '0',
       periodProtocolFeesAccruedWei: '0',
-      totalProtocolFeesAccruedEth: 0,
       periodProtocolFeesAccruedEth: 0,
       arbitrageProtocolFeesAccruedWei: '0',
       arbitrageProtocolFeesAccruedEth: 0,
-      totalArbitrageProtocolFeesAccruedWei: '0',
-      totalArbitrageProtocolFeesAccruedEth: 0,
       periodPayoutWei: '0',
       periodPayoutEth: 0,
       totalCurators: 0,
-      totalCollectionsCurated: 0
+      numCollections: 0
     };
   }
 
@@ -94,9 +92,6 @@ export class StakerContractCurationPeriod {
     stakerStats: Omit<StakerContractPeriodStats, 'totalCurators'>,
     collectionPeriodStats: CurationPeriodStats
   ): Omit<StakerContractPeriodStats, 'totalCurators'> {
-    const totalProtocolFeesAccruedWei = (
-      BigInt(stakerStats.totalProtocolFeesAccruedWei) + BigInt(collectionPeriodStats.totalProtocolFeesAccruedWei)
-    ).toString();
     const periodProtocolFeesAccruedWei = (
       BigInt(stakerStats.periodProtocolFeesAccruedWei) + BigInt(collectionPeriodStats.periodProtocolFeesAccruedWei)
     ).toString();
@@ -104,25 +99,17 @@ export class StakerContractCurationPeriod {
       BigInt(stakerStats.arbitrageProtocolFeesAccruedWei) +
       BigInt(collectionPeriodStats.arbitrageProtocolFeesAccruedWei)
     ).toString();
-    const totalArbitrageProtocolFeesAccruedWei = (
-      BigInt(stakerStats.totalArbitrageProtocolFeesAccruedWei) +
-      BigInt(collectionPeriodStats.totalArbitrageProtocolFeesAccruedWei)
-    ).toString();
     const periodPayoutWei = (
       BigInt(stakerStats.periodPayoutWei) + BigInt(collectionPeriodStats.periodPayoutWei)
     ).toString();
     return {
-      totalProtocolFeesAccruedWei: totalProtocolFeesAccruedWei,
       periodProtocolFeesAccruedWei: periodProtocolFeesAccruedWei,
-      totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei),
       periodProtocolFeesAccruedEth: formatEth(periodProtocolFeesAccruedWei),
       arbitrageProtocolFeesAccruedWei: arbitrageProtocolFeesAccruedWei,
       arbitrageProtocolFeesAccruedEth: formatEth(arbitrageProtocolFeesAccruedWei),
-      totalArbitrageProtocolFeesAccruedWei: totalArbitrageProtocolFeesAccruedWei,
-      totalArbitrageProtocolFeesAccruedEth: formatEth(totalArbitrageProtocolFeesAccruedWei),
       periodPayoutWei: periodPayoutWei,
       periodPayoutEth: formatEth(periodPayoutWei),
-      totalCollectionsCurated: stakerStats.totalCollectionsCurated + 1
+      numCollections: stakerStats.numCollections + 1
     };
   }
 }

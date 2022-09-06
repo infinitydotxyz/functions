@@ -12,7 +12,8 @@ import { calculateStats } from '../aggregate-sales-stats/utils';
 
 export async function aggregateTransactionFeeRewards(
   ledgerRef: FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
-  chainId: ChainId
+  chainId: ChainId,
+  userAddress: string
 ) {
   const query = ledgerRef.where('isAggregated', '==', false).orderBy('updatedAt', 'asc');
   let numResults = (await query.limit(1).get()).size;
@@ -32,6 +33,7 @@ export async function aggregateTransactionFeeRewards(
       const allTimeDoc = await txn.get(allTimeDocRef);
       const newAllTimeRewardsDoc: AllTimeTransactionFeeRewardsDoc = {
         chainId,
+        userAddress,
         rewards: 0,
         volume: 0,
         updatedAt: Date.now(),
@@ -92,17 +94,23 @@ export async function aggregateTransactionFeeRewards(
           return null;
         };
 
+        const defaultPhase: TransactionFeePhaseRewardsDoc = {
+          epoch: epoch.name,
+          chainId,
+          phase: item.phase,
+          tradingFeeRewards: getProgramRewards(RewardProgram.TradingFee),
+          nftRewards: getProgramRewards(RewardProgram.NftReward),
+          rewards: 0,
+          volume: 0,
+          userAddress,
+          updatedAt: Date.now(),
+          userSells: 0,
+          userBuys: 0
+        };
+
         return {
           ...item,
-          data: phase ?? {
-            epoch: epoch.name,
-            chainId,
-            phase: item.phase,
-            tradingFeeRewards: getProgramRewards(RewardProgram.TradingFee),
-            nftRewards: getProgramRewards(RewardProgram.NftReward),
-            rewards: 0,
-            volume: 0
-          }
+          data: phase ?? defaultPhase
         };
       });
 
@@ -137,6 +145,7 @@ export async function aggregateTransactionFeeRewards(
 
         const update: TransactionFeePhaseRewardsDoc = {
           ...data,
+          userAddress,
           rewards,
           volume,
           userSells,

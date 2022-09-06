@@ -23,7 +23,8 @@ export const onUserTransactionFeeRewardEvent = functions
 
     await aggregateTransactionFeeRewards(
       snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
-      event.chainId
+      event.chainId,
+      event.userAddress
     );
   });
 

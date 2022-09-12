@@ -51,7 +51,7 @@ export class CurationHandler extends RewardProgramHandler {
   }
 
   protected _getCurationLedgerSale(sale: RewardSaleEvent): CurationLedgerSale[] {
-    const stakerContracts = getRelevantStakerContracts(sale);
+    const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
     const curationSales = stakerContracts.map((stakerContract) => {
       const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
         sale.chainId as ChainId,

@@ -263,9 +263,9 @@ export const parseAggregationId = (id: string, interval: AggregationInterval) =>
   throw new Error(`Parsing not supported for interval: ${interval}`);
 };
 
-export function getRelevantStakerContracts(sale: InfinityNftSale) {
-  if (sale.chainId === ChainId.Mainnet) {
+export function getRelevantStakerContracts(chainId: ChainId) {
+  if (chainId === ChainId.Mainnet) {
     return [getStakerAddress(ChainId.Mainnet)]; // TODO add real staker address for mainnet once deployed
   }
-  return [getStakerAddress(sale.chainId)];
+  return [getStakerAddress(chainId)];
 }

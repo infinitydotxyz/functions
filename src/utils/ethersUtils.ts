@@ -2,7 +2,7 @@ import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
 
-const ethProvider = new ethers.providers.StaticJsonRpcProvider(process.env.AlchemyJsonRpcEthMainnet);
+const ethProvider = new ethers.providers.StaticJsonRpcProvider(process.env.ALCHEMY_JSON_RPC_ETH_MAINNET);
 
 export function getProvider(chainId: string) {
   if (chainId === '1') {

@@ -2,6 +2,7 @@ interface StreamQueryOptions<DocumentData, TransformedPage = DocumentData, Trans
   pageSize: number;
   transformPage?: (docs: DocumentData[]) => Promise<TransformedPage[]> | TransformedPage[];
   transformItem?: (pageItem?: TransformedPage) => Promise<TransformedItem> | TransformedItem;
+  startAfter?: string | number | FirebaseFirestore.DocumentReference<DocumentData>;
 }
 
 export async function* streamQuery<DocumentData, TransformedPage = DocumentData, TransformedItem = TransformedPage>(
@@ -90,7 +91,7 @@ export async function* streamQueryWithRef<
 
     hasNextPage = pageSnapshot.docs.length >= options.pageSize;
     startAfter = getStartAfterField(
-      pageData?.[pageData.length - 1].data,
+      pageData?.[pageData.length - 1]?.data,
       pageSnapshot.docs?.[pageSnapshot.docs.length - 1]?.ref
     );
   }

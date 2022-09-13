@@ -43,6 +43,7 @@ describe('RewardsEventHandler', () => {
           startsAt: 0,
           phases: [
             {
+              maxBlockNumber: 0,
               name: Phase.One,
               epoch: Epoch.One,
               isActive: false,
@@ -60,6 +61,7 @@ describe('RewardsEventHandler', () => {
               [RewardProgram.Curation]: false
             },
             {
+              maxBlockNumber: 0,
               name: Phase.Two,
               epoch: Epoch.One,
               isActive: false,
@@ -118,6 +120,7 @@ describe('RewardsEventHandler', () => {
           startsAt: 0,
           phases: [
             {
+              maxBlockNumber: 0,
               name: Phase.One,
               epoch: Epoch.One,
               isActive: false,
@@ -142,6 +145,7 @@ describe('RewardsEventHandler', () => {
           startsAt: 0,
           phases: [
             {
+              maxBlockNumber: 0,
               name: Phase.Two,
               epoch: Epoch.Two,
               isActive: false,

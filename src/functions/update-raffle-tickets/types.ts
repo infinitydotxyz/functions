@@ -15,13 +15,13 @@ export interface UserRaffleTickets {
 }
 
 export interface RaffleTicketPhaseDoc {
-    phase: Phase,
-    epoch: Epoch,
-    numTickets: number,
-    uniqueUsers: number,
-    updatedAt: number,
-    chainId: ChainId,
-    stakerContractAddress: string;
-    blockNumber: number;
-    isFinalized: boolean;
-  }
+  phase: Phase;
+  epoch: Epoch;
+  numTickets: number;
+  uniqueUsers: number;
+  updatedAt: number;
+  chainId: ChainId;
+  stakerContractAddress: string;
+  blockNumber: number;
+  isFinalized: boolean;
+}

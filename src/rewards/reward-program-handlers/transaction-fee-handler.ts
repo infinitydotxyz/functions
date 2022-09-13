@@ -1,6 +1,7 @@
 import { ChainId, RewardProgram, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
 import { TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { RewardPhase } from '../reward-phase';
 import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
@@ -9,15 +10,41 @@ export class TransactionFeeHandler extends RewardProgramHandler {
   protected _getSaleReward(
     sale: RewardSaleEvent,
     tradingReward: TradingRewardDto
-  ): { total: number; buyerReward: number; sellerReward: number } {
+  ): {
+    total: number;
+    buyer: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number };
+    seller: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number };
+  } {
+    const buyerProtocolFee = sale.protocolFee * tradingReward.buyerPortion;
+    const sellerProtocolFee = sale.protocolFee * tradingReward.sellerPortion;
+
+    const buyerProtocolFeeWei = BigNumber.from(sale.protocolFeeWei)
+      .mul(tradingReward.buyerPortion * 100_000)
+      .div(100_000)
+      .toString();
+    const sellerProtocolFeeWei = BigNumber.from(sale.protocolFeeWei)
+      .mul(tradingReward.sellerPortion * 100_000)
+      .div(100_000)
+      .toString();
+
     const protocolFeeUSDC = sale.protocolFee * sale.ethPrice;
     const reward = (protocolFeeUSDC * tradingReward.rewardRateNumerator) / tradingReward.rewardRateDenominator;
     const buyerReward = reward * tradingReward.buyerPortion;
     const sellerReward = reward * tradingReward.sellerPortion;
     return {
       total: reward,
-      buyerReward,
-      sellerReward
+      buyer: {
+        reward: buyerReward,
+        protocolFeesWei: buyerProtocolFeeWei,
+        protocolFeesEth: buyerProtocolFee,
+        protocolFeesUSDC: buyerProtocolFee * sale.ethPrice
+      },
+      seller: {
+        reward: sellerReward,
+        protocolFeesWei: sellerProtocolFeeWei,
+        protocolFeesEth: sellerProtocolFee,
+        protocolFeesUSDC: sellerProtocolFee * sale.ethPrice
+      }
     };
   }
 
@@ -31,7 +58,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
       return this._nonApplicableResponse(phase);
     }
 
-    const { total: reward, buyerReward, sellerReward } = this._getSaleReward(sale, config);
+    const { total: reward, buyer: buyerReward, seller: sellerReward } = this._getSaleReward(sale, config);
 
     const phaseSupplyRemaining = config.rewardSupply - config.rewardSupplyUsed;
 
@@ -106,8 +133,8 @@ export class TransactionFeeHandler extends RewardProgramHandler {
   protected _getBuyerAndSellerEvents(
     sale: RewardSaleEvent,
     phase: RewardPhase,
-    buyerReward: number,
-    sellerReward: number
+    buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
+    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
   ): { buyer: TransactionFeeRewardDoc; seller: TransactionFeeRewardDoc } {
     const base = {
       sale,
@@ -120,19 +147,26 @@ export class TransactionFeeHandler extends RewardProgramHandler {
        */
       volumeWei: parseEther(sale.price.toString()).toString(),
       volumeEth: sale.price,
+      volumeUSDC: sale.price * sale.ethPrice,
       updatedAt: Date.now()
     };
 
-    const buyer = {
+    const buyer: TransactionFeeRewardDoc = {
       ...base,
       userAddress: sale.buyer,
-      reward: buyerReward
+      reward: buyerReward.reward,
+      protocolFeesWei: buyerReward.protocolFeesWei,
+      protocolFeesEth: buyerReward.protocolFeesEth,
+      protocolFeesUSDC: buyerReward.protocolFeesUSDC
     };
 
-    const seller = {
+    const seller: TransactionFeeRewardDoc = {
       ...base,
       userAddress: sale.seller,
-      reward: sellerReward
+      reward: sellerReward.reward,
+      protocolFeesWei: sellerReward.protocolFeesWei,
+      protocolFeesEth: sellerReward.protocolFeesEth,
+      protocolFeesUSDC: sellerReward.protocolFeesUSDC
     };
 
     return {

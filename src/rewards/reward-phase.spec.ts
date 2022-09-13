@@ -13,6 +13,7 @@ export const getMockRewardPhaseConfig = (
     name: phase,
     epoch,
     isActive: false,
+    maxBlockNumber: 0,
     [RewardProgram.TradingFee]: {
       maxReward: 1,
       rewardRateNumerator: 1,

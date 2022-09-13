@@ -13,6 +13,7 @@ export const epoch1: RewardEpochDto = {
       name: Phase.One,
       epoch: Epoch.One,
       isActive: true,
+      maxBlockNumber: 0,
       [RewardProgram.TradingFee]: {
         maxReward: Number.POSITIVE_INFINITY,
         rewardRateNumerator: 50,
@@ -39,6 +40,7 @@ export const epoch1: RewardEpochDto = {
       name: Phase.Two,
       epoch: Epoch.One,
       isActive: false,
+      maxBlockNumber: 0,
       [RewardProgram.TradingFee]: {
         maxReward: Number.POSITIVE_INFINITY,
         rewardRateNumerator: 33,
@@ -65,6 +67,7 @@ export const epoch1: RewardEpochDto = {
       name: Phase.Three,
       epoch: Epoch.One,
       isActive: false,
+      maxBlockNumber: 0,
       [RewardProgram.TradingFee]: {
         maxReward: Number.POSITIVE_INFINITY,
         rewardRateNumerator: 25,
@@ -92,6 +95,7 @@ export const epoch1: RewardEpochDto = {
       name: Phase.Four,
       epoch: Epoch.One,
       isActive: false,
+      maxBlockNumber: 0,
       [RewardProgram.TradingFee]: {
         maxReward: Number.POSITIVE_INFINITY,
         rewardRateNumerator: 20,
@@ -123,6 +127,7 @@ export const epoch2: RewardEpochDto = {
   startsAt,
   phases: [
     {
+      maxBlockNumber: 0,
       name: Phase.Five,
       epoch: Epoch.Two,
       isActive: false,
@@ -148,6 +153,7 @@ export const epoch3: RewardEpochDto = {
   startsAt,
   phases: [
     {
+      maxBlockNumber: 0,
       name: Phase.Six,
       epoch: Epoch.Three,
       isActive: false,

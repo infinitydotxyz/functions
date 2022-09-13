@@ -1,14 +1,12 @@
 import { RewardProgram, RewardSaleEvent, RewardType } from '@infinityxyz/lib/types/core';
 import { TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
+import { parseEther } from 'ethers/lib/utils';
 import { RewardPhase } from '../reward-phase';
 import { getMockRewardPhaseConfig } from '../reward-phase.spec';
 import { TransactionFeeHandler } from './transaction-fee-handler';
 
 class MockTransactionFeeHandler extends TransactionFeeHandler {
-  getSaleReward(
-    sale: RewardSaleEvent,
-    tradingReward: TradingRewardDto
-  ): { total: number; buyerReward: number; sellerReward: number } {
+  getSaleReward(sale: RewardSaleEvent, tradingReward: TradingRewardDto) {
     return this._getSaleReward(sale, tradingReward);
   }
 
@@ -16,7 +14,12 @@ class MockTransactionFeeHandler extends TransactionFeeHandler {
     return this._splitSale(sale, reward, phaseSupplyRemaining);
   }
 
-  getBuyerAndSellerEvents(sale: RewardSaleEvent, phase: RewardPhase, buyerReward: number, sellerReward: number) {
+  getBuyerAndSellerEvents(
+    sale: RewardSaleEvent,
+    phase: RewardPhase,
+    buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
+    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
+  ) {
     return this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
   }
 
@@ -29,6 +32,7 @@ describe('TransactionFeeHandler', () => {
   it('distributes protocol fees according to buyer and seller portions', () => {
     const sale = {
       protocolFee: 0.0000000000001,
+      protocolFeeWei: parseEther('0.0000000000001'),
       ethPrice: 2000
     } as any as RewardSaleEvent;
 
@@ -45,10 +49,10 @@ describe('TransactionFeeHandler', () => {
 
     const handler = new MockTransactionFeeHandler();
 
-    const { total, buyerReward, sellerReward } = handler.getSaleReward(sale, tradingReward);
+    const { total, buyer: buyerReward, seller: sellerReward } = handler.getSaleReward(sale, tradingReward);
 
-    expect(buyerReward).toBeCloseTo(total * tradingReward.buyerPortion);
-    expect(sellerReward).toBeCloseTo(total * tradingReward.sellerPortion);
+    expect(buyerReward.reward).toBeCloseTo(total * tradingReward.buyerPortion);
+    expect(sellerReward.reward).toBeCloseTo(total * tradingReward.sellerPortion);
 
     expect(total).toBeCloseTo(
       (sale.protocolFee * sale.ethPrice * tradingReward.rewardRateNumerator) / tradingReward.rewardRateDenominator
@@ -59,6 +63,7 @@ describe('TransactionFeeHandler', () => {
     const handler = new MockTransactionFeeHandler();
     const sale = {
       protocolFee: 1,
+      protocolFeeWei: parseEther('1'),
       price: 2
     } as any as RewardSaleEvent;
 
@@ -78,6 +83,7 @@ describe('TransactionFeeHandler', () => {
     const handler = new MockTransactionFeeHandler();
     const sale = {
       protocolFee: 1,
+      protocolFeeWei: parseEther('1'),
       price: 2
     } as any as RewardSaleEvent;
 
@@ -94,6 +100,7 @@ describe('TransactionFeeHandler', () => {
     const handler = new MockTransactionFeeHandler();
     const sale = {
       protocolFee: 1,
+      protocolFeeWei: parseEther('1'),
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
@@ -106,19 +113,20 @@ describe('TransactionFeeHandler', () => {
 
     const reward = handler.getSaleReward(sale, tradingRewards);
 
-    const { buyer, seller } = handler.getBuyerAndSellerEvents(sale, phase, reward.buyerReward, reward.sellerReward);
+    const { buyer, seller } = handler.getBuyerAndSellerEvents(sale, phase, reward.buyer, reward.seller);
 
     expect(buyer.volumeEth).toBeCloseTo(sale.price);
     expect(seller.volumeEth).toBeCloseTo(sale.price);
 
-    expect(buyer.reward).toBe(reward.buyerReward);
-    expect(seller.reward).toBe(reward.sellerReward);
+    expect(buyer.reward).toBe(reward.buyer.reward);
+    expect(seller.reward).toBe(reward.seller.reward);
   });
 
   it('updates the phase when the rewards are distributed', () => {
     const handler = new MockTransactionFeeHandler();
     const sale = {
       protocolFee: 1,
+      protocolFeeWei: parseEther('1'),
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
@@ -149,6 +157,7 @@ describe('TransactionFeeHandler', () => {
     const handler = new MockTransactionFeeHandler();
     const sale = {
       protocolFee: 1,
+      protocolFeeWei: parseEther('1'),
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;

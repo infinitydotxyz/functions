@@ -99,9 +99,6 @@ function getTimestampFromFormattedDate(formattedDate: string, period: StatsPerio
       const date = parse(formattedDate, statsFormatByPeriod[period], new Date());
       return date.getTime();
     }
-    // // eslint-disable-nzext-line no-case-declarations
-    // const [year, month, day, hour] = formattedDate.split('-');
-    // return new Date(`${year}-${month}-${day}T${hour}:00`).getTime();
     default:
       throw new Error(`Period: ${period as string} not yet implemented`);
   }

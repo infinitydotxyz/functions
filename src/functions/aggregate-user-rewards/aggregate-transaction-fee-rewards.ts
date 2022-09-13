@@ -6,7 +6,7 @@ import {
   TransactionFeePhaseRewardsDoc,
   TransactionFeeRewardDoc
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { calculateStatsBigInt, firestoreConstants } from '@infinityxyz/lib/utils';
 import { getEpochByPhase } from '../../rewards/utils';
 import { calculateStats } from '../aggregate-sales-stats/utils';
 
@@ -35,10 +35,15 @@ export async function aggregateTransactionFeeRewards(
         chainId,
         userAddress,
         rewards: 0,
-        volume: 0,
+        volumeEth: 0,
+        volumeUSDC: 0,
+        volumeWei: '0',
         updatedAt: Date.now(),
         userSells: 0,
-        userBuys: 0
+        userBuys: 0,
+        protocolFeesWei: '0',
+        protocolFeesEth: 0,
+        protocolFeesUSDC: 0
       };
       const allTimeRewards = allTimeDoc.data() ?? newAllTimeRewardsDoc;
 
@@ -101,7 +106,12 @@ export async function aggregateTransactionFeeRewards(
           tradingFeeRewards: getProgramRewards(RewardProgram.TradingFee),
           nftRewards: getProgramRewards(RewardProgram.NftReward),
           rewards: 0,
-          volume: 0,
+          volumeEth: 0,
+          volumeUSDC: 0,
+          volumeWei: '0',
+          protocolFeesEth: 0,
+          protocolFeesWei: '0',
+          protocolFeesUSDC: 0,
           userAddress,
           updatedAt: Date.now(),
           userSells: 0,
@@ -117,6 +127,12 @@ export async function aggregateTransactionFeeRewards(
       for (const { ref, rewards: rewardEvents, data } of phasesWithData) {
         const rewardsToAdd = calculateStats(rewardEvents, (item) => item.reward).sum;
         const volumeToAdd = calculateStats(rewardEvents, (item) => item.volumeEth).sum;
+        const volumeWeiToAdd = calculateStatsBigInt(rewardEvents, (item) => BigInt(item.volumeWei)).sum;
+        const volumeUSDCToAdd = calculateStats(rewardEvents, (item) => item.volumeUSDC).sum;
+        const protocolFeeWeiToAdd = calculateStatsBigInt(rewardEvents, (item) => BigInt(item.protocolFeesWei)).sum;
+        const protocolFeeEthToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesEth).sum;
+        const protocolFeeUSDCToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesUSDC).sum;
+
         const { sells: sellsToAdd, buys: buysToAdd } = rewardEvents.reduce(
           (acc, event) => {
             const isSeller = event.userAddress === event.sale.seller;
@@ -134,20 +150,37 @@ export async function aggregateTransactionFeeRewards(
           { sells: 0, buys: 0 }
         );
         const rewards = (data?.rewards ?? 0) + rewardsToAdd;
-        const volume = (data?.volume ?? 0) + volumeToAdd;
+        const volumeEth = (data?.volumeEth ?? 0) + volumeToAdd;
+        const volumeWei = (BigInt(data?.volumeWei ?? '0') + BigInt(volumeWeiToAdd)).toString();
+        const volumeUSDC = (data?.volumeUSDC ?? 0) + volumeUSDCToAdd;
+        const protocolFeesWei = (BigInt(data?.protocolFeesWei ?? '0') + BigInt(protocolFeeWeiToAdd)).toString();
+        const protocolFeesEth = (data?.protocolFeesEth ?? 0) + protocolFeeEthToAdd;
+        const protocolFeesUSDC = (data?.protocolFeesUSDC ?? 0) + protocolFeeUSDCToAdd;
         const userSells = (data?.userSells ?? 0) + sellsToAdd;
         const userBuys = (data?.userBuys ?? 0) + buysToAdd;
 
         allTimeRewards.rewards += rewardsToAdd;
-        allTimeRewards.volume += volumeToAdd;
+        allTimeRewards.volumeEth += volumeToAdd;
         allTimeRewards.userSells += sellsToAdd;
         allTimeRewards.userBuys += buysToAdd;
+        allTimeRewards.volumeWei = (BigInt(allTimeRewards.volumeWei) + BigInt(volumeWeiToAdd)).toString();
+        allTimeRewards.volumeUSDC += volumeUSDCToAdd;
+        allTimeRewards.protocolFeesEth += protocolFeeEthToAdd;
+        allTimeRewards.protocolFeesWei = (
+          BigInt(allTimeRewards.protocolFeesWei) + BigInt(protocolFeeWeiToAdd)
+        ).toString();
+        allTimeRewards.protocolFeesUSDC += protocolFeeUSDCToAdd;
 
         const update: TransactionFeePhaseRewardsDoc = {
           ...data,
           userAddress,
           rewards,
-          volume,
+          volumeEth,
+          volumeUSDC,
+          volumeWei,
+          protocolFeesEth,
+          protocolFeesWei,
+          protocolFeesUSDC,
           userSells,
           userBuys,
           updatedAt: Date.now()

@@ -21,7 +21,7 @@ export interface RaffleTicketPhaseDoc {
     uniqueUsers: number,
     updatedAt: number,
     chainId: ChainId,
-    stakerContractAddress: contract,
-    blockNumber: phase.maxBlockNumber,
-    isFinalized: !phase.isActive
+    stakerContractAddress: string;
+    blockNumber: number;
+    isFinalized: boolean;
   }

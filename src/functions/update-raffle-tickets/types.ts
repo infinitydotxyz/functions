@@ -13,3 +13,15 @@ export interface UserRaffleTickets {
   rank: number;
   updatedAt: number;
 }
+
+export interface RaffleTicketPhaseDoc {
+    phase: Phase,
+    epoch: Epoch,
+    numTickets: number,
+    uniqueUsers: number,
+    updatedAt: number,
+    chainId: ChainId,
+    stakerContractAddress: contract,
+    blockNumber: phase.maxBlockNumber,
+    isFinalized: !phase.isActive
+  }

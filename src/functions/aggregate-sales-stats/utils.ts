@@ -1,6 +1,6 @@
 import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP, getStakerAddress } from '@infinityxyz/lib/utils';
 import { isAddress } from '@ethersproject/address';
-import { ChainId, InfinityNftSale, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { format, parse } from 'date-fns';
 import { AggregationInterval, CurrentStats } from './types';
 import { formatEther } from 'ethers/lib/utils';

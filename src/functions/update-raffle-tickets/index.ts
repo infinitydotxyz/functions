@@ -2,6 +2,7 @@ import { RewardsProgramDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
+import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { REGION } from '../../utils/constants';
 import { getRelevantStakerContracts } from '../aggregate-sales-stats/utils';
 import { getUserPhaseTickets } from './update-raffle-tickets';
@@ -39,19 +40,43 @@ export const updateRaffleTickets = functions
         for (const contract of stakingContracts) {
           for (const epoch of rewardProgram.epochs) {
             for (const phase of epoch.phases) {
-                const stakePhaseTicketsSnippetRef = db.collection('raffleTickets').doc(`${rewardProgram.chainId}:${contract}`).collection('raffleTicketPhases').doc(phase.name);
-                // const stakePhaseTicketsSnippetSnap = await stakePhaseTicketsSnippetRef.get();
-                // const stakePhaseTicketsSnippet = stakePhaseTicketsSnippetSnap.data();
-
-                if(phase.isActive) {
-                    getUserPhaseTickets(db, phase.name, rewardProgram.chainId, contract, 'latest');
+              const stakePhaseTicketsSnippetRef = db
+                .collection('raffleTickets')
+                .doc(`${rewardProgram.chainId}:${contract}`)
+                .collection('raffleTicketPhases')
+                .doc(phase.name);
+              const stakePhaseTicketsSnippetSnap = await stakePhaseTicketsSnippetRef.get();
+              const stakePhaseTicketsSnippet = stakePhaseTicketsSnippetSnap.data();
+              if (!stakePhaseTicketsSnippet.isFinalized) {
+                let result: { tickets: any[]; totalTickets: number; totalUsers: number };
+                if (phase.isActive) {
+                  result = await getUserPhaseTickets(db, phase.name, rewardProgram.chainId, contract, 'latest');
                 } else {
-                    const maxBlock = db.collectionGroup(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL).where('phase.name', '==', phase.name).where()
-                    .orderBy('sale.blockNumber', 'desc').limit(1);
+                  result = await getUserPhaseTickets(
+                    db,
+                    phase.name,
+                    rewardProgram.chainId,
+                    contract,
+                    phase.maxBlockNumber
+                  );
                 }
-
+                
                 const userPhaseTickets = stakePhaseTicketsSnippetRef.collection('raffleTicketPhaseUsers');
+                const raffleTicketPhaseDoc = {
+                  phase: phase.name,
+                  epoch: epoch.name,
+                  numTickets: result.totalTickets,
+                  uniqueUsers: result.totalUsers,
+                  updatedAt: Date.now(),
+                  chainId: rewardProgram.chainId,
+                  stakerContractAddress: contract,
+                  blockNumber: phase.maxBlockNumber,
+                  isFinalized: !phase.isActive
+                };
 
+                const batch = new FirestoreBatchHandler();
+                batch.
+              }
             }
           }
         }

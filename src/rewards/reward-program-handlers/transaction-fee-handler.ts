@@ -65,6 +65,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
     if (reward <= phaseSupplyRemaining) {
       const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
       config.rewardSupplyUsed += reward;
+      phase.maxBlockNumber = Math.max(phase.maxBlockNumber, sale.blockNumber);
       return {
         applicable: true,
         phase,

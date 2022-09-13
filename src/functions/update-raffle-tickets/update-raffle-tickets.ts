@@ -5,6 +5,7 @@ import { streamQuery } from '../../firestore/stream-query';
 import { getProvider } from '../../utils/ethersUtils';
 import { InfinityStakerABI } from '@infinityxyz/lib/abi/infinityStaker';
 import { calculateStats } from '../aggregate-sales-stats/utils';
+import { UserRaffleTickets } from './types';
 
 export async function getUserPhaseTickets(
   db: FirebaseFirestore.Firestore,
@@ -12,24 +13,14 @@ export async function getUserPhaseTickets(
   chainId: ChainId,
   stakerContractAddress: string,
   blockNumber: number | 'latest'
-) {
+): Promise< { tickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch'>[], totalTickets: number, totalUsers: number }> {
   const query = db
     .collectionGroup(firestoreConstants.USER_REWARD_PHASES_COLL)
     .where('phase', '==', phase)
     .where('chainId', '==', 'chainId') as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
   const stream = streamQuery(query, (_, ref) => [ref], { pageSize: 300 });
 
-  let userPhaseTickets: {
-    userAddress: string;
-    numTickets: number;
-    chainId: ChainId;
-    stakerContractAddress: string;
-    blockNumber: number;
-    phase: Phase;
-    volumeUSDC: number;
-    chanceOfWinning: number;
-    rank: number;
-  }[] = [];
+  let userPhaseTickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch'>[] = [];
 
   for await (const userPhaseReward of stream) {
     const userAddress = userPhaseReward.userAddress;
@@ -41,26 +32,26 @@ export async function getUserPhaseTickets(
         numTickets,
         chainId,
         stakerContractAddress,
-        blockNumber,
         phase,
         volumeUSDC: userPhaseReward.volumeUSDC,
         chanceOfWinning: Number.NaN,
-        rank: Number.NaN,
+        rank: Number.NaN
       });
     }
   }
 
-
-  const totalTickets = calculateStats(userPhaseTickets.map(t => t.numTickets)).sum;
-  userPhaseTickets = userPhaseTickets.sort((a, b) => b.numTickets - a.numTickets).map((item, index) => {
-    return {
+  const totalTickets = calculateStats(userPhaseTickets.map((t) => t.numTickets)).sum;
+  userPhaseTickets = userPhaseTickets
+    .sort((a, b) => b.numTickets - a.numTickets)
+    .map((item, index) => {
+      return {
         ...item,
-        chanceOfWinning: round(item.numTickets / totalTickets * 100, 6),
+        chanceOfWinning: round((item.numTickets / totalTickets) * 100, 6),
         rank: index + 1
-    }
-  });
+      };
+    });
 
-  return userPhaseTickets;
+  return { tickets: userPhaseTickets, totalTickets, totalUsers: userPhaseTickets.length };
 }
 
 async function getUserStakeLevel(

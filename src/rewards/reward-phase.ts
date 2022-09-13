@@ -14,6 +14,14 @@ export class RewardPhase {
     return tradingFeeProgram.rewardSupplyUsed + REWARD_BUFFER < tradingFeeProgram.rewardSupply;
   }
 
+  get maxBlockNumber(): number {
+    return this._rewardPhase.maxBlockNumber;
+  }
+
+  set maxBlockNumber(blockNumber: number) {
+    this._rewardPhase.maxBlockNumber = blockNumber;
+  }
+
   toJSON(): RewardPhaseDto {
     return {
       ...this._rewardPhase,

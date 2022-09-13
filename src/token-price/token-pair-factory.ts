@@ -12,7 +12,7 @@ import { TokenPair as ITokenPair } from './token-pair.interface';
 export class TokenPairFactory {
   constructor(
     protected _db: FirebaseFirestore.Firestore,
-    protected _mainnetProvider: ethers.providers.JsonRpcProvider
+    protected _mainnetProvider: ethers.providers.JsonRpcProvider | ethers.providers.StaticJsonRpcProvider
   ) {}
 
   static readonly EST_DOLLARS_PER_NFT = 0.07;

@@ -1,11 +1,16 @@
-import { ChainId, Phase, TransactionFeePhaseRewardsDoc } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  Phase,
+  RaffleTicketPhaseDoc,
+  TransactionFeePhaseRewardsDoc,
+  UserRaffleTickets
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, round } from '@infinityxyz/lib/utils';
 import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { streamQuery, streamQueryWithRef } from '../../firestore/stream-query';
 import { getProvider } from '../../utils/ethersUtils';
 import { InfinityStakerABI } from '@infinityxyz/lib/abi/infinityStaker';
 import { calculateStats } from '../aggregate-sales-stats/utils';
-import { RaffleTicketPhaseDoc, UserRaffleTickets } from './types';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { RewardPhaseDto } from '@infinityxyz/lib/types/dto/rewards';
 
@@ -16,26 +21,27 @@ export async function updateStakerPhaseTickets(
   db: FirebaseFirestore.Firestore
 ) {
   const stakePhaseTicketsSnippetRef = db
-    .collection('raffleTickets')
+    .collection(firestoreConstants.RAFFLE_TICKETS_COLL)
     .doc(`${stakerChainId}:${stakerContractAddress}`)
-    .collection('raffleTicketPhases')
+    .collection(firestoreConstants.RAFFLE_TICKETS_PHASES_COLL)
     .doc(phase.name) as FirebaseFirestore.DocumentReference<RaffleTicketPhaseDoc>;
   const stakePhaseTicketsSnippetSnap = await stakePhaseTicketsSnippetRef.get();
   const stakePhaseTicketsSnippet = stakePhaseTicketsSnippetSnap.data();
   if (!stakePhaseTicketsSnippet?.isFinalized) {
     let result: {
-      tickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch'>[];
+      tickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch' | 'isFinalized' | 'tickets'>[];
       totalTickets: number;
       totalUsers: number;
     };
-    if (phase.isActive) {
+    const isFinalizing = !phase.isActive;
+    if (!isFinalizing) {
       result = await getUserPhaseTickets(db, phase.name, stakerChainId, stakerContractAddress, 'latest');
     } else {
       result = await getUserPhaseTickets(db, phase.name, stakerChainId, stakerContractAddress, phase.maxBlockNumber);
     }
 
     const updatedAt = Date.now();
-    const userPhaseTicketsRef = stakePhaseTicketsSnippetRef.collection('raffleTicketPhaseUsers');
+    const userPhaseTicketsRef = stakePhaseTicketsSnippetRef.collection(firestoreConstants.RAFFLE_TICKETS_PHASE_USERS_COLL);
     const raffleTicketPhaseDoc: RaffleTicketPhaseDoc = {
       phase: phase.name,
       epoch: phase.epoch,
@@ -48,14 +54,36 @@ export async function updateStakerPhaseTickets(
       isFinalized: !phase.isActive
     };
 
-    const tickets: UserRaffleTickets[] = result.tickets.map((item) => {
-      return {
-        ...item,
-        updatedAt,
-        blockNumber: phase.maxBlockNumber,
-        epoch: phase.epoch
-      };
-    });
+    let tickets: UserRaffleTickets[];
+    if (isFinalizing) {
+      let ticketNumber = BigInt(0);
+      tickets = result.tickets.map((item) => {
+        const start = ticketNumber;
+        const end = ticketNumber + BigInt(item.numTickets) - BigInt(1);
+        ticketNumber = end + BigInt(1);
+        return {
+          ...item,
+          updatedAt,
+          blockNumber: phase.maxBlockNumber,
+          epoch: phase.epoch,
+          isFinalized: true,
+          tickets: {
+            start: start.toString(),
+            end: end.toString()
+          }
+        };
+      });
+    } else {
+      tickets = result.tickets.map((item) => {
+        return {
+          ...item,
+          updatedAt,
+          blockNumber: phase.maxBlockNumber,
+          epoch: phase.epoch,
+          isFinalized: false
+        };
+      });
+    }
 
     // update raffle tickets
     const batch = new FirestoreBatchHandler();
@@ -89,7 +117,7 @@ export async function getUserPhaseTickets(
   const query = db
     .collectionGroup(firestoreConstants.USER_REWARD_PHASES_COLL)
     .where('phase', '==', phase)
-    .where('chainId', '==', 'chainId') as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
+    .where('chainId', '==', chainId) as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
   const stream = streamQuery(query, (_, ref) => [ref], { pageSize: 300 });
 
   let userPhaseTickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch'>[] = [];
@@ -109,7 +137,8 @@ export async function getUserPhaseTickets(
         phase,
         volumeUSDC: userPhaseReward.volumeUSDC,
         chanceOfWinning: Number.NaN,
-        rank: Number.NaN
+        rank: Number.NaN,
+        isFinalized: false
       });
     }
   }

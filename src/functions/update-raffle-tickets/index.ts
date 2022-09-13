@@ -12,16 +12,14 @@ export const updateRaffleTickets = functions
     timeoutSeconds: 540,
     memory: '2GB'
   })
-  .pubsub.schedule('0 0,12 * * *')
+  .pubsub.schedule('0 * * * *') // at the start of every hour
   .onRun(async () => {
-    // runs at 12am and 12pm UTC
     const db = getDb();
 
     const query = db.collection(
       firestoreConstants.REWARDS_COLL
     ) as FirebaseFirestore.CollectionReference<RewardsProgramDto>;
     const rewardSnap = await query.get();
-
     /**
      * raffleTickets
      *  - {stakerChainId:stakerContractAddress}
@@ -45,30 +43,3 @@ export const updateRaffleTickets = functions
       }
     }
   });
-
-// async function main() {
-//   // TODO JOE
-//   // runs at 12am and 12pm UTC
-//   const db = getDb();
-
-//   const query = db.collection(
-//     firestoreConstants.REWARDS_COLL
-//   ) as FirebaseFirestore.CollectionReference<RewardsProgramDto>;
-//   const rewardSnap = await query.get();
-
-//   for (const rewardProgramDoc of rewardSnap.docs) {
-//     const rewardProgram = rewardProgramDoc.data();
-//     if (rewardProgram) {
-//       const stakingContracts = getRelevantStakerContracts(rewardProgram.chainId);
-//       for (const contract of stakingContracts) {
-//         for (const epoch of rewardProgram.epochs) {
-//           for (const phase of epoch.phases) {
-//             await updateStakerPhaseTickets(rewardProgram.chainId, contract, phase, db);
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
-
-// void main();

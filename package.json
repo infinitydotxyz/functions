@@ -31,14 +31,15 @@
     "custom-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/custom-order.ts",
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
     "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
-    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts"
+    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts",
+    "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.200.1",
+    "@infinityxyz/lib": "^1.202.1",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

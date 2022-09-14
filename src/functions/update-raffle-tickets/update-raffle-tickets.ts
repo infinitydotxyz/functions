@@ -41,7 +41,9 @@ export async function updateStakerPhaseTickets(
     }
 
     const updatedAt = Date.now();
-    const userPhaseTicketsRef = stakePhaseTicketsSnippetRef.collection(firestoreConstants.RAFFLE_TICKETS_PHASE_USERS_COLL);
+    const userPhaseTicketsRef = stakePhaseTicketsSnippetRef.collection(
+      firestoreConstants.RAFFLE_TICKETS_PHASE_USERS_COLL
+    );
     const raffleTicketPhaseDoc: RaffleTicketPhaseDoc = {
       phase: phase.name,
       epoch: phase.epoch,
@@ -127,7 +129,7 @@ export async function getUserPhaseTickets(
     const stakeLevel = await getUserStakeLevel(userAddress, chainId, stakerContractAddress, blockNumber);
     console.log(`User: ${userPhaseReward.userAddress} Stake Level: ${stakeLevel}`);
 
-    const numTickets = stakeLevel * userPhaseReward.volumeUSDC;
+    const numTickets = Math.floor(stakeLevel * userPhaseReward.volumeUSDC);
     if (numTickets > 0) {
       userPhaseTickets.push({
         userAddress,

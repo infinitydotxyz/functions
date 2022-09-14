@@ -127,7 +127,6 @@ export async function getUserPhaseTickets(
   for await (const userPhaseReward of stream) {
     const userAddress = userPhaseReward.userAddress;
     const stakeLevel = await getUserStakeLevel(userAddress, chainId, stakerContractAddress, blockNumber);
-    console.log(`User: ${userPhaseReward.userAddress} Stake Level: ${stakeLevel}`);
 
     const numTickets = Math.floor(stakeLevel * userPhaseReward.volumeUSDC);
     if (numTickets > 0) {

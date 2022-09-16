@@ -132,8 +132,8 @@ export class CurationBlockAggregator {
   ): Promise<CurationBlockRewards> {
     const timestamp = CurationBlockAggregator.getCurationBlockRange(currentBlockStartTimestamp).prevTimestamp;
     const snapshot = await curationRewardsRef
-      .where('timestamp', '<=', timestamp)
-      .orderBy('timestamp', 'desc')
+      .where('metadata.timestamp', '<=', timestamp)
+      .orderBy('metadata.timestamp', 'desc')
       .limit(1)
       .get();
     const prevBlockRewardsDoc = snapshot.docs[0];

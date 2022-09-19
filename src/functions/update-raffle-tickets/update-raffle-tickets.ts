@@ -35,13 +35,21 @@ export async function updateStakerPhaseTickets(
       totalTickets: number;
       totalUsers: number;
     };
-    const isFinalizing = !phase.isActive;
+    const isFullyAggregated = await isPhaseFullyAggregated(db, phase.name, stakerChainId);
+    if (!isFullyAggregated) {
+      throw new Error('Phase is not yet fully aggregated');
+    }
+    const isFinalizing = !phase.isActive && isFullyAggregated;
+
+    if(!phase.isActive && !isFullyAggregated) {
+      console.warn(`Phase ${phase.name} is no longer active but has not yet been fully aggregated`)
+    }
+
     if (!isFinalizing) {
       result = await getUserPhaseTickets(db, phase.name, stakerChainId, stakerContractAddress, 'latest');
     } else {
-      const isFullyAggregated = await isPhaseFullyAggregated(db, phase.name, stakerChainId);
-      if (!isFullyAggregated) {
-        throw new Error('Phase is not yet fully aggregated');
+      if(!isFullyAggregated) {
+        throw new Error(`Expected phase to be fully aggregated before attempting to finalize phase tickets`);
       }
       result = await getUserPhaseTickets(db, phase.name, stakerChainId, stakerContractAddress, phase.maxBlockNumber);
     }

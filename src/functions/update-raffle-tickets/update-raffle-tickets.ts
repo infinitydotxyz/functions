@@ -1,5 +1,6 @@
 import {
   ChainId,
+  ErroredRaffleTicketPhaseDoc,
   Phase,
   RaffleTicketPhaseDoc,
   TransactionFeePhaseRewardsDoc,
@@ -13,6 +14,7 @@ import { InfinityStakerABI } from '@infinityxyz/lib/abi/infinityStaker';
 import { calculateStats } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { RewardPhaseDto } from '@infinityxyz/lib/types/dto/rewards';
+import PQueue from 'p-queue';
 
 export async function updateStakerPhaseTickets(
   stakerChainId: ChainId,
@@ -37,6 +39,10 @@ export async function updateStakerPhaseTickets(
     if (!isFinalizing) {
       result = await getUserPhaseTickets(db, phase.name, stakerChainId, stakerContractAddress, 'latest');
     } else {
+      const isFullyAggregated = await isPhaseFullyAggregated(db, phase.name, stakerChainId);
+      if (!isFullyAggregated) {
+        throw new Error('Phase is not yet fully aggregated');
+      }
       result = await getUserPhaseTickets(db, phase.name, stakerChainId, stakerContractAddress, phase.maxBlockNumber);
     }
 
@@ -53,7 +59,8 @@ export async function updateStakerPhaseTickets(
       chainId: stakerChainId,
       stakerContractAddress,
       blockNumber: phase.maxBlockNumber,
-      isFinalized: !phase.isActive
+      isFinalized: isFinalizing,
+      didError: false
     };
 
     let tickets: UserRaffleTickets[];
@@ -87,22 +94,42 @@ export async function updateStakerPhaseTickets(
       });
     }
 
-    // update raffle tickets
-    const batch = new FirestoreBatchHandler();
-    for (const ticket of tickets) {
-      await batch.addAsync(userPhaseTicketsRef.doc(ticket.userAddress), ticket, { merge: false });
-    }
-    await batch.addAsync(stakePhaseTicketsSnippetRef, raffleTicketPhaseDoc, { merge: false });
-    await batch.flush();
+    try {
+      // update raffle tickets
+      const batch = new FirestoreBatchHandler();
+      for (const ticket of tickets) {
+        await batch.addAsync(userPhaseTicketsRef.doc(ticket.userAddress), ticket, { merge: false });
+      }
+      await batch.addAsync(stakePhaseTicketsSnippetRef, raffleTicketPhaseDoc, { merge: false });
+      await batch.flush();
 
-    // delete any raffle tickets that are no longer valid
-    const ticketsToDelete = userPhaseTicketsRef.where('updatedAt', '<', updatedAt);
-    const ticketsToDeleteStream = streamQueryWithRef(ticketsToDelete, (_, ref) => [ref], { pageSize: 300 });
-    for await (const { ref } of ticketsToDeleteStream) {
-      await batch.deleteAsync(ref);
+      // delete any raffle tickets that are no longer valid
+      const ticketsToDelete = userPhaseTicketsRef.where('updatedAt', '<', updatedAt);
+      const ticketsToDeleteStream = streamQueryWithRef(ticketsToDelete, (_, ref) => [ref], { pageSize: 300 });
+      for await (const { ref } of ticketsToDeleteStream) {
+        await batch.deleteAsync(ref);
+      }
+      await batch.flush();
+    } catch (err) {
+      console.error(err);
+      const erroredRaffleTicketPhaseDoc: ErroredRaffleTicketPhaseDoc = {
+        ...raffleTicketPhaseDoc,
+        isFinalized: false,
+        didError: true
+      };
+      await stakePhaseTicketsSnippetRef.set(erroredRaffleTicketPhaseDoc, { merge: false });
     }
-    await batch.flush();
   }
+}
+
+export async function isPhaseFullyAggregated(db: FirebaseFirestore.Firestore, phase: Phase, chainId: ChainId) {
+  const unaggregatedRewards = db
+    .collectionGroup(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL)
+    .where('phase', '==', phase)
+    .where('chainId', '==', chainId)
+    .where('isAggregated', '==', false);
+  const unaggregatedRewardsSnap = await unaggregatedRewards.limit(2).get();
+  return unaggregatedRewardsSnap.size === 0;
 }
 
 export async function getUserPhaseTickets(
@@ -122,17 +149,13 @@ export async function getUserPhaseTickets(
     .where('chainId', '==', chainId) as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
   const stream = streamQuery(query, (_, ref) => [ref], { pageSize: 300 });
 
-  let userPhaseTickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch'>[] = [];
+  const usersWithVolume: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch' | 'numTickets'>[] = [];
 
   for await (const userPhaseReward of stream) {
     const userAddress = userPhaseReward.userAddress;
-    const stakeLevel = await getUserStakeLevel(userAddress, chainId, stakerContractAddress, blockNumber);
-
-    const numTickets = Math.floor(stakeLevel * userPhaseReward.volumeUSDC);
-    if (numTickets > 0) {
-      userPhaseTickets.push({
+    if (userPhaseReward.volumeUSDC > 0) {
+      usersWithVolume.push({
         userAddress,
-        numTickets,
         chainId,
         stakerContractAddress,
         phase,
@@ -143,6 +166,24 @@ export async function getUserPhaseTickets(
       });
     }
   }
+
+  const queue = new PQueue({
+    concurrency: 25
+  });
+  let userPhaseTickets: Omit<UserRaffleTickets, 'updatedAt' | 'blockNumber' | 'epoch'>[] = await Promise.all(
+    usersWithVolume.map((user) => {
+      return queue.add(async () => {
+        const stakeLevel = await getUserStakeLevel(user.userAddress, chainId, stakerContractAddress, blockNumber);
+        const numTickets = Math.floor(stakeLevel * user.volumeUSDC);
+        return {
+          ...user,
+          numTickets
+        };
+      });
+    })
+  );
+
+  userPhaseTickets = userPhaseTickets.filter((user) => user.numTickets > 0);
 
   const totalTickets = calculateStats(userPhaseTickets.map((t) => t.numTickets)).sum;
   userPhaseTickets = userPhaseTickets

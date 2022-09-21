@@ -1,6 +1,5 @@
 import { ChainId, Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { Token } from '@uniswap/sdk-core';
-import { ethers } from 'ethers';
 import { getDb } from '../firestore';
 import { TokenPairFactory } from './token-pair-factory';
 import { TokenPair } from './token-pair';

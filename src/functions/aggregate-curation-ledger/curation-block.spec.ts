@@ -315,6 +315,36 @@ describe('curation block', () => {
     expect(Object.values(unVoteResult.updatedUsers).length).toBe(0);
   });
 
+  it('updated num curator votes', () => {
+    const block = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet,
+      token: TOKEN
+    });
+    const address = '0x1';
+    const vote = getVotesAddedEvent(address, 1);
+    block.addEvent(vote);
+
+    const { blockRewards } = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE, COLLECTION);
+    expect(blockRewards.stats.numCuratorVotes).toBe(1);
+    expect(blockRewards.stats.numCurators).toBe(1);
+
+    const unVote = getVotesRemovedEvent(address, 1);
+    block.addEvent(unVote);
+
+    const { blockRewards: blockRewardsAfterUnVote } = block.getBlockRewards(
+      defaultPrevBlockRewards,
+      TOKEN_PRICE,
+      COLLECTION
+    );
+
+    expect(blockRewardsAfterUnVote.stats.numCuratorVotes).toBe(0);
+    expect(blockRewardsAfterUnVote.stats.numCurators).toBe(0);
+  });
+
   it('distributes rewards to a single user if they have all of the votes', () => {
     const block = new MockCurationBlock({
       blockStart,

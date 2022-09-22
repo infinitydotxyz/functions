@@ -1,15 +1,20 @@
-import { ChainId, RewardProgram, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
-import { TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { ChainId, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
+import { TradingFeeProgram, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants, round } from '@infinityxyz/lib/utils';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
-import { RewardPhase } from '../reward-phase';
-import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
+import { Phase, ProgressAuthority } from '../phases/phase.abstract';
+import { TradingFeeEventHandlerResponse } from '../types';
+import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
 
-export class TransactionFeeHandler extends RewardProgramHandler {
+export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
+  constructor() {
+    super(TradingFeeProgram.TokenRefund);
+  }
+
   protected _getSaleReward(
     sale: RewardSaleEvent,
-    tradingReward: TradingRewardDto
+    tradingReward: TradingFeeRefundDto
   ): {
     total: number;
     buyer: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number };
@@ -48,14 +53,21 @@ export class TransactionFeeHandler extends RewardProgramHandler {
     };
   }
 
-  protected _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
-    const config = phase.getRewardProgram(RewardProgram.TradingFee);
+  protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
     }
 
-    if (typeof config === 'boolean' || !config) {
+    const config = phase.details.tradingFeeRefund;
+    if (!config) {
       return this._nonApplicableResponse(phase);
+    } else if (phase.authority !== ProgressAuthority.TradingFees) {
+      /**
+       * phase rewards can exceed the phase supply
+       */
+      throw new Error(
+        'Found applicable phase but authority is not trading fees. This may have unintended consequences.'
+      );
     }
 
     const { total: reward, buyer: buyerReward, seller: sellerReward } = this._getSaleReward(sale, config);
@@ -65,7 +77,9 @@ export class TransactionFeeHandler extends RewardProgramHandler {
     if (reward <= phaseSupplyRemaining) {
       const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
       config.rewardSupplyUsed += reward;
-      phase.maxBlockNumber = Math.max(phase.maxBlockNumber, sale.blockNumber);
+      
+      // update phase progress - should only be done by phase authority
+      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6); 
       return {
         applicable: true,
         phase,
@@ -133,7 +147,7 @@ export class TransactionFeeHandler extends RewardProgramHandler {
 
   protected _getBuyerAndSellerEvents(
     sale: RewardSaleEvent,
-    phase: RewardPhase,
+    phase: Phase,
     buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
     sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
   ): { buyer: TransactionFeeRewardDoc; seller: TransactionFeeRewardDoc } {

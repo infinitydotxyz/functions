@@ -1,14 +1,13 @@
 import { RewardEvent } from '@infinityxyz/lib/types/core';
-import { RewardPhase } from './reward-phase';
+import { Phase } from './phases/phase.abstract';
 
-export interface RewardProgramEventHandler {
-  onEvent(
-    event: RewardEvent,
-    phase: RewardPhase
-  ): {
-    applicable: boolean;
-    phase: RewardPhase;
-    saveEvent: (txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void;
-    split?: { current: RewardEvent; remainder: RewardEvent };
-  };
+export type TradingFeeEventHandlerResponse = {
+  applicable: boolean;
+  phase: Phase;
+  saveEvent: (txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void;
+  split?: { current: RewardEvent; remainder: RewardEvent } | undefined;
+};
+
+export interface TradingFeeProgramEventHandler {
+  onEvent(event: RewardEvent, phase: Phase): TradingFeeEventHandlerResponse;
 }

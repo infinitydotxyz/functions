@@ -3,26 +3,35 @@ import {
   CurationLedgerEvent,
   CurationLedgerSale,
   RewardEvent,
-  RewardProgram,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
+import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
-import { RewardPhase } from '../reward-phase';
-import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
+import { Phase, ProgressAuthority } from '../phases/phase.abstract';
+import { TradingFeeEventHandlerResponse } from '../types';
+import { TradingFeeDestinationEventHandler} from './trading-fee-destination-event-handler.abstract';
 
-export class CurationHandler extends RewardProgramHandler {
-  protected _isApplicable(event: RewardEvent, phase: RewardPhase): boolean {
-    if (phase.getRewardProgram(RewardProgram.Curation) !== true) {
-      return false;
-    }
-
-    return true;
+export class CurationHandler extends TradingFeeDestinationEventHandler {
+  constructor() {
+    super(TradingFeeProgram.Curators, TradingFeeDestination.Curators);
   }
 
-  protected _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
+  protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
+    if (this.getFeePercentage(phase) > 0) {
+      return true;
+    }
+
+    return false;
+  }
+
+  protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
+    } else if (phase.authority === ProgressAuthority.Curation) {
+      throw new Error(
+        'Sale splitting must be implemented for curation handler before a curation authority can be used'
+      );
     }
 
     const isApplicable = this._isApplicable(sale, phase);
@@ -30,11 +39,14 @@ export class CurationHandler extends RewardProgramHandler {
       return this._nonApplicableResponse(phase);
     }
 
+    const currentFees = phase.details.curationFeesGenerated;
+    this.updateFeesGenerated(currentFees, sale, phase);
     return {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
         const sales = this._getCurationLedgerSale(sale);
+
         for (const curationSale of sales) {
           const collectionDocRef = db
             .collection(firestoreConstants.COLLECTIONS_COLL)

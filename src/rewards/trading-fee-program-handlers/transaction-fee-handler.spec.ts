@@ -1,12 +1,13 @@
-import { RewardProgram, RewardSaleEvent, RewardType } from '@infinityxyz/lib/types/core';
-import { TradingRewardDto } from '@infinityxyz/lib/types/dto/rewards';
+import { RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { parseEther } from 'ethers/lib/utils';
-import { RewardPhase } from '../reward-phase';
-import { getMockRewardPhaseConfig } from '../reward-phase.spec';
+import { Phase } from '../phases/phase.abstract';
+import { TradingFeeRefundBasedPhase } from '../phases/trading-fee-refund-based-phase';
+import { getMockPhaseConfig } from '../phases/trading-fee-refund-based-phase.spec';
 import { TransactionFeeHandler } from './transaction-fee-handler';
 
 class MockTransactionFeeHandler extends TransactionFeeHandler {
-  getSaleReward(sale: RewardSaleEvent, tradingReward: TradingRewardDto) {
+  getSaleReward(sale: RewardSaleEvent, tradingReward: TradingFeeRefundDto) {
     return this._getSaleReward(sale, tradingReward);
   }
 
@@ -16,14 +17,14 @@ class MockTransactionFeeHandler extends TransactionFeeHandler {
 
   getBuyerAndSellerEvents(
     sale: RewardSaleEvent,
-    phase: RewardPhase,
+    phase: Phase,
     buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
     sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
   ) {
     return this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
   }
 
-  onSale(sale: RewardSaleEvent, phase: RewardPhase) {
+  onSale(sale: RewardSaleEvent, phase: Phase) {
     return this._onSale(sale, phase);
   }
 }
@@ -36,13 +37,12 @@ describe('TransactionFeeHandler', () => {
       ethPrice: 2000
     } as any as RewardSaleEvent;
 
-    const tradingReward: TradingRewardDto = {
+    const tradingReward: TradingFeeRefundDto = {
       rewardRateNumerator: 2,
       rewardRateDenominator: 1,
       buyerPortion: 0.2,
       sellerPortion: 0.8,
       maxReward: 100,
-      rewardType: RewardType.ETH,
       rewardSupply: 1000,
       rewardSupplyUsed: 100
     };
@@ -104,10 +104,10 @@ describe('TransactionFeeHandler', () => {
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
-    const phaseConfig = getMockRewardPhaseConfig(100, 0);
-    const phase = new RewardPhase(phaseConfig);
-    const tradingRewards = phase.getRewardProgram(RewardProgram.TradingFee);
-    if (!tradingRewards || typeof tradingRewards === 'boolean') {
+    const phaseConfig = getMockPhaseConfig({ supply: 100, supplyUsed: 0, rewardRateNumerator: 1 });
+    const phase = new TradingFeeRefundBasedPhase(phaseConfig);
+    const tradingRewards = phase.details.tradingFeeRefund;
+    if (!tradingRewards) {
       throw new Error('Invalid rewards program');
     }
 
@@ -130,19 +130,17 @@ describe('TransactionFeeHandler', () => {
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
-    const phaseConfig = getMockRewardPhaseConfig(2000, 0);
-    const phase = new RewardPhase(phaseConfig);
-    const tradingRewardsBefore = JSON.parse(
-      JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))
-    ) as TradingRewardDto;
-    if (!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
+    const phaseConfig = getMockPhaseConfig({ supply: 2000, supplyUsed: 0, rewardRateNumerator: 1});
+    const phase = new TradingFeeRefundBasedPhase(phaseConfig);
+    const tradingRewardsBefore = JSON.parse(JSON.stringify(phase.details.tradingFeeRefund)) as TradingFeeRefundDto;
+    if (!tradingRewardsBefore ) {
       throw new Error('Invalid rewards program');
     }
 
     const rewards = handler.getSaleReward(sale, tradingRewardsBefore);
     const result = handler.onSale(sale, phase);
 
-    const tradingRewardsAfter = result.phase.getRewardProgram(RewardProgram.TradingFee);
+    const tradingRewardsAfter = result.phase.details.tradingFeeRefund;
 
     if (!tradingRewardsAfter || typeof tradingRewardsAfter === 'boolean') {
       throw new Error('Invalid rewards program');
@@ -161,18 +159,16 @@ describe('TransactionFeeHandler', () => {
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
-    const phaseConfig = getMockRewardPhaseConfig(1999, 0);
-    const phase = new RewardPhase(phaseConfig);
-    const tradingRewardsBefore = JSON.parse(
-      JSON.stringify(phase.getRewardProgram(RewardProgram.TradingFee))
-    ) as TradingRewardDto;
-    if (!tradingRewardsBefore || typeof tradingRewardsBefore === 'boolean') {
+    const phaseConfig = getMockPhaseConfig({ supply: 1999, supplyUsed: 0, rewardRateNumerator: 1});
+    const phase = new TradingFeeRefundBasedPhase(phaseConfig);
+    const tradingRewardsBefore = JSON.parse(JSON.stringify(phase.details.tradingFeeRefund)) as TradingFeeRefundDto;
+    if (!tradingRewardsBefore ) {
       throw new Error('Invalid rewards program');
     }
 
     const result = handler.onSale(sale, phase);
 
-    const tradingRewardsAfter = result.phase.getRewardProgram(RewardProgram.TradingFee);
+    const tradingRewardsAfter = result.phase.details.tradingFeeRefund;
 
     if (!tradingRewardsAfter || typeof tradingRewardsAfter === 'boolean') {
       throw new Error('Invalid rewards program');

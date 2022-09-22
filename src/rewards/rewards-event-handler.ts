@@ -4,6 +4,7 @@ import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { DEFAULT_PHASES } from '../tokenomics/constants';
 import { Phase } from './phases/phase.abstract';
 import { PhaseFactory } from './phases/phase.factory';
+import { CollectionPotHandler } from './trading-fee-program-handlers/collection-pot-handler';
 import { CurationHandler } from './trading-fee-program-handlers/curation-handler';
 import { RaffleHandler } from './trading-fee-program-handlers/raffle-handler';
 import { TransactionFeeHandler } from './trading-fee-program-handlers/transaction-fee-handler';
@@ -14,9 +15,7 @@ export class RewardsEventHandler {
 
   constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
-      [TradingFeeProgram.CollectionPot]: {
-        onEvent: () => { return {}; }
-      } as any, // TODO
+      [TradingFeeProgram.CollectionPot]: new CollectionPotHandler(), // TODO
       [TradingFeeProgram.Raffle]: new RaffleHandler(),
       [TradingFeeProgram.Treasury]: {
         onEvent: () => { return {}; }

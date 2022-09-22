@@ -1,6 +1,6 @@
 import { ChainId, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
-import { TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { TradingFeeProgram, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants, round } from '@infinityxyz/lib/utils';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
@@ -8,6 +8,10 @@ import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
 
 export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
+  constructor() {
+    super(TradingFeeProgram.TokenRefund);
+  }
+
   protected _getSaleReward(
     sale: RewardSaleEvent,
     tradingReward: TradingFeeRefundDto
@@ -73,7 +77,9 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
     if (reward <= phaseSupplyRemaining) {
       const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
       config.rewardSupplyUsed += reward;
-      phase.lastBlockIncluded = Math.max(phase.lastBlockIncluded, sale.blockNumber);
+      
+      // update phase progress - should only be done by phase authority
+      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6); 
       return {
         applicable: true,
         phase,

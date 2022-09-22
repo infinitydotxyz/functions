@@ -5,16 +5,20 @@ import {
   RewardEvent,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
-import { TradingFeeDestination } from '@infinityxyz/lib/types/dto';
+import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
-import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
+import { TradingFeeDestinationEventHandler} from './trading-fee-destination-event-handler.abstract';
 
-export class CurationHandler extends TradingFeeProgramEventHandler {
+export class CurationHandler extends TradingFeeDestinationEventHandler {
+  constructor() {
+    super(TradingFeeProgram.Curators, TradingFeeDestination.Curators);
+  }
+
   protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
-    if (phase.details.split[TradingFeeDestination.Curators].percentage > 0) {
+    if (this.getFeePercentage(phase) > 0) {
       return true;
     }
 
@@ -35,11 +39,14 @@ export class CurationHandler extends TradingFeeProgramEventHandler {
       return this._nonApplicableResponse(phase);
     }
 
+    const currentFees = phase.details.curationFeesGenerated;
+    this.updateFeesGenerated(currentFees, sale, phase);
     return {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
         const sales = this._getCurationLedgerSale(sale);
+
         for (const curationSale of sales) {
           const collectionDocRef = db
             .collection(firestoreConstants.COLLECTIONS_COLL)

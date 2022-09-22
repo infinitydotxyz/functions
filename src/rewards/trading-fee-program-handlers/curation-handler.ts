@@ -3,26 +3,29 @@ import {
   CurationLedgerEvent,
   CurationLedgerSale,
   RewardEvent,
-  RewardProgram,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
+import { TradingFeeDestination } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
-import { RewardPhase } from '../reward-phase';
+import { Phase, ProgressAuthority } from '../phases/phase.abstract';
+import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
 
 export class CurationHandler extends TradingFeeProgramEventHandler {
-  protected _isApplicable(event: RewardEvent, phase: RewardPhase): boolean {
-    if (phase.getRewardProgram(RewardProgram.Curation) !== true) {
-      return false;
+  protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
+    if (phase.details.split[TradingFeeDestination.Curators].percentage > 0) {
+      return true;
     }
 
-    return true;
+    return false;
   }
 
-  protected _onSale(sale: RewardSaleEvent, phase: RewardPhase): RewardProgramEventHandlerResponse {
+  protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
+    } else if (phase.authority === ProgressAuthority.Curation) {
+      throw new Error('Sale splitting must be implemented for curation handler before a curation authority can be used');
     }
 
     const isApplicable = this._isApplicable(sale, phase);
@@ -46,7 +49,7 @@ export class CurationHandler extends TradingFeeProgramEventHandler {
           txn.set(saleRef, curationSale, { merge: false });
         }
       },
-      split: undefined
+      split: undefined 
     };
   }
 

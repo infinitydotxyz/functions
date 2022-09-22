@@ -1,25 +1,25 @@
-import { ChainId, RewardEvent, RewardProgram } from '@infinityxyz/lib/types/core';
-import { RewardsProgramDto } from '@infinityxyz/lib/types/dto/rewards';
+import { ChainId, RewardEvent } from '@infinityxyz/lib/types/core';
+import { TokenomicsConfigDto, TradingFeeProgram } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { TradingFeeDestination, TradingFeeProgram } from '../tokenomics/types';
-import { epochs } from './config';
-import { RewardEpoch } from './reward-epoch';
-import { RewardPhase } from './reward-phase';
-import { CurationHandler } from './reward-program-handlers/curation-handler';
-import { TransactionFeeHandler } from './reward-program-handlers/transaction-fee-handler';
-import { TradingFeeDestinationEventHandler } from './types';
+import { DEFAULT_PHASES } from '../tokenomics/constants';
+import { Phase } from './phases/phase.abstract';
+import { PhaseFactory } from './phases/phase.factory';
+import { CurationHandler } from './trading-fee-program-handlers/curation-handler';
+import { TransactionFeeHandler } from './trading-fee-program-handlers/transaction-fee-handler';
+import { TradingFeeProgramEventHandler } from './types';
 
 
 
 export class RewardsEventHandler {
-  protected _programEventHandler: Record<TradingFeeProgram, TradingFeeDestinationEventHandler>;
+  protected _programEventHandler: Record<TradingFeeProgram, TradingFeeProgramEventHandler>;
 
   constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
-      // [RewardProgram.TradingFee]: new TransactionFeeHandler(),
-      // [RewardProgram.Curation]: new CurationHandler()
-      [TradingFeeDestination.Curators]: new CurationHandler(),
-      [TradingFeeDestination.Raffle]: new TransactionFeeHandler()
+      [TradingFeeProgram.CollectionPot]: {} as any,// TODO
+      [TradingFeeProgram.Raffle]: {} as any, // TODO
+      [TradingFeeProgram.Treasury]: {} as any, // TODO
+      [TradingFeeProgram.Curators]: new CurationHandler(),
+      [TradingFeeProgram.TokenRefund]: new TransactionFeeHandler(),
     };
   }
 
@@ -31,15 +31,10 @@ export class RewardsEventHandler {
   ): Promise<void> {
     const currentState = await this._getRewardProgramState(chainId, txn);
     for (const event of events) {
-      const currentEpochIndex = currentState.epochs.findIndex((item) => item.isActive);
-      const currentEpoch = currentState.epochs[currentEpochIndex];
-      const currentPhaseIndex = currentEpoch?.phases.findIndex((item) => item.isActive);
-      const currentPhase = currentEpoch?.phases?.[currentPhaseIndex];
-      const nextPhaseIndexes = currentEpoch?.phases?.[currentPhaseIndex + 1]
-        ? [currentEpochIndex, currentPhaseIndex + 1]
-        : [currentEpochIndex + 1, 0];
-      const nextPhase = currentState?.epochs?.[nextPhaseIndexes[0]]?.phases?.[nextPhaseIndexes[1]] ?? null;
-
+      const currentPhaseIndex = currentState?.phases.findIndex((item) => item.isActive);
+      const currentPhase = currentState?.phases?.[currentPhaseIndex];
+      const nextPhase = currentState?.phases?.[currentPhaseIndex + 1] ?? null;
+      
       if (currentPhase?.isActive) {
         this._applyEvent(event, currentPhase, nextPhase, txn, db);
       }
@@ -49,11 +44,11 @@ export class RewardsEventHandler {
 
   protected _applyEvent(
     event: RewardEvent,
-    phase: RewardPhase,
-    nextPhase: RewardPhase | null,
+    phase: Phase,
+    nextPhase: Phase | null,
     txn?: FirebaseFirestore.Transaction,
     db?: FirebaseFirestore.Firestore
-  ): { phase: RewardPhase; nextPhase: RewardPhase | null } {
+  ): { phase: Phase; nextPhase: Phase | null } {
     let saves: ((txn: FirebaseFirestore.Transaction, db: FirebaseFirestore.Firestore) => void)[] = [];
 
     const save = () => {
@@ -64,36 +59,32 @@ export class RewardsEventHandler {
       }
     };
 
-    for (const value of Object.values(RewardProgram)) {
-      const handler = this._programEventHandler[value];
-      if (!handler) {
-        console.error(`No handler for program ${value}`);
-      } else {
-        const { applicable, phase: updatedPhase, saveEvent, split } = handler.onEvent(event, phase);
-
-        /**
-         * the event should be split into two events across two different phases
-         */
-        if (split) {
-          const { current, remainder } = split;
-          saves = [];
-          const currentPhaseResult = this._applyEvent(current, phase, nextPhase, txn);
-          console.assert(currentPhaseResult.phase.isActive === false, 'current phase should be inactive');
-          console.assert(
-            !currentPhaseResult.nextPhase || currentPhaseResult.nextPhase.isActive === true,
-            'next phase should be active'
-          );
-          if (currentPhaseResult && nextPhase) {
-            const { phase: currentPhase } = currentPhaseResult;
-            const remainderResult = this._applyEvent(remainder, nextPhase, null, txn);
-            return { phase: currentPhase, nextPhase: remainderResult?.phase };
-          }
-          return currentPhaseResult;
-        } else if (applicable && txn) {
-          saves.push(saveEvent);
-          phase = updatedPhase;
+    for(const handler of Object.values(this._programEventHandler)) {
+      const { applicable, phase: updatedPhase, saveEvent, split } = handler.onEvent(event, phase);
+  
+      /**
+       * the event should be split into two events across two different phases
+       */
+      if (split) {
+        const { current, remainder } = split;
+        saves = [];
+        const currentPhaseResult = this._applyEvent(current, phase, nextPhase, txn);
+        console.assert(currentPhaseResult.phase.isActive === false, 'current phase should be inactive');
+        console.assert(
+          !currentPhaseResult.nextPhase || currentPhaseResult.nextPhase.isActive === true,
+          'next phase should be active'
+        );
+        if (currentPhaseResult && nextPhase) {
+          const { phase: currentPhase } = currentPhaseResult;
+          const remainderResult = this._applyEvent(remainder, nextPhase, null, txn);
+          return { phase: currentPhase, nextPhase: remainderResult?.phase };
         }
+        return currentPhaseResult;
+      } else if (applicable && txn) {
+        saves.push(saveEvent);
+        phase = updatedPhase;
       }
+
     }
     save();
     return { phase, nextPhase };
@@ -102,10 +93,10 @@ export class RewardsEventHandler {
   protected async _getRewardProgramState(
     chainId: ChainId,
     txn?: FirebaseFirestore.Transaction
-  ): Promise<{ chainId: ChainId; epochs: RewardEpoch[] }> {
+  ): Promise<{ chainId: ChainId; phases: Phase[] }> {
     const ref = this._db
       .collection(firestoreConstants.REWARDS_COLL)
-      .doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgramDto>;
+      .doc(chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
 
     const doc = await (txn ? txn.get(ref) : ref.get());
 
@@ -113,32 +104,32 @@ export class RewardsEventHandler {
 
     return {
       chainId: program.chainId,
-      epochs: program.epochs.map((item) => new RewardEpoch(item))
+      phases: program.phases.map((item) => PhaseFactory.create(item))
     };
   }
 
-  protected _defaultRewardsProgramState(chainId: ChainId): RewardsProgramDto {
+  protected _defaultRewardsProgramState(chainId: ChainId): TokenomicsConfigDto {
     return {
       chainId,
-      epochs: epochs
+      phases: DEFAULT_PHASES
     };
   }
 
   protected async _saveRewardProgramState(
-    state: { chainId: ChainId; epochs: RewardEpoch[] },
+    state: { chainId: ChainId; phases: Phase[] },
     txn?: FirebaseFirestore.Transaction
   ) {
-    const program = {
+    const config: TokenomicsConfigDto = {
       chainId: state.chainId,
-      epochs: state.epochs.map((item) => item.toJSON())
+      phases: state.phases.map((item) => item.toJSON())
     };
     const ref = this._db
       .collection(firestoreConstants.REWARDS_COLL)
-      .doc(state.chainId) as FirebaseFirestore.DocumentReference<RewardsProgramDto>;
+      .doc(state.chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
     if (txn) {
-      txn.set(ref, program);
+      txn.set(ref, config);
     } else {
-      await ref.set(program);
+      await ref.set(config);
     }
   }
 }

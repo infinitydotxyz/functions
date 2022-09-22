@@ -1,12 +1,12 @@
 import { RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
-import { TokenomicsPhase } from '../../tokenomics/types';
+import { Phase } from '../phases/phase.abstract';
 import {
   TradingFeeEventHandlerResponse,
   TradingFeeProgramEventHandler as ITradingFeeProgramEventHandler
 } from '../types';
 
 export abstract class TradingFeeProgramEventHandler implements ITradingFeeProgramEventHandler {
-  onEvent(event: RewardEvent, phase: TokenomicsPhase): TradingFeeEventHandlerResponse {
+  onEvent(event: RewardEvent, phase: Phase): TradingFeeEventHandlerResponse {
     if ('txHash' in event && 'price' in event && 'buyer' in event && 'seller' in event) {
       return this._onSale(event, phase);
     } else {
@@ -15,9 +15,9 @@ export abstract class TradingFeeProgramEventHandler implements ITradingFeeProgra
     }
   }
 
-  protected abstract _onSale(sale: RewardSaleEvent, phase: TokenomicsPhase): TradingFeeEventHandlerResponse;
+  protected abstract _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse;
 
-  protected _nonApplicableResponse(phase: TokenomicsPhase): TradingFeeEventHandlerResponse {
+  protected _nonApplicableResponse(phase: Phase): TradingFeeEventHandlerResponse {
     return {
       applicable: false,
       phase,

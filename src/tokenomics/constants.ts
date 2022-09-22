@@ -1,4 +1,5 @@
-import { TokenomicsPhase, TradingFeeDestination, TradingFeeSplit } from "./types";
+import { TokenomicsPhaseDto, TradingFeeDestination, TradingFeeSplit } from "@infinityxyz/lib/types/dto";
+
 
 export const TRADING_FEE_SPLIT_PHASE_1_TO_4: TradingFeeSplit = {
   [TradingFeeDestination.Curators]: { percentage: 30 },
@@ -23,7 +24,7 @@ const getDefaultFeesGenerated = () => ({
   feesGeneratedUSDC: 0
 });
 
-export const PhaseOne: Omit<TokenomicsPhase, 'index'> = {
+export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
   name: "Phase 1",
   id: "1",
   isActive: true,
@@ -41,13 +42,12 @@ export const PhaseOne: Omit<TokenomicsPhase, 'index'> = {
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
-    progress: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
 }
 
-export const PhaseTwo: Omit<TokenomicsPhase, 'index'> = {
+export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
   name: "Phase 2",
   id: "2",
   isActive: false,
@@ -65,13 +65,12 @@ export const PhaseTwo: Omit<TokenomicsPhase, 'index'> = {
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
-    progress: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
 }
 
-export const PhaseThree: Omit<TokenomicsPhase, 'index'> = {
+export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
   name: "Phase 3",
   id: "3",
   isActive: false,
@@ -89,13 +88,12 @@ export const PhaseThree: Omit<TokenomicsPhase, 'index'> = {
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
-    progress: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
 }
 
-export const PhaseFour: Omit<TokenomicsPhase, 'index'> = {
+export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
   name: "Phase 4",
   id: "4",
   isActive: false,
@@ -113,13 +111,12 @@ export const PhaseFour: Omit<TokenomicsPhase, 'index'> = {
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
-    progress: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
 }
 
-export const PhaseFive: Omit<TokenomicsPhase, 'index'> = {
+export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
   name: "Phase 5",
   id: "5",
   isActive: false,
@@ -135,4 +132,4 @@ export const PhaseFive: Omit<TokenomicsPhase, 'index'> = {
 }
 
 
-export const DEFAULT_PHASES: TokenomicsPhase[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map((item, index) => ({...item, index }));
+export const DEFAULT_PHASES: TokenomicsPhaseDto[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map((item, index) => ({...item, index }));

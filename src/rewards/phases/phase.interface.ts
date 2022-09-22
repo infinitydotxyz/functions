@@ -1,8 +1,7 @@
-import { TokenomicsPhase } from "../../tokenomics/types";
-
+import { TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
 
 export interface Phase {
-    isActive: boolean;
+  isActive: boolean;
 
-    toJSON(): TokenomicsPhase;
+  toJSON(): TokenomicsPhaseDto;
 }

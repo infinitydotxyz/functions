@@ -1,9 +1,8 @@
 import { TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
 import { Phase as IPhase } from './phase.interface';
 
-
 export enum ProgressAuthority {
-  None = 'NONE', // i.e. continuous 
+  None = 'NONE', // i.e. continuous
   TradingFees = 'TRADING_FEES',
   Curation = 'CURATION',
   CollectionPot = 'COLLECTION_POT',
@@ -12,11 +11,11 @@ export enum ProgressAuthority {
 }
 
 export abstract class Phase implements IPhase {
-  public abstract readonly authority: ProgressAuthority
+  public abstract readonly authority: ProgressAuthority;
   /**
    * implement isActive to determine progression of phases
-   * 
-   * once this phase is no longer active, the next phase 
+   *
+   * once this phase is no longer active, the next phase
    * will be started
    */
   public abstract isActive: boolean;
@@ -39,8 +38,8 @@ export abstract class Phase implements IPhase {
   }
 
   /**
-   * the last block included should be maintained as the 
-   * largest block of any event in this phase 
+   * the last block included should be maintained as the
+   * largest block of any event in this phase
    */
   public set lastBlockIncluded(value: number) {
     this._phase.lastBlockIncluded = value;

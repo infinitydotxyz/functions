@@ -1,5 +1,4 @@
-import { TokenomicsPhaseDto, TradingFeeDestination, TradingFeeSplit } from "@infinityxyz/lib/types/dto";
-
+import { TokenomicsPhaseDto, TradingFeeDestination, TradingFeeSplit } from '@infinityxyz/lib/types/dto';
 
 export const TRADING_FEE_SPLIT_PHASE_1_TO_4: TradingFeeSplit = {
   [TradingFeeDestination.Curators]: { percentage: 30 },
@@ -8,7 +7,8 @@ export const TRADING_FEE_SPLIT_PHASE_1_TO_4: TradingFeeSplit = {
   [TradingFeeDestination.Treasury]: { percentage: 20 }
 };
 
-export const TRADING_FEE_SPLIT_PHASE_5: TradingFeeSplit = { // TODO what should this be? 
+export const TRADING_FEE_SPLIT_PHASE_5: TradingFeeSplit = {
+  // TODO what should this be?
   [TradingFeeDestination.Curators]: { percentage: 80 },
   [TradingFeeDestination.Raffle]: { percentage: 0 },
   [TradingFeeDestination.CollectionPot]: { percentage: 0 },
@@ -19,14 +19,14 @@ const BUYER_PORTION = 0.7;
 const SELLER_PORTION = 0.3;
 
 const getDefaultFeesGenerated = () => ({
-  feesGeneratedWei: "0",
+  feesGeneratedWei: '0',
   feesGeneratedEth: 0,
   feesGeneratedUSDC: 0
 });
 
 export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
-  name: "Phase 1",
-  id: "1",
+  name: 'Phase 1',
+  id: '1',
   isActive: true,
   split: TRADING_FEE_SPLIT_PHASE_1_TO_4,
   lastBlockIncluded: 0,
@@ -45,11 +45,11 @@ export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
-}
+};
 
 export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
-  name: "Phase 2",
-  id: "2",
+  name: 'Phase 2',
+  id: '2',
   isActive: false,
   split: TRADING_FEE_SPLIT_PHASE_1_TO_4,
   lastBlockIncluded: 0,
@@ -68,11 +68,11 @@ export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
-}
+};
 
 export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
-  name: "Phase 3",
-  id: "3",
+  name: 'Phase 3',
+  id: '3',
   isActive: false,
   split: TRADING_FEE_SPLIT_PHASE_1_TO_4,
   lastBlockIncluded: 0,
@@ -91,11 +91,11 @@ export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
-}
+};
 
 export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
-  name: "Phase 4",
-  id: "4",
+  name: 'Phase 4',
+  id: '4',
   isActive: false,
   split: TRADING_FEE_SPLIT_PHASE_1_TO_4,
   lastBlockIncluded: 0,
@@ -114,11 +114,11 @@ export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
   }
-}
+};
 
 export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
-  name: "Phase 5",
-  id: "5",
+  name: 'Phase 5',
+  id: '5',
   isActive: false,
   split: TRADING_FEE_SPLIT_PHASE_5,
   lastBlockIncluded: 0,
@@ -129,7 +129,8 @@ export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
   collectionPotFeesGenerated: getDefaultFeesGenerated(),
   treasuryFeesGenerated: getDefaultFeesGenerated(),
   tradingFeeRefund: null // trading fee refund is no longer active
-}
+};
 
-
-export const DEFAULT_PHASES: TokenomicsPhaseDto[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map((item, index) => ({...item, index }));
+export const DEFAULT_PHASES: TokenomicsPhaseDto[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map(
+  (item, index) => ({ ...item, index })
+);

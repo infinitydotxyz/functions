@@ -59,9 +59,11 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
       return this._nonApplicableResponse(phase);
     } else if (phase.authority !== ProgressAuthority.TradingFees) {
       /**
-       * phase rewards can exceed the phase supply 
+       * phase rewards can exceed the phase supply
        */
-      throw new Error('Found applicable phase but authority is not trading fees. This may have unintended consequences.');
+      throw new Error(
+        'Found applicable phase but authority is not trading fees. This may have unintended consequences.'
+      );
     }
 
     const { total: reward, buyer: buyerReward, seller: sellerReward } = this._getSaleReward(sale, config);

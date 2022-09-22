@@ -25,7 +25,9 @@ export class CurationHandler extends TradingFeeProgramEventHandler {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
     } else if (phase.authority === ProgressAuthority.Curation) {
-      throw new Error('Sale splitting must be implemented for curation handler before a curation authority can be used');
+      throw new Error(
+        'Sale splitting must be implemented for curation handler before a curation authority can be used'
+      );
     }
 
     const isApplicable = this._isApplicable(sale, phase);
@@ -49,7 +51,7 @@ export class CurationHandler extends TradingFeeProgramEventHandler {
           txn.set(saleRef, curationSale, { merge: false });
         }
       },
-      split: undefined 
+      split: undefined
     };
   }
 

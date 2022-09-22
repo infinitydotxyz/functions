@@ -1,9 +1,9 @@
-import { TokenomicsPhase, TradingFeeRefund } from '../../tokenomics/types';
+import { TokenomicsPhaseDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { REWARD_BUFFER } from '../constants';
 import { Phase, ProgressAuthority } from './phase.abstract';
 
-export type TokenomicsPhaseWithTradingFeeRefund = Omit<TokenomicsPhase, 'tradingFeeRefund'> & {
-  tradingFeeRefund: TradingFeeRefund;
+export type TokenomicsPhaseWithTradingFeeRefund = Omit<TokenomicsPhaseDto, 'tradingFeeRefund'> & {
+  tradingFeeRefund: TradingFeeRefundDto;
 };
 
 export class TradingFeeRefundBasedPhase extends Phase {

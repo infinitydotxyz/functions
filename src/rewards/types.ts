@@ -1,7 +1,6 @@
 import { RewardEvent } from '@infinityxyz/lib/types/core';
 import { Phase } from './phases/phase.abstract';
 
-
 export type TradingFeeEventHandlerResponse = {
   applicable: boolean;
   phase: Phase;
@@ -10,8 +9,5 @@ export type TradingFeeEventHandlerResponse = {
 };
 
 export interface TradingFeeProgramEventHandler {
-  onEvent(
-    event: RewardEvent,
-    phase: Phase
-  ): TradingFeeEventHandlerResponse;
+  onEvent(event: RewardEvent, phase: Phase): TradingFeeEventHandlerResponse;
 }

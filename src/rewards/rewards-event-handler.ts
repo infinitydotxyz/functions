@@ -8,18 +8,16 @@ import { CurationHandler } from './trading-fee-program-handlers/curation-handler
 import { TransactionFeeHandler } from './trading-fee-program-handlers/transaction-fee-handler';
 import { TradingFeeProgramEventHandler } from './types';
 
-
-
 export class RewardsEventHandler {
   protected _programEventHandler: Record<TradingFeeProgram, TradingFeeProgramEventHandler>;
 
   constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
-      [TradingFeeProgram.CollectionPot]: {} as any,// TODO
+      [TradingFeeProgram.CollectionPot]: {} as any, // TODO
       [TradingFeeProgram.Raffle]: {} as any, // TODO
       [TradingFeeProgram.Treasury]: {} as any, // TODO
       [TradingFeeProgram.Curators]: new CurationHandler(),
-      [TradingFeeProgram.TokenRefund]: new TransactionFeeHandler(),
+      [TradingFeeProgram.TokenRefund]: new TransactionFeeHandler()
     };
   }
 
@@ -34,7 +32,7 @@ export class RewardsEventHandler {
       const currentPhaseIndex = currentState?.phases.findIndex((item) => item.isActive);
       const currentPhase = currentState?.phases?.[currentPhaseIndex];
       const nextPhase = currentState?.phases?.[currentPhaseIndex + 1] ?? null;
-      
+
       if (currentPhase?.isActive) {
         this._applyEvent(event, currentPhase, nextPhase, txn, db);
       }
@@ -59,9 +57,9 @@ export class RewardsEventHandler {
       }
     };
 
-    for(const handler of Object.values(this._programEventHandler)) {
+    for (const handler of Object.values(this._programEventHandler)) {
       const { applicable, phase: updatedPhase, saveEvent, split } = handler.onEvent(event, phase);
-  
+
       /**
        * the event should be split into two events across two different phases
        */
@@ -84,7 +82,6 @@ export class RewardsEventHandler {
         saves.push(saveEvent);
         phase = updatedPhase;
       }
-
     }
     save();
     return { phase, nextPhase };

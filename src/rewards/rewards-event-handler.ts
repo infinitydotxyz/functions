@@ -13,9 +13,15 @@ export class RewardsEventHandler {
 
   constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
-      [TradingFeeProgram.CollectionPot]: {} as any, // TODO
-      [TradingFeeProgram.Raffle]: {} as any, // TODO
-      [TradingFeeProgram.Treasury]: {} as any, // TODO
+      [TradingFeeProgram.CollectionPot]: {
+        onEvent: () => { return {}; }
+      } as any, // TODO
+      [TradingFeeProgram.Raffle]: {
+        onEvent: () => { return {}; }
+      } as any, // TODO
+      [TradingFeeProgram.Treasury]: {
+        onEvent: () => { return {}; }
+      } as any, // TODO
       [TradingFeeProgram.Curators]: new CurationHandler(),
       [TradingFeeProgram.TokenRefund]: new TransactionFeeHandler()
     };
@@ -83,7 +89,7 @@ export class RewardsEventHandler {
         phase = updatedPhase;
       }
     }
-    
+
     phase.lastBlockIncluded = Math.max(phase.lastBlockIncluded, event.blockNumber); 
     const currentFees = phase.details.feesGenerated;
     const feesGeneratedWei = (BigInt(currentFees.feesGeneratedWei) + BigInt(event.protocolFeeWei)).toString();

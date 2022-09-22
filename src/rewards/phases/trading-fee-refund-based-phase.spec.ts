@@ -25,7 +25,7 @@ export const getMockPhaseConfig = ({supply, supplyUsed, rewardRateNumerator} : {
     name: 'Phase 1',
     id: '1',
     index: 0,
-    isActive: true,
+    isActive: false,
     split: TRADING_FEE_SPLIT_PHASE_1_TO_4,
     lastBlockIncluded: 0,
     progress: 0,

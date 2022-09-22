@@ -18,7 +18,7 @@ export const TRADING_FEE_SPLIT_PHASE_5: TradingFeeSplit = {
 const BUYER_PORTION = 0.7;
 const SELLER_PORTION = 0.3;
 
-const getDefaultFeesGenerated = () => ({
+export const getDefaultFeesGenerated = () => ({
   feesGeneratedWei: '0',
   feesGeneratedEth: 0,
   feesGeneratedUSDC: 0

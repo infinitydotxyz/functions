@@ -8,6 +8,7 @@ import { CollectionPotHandler } from './trading-fee-program-handlers/collection-
 import { CurationHandler } from './trading-fee-program-handlers/curation-handler';
 import { RaffleHandler } from './trading-fee-program-handlers/raffle-handler';
 import { TransactionFeeHandler } from './trading-fee-program-handlers/transaction-fee-handler';
+import { TreasuryHandler } from './trading-fee-program-handlers/treasury-handler';
 import { TradingFeeProgramEventHandler } from './types';
 
 export class RewardsEventHandler {
@@ -15,11 +16,9 @@ export class RewardsEventHandler {
 
   constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
-      [TradingFeeProgram.CollectionPot]: new CollectionPotHandler(), // TODO
+      [TradingFeeProgram.CollectionPot]: new CollectionPotHandler(),
       [TradingFeeProgram.Raffle]: new RaffleHandler(),
-      [TradingFeeProgram.Treasury]: {
-        onEvent: () => { return {}; }
-      } as any, // TODO
+      [TradingFeeProgram.Treasury]: new TreasuryHandler(),
       [TradingFeeProgram.Curators]: new CurationHandler(),
       [TradingFeeProgram.TokenRefund]: new TransactionFeeHandler()
     };

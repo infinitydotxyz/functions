@@ -13,13 +13,23 @@ export abstract class TradingFeeDestinationEventHandler extends TradingFeeProgra
     return phase.details.split[this._feeDestinationVariant].percentage;
   }
 
-  protected updateFeesGenerated(feesGeneratedBeforeSale: FeesGeneratedDto, sale: RewardSaleEvent, phase: Phase) {
+  protected updateFeesGenerated(feesGeneratedBeforeSale: FeesGeneratedDto, sale: RewardSaleEvent, phase: Phase): { eventFees: FeesGeneratedDto } {
     const feePercentage = this.getFeePercentage(phase);
-    const totalFeesGeneratedWei = BigInt(feesGeneratedBeforeSale.feesGeneratedWei) + BigInt(sale.protocolFeeWei);
-    const feesGeneratedWei = ((totalFeesGeneratedWei * BigInt(feePercentage)) / BigInt(100)).toString();
+
+    const eventFeesWei = BigInt(sale.protocolFeeWei) * BigInt(feePercentage) / BigInt(100);
+    const eventFees: FeesGeneratedDto = {
+        feesGeneratedWei: eventFeesWei.toString(),
+        feesGeneratedEth: formatEth(eventFeesWei),
+        feesGeneratedUSDC: formatEth(eventFeesWei) * sale.ethPrice
+    }
+    const feesGeneratedWei = (BigInt(feesGeneratedBeforeSale.feesGeneratedWei) + eventFeesWei).toString();
     const feesGeneratedEth = formatEth(feesGeneratedWei);
     feesGeneratedBeforeSale.feesGeneratedWei = feesGeneratedWei;
     feesGeneratedBeforeSale.feesGeneratedEth = feesGeneratedEth;
     feesGeneratedBeforeSale.feesGeneratedUSDC = feesGeneratedEth * sale.ethPrice;
+
+    return {
+        eventFees
+    }
   }
 }

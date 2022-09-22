@@ -44,6 +44,10 @@ export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
     rewardSupplyUsed: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
+  },
+  raffleConfig: {
+    grandPrize: { percentage: 50 },
+    phasePrize: { percentage: 50 },
   }
 };
 
@@ -67,6 +71,10 @@ export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
     rewardSupplyUsed: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
+  },
+  raffleConfig: {
+    grandPrize: { percentage: 50 },
+    phasePrize: { percentage: 50 },
   }
 };
 
@@ -90,6 +98,10 @@ export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
     rewardSupplyUsed: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
+  },
+  raffleConfig: {
+    grandPrize: { percentage: 50 },
+    phasePrize: { percentage: 50 },
   }
 };
 
@@ -113,6 +125,10 @@ export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
     rewardSupplyUsed: 0,
     buyerPortion: BUYER_PORTION,
     sellerPortion: SELLER_PORTION
+  },
+  raffleConfig: {
+    grandPrize: { percentage: 50 },
+    phasePrize: { percentage: 50 },
   }
 };
 
@@ -128,7 +144,8 @@ export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
   raffleFeesGenerated: getDefaultFeesGenerated(),
   collectionPotFeesGenerated: getDefaultFeesGenerated(),
   treasuryFeesGenerated: getDefaultFeesGenerated(),
-  tradingFeeRefund: null // trading fee refund is no longer active
+  tradingFeeRefund: null, // trading fee refund is no longer active
+  raffleConfig: null // raffle is no longer active
 };
 
 export const DEFAULT_PHASES: TokenomicsPhaseDto[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map(

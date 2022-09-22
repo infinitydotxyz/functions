@@ -5,6 +5,7 @@ import { DEFAULT_PHASES } from '../tokenomics/constants';
 import { Phase } from './phases/phase.abstract';
 import { PhaseFactory } from './phases/phase.factory';
 import { CurationHandler } from './trading-fee-program-handlers/curation-handler';
+import { RaffleHandler } from './trading-fee-program-handlers/raffle-handler';
 import { TransactionFeeHandler } from './trading-fee-program-handlers/transaction-fee-handler';
 import { TradingFeeProgramEventHandler } from './types';
 
@@ -16,9 +17,7 @@ export class RewardsEventHandler {
       [TradingFeeProgram.CollectionPot]: {
         onEvent: () => { return {}; }
       } as any, // TODO
-      [TradingFeeProgram.Raffle]: {
-        onEvent: () => { return {}; }
-      } as any, // TODO
+      [TradingFeeProgram.Raffle]: new RaffleHandler(),
       [TradingFeeProgram.Treasury]: {
         onEvent: () => { return {}; }
       } as any, // TODO

@@ -6,12 +6,20 @@ import { TokenomicsPhaseWithTradingFeeRefund, TradingFeeRefundBasedPhase } from 
 
 const ETH_PRICE = 1600;
 const getFeesGenerated = (ethAmount: number) => ({
-    feesGeneratedWei: parseEther(ethAmount.toString()).toString(),
-    feesGeneratedEth: ethAmount,
-    feesGeneratedUSDC: ethAmount * ETH_PRICE
+  feesGeneratedWei: parseEther(ethAmount.toString()).toString(),
+  feesGeneratedEth: ethAmount,
+  feesGeneratedUSDC: ethAmount * ETH_PRICE
 });
 
-export const getMockPhaseConfig = ({supply, supplyUsed, rewardRateNumerator} : {supply: number, supplyUsed: number, rewardRateNumerator?: number}): TokenomicsPhaseWithTradingFeeRefund => {
+export const getMockPhaseConfig = ({
+  supply,
+  supplyUsed,
+  rewardRateNumerator
+}: {
+  supply: number;
+  supplyUsed: number;
+  rewardRateNumerator?: number;
+}): TokenomicsPhaseWithTradingFeeRefund => {
   const tradingFeeRefund: TradingFeeRefundDto = {
     maxReward: Number.POSITIVE_INFINITY,
     rewardRateNumerator: typeof rewardRateNumerator === 'number' ? rewardRateNumerator : 10,
@@ -34,27 +42,31 @@ export const getMockPhaseConfig = ({supply, supplyUsed, rewardRateNumerator} : {
     raffleFeesGenerated: getFeesGenerated(0),
     collectionPotFeesGenerated: getFeesGenerated(0),
     treasuryFeesGenerated: getFeesGenerated(0),
-    tradingFeeRefund: tradingFeeRefund
+    tradingFeeRefund: tradingFeeRefund,
+    raffleConfig: {
+      phasePrize: { percentage: 50 },
+      grandPrize: { percentage: 50 }
+    }
   };
 };
 
 describe('TradingFeeRefundBasedPhase', () => {
   it('should be active if the reward supply used is less than the reward supply', () => {
-    const config = getMockPhaseConfig({supply: 100 + REWARD_BUFFER, supplyUsed: 50});
+    const config = getMockPhaseConfig({ supply: 100 + REWARD_BUFFER, supplyUsed: 50 });
     const phase = new TradingFeeRefundBasedPhase(config);
 
     expect(phase.isActive).toBe(true);
   });
 
   it('should be inactive if the reward supply used is equal to the reward supply', () => {
-    const config = getMockPhaseConfig({supply: 100, supplyUsed: 100});
+    const config = getMockPhaseConfig({ supply: 100, supplyUsed: 100 });
     const phase = new TradingFeeRefundBasedPhase(config);
 
     expect(phase.isActive).toBe(false);
   });
 
   it('should be inactive if the reward supply use is greater than the reward supply', () => {
-    const config = getMockPhaseConfig({supply: 100, supplyUsed: 150});
+    const config = getMockPhaseConfig({ supply: 100, supplyUsed: 150 });
     const phase = new TradingFeeRefundBasedPhase(config);
 
     expect(phase.isActive).toBe(false);

@@ -58,6 +58,10 @@ describe('RewardsEventHandler', () => {
           rewardSupplyUsed: 0,
           buyerPortion: 0.7,
           sellerPortion: 0.3
+        },
+        raffleConfig: {
+            phasePrize: { percentage: 50 },
+            grandPrize: { percentage: 50 }
         }
       },
       {
@@ -81,6 +85,10 @@ describe('RewardsEventHandler', () => {
           rewardSupplyUsed: 0,
           buyerPortion: 0.7,
           sellerPortion: 0.3
+        },
+        raffleConfig: {
+            phasePrize: { percentage: 50 },
+            grandPrize: { percentage: 50 }
         }
       }
     ];

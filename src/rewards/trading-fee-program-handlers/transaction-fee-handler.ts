@@ -4,7 +4,6 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { RewardPhase } from '../reward-phase';
-import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
 
 export class TransactionFeeHandler extends RewardProgramHandler {
   protected _getSaleReward(

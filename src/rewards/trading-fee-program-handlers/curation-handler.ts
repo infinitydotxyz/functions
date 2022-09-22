@@ -9,9 +9,9 @@ import {
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { RewardPhase } from '../reward-phase';
-import { RewardProgramEventHandlerResponse, RewardProgramHandler } from './reward-program-handler.abstract';
+import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
 
-export class CurationHandler extends RewardProgramHandler {
+export class CurationHandler extends TradingFeeProgramEventHandler {
   protected _isApplicable(event: RewardEvent, phase: RewardPhase): boolean {
     if (phase.getRewardProgram(RewardProgram.Curation) !== true) {
       return false;

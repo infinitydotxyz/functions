@@ -1,22 +1,25 @@
 import { ChainId, RewardEvent, RewardProgram } from '@infinityxyz/lib/types/core';
 import { RewardsProgramDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { TradingFeeDestination, TradingFeeProgram } from '../tokenomics/types';
 import { epochs } from './config';
 import { RewardEpoch } from './reward-epoch';
 import { RewardPhase } from './reward-phase';
 import { CurationHandler } from './reward-program-handlers/curation-handler';
-import { NftHandler } from './reward-program-handlers/nft-handler';
 import { TransactionFeeHandler } from './reward-program-handlers/transaction-fee-handler';
-import { RewardProgramEventHandler } from './types';
+import { TradingFeeDestinationEventHandler } from './types';
+
+
 
 export class RewardsEventHandler {
-  protected _programEventHandler: Record<RewardProgram, RewardProgramEventHandler>;
+  protected _programEventHandler: Record<TradingFeeProgram, TradingFeeDestinationEventHandler>;
 
   constructor(protected _db: FirebaseFirestore.Firestore) {
     this._programEventHandler = {
-      [RewardProgram.NftReward]: new NftHandler(),
-      [RewardProgram.TradingFee]: new TransactionFeeHandler(),
-      [RewardProgram.Curation]: new CurationHandler()
+      // [RewardProgram.TradingFee]: new TransactionFeeHandler(),
+      // [RewardProgram.Curation]: new CurationHandler()
+      [TradingFeeDestination.Curators]: new CurationHandler(),
+      [TradingFeeDestination.Raffle]: new TransactionFeeHandler()
     };
   }
 

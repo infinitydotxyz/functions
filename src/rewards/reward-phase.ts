@@ -1,13 +1,16 @@
 import { REWARD_BUFFER } from './constants';
 import { RewardProgram } from '@infinityxyz/lib/types/core';
-import { RewardPhaseDto } from '@infinityxyz/lib/types/dto/rewards';
+import { TokenomicsPhase } from '../tokenomics/types';
 
 export class RewardPhase {
-  constructor(protected _rewardPhase: RewardPhaseDto) {}
+  constructor(protected _rewardPhase: TokenomicsPhase) {}
 
   get isActive(): boolean {
-    const tradingFeeProgram = this._rewardPhase[RewardProgram.TradingFee];
-    if (!tradingFeeProgram) {
+    if(!this._rewardPhase.tradingFeeRefund) {
+      /**
+       * set so that the final phase continues forever 
+       * so that curation continues to be rewarded
+       */ 
       return true;
     }
 

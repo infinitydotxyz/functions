@@ -15,7 +15,6 @@ enum TreasuryIncomeSource {
 interface TreasuryBalanceAddedEvent { 
   chainId: ChainId;
   discriminator: TreasuryEventVariant.BalanceIncrease;
-  description: string;
   timestamp: number;
   isAggregated: boolean;
   contributionWei: string;
@@ -61,7 +60,6 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
         const treasuryEventDoc: TreasuryBalanceAddedEvent = {
           chainId: sale.chainId as ChainId,
           discriminator: TreasuryEventVariant.BalanceIncrease,
-          description: 'Received NFT sale fees',
           contributionWei: eventFees.feesGeneratedWei,
           contributionEth: eventFees.feesGeneratedEth,
           source: TreasuryIncomeSource.NftSale,

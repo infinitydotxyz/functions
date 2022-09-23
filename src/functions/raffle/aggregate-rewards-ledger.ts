@@ -74,7 +74,6 @@ export async function aggregateRaffleRewardsLedger(
       raffleRewards.prizePoolWei = (BigInt(raffleRewards.prizePoolWei) + stats.sum).toString();
       raffleRewards.prizePoolEth = formatEth(raffleRewards.prizePoolWei);
 
-
       if (!hasNextPage) {
         txn.set(rewardsLedgerTriggerRef, { requiresAggregation: false, updatedAt: Date.now() }, { merge: true });
         updatedRequiresAggregation = true;

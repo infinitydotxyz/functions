@@ -2,7 +2,11 @@ export async function paginatedTransaction<T>(
   query: FirebaseFirestore.Query<T>,
   db: FirebaseFirestore.Firestore,
   options: { pageSize: number; maxPages: number },
-  cb: (args: { data: FirebaseFirestore.QuerySnapshot<T>; txn: FirebaseFirestore.Transaction, hasNextPage: boolean }) => Promise<void>
+  cb: (args: {
+    data: FirebaseFirestore.QuerySnapshot<T>;
+    txn: FirebaseFirestore.Transaction;
+    hasNextPage: boolean;
+  }) => Promise<void>
 ) {
   let pagesProcessed = 0;
   let documentsProcessed = 0;
@@ -10,7 +14,7 @@ export async function paginatedTransaction<T>(
   for (let x = 0; x < options.maxPages; x += 1) {
     await db.runTransaction(async (txn) => {
       const items = await txn.get(query.limit(options.pageSize));
-      
+
       if (items.empty) {
         return { pagesProcessed, documentsProcessed, queryEmpty: true };
       }

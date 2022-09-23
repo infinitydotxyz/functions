@@ -19,9 +19,10 @@ class MockTransactionFeeHandler extends TransactionFeeHandler {
     sale: RewardSaleEvent,
     phase: Phase,
     buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
-    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
+    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
+    config: TradingFeeRefundDto
   ) {
-    return this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
+    return this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward, config);
   }
 
   onSale(sale: RewardSaleEvent, phase: Phase) {
@@ -113,7 +114,13 @@ describe('TransactionFeeHandler', () => {
 
     const reward = handler.getSaleReward(sale, tradingRewards);
 
-    const { buyer, seller } = handler.getBuyerAndSellerEvents(sale, phase, reward.buyer, reward.seller);
+    const { buyer, seller } = handler.getBuyerAndSellerEvents(
+      sale,
+      phase,
+      reward.buyer,
+      reward.seller,
+      phase.details.tradingFeeRefund as TradingFeeRefundDto
+    );
 
     expect(buyer.volumeEth).toBeCloseTo(sale.price);
     expect(seller.volumeEth).toBeCloseTo(sale.price);

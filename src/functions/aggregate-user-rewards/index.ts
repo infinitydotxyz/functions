@@ -5,7 +5,7 @@ import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { REGION } from '../../utils/constants';
-// import { aggregateTransactionFeeRewards } from './aggregate-transaction-fee-rewards';
+import { aggregateTransactionFeeRewards } from './aggregate-transaction-fee-rewards';
 
 export const onUserTransactionFeeRewardEvent = functions
   .region(REGION)
@@ -21,13 +21,11 @@ export const onUserTransactionFeeRewardEvent = functions
       return;
     }
 
-    await Promise.resolve();
-    // TODO re-enable and fix
-    // await aggregateTransactionFeeRewards(
-    //   snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
-    //   event.chainId,
-    //   event.userAddress
-    // );
+    await aggregateTransactionFeeRewards(
+      snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
+      event.chainId,
+      event.userAddress
+    );
   });
 
 export const triggerUserTransactionFeeRewardAggregation = functions

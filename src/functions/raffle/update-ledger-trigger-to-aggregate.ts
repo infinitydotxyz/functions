@@ -1,5 +1,5 @@
-import FirestoreBatchHandler from "../../firestore/batch-handler";
-import { RaffleRewardsLedgerTriggerDoc } from "./aggregate-rewards-ledger";
+import FirestoreBatchHandler from '../../firestore/batch-handler';
+import { RaffleRewardsLedgerTriggerDoc } from './aggregate-rewards-ledger';
 
 export async function updateLedgerTriggerToAggregate(
   raffleRef: FirebaseFirestore.DocumentReference,

@@ -1,8 +1,30 @@
-import { RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
+
+enum TreasuryEventVariant {
+  BalanceIncrease = 'BALANCE_INCREASE',
+  BalanceDecrease = 'BALANCE_DECREASE',
+}
+
+enum TreasuryIncomeSource { 
+  NftSale = 'NFT_SALE',
+}
+interface TreasuryBalanceAddedEvent { 
+  chainId: ChainId;
+  discriminator: TreasuryEventVariant.BalanceIncrease;
+  description: string;
+  timestamp: number;
+  isAggregated: boolean;
+  contributionWei: string;
+  contributionEth: number;
+  source: TreasuryIncomeSource;
+  sale: RewardSaleEvent;
+  updatedAt: number;
+  blockNumber: number;
+}
 
 export class TreasuryHandler extends TradingFeeDestinationEventHandler {
   constructor() {
@@ -35,7 +57,22 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
-        // TODO update treasury docs
+        const ref = db.collection('treasury').doc(sale.chainId).collection('treasuryLedger').doc();
+        const treasuryEventDoc: TreasuryBalanceAddedEvent = {
+          chainId: sale.chainId as ChainId,
+          discriminator: TreasuryEventVariant.BalanceIncrease,
+          description: 'Received NFT sale fees',
+          contributionWei: eventFees.feesGeneratedWei,
+          contributionEth: eventFees.feesGeneratedEth,
+          source: TreasuryIncomeSource.NftSale,
+          sale,
+          blockNumber: sale.blockNumber,
+          updatedAt: Date.now(),
+          timestamp: sale.timestamp,
+          isAggregated: false,
+        };
+
+        txn.create(ref, treasuryEventDoc);
       },
       split: undefined
     };

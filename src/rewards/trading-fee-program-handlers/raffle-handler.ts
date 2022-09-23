@@ -19,6 +19,7 @@ export interface RaffleLedgerSale {
   type: RaffleType;
   discriminator: RaffleLedgerEventKind.NftSaleFeeContribution;
   sale: RewardSaleEvent;
+  timestamp: number;
   updatedAt: number;
   chainId: ChainId;
   blockNumber: number;
@@ -133,6 +134,7 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
         stakerContractChainId: sale.chainId as ChainId,
         tokenContractAddress,
         tokenContractChainId,
+        timestamp: sale.timestamp,
         blockNumber: sale.blockNumber,
         isAggregated: false,
         discriminator: RaffleLedgerEventKind.NftSaleFeeContribution

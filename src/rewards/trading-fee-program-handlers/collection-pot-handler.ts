@@ -85,6 +85,7 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
         tokenContractAddress,
         tokenContractChainId,
         blockNumber: sale.blockNumber,
+        timestamp: sale.timestamp,
         isAggregated: false,
         discriminator: RaffleLedgerEventKind.NftSaleFeeContribution
       };

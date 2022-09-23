@@ -19,9 +19,10 @@ class MockTransactionFeeHandler extends TransactionFeeHandler {
     sale: RewardSaleEvent,
     phase: Phase,
     buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
-    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
+    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
+    config: TradingFeeRefundDto
   ) {
-    return this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
+    return this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward, config);
   }
 
   onSale(sale: RewardSaleEvent, phase: Phase) {
@@ -113,7 +114,13 @@ describe('TransactionFeeHandler', () => {
 
     const reward = handler.getSaleReward(sale, tradingRewards);
 
-    const { buyer, seller } = handler.getBuyerAndSellerEvents(sale, phase, reward.buyer, reward.seller);
+    const { buyer, seller } = handler.getBuyerAndSellerEvents(
+      sale,
+      phase,
+      reward.buyer,
+      reward.seller,
+      phase.details.tradingFeeRefund as TradingFeeRefundDto
+    );
 
     expect(buyer.volumeEth).toBeCloseTo(sale.price);
     expect(seller.volumeEth).toBeCloseTo(sale.price);
@@ -130,10 +137,10 @@ describe('TransactionFeeHandler', () => {
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
-    const phaseConfig = getMockPhaseConfig({ supply: 2000, supplyUsed: 0, rewardRateNumerator: 1});
+    const phaseConfig = getMockPhaseConfig({ supply: 2000, supplyUsed: 0, rewardRateNumerator: 1 });
     const phase = new TradingFeeRefundBasedPhase(phaseConfig);
     const tradingRewardsBefore = JSON.parse(JSON.stringify(phase.details.tradingFeeRefund)) as TradingFeeRefundDto;
-    if (!tradingRewardsBefore ) {
+    if (!tradingRewardsBefore) {
       throw new Error('Invalid rewards program');
     }
 
@@ -159,10 +166,10 @@ describe('TransactionFeeHandler', () => {
       price: 2,
       ethPrice: 2000
     } as any as RewardSaleEvent;
-    const phaseConfig = getMockPhaseConfig({ supply: 1999, supplyUsed: 0, rewardRateNumerator: 1});
+    const phaseConfig = getMockPhaseConfig({ supply: 1999, supplyUsed: 0, rewardRateNumerator: 1 });
     const phase = new TradingFeeRefundBasedPhase(phaseConfig);
     const tradingRewardsBefore = JSON.parse(JSON.stringify(phase.details.tradingFeeRefund)) as TradingFeeRefundDto;
-    if (!tradingRewardsBefore ) {
+    if (!tradingRewardsBefore) {
       throw new Error('Invalid rewards program');
     }
 

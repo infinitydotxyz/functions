@@ -11,3 +11,4 @@ export * from './sync-stats-collection-data';
 export * from './update-curation-feed';
 export * from './update-order-status';
 export * from './update-raffle-tickets';
+export * from './treasury';

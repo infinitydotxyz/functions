@@ -47,7 +47,7 @@ export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50 },
-    phasePrize: { percentage: 50 },
+    phasePrize: { percentage: 50 }
   }
 };
 
@@ -74,7 +74,7 @@ export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50 },
-    phasePrize: { percentage: 50 },
+    phasePrize: { percentage: 50 }
   }
 };
 
@@ -101,7 +101,7 @@ export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50 },
-    phasePrize: { percentage: 50 },
+    phasePrize: { percentage: 50 }
   }
 };
 
@@ -128,7 +128,7 @@ export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50 },
-    phasePrize: { percentage: 50 },
+    phasePrize: { percentage: 50 }
   }
 };
 

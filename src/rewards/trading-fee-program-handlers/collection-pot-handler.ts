@@ -1,7 +1,10 @@
-import { RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
+import { getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
+import { RaffleLedgerEventKind, RaffleLedgerSale, RaffleType } from './raffle-handler';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
 export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
@@ -21,7 +24,9 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
     } else if (phase.authority === ProgressAuthority.CollectionPot) {
-      throw new Error('Sale splitting must be implemented for collection pot handler before a collection pot authority can be used');
+      throw new Error(
+        'Sale splitting must be implemented for collection pot handler before a collection pot authority can be used'
+      );
     }
 
     const isApplicable = this._isApplicable(sale, phase);
@@ -35,9 +40,57 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
-        // TODO update collection pot docs
+        const sales = this._transformSaleToCollectionPotSale(sale, phase);
+        for (const sale of sales) {
+          const rafflesRef = db
+            .collection('raffles')
+            .doc(`${sale.stakerContractChainId}:${sale.stakerContractAddress}`)
+            .collection('stakingContractRaffles');
+          const collectionRaffleRef = rafflesRef.doc(`collection:${phase.details.id}`);
+
+          const collectionPrizeRaffleLedgerSale: RaffleLedgerSale = {
+            ...sale,
+            contributionWei: eventFees.feesGeneratedWei,
+            contributionEth: eventFees.feesGeneratedEth
+          };
+
+          const collectionRaffleLedgerEventRef = collectionRaffleRef.collection('raffleRewardsLedger').doc();
+          txn.set(collectionRaffleLedgerEventRef, collectionPrizeRaffleLedgerSale);
+        }
       },
       split: undefined
     };
+  }
+
+  protected _transformSaleToCollectionPotSale(sale: RewardSaleEvent, phase: Phase) {
+    const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
+    const raffleLedgerSales = stakerContracts.map((stakerContract) => {
+      const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+        sale.chainId as ChainId,
+        stakerContract
+      );
+      const raffleLedgerSale: Omit<RaffleLedgerSale, 'contributionWei' | 'contributionEth'> = {
+        type: RaffleType.Collection,
+        sale,
+        phaseName: phase.details.name,
+        phaseId: phase.details.id,
+        phaseIndex: phase.details.index,
+        updatedAt: Date.now(),
+        chainId: sale.chainId as ChainId,
+        buyerAddress: sale.buyer,
+        sellerAddress: sale.seller,
+        collectionAddress: sale.collectionAddress,
+        stakerContractAddress: stakerContract,
+        stakerContractChainId: sale.chainId as ChainId,
+        tokenContractAddress,
+        tokenContractChainId,
+        blockNumber: sale.blockNumber,
+        timestamp: sale.timestamp,
+        isAggregated: false,
+        discriminator: RaffleLedgerEventKind.NftSaleFeeContribution
+      };
+      return raffleLedgerSale;
+    });
+    return raffleLedgerSales;
   }
 }

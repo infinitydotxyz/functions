@@ -13,15 +13,19 @@ export abstract class TradingFeeDestinationEventHandler extends TradingFeeProgra
     return phase.details.split[this._feeDestinationVariant].percentage;
   }
 
-  protected updateFeesGenerated(feesGeneratedBeforeSale: FeesGeneratedDto, sale: RewardSaleEvent, phase: Phase): { eventFees: FeesGeneratedDto } {
+  protected updateFeesGenerated(
+    feesGeneratedBeforeSale: FeesGeneratedDto,
+    sale: RewardSaleEvent,
+    phase: Phase
+  ): { eventFees: FeesGeneratedDto } {
     const feePercentage = this.getFeePercentage(phase);
 
-    const eventFeesWei = BigInt(sale.protocolFeeWei) * BigInt(feePercentage) / BigInt(100);
+    const eventFeesWei = (BigInt(sale.protocolFeeWei) * BigInt(feePercentage)) / BigInt(100);
     const eventFees: FeesGeneratedDto = {
-        feesGeneratedWei: eventFeesWei.toString(),
-        feesGeneratedEth: formatEth(eventFeesWei),
-        feesGeneratedUSDC: formatEth(eventFeesWei) * sale.ethPrice
-    }
+      feesGeneratedWei: eventFeesWei.toString(),
+      feesGeneratedEth: formatEth(eventFeesWei),
+      feesGeneratedUSDC: formatEth(eventFeesWei) * sale.ethPrice
+    };
     const feesGeneratedWei = (BigInt(feesGeneratedBeforeSale.feesGeneratedWei) + eventFeesWei).toString();
     const feesGeneratedEth = formatEth(feesGeneratedWei);
     feesGeneratedBeforeSale.feesGeneratedWei = feesGeneratedWei;
@@ -29,7 +33,7 @@ export abstract class TradingFeeDestinationEventHandler extends TradingFeeProgra
     feesGeneratedBeforeSale.feesGeneratedUSDC = feesGeneratedEth * sale.ethPrice;
 
     return {
-        eventFees
-    }
+      eventFees
+    };
   }
 }

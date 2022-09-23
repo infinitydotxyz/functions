@@ -21,14 +21,29 @@ export const updateRaffleTickets = functions
     ) as FirebaseFirestore.CollectionReference<RewardsProgramDto>;
     const rewardSnap = await query.get();
     /**
+     * OLD
      * raffleTickets
      *  - {stakerChainId:stakerContractAddress}
      *    - raffleTicketPhases
      *      - {phaseId} { phase, epoch, numTickets, uniqueUsers, updatedAt, chainId, stakerContractAddress, blockNumber }
      *          - raffleTicketPhaseUsers
      *              - {userAddress} { userAddress: string; numTickets: number; chainId: ChainId; stakerContractAddress: string; blockNumber: number; phase: Phase; epoch: Epoch; volumeUSDC: number; chanceOfWinning: number; rank: number;}
+     *
+     * NEW
+     * raffles
+     *   {stakerChainId:stakerContractAddress}
+     *       stakingContractRaffles
+     *           {raffleId} // { type: userRaffle | collectionRaffle, chainId, state, raffleContractAddress, raffleContractChainId, isActive, id, complication: { stakerContractAddress, stakerContractChainId, phase }, winners?: [{address, prize, winningTicketNumber, } ] }
+     *               raffleEntrants
+     *                   {ticket holder address} // collection or user - stores if aggregated or not
+     *                       raffleEntrantLedger
+     *                           {ledgerEvent} // raffle => listings, offers, sales. collection => { userAddress, vote: 1, stakeLevel, blockNumber }
+     *                raffleTotals
+     *                    {raffleRewards} // can be used to track progress of the raffle rewards in real time
+     *                    {raffleTicketTotals} // contains the total number of tickets and total number of unique users involved
+     *                raffleRewardsLedger
+     *                    {eventId} //
      */
-
     for (const rewardProgramDoc of rewardSnap.docs) {
       const rewardProgram = rewardProgramDoc.data();
       if (rewardProgram) {

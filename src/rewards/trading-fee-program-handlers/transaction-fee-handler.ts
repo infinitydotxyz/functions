@@ -75,11 +75,11 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
     const phaseSupplyRemaining = config.rewardSupply - config.rewardSupplyUsed;
 
     if (reward <= phaseSupplyRemaining) {
-      const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward);
+      const { buyer, seller } = this._getBuyerAndSellerEvents(sale, phase, buyerReward, sellerReward, config);
       config.rewardSupplyUsed += reward;
-      
+
       // update phase progress - should only be done by phase authority
-      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6); 
+      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6);
       return {
         applicable: true,
         phase,
@@ -149,7 +149,8 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
     sale: RewardSaleEvent,
     phase: Phase,
     buyerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
-    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number }
+    sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
+    config: TradingFeeRefundDto
   ): { buyer: TransactionFeeRewardDoc; seller: TransactionFeeRewardDoc } {
     const base = {
       sale,
@@ -163,7 +164,11 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
       volumeWei: parseEther(sale.price.toString()).toString(),
       volumeEth: sale.price,
       volumeUSDC: sale.price * sale.ethPrice,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      config,
+      phaseId: phase.details.id,
+      phaseName: phase.details.name,
+      phaseIndex: phase.details.index
     };
 
     const buyer: TransactionFeeRewardDoc = {

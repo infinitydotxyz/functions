@@ -1,8 +1,35 @@
-import { RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
+import { formatEth, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
+
+enum RaffleLedgerEventKind {
+  NftSaleFeeContribution = 'NftSaleContribution'
+}
+
+interface RaffleLedgerSale {
+  discriminator: RaffleLedgerEventKind.NftSaleFeeContribution;
+  sale: RewardSaleEvent;
+  updatedAt: number;
+  chainId: ChainId;
+  blockNumber: number;
+  isAggregated: boolean;
+  phaseName: string;
+  phaseId: string;
+  phaseIndex: number;
+  buyerAddress: string;
+  sellerAddress: string;
+  collectionAddress: string;
+  stakerContractAddress: string;
+  stakerContractChainId: ChainId;
+  tokenContractAddress: string;
+  tokenContractChainId: ChainId;
+  contributionWei: string;
+  contributionEth: number;
+}
 
 export class RaffleHandler extends TradingFeeDestinationEventHandler {
   constructor() {
@@ -13,7 +40,6 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
     if (this.getFeePercentage(phase) > 0) {
       return true;
     }
-
     return false;
   }
 
@@ -34,16 +60,79 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
     const phasePrizePercent = phase.details.raffleConfig?.phasePrize?.percentage ?? 0;
     const grandPrizePercent = phase.details.raffleConfig?.grandPrize?.percentage ?? 0;
 
-    const phasePrize = (BigInt(eventFees.feesGeneratedWei) * BigInt(phasePrizePercent)) / BigInt(100);
-    const grandPrize = (BigInt(eventFees.feesGeneratedWei) * BigInt(grandPrizePercent)) / BigInt(100);
+    const phasePrizeContribution = (
+      (BigInt(eventFees.feesGeneratedWei) * BigInt(phasePrizePercent)) /
+      BigInt(100)
+    ).toString();
+    const grandPrizeContribution = (
+      (BigInt(eventFees.feesGeneratedWei) * BigInt(grandPrizePercent)) /
+      BigInt(100)
+    ).toString();
 
     return {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
-        // TODO update raffle docs
+        const sales = this._transformSaleToRaffleLedgerSale(sale, phase);
+        for (const sale of sales) {
+          const rafflesRef = db
+            .collection('raffle')
+            .doc(`${sale.stakerContractChainId}:${sale.stakerContractAddress}`)
+            .collection('raffles');
+          const phaseRaffleRef = rafflesRef.doc(phase.details.id);
+          const grandPrizeRaffleRef = rafflesRef.doc('grandPrize');
+
+          const phaseRaffleLedgerSale: RaffleLedgerSale = {
+            ...sale,
+            contributionWei: phasePrizeContribution.toString(),
+            contributionEth: formatEth(phasePrizeContribution.toString())
+          };
+
+          const grandPrizeRaffleLedgerSale: RaffleLedgerSale = {
+            ...sale,
+            contributionWei: grandPrizeContribution.toString(),
+            contributionEth: formatEth(grandPrizeContribution.toString())
+          };
+
+          // TODO should we update the entrant rewards ledger? how do we want to calculate user volume for the ticket calculation?
+          const phaseRaffleLedgerEventRef = phaseRaffleRef.collection('raffleTotalsLedger').doc();
+          const grandPrizeRaffleLedgerEventRef = grandPrizeRaffleRef.collection('raffleTotalsLedger').doc();
+          txn.set(phaseRaffleLedgerEventRef, phaseRaffleLedgerSale);
+          txn.set(grandPrizeRaffleLedgerEventRef, grandPrizeRaffleLedgerSale);
+        }
       },
       split: undefined
     };
+  }
+
+  protected _transformSaleToRaffleLedgerSale(sale: RewardSaleEvent, phase: Phase) {
+    const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
+    const raffleLedgerSales = stakerContracts.map((stakerContract) => {
+      const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+        sale.chainId as ChainId,
+        stakerContract
+      );
+      const raffleLedgerSale: Omit<RaffleLedgerSale, 'contributionWei' | 'contributionEth'> = {
+        sale,
+        phaseName: phase.details.name,
+        phaseId: phase.details.id,
+        phaseIndex: phase.details.index,
+        updatedAt: Date.now(),
+        chainId: sale.chainId as ChainId,
+        buyerAddress: sale.buyer,
+        sellerAddress: sale.seller,
+        collectionAddress: sale.collectionAddress,
+        stakerContractAddress: stakerContract,
+        stakerContractChainId: sale.chainId as ChainId,
+        tokenContractAddress,
+        tokenContractChainId,
+        blockNumber: sale.blockNumber,
+        isAggregated: false,
+        discriminator: RaffleLedgerEventKind.NftSaleFeeContribution
+      };
+      return raffleLedgerSale;
+    });
+
+    return raffleLedgerSales;
   }
 }

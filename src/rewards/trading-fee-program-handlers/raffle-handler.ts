@@ -6,11 +6,17 @@ import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
-enum RaffleLedgerEventKind {
-  NftSaleFeeContribution = 'NftSaleContribution'
+export enum RaffleLedgerEventKind {
+  NftSaleFeeContribution = 'NFT_SALE_FEE_CONTRIBUTION'
 }
 
-interface RaffleLedgerSale {
+export enum RaffleType { 
+    User = 'USER',
+    Collection = 'COLLECTION',  
+}
+
+export interface RaffleLedgerSale {
+  type: RaffleType;
   discriminator: RaffleLedgerEventKind.NftSaleFeeContribution;
   sale: RewardSaleEvent;
   updatedAt: number;
@@ -113,6 +119,7 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
         stakerContract
       );
       const raffleLedgerSale: Omit<RaffleLedgerSale, 'contributionWei' | 'contributionEth'> = {
+        type: RaffleType.User,
         sale,
         phaseName: phase.details.name,
         phaseId: phase.details.id,

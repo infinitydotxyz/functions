@@ -6,6 +6,7 @@ import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
+// TODO move types to lib
 export enum RaffleLedgerEventKind {
   NftSaleFeeContribution = 'NFT_SALE_FEE_CONTRIBUTION'
 }

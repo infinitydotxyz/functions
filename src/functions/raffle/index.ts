@@ -5,11 +5,10 @@ import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 import { REGION } from '../../utils/constants';
-import { RaffleRewardsLedgerTriggerDoc } from './aggregate-rewards-ledger';
+import { RaffleRewardsLedgerTriggerDoc } from './types';
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
 
 /**
- * NEW
  * raffles
  *   {stakerChainId:stakerContractAddress}
  *       stakingContractRaffles

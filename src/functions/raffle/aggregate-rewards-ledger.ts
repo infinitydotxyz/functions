@@ -1,34 +1,7 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, formatEth } from '@infinityxyz/lib/utils';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
-import { RaffleLedgerSale, RaffleType } from '../../rewards/trading-fee-program-handlers/raffle-handler';
-
-export interface RaffleRewardsLedgerTriggerDoc {
-  requiresAggregation: boolean;
-  updatedAt: number;
-}
-
-export interface RaffleRewardsDoc {
-  stakerContractAddress: string;
-  stakerContractChainId: ChainId;
-  tokenContractAddress: string;
-  tokenContractChainId: ChainId;
-  type: RaffleType;
-  updatedAt: number;
-  chainId: ChainId;
-  phaseName: string;
-  phaseId: string;
-  phaseIndex: number;
-  prizePoolWei: string;
-  prizePoolEth: number;
-}
-
-/**
- * 3 handlers -
- * 1. scope (single doc) on item created in rewards ledger - triggers aggregation on ledger
- * 2. runs every 15 min to check for unaggregated rewards - triggers aggregation
- * 3. scope (single doc) on raffle ledger trigger - aggregates rewards
- */
+import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
+import { RaffleRewardsDoc, RaffleRewardsLedgerTriggerDoc } from './types';
 
 export async function aggregateRaffleRewardsLedger(
   rewardsLedger: FirebaseFirestore.CollectionReference<RaffleLedgerSale>,

@@ -4,21 +4,24 @@ import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
-enum TreasuryEventVariant {
+export enum TreasuryEventVariant {
   BalanceIncrease = 'BALANCE_INCREASE',
   BalanceDecrease = 'BALANCE_DECREASE',
 }
 
-enum TreasuryIncomeSource { 
+export enum TreasuryIncomeSource { 
   NftSale = 'NFT_SALE',
 }
-interface TreasuryBalanceAddedEvent { 
+export interface TreasuryBalanceAddedEvent { 
   chainId: ChainId;
   discriminator: TreasuryEventVariant.BalanceIncrease;
   timestamp: number;
   isAggregated: boolean;
   contributionWei: string;
   contributionEth: number;
+  phaseName: string;
+  phaseId: string;
+  phaseIndex: number;
   source: TreasuryIncomeSource;
   sale: RewardSaleEvent;
   updatedAt: number;
@@ -58,6 +61,9 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
       saveEvent: (txn, db) => {
         const ref = db.collection('treasury').doc(sale.chainId).collection('treasuryLedger').doc();
         const treasuryEventDoc: TreasuryBalanceAddedEvent = {
+          phaseId: phase.details.id,
+          phaseIndex: phase.details.index,
+          phaseName: phase.details.name,
           chainId: sale.chainId as ChainId,
           discriminator: TreasuryEventVariant.BalanceIncrease,
           contributionWei: eventFees.feesGeneratedWei,

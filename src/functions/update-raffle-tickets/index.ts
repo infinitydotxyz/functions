@@ -39,6 +39,8 @@ export const updateRaffleTickets = functions
      *                raffleTotals
      *                    {raffleRewards} // can be used to track progress of the raffle rewards in real time
      *                    {raffleTicketTotals} // contains the total number of tickets and total number of unique users involved
+     *                raffleTotalsLedger 
+     *                    {eventId} // 
      */
     for (const rewardProgramDoc of rewardSnap.docs) {
       const rewardProgram = rewardProgramDoc.data();

@@ -1,4 +1,3 @@
-
 export async function paginatedTransaction<T>(
   query: FirebaseFirestore.Query<T>,
   db: FirebaseFirestore.Firestore,

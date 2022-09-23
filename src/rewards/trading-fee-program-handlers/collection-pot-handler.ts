@@ -43,9 +43,9 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
         const sales = this._transformSaleToCollectionPotSale(sale, phase);
         for (const sale of sales) {
           const rafflesRef = db
-            .collection('raffle')
+            .collection('raffles')
             .doc(`${sale.stakerContractChainId}:${sale.stakerContractAddress}`)
-            .collection('raffles');
+            .collection('stakingContractRaffles');
           const collectionRaffleRef = rafflesRef.doc(`collection:${phase.details.id}`);
 
           const collectionPrizeRaffleLedgerSale: RaffleLedgerSale = {
@@ -54,7 +54,7 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
             contributionEth: eventFees.feesGeneratedEth
           };
 
-          const collectionRaffleLedgerEventRef = collectionRaffleRef.collection('raffleTotalsLedger').doc();
+          const collectionRaffleLedgerEventRef = collectionRaffleRef.collection('raffleRewardsLedger').doc();
           txn.set(collectionRaffleLedgerEventRef, collectionPrizeRaffleLedgerSale);
         }
       },

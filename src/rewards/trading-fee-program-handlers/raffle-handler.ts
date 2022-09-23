@@ -10,9 +10,9 @@ export enum RaffleLedgerEventKind {
   NftSaleFeeContribution = 'NFT_SALE_FEE_CONTRIBUTION'
 }
 
-export enum RaffleType { 
-    User = 'USER',
-    Collection = 'COLLECTION',  
+export enum RaffleType {
+  User = 'USER',
+  Collection = 'COLLECTION'
 }
 
 export interface RaffleLedgerSale {
@@ -82,9 +82,9 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
         const sales = this._transformSaleToRaffleLedgerSale(sale, phase);
         for (const sale of sales) {
           const rafflesRef = db
-            .collection('raffle')
+            .collection('raffles')
             .doc(`${sale.stakerContractChainId}:${sale.stakerContractAddress}`)
-            .collection('raffles');
+            .collection('stakingContractRaffles');
           const phaseRaffleRef = rafflesRef.doc(phase.details.id);
           const grandPrizeRaffleRef = rafflesRef.doc('grandPrize');
 
@@ -101,8 +101,8 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
           };
 
           // TODO should we update the entrant rewards ledger? how do we want to calculate user volume for the ticket calculation?
-          const phaseRaffleLedgerEventRef = phaseRaffleRef.collection('raffleTotalsLedger').doc();
-          const grandPrizeRaffleLedgerEventRef = grandPrizeRaffleRef.collection('raffleTotalsLedger').doc();
+          const phaseRaffleLedgerEventRef = phaseRaffleRef.collection('raffleRewardsLedger').doc();
+          const grandPrizeRaffleLedgerEventRef = grandPrizeRaffleRef.collection('raffleRewardsLedger').doc();
           txn.set(phaseRaffleLedgerEventRef, phaseRaffleLedgerSale);
           txn.set(grandPrizeRaffleLedgerEventRef, grandPrizeRaffleLedgerSale);
         }

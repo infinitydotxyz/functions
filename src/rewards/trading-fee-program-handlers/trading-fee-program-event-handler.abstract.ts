@@ -7,7 +7,7 @@ import {
 } from '../types';
 
 export abstract class TradingFeeProgramEventHandler implements ITradingFeeProgramEventHandler {
-  constructor(protected readonly _variant: TradingFeeProgram) {};
+  constructor(protected readonly _variant: TradingFeeProgram) {}
 
   onEvent(event: RewardEvent, phase: Phase): TradingFeeEventHandlerResponse {
     if ('txHash' in event && 'price' in event && 'buyer' in event && 'seller' in event) {
@@ -30,6 +30,4 @@ export abstract class TradingFeeProgramEventHandler implements ITradingFeeProgra
       split: undefined
     };
   }
-
-
 }

@@ -10,7 +10,7 @@ import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
-import { TradingFeeDestinationEventHandler} from './trading-fee-destination-event-handler.abstract';
+import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
 export class CurationHandler extends TradingFeeDestinationEventHandler {
   constructor() {

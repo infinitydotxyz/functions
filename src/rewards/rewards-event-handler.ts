@@ -1,7 +1,8 @@
 import { ChainId, RewardEvent } from '@infinityxyz/lib/types/core';
 import { FeesGeneratedDto, TokenomicsConfigDto, TradingFeeProgram } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
-import { DEFAULT_PHASES } from '../tokenomics/constants';
+import { DEFAULT_PHASES } from './config';
+
 import { Phase } from './phases/phase.abstract';
 import { PhaseFactory } from './phases/phase.factory';
 import { CollectionPotHandler } from './trading-fee-program-handlers/collection-pot-handler';
@@ -87,7 +88,7 @@ export class RewardsEventHandler {
       }
     }
 
-    phase.lastBlockIncluded = Math.max(phase.lastBlockIncluded, event.blockNumber); 
+    phase.lastBlockIncluded = Math.max(phase.lastBlockIncluded, event.blockNumber);
     const currentFees = phase.details.feesGenerated;
     const feesGeneratedWei = (BigInt(currentFees.feesGeneratedWei) + BigInt(event.protocolFeeWei)).toString();
     const feesGeneratedEth = formatEth(feesGeneratedWei);
@@ -95,7 +96,7 @@ export class RewardsEventHandler {
       feesGeneratedWei: feesGeneratedWei,
       feesGeneratedEth: feesGeneratedEth,
       feesGeneratedUSDC: feesGeneratedEth * event.ethPrice
-    }
+    };
     phase.details.feesGenerated = newFees;
 
     save();

@@ -6,13 +6,13 @@ import { TradingFeeDestinationEventHandler } from './trading-fee-destination-eve
 
 export enum TreasuryEventVariant {
   BalanceIncrease = 'BALANCE_INCREASE',
-  BalanceDecrease = 'BALANCE_DECREASE',
+  BalanceDecrease = 'BALANCE_DECREASE'
 }
 
-export enum TreasuryIncomeSource { 
-  NftSale = 'NFT_SALE',
+export enum TreasuryIncomeSource {
+  NftSale = 'NFT_SALE'
 }
-export interface TreasuryBalanceAddedEvent { 
+export interface TreasuryBalanceAddedEvent {
   chainId: ChainId;
   discriminator: TreasuryEventVariant.BalanceIncrease;
   timestamp: number;
@@ -45,7 +45,9 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
     } else if (phase.authority === ProgressAuthority.Treasury) {
-      throw new Error('Sale splitting must be implemented for treasury handler before a treasury authority can be used');
+      throw new Error(
+        'Sale splitting must be implemented for treasury handler before a treasury authority can be used'
+      );
     }
 
     const isApplicable = this._isApplicable(sale, phase);
@@ -73,7 +75,7 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
           blockNumber: sale.blockNumber,
           updatedAt: Date.now(),
           timestamp: sale.timestamp,
-          isAggregated: false,
+          isAggregated: false
         };
 
         txn.create(ref, treasuryEventDoc);

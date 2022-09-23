@@ -1,6 +1,6 @@
 import { TokenomicsPhaseDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { parseEther } from 'ethers/lib/utils';
-import { TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../../tokenomics/constants';
+import { TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../config';
 import { ContinuousPhase } from './continuous-phase';
 import { PhaseFactory } from './phase.factory';
 import { TradingFeeRefundBasedPhase } from './trading-fee-refund-based-phase';

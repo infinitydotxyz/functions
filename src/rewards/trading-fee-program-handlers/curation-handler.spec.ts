@@ -13,7 +13,7 @@ class MockCurationHandler extends CurationHandler {
 
 describe('CurationHandler', () => {
   it('should return applicable if the phase has curation enabled', () => {
-    const phaseConfig = getMockPhaseConfig({supply: 100, supplyUsed: 0});
+    const phaseConfig = getMockPhaseConfig({ supply: 100, supplyUsed: 0 });
     phaseConfig.split[TradingFeeDestination.Curators] = { percentage: 0.5 };
     const phase = new TradingFeeRefundBasedPhase(phaseConfig);
 
@@ -23,7 +23,7 @@ describe('CurationHandler', () => {
   });
 
   it('should return not applicable if the phase does not have curation enabled', () => {
-    const phaseConfig = getMockPhaseConfig({supply: 100, supplyUsed: 0});
+    const phaseConfig = getMockPhaseConfig({ supply: 100, supplyUsed: 0 });
     phaseConfig.split[TradingFeeDestination.Curators] = { percentage: 0 };
     const phase = new TradingFeeRefundBasedPhase(phaseConfig);
 

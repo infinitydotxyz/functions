@@ -32,14 +32,15 @@
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
     "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
     "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts",
-    "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts"
+    "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts",
+    "re:agg": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reaggregate-curation.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.208.2",
+    "@infinityxyz/lib": "^1.209.1",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

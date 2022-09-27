@@ -1,10 +1,12 @@
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { TransactionFeePhaseRewardsDoc } from '@infinityxyz/lib/types/core';
+import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 import { REGION } from '../../utils/constants';
+import { saveTxnFees } from './save-txn-fees';
 import { RaffleRewardsLedgerTriggerDoc } from './types';
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
 
@@ -12,11 +14,11 @@ import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggre
  * raffles
  *   {stakerChainId:stakerContractAddress}
  *       stakingContractRaffles
- *           {raffleId} // { type: userRaffle | collectionRaffle, chainId, state, raffleContractAddress, raffleContractChainId, isActive, id, complication: { stakerContractAddress, stakerContractChainId, phase }, winners?: [{address, prize, winningTicketNumber, } ] }
- *               raffleEntrants
+ *           {raffleId} // { type: userRaffle | collectionRaffle, chainId, state, raffleContractAddress, raffleContractChainId, id, complication: { stakerContractAddress, stakerContractChainId, phase }, winners?: [{address, prize, winningTicketNumber, } ] }
+ *                raffleEntrants
  *                   {ticket holder address} // collection or user - stores if aggregated or not
  *                       raffleEntrantLedger
- *                           {ledgerEvent} // raffle => listings, offers, sales. collection => { userAddress, vote: 1, stakeLevel, blockNumber }
+ *                           {ledgerEvent} // raffle => listings, offers, phase rewards
  *                raffleTotals
  *                    {raffleRewards} // can be used to track progress of the raffle rewards in real time
  *                    {raffleTicketTotals} // contains the total number of tickets and total number of unique users involved
@@ -25,6 +27,8 @@ import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggre
  *                raffleRewardsLedger
  *                    {eventId} //
  */
+
+// TODO initialize raffles for staker contracts and backfill events?
 
 /**
  * mark the trigger to aggregate the rewards
@@ -100,4 +104,49 @@ export const triggerRaffleRewardsAggregationBackup = functions
     }
 
     await batch.flush();
+  });
+
+export const copyTxnFeeRewardsToRaffleEntrants = functions
+  .region(REGION)
+  .firestore.document(
+    `${firestoreConstants.USERS_COLL}/{user}/${firestoreConstants.USER_REWARDS_COLL}/{chainId}/${firestoreConstants.USER_REWARD_PHASES_COLL}/{phase}`
+  )
+  .onWrite(async (change) => {
+    const after = change.after.data() as TransactionFeePhaseRewardsDoc;
+
+    if (!after) {
+      return;
+    }
+
+    if (!after.isCopiedToRaffles) {
+      await saveTxnFees(
+        change.after.ref.firestore,
+        change.after.ref as FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>
+      );
+    }
+  });
+
+export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .pubsub.schedule('every 10 minutes')
+  .onRun(async () => {
+    const db = getDb();
+    const maxAge = 15 * ONE_MIN;
+    const phaseUserTxnFeeRewardsQuery = db
+      .collectionGroup(firestoreConstants.USER_REWARD_PHASES_COLL)
+      .where('isCopiedToRaffles', '==', false)
+      .where('updatedAt', '<', Date.now() - maxAge) as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
+    const phaseStream = streamQueryWithRef(phaseUserTxnFeeRewardsQuery, (_, ref) => [ref], { pageSize: 300 });
+
+    const batchHandler = new FirestoreBatchHandler();
+
+    // trigger function to copy docs to raffle entrants
+    for await (const { ref } of phaseStream) {
+      await batchHandler.addAsync(ref, { updatedAt: Date.now() }, { merge: true });
+    }
+
+    await batchHandler.flush();
   });

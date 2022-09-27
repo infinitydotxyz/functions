@@ -28,7 +28,7 @@ export async function aggregateRaffleRewardsLedger(
       const stats = calculateStatsBigInt(contributions, ({ contributionWei }) => BigInt(contributionWei));
 
       if (!raffleRewards) {
-        raffleRewards = {
+        const initRewards: RaffleRewardsDoc = {
           stakerContractAddress: contributions[0].stakerContractAddress,
           stakerContractChainId: contributions[0].stakerContractChainId,
           tokenContractAddress: contributions[0].tokenContractAddress,
@@ -36,12 +36,11 @@ export async function aggregateRaffleRewardsLedger(
           type: contributions[0].type,
           updatedAt: Date.now(),
           chainId: contributions[0].chainId,
-          phaseName: contributions[0].phaseName,
-          phaseId: contributions[0].phaseId,
-          phaseIndex: contributions[0].phaseIndex,
           prizePoolWei: '0',
           prizePoolEth: 0
-        } as RaffleRewardsDoc;
+        };
+
+        raffleRewards = initRewards;
       }
 
       raffleRewards.prizePoolWei = (BigInt(raffleRewards.prizePoolWei) + stats.sum).toString();

@@ -126,7 +126,8 @@ export async function aggregateTransactionFeeRewards(
           protocolFeesWei: '0',
           protocolFeesEth: 0,
           protocolFeesUSDC: 0,
-          config: item.rewards?.[0]?.config
+          config: item.rewards?.[0]?.config,
+          isCopiedToRaffles: false
         };
 
         return {
@@ -144,22 +145,8 @@ export async function aggregateTransactionFeeRewards(
         const protocolFeeEthToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesEth).sum;
         const protocolFeeUSDCToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesUSDC).sum;
 
-        const { sells: sellsToAdd, buys: buysToAdd } = rewardEvents.reduce(
-          (acc, event) => {
-            const isSeller = event.userAddress === event.sale.seller;
-            if (isSeller) {
-              return {
-                sells: acc.sells + 1,
-                buys: acc.buys
-              };
-            }
-            return {
-              sells: acc.sells,
-              buys: acc.buys + 1
-            };
-          },
-          { sells: 0, buys: 0 }
-        );
+        const { sells: sellsToAdd, buys: buysToAdd } = countBuysAndSells(rewardEvents);
+
         const rewards = (data?.rewards ?? 0) + rewardsToAdd;
         const volumeEth = (data?.volumeEth ?? 0) + volumeToAdd;
         const volumeWei = (BigInt(data?.volumeWei ?? '0') + BigInt(volumeWeiToAdd)).toString();
@@ -194,7 +181,8 @@ export async function aggregateTransactionFeeRewards(
           protocolFeesUSDC,
           userSells,
           userBuys,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
+          isCopiedToRaffles: false
         };
         txn.set(ref, update, { merge: true });
       }
@@ -209,4 +197,25 @@ export async function aggregateTransactionFeeRewards(
       txn.set(allTimeDocRef, { ...allTimeRewards, updatedAt: Date.now() }, { merge: true });
     }
   );
+}
+
+function countBuysAndSells(events: TransactionFeeRewardDoc[]) {
+  const { sells, buys } = events.reduce(
+    (acc, event) => {
+      const isSeller = event.userAddress === event.sale.seller;
+      if (isSeller) {
+        return {
+          sells: acc.sells + 1,
+          buys: acc.buys
+        };
+      }
+      return {
+        sells: acc.sells,
+        buys: acc.buys + 1
+      };
+    },
+    { sells: 0, buys: 0 }
+  );
+
+  return { sells, buys };
 }

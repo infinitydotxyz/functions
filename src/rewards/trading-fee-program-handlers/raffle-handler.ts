@@ -7,7 +7,7 @@ import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
 // TODO move types to lib
-export enum RaffleLedgerEventKind {
+export enum RaffleLedgerEventVariant {
   NftSaleFeeContribution = 'NFT_SALE_FEE_CONTRIBUTION'
 }
 
@@ -18,7 +18,7 @@ export enum RaffleType {
 
 export interface RaffleLedgerSale {
   type: RaffleType;
-  discriminator: RaffleLedgerEventKind.NftSaleFeeContribution;
+  discriminator: RaffleLedgerEventVariant.NftSaleFeeContribution;
   sale: RewardSaleEvent;
   timestamp: number;
   updatedAt: number;
@@ -138,7 +138,7 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
         timestamp: sale.timestamp,
         blockNumber: sale.blockNumber,
         isAggregated: false,
-        discriminator: RaffleLedgerEventKind.NftSaleFeeContribution
+        discriminator: RaffleLedgerEventVariant.NftSaleFeeContribution
       };
       return raffleLedgerSale;
     });

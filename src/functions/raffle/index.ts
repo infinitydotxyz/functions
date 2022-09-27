@@ -134,7 +134,7 @@ export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
   .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
     const db = getDb();
-    const maxAge = 15 * ONE_MIN;
+    const maxAge = 5 * ONE_MIN;
     const phaseUserTxnFeeRewardsQuery = db
       .collectionGroup(firestoreConstants.USER_REWARD_PHASES_COLL)
       .where('isCopiedToRaffles', '==', false)

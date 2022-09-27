@@ -50,7 +50,7 @@ function getEntrantFeesLedgerItem(txnFees: TransactionFeePhaseRewardsDoc): Entra
     phaseName: txnFees.phaseName,
     phaseIndex: txnFees.phaseIndex,
     chainId: txnFees.chainId,
-    userAddress: txnFees.userAddress,
+    entrantAddress: txnFees.userAddress,
     volumeEth: txnFees.volumeEth,
     volumeUSDC: txnFees.volumeUSDC,
     volumeWei: txnFees.volumeWei,

@@ -1,4 +1,5 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, CollectionDisplayData, UserDisplayData } from '@infinityxyz/lib/types/core';
+import { ONE_WEEK } from '@infinityxyz/lib/utils';
 import { RaffleType } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 
 export interface RaffleRewardsLedgerTriggerDoc {
@@ -61,27 +62,130 @@ export interface StakingContractRaffle {
   name: string;
 }
 
+export interface UserRaffleConfig {
+  listing: {
+    maxPercentAboveFloor: number;
+    minTimeValid: number;
+    ticketMultiplier: number;
+  };
+  offer: {
+    maxPercentBelowFloor: number;
+    minTimeValid: number;
+    ticketMultiplier: number;
+  };
+}
+
+export interface UserRaffle extends StakingContractRaffle {
+  config: UserRaffleConfig;
+}
+
+export const DEFAULT_USER_RAFFLE_CONFIG = {
+  listing: {
+    maxPercentAboveFloor: 5,
+    minTimeValid: ONE_WEEK,
+    ticketMultiplier: 100
+  },
+  offer: {
+    maxPercentBelowFloor: 0,
+    minTimeValid: ONE_WEEK,
+    ticketMultiplier: 500
+  }
+};
+
 export enum EntrantLedgerItemVariant {
   TransactionStats = 'TRANSACTION_STATS',
   Offer = 'OFFER',
   Listing = 'LISTING'
 }
 
-export interface EntrantFeesLedgerItem {
+export interface EntrantLedgerItemBase {
   discriminator: EntrantLedgerItemVariant;
+  chainId: ChainId;
+  updatedAt: number;
+  isAggregated: boolean;
+  entrantAddress: string;
+}
+
+export interface EntrantFeesLedgerItem extends EntrantLedgerItemBase {
+  discriminator: EntrantLedgerItemVariant.TransactionStats;
   phaseId: string;
   phaseName: string;
   phaseIndex: number;
-  chainId: ChainId;
-  userAddress: string;
   volumeEth: number;
   volumeWei: string;
   volumeUSDC: number;
-  updatedAt: number;
   userSells: number;
   userBuys: number;
   protocolFeesWei: string;
   protocolFeesEth: number;
   protocolFeesUSDC: number;
-  isAggregated: boolean;
 }
+
+export interface EntrantOrderItem {
+  isTopCollection: boolean;
+  isSellOrder: boolean;
+  startTimeMs: number;
+  endTimeMs: number;
+  hasBlueCheck: boolean;
+  collectionAddress: string;
+  collectionSlug: string;
+  floorPriceEth: number;
+  startPriceEth: number;
+  endPriceEth: number;
+  tokenId: string;
+  numTokens: number;
+  makerAddress: string;
+}
+
+export interface EntrantOrderLedgerItem extends EntrantLedgerItemBase {
+  discriminator: EntrantLedgerItemVariant.Offer | EntrantLedgerItemVariant.Listing;
+  order: {
+    id: string;
+    chainId: ChainId;
+    numItems: number;
+    items: EntrantOrderItem[];
+  };
+  blockNumber: number;
+  stakeLevel: number;
+}
+
+export type EntrantLedgerItem = EntrantFeesLedgerItem | EntrantOrderLedgerItem;
+
+export interface RaffleEntrantBase<U, T> {
+  raffleId: string;
+  raffleType: RaffleType;
+  numTickets: number;
+  chainId: ChainId;
+  entrantAddress: string;
+  stakerContractAddress: string;
+  updatedAt: number;
+  isFinalized: boolean;
+  isAggregated: boolean;
+  entrant: U;
+  data: T;
+}
+
+export interface UserRaffleEntrantData {
+  volumeUSDC: number;
+  numValidOffers: number;
+  numValidListings: number;
+  numTicketsFromOffers: number;
+  numTicketsFromListings: number;
+  numTicketsFromVolume: number;
+}
+
+export interface NonFinalizedUserRaffleEntrant extends RaffleEntrantBase<UserDisplayData, UserRaffleEntrantData> {
+  isFinalized: false;
+  raffleType: RaffleType.User;
+}
+
+export interface FinalizedUserRaffleEntrant extends RaffleEntrantBase<UserDisplayData, UserRaffleEntrantData> {
+  raffleType: RaffleType.User;
+  isFinalized: true;
+  tickets: {
+    start: string;
+    end: string;
+  };
+}
+
+export type RaffleEntrant = FinalizedUserRaffleEntrant | NonFinalizedUserRaffleEntrant;

@@ -22,7 +22,7 @@ import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
  *  {userAddress}
  *    userRaffleOrdersLedger
  *      {eventId}
- * 
+ *
  * raffles
  *   {stakerChainId:stakerContractAddress}
  *       stakingContractRaffles

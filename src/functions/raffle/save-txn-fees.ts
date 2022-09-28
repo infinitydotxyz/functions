@@ -1,6 +1,11 @@
-import { ChainId, TransactionFeePhaseRewardsDoc } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  EntrantFeesLedgerItem,
+  EntrantLedgerItemVariant,
+  TransactionFeePhaseRewardsDoc
+} from '@infinityxyz/lib/types/core';
 import { getRelevantStakerContracts } from '../aggregate-sales-stats/utils';
-import { EntrantFeesLedgerItem, EntrantLedgerItemVariant, StakingContractRaffle } from './types';
+import { StakingContractRaffle } from './types';
 
 export async function saveTxnFees(
   db: FirebaseFirestore.Firestore,

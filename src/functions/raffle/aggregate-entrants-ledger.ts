@@ -1,16 +1,15 @@
-import { ChainId, UserDisplayData } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  EntrantLedgerItem,
+  EntrantLedgerItemVariant,
+  EntrantOrderItem,
+  UserDisplayData
+} from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { RaffleType } from '../../rewards/trading-fee-program-handlers/raffle-handler';
-import {
-  EntrantLedgerItem,
-  EntrantLedgerItemVariant,
-  EntrantOrderItem,
-  RaffleEntrant,
-  UserRaffle,
-  UserRaffleConfig
-} from './types';
+import { RaffleEntrant, UserRaffle, UserRaffleConfig } from './types';
 
 export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.DocumentReference<RaffleEntrant>) {
   const db = entrantRef.firestore;
@@ -158,6 +157,10 @@ export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRa
     throw new Error('Item is not a listing');
   }
 
+  if (listing.floorPriceEth == null) {
+    return false;
+  }
+
   const maxListingPrice = listing.floorPriceEth * (config.listing.maxPercentAboveFloor / 100) + listing.floorPriceEth;
 
   const durationValid = listing.endTimeMs - listing.startTimeMs > config.listing.minTimeValid;
@@ -170,6 +173,10 @@ export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRa
 export function offerAppliesToRaffle(offer: EntrantOrderItem, config: UserRaffleConfig) {
   if (offer.isSellOrder) {
     throw new Error('Item is not an offer');
+  }
+
+  if (offer.floorPriceEth == null) {
+    return false;
   }
 
   const minOfferPrice = offer.floorPriceEth * (config.offer.maxPercentBelowFloor / 100) + offer.floorPriceEth;

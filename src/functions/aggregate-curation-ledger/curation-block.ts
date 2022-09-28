@@ -85,7 +85,7 @@ export class CurationBlock {
   }
 
   get feesGeneratedWei() {
-    const sum = calculateStatsBigInt(this._sales, (sale) => BigInt(sale.protocolFeeWei)).sum;
+    const sum = calculateStatsBigInt(this._sales, (sale) => BigInt(sale.feesGenerated.feesGeneratedWei)).sum;
     return sum.toString();
   }
 

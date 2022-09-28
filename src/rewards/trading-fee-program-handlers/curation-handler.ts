@@ -5,7 +5,7 @@ import {
   RewardEvent,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
-import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
+import { FeesGeneratedDto, TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
@@ -40,12 +40,12 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
     }
 
     const currentFees = phase.details.curationFeesGenerated;
-    this.updateFeesGenerated(currentFees, sale, phase);
+    const { eventFees } = this.updateFeesGenerated(currentFees, sale, phase);
     return {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
-        const sales = this._getCurationLedgerSale(sale);
+        const sales = this._getCurationLedgerSale(sale, eventFees);
 
         for (const curationSale of sales) {
           const collectionDocRef = db
@@ -62,7 +62,7 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
     };
   }
 
-  protected _getCurationLedgerSale(sale: RewardSaleEvent): CurationLedgerSale[] {
+  protected _getCurationLedgerSale(sale: RewardSaleEvent, feesGenerated: FeesGeneratedDto): CurationLedgerSale[] {
     const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
     const curationSales = stakerContracts.map((stakerContract) => {
       const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
@@ -82,6 +82,7 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
         isStakeMerged: true,
         tokenContractAddress,
         tokenContractChainId,
+        feesGenerated,
         isAggregated: false
       };
       return curationSale;

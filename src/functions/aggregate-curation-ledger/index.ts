@@ -1,24 +1,14 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { CurationLedgerEvents, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants, getTokenByStaker, ONE_MIN } from '@infinityxyz/lib/utils';
+import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
-import { getCollectionDisplayData } from '../../utils';
 import { REGION } from '../../utils/constants';
-import { aggregateLedger } from './aggregate-ledger';
-import { aggregateBlocks } from './aggregate-periods';
-import { CurationBlockAggregator } from './curation-block-aggregator';
-import { CurationPeriodAggregator } from './curation-period-aggregator';
+import { handlerStakerContractMetadata } from './handle-staker-contract-metadata-update';
 import { mergeStake } from './merge-stake';
+import { triggerCurationAggregation } from './trigger-curation-aggregation';
 import { CurationMetadata } from './types';
-import {
-  getCurrentBlocks,
-  getCurrentCurationSnippet,
-  getCurrentPeriods,
-  saveCurrentCurationSnippet
-} from './update-current-curation-snippet';
 
 export const onCurationLedgerEvent = functions
   .region(REGION)
@@ -31,7 +21,12 @@ export const onCurationLedgerEvent = functions
   .onWrite(async (change) => {
     const curationLedgerEvent = change.after.data() as CurationLedgerEvents;
     if (curationLedgerEvent.isStakeMerged === false) {
-      await mergeStake(change.after.ref as FirebaseFirestore.DocumentReference<CurationLedgerEvents>);
+      const curationLedgerEventRef = change.after.ref as FirebaseFirestore.DocumentReference<CurationLedgerEvents>;
+      await mergeStake(curationLedgerEventRef);
+      /**
+       * attempt to trigger aggregation so curation data updates within seconds instead of minutes
+       */
+      await triggerCurationAggregation(curationLedgerEventRef);
     }
   });
 
@@ -43,12 +38,12 @@ export const triggerCurationLedgerEventMerge = functions
   .pubsub.schedule('every 2 minutes')
   .onRun(async () => {
     const db = getDb();
-    const fifteenMin = ONE_MIN * 15;
+    const maxAge = ONE_MIN * 2;
     const curationEventsToAggregate = db
       .collectionGroup(firestoreConstants.CURATION_LEDGER_COLL)
       .where('isStakeMerged', '==', false)
       .where('isDeleted', '==', false)
-      .where('updatedAt', '<', Date.now() - fifteenMin) as FirebaseFirestore.Query<CurationLedgerEventType>;
+      .where('updatedAt', '<', Date.now() - maxAge) as FirebaseFirestore.Query<CurationLedgerEventType>;
 
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
 
@@ -83,30 +78,10 @@ export const triggerCurationLedgerAggregation = functions
     const updates = new Set<string>();
     const batchHandler = new FirestoreBatchHandler();
     for await (const { ref } of stream) {
-      const stakerContractMetadataRef = ref.parent.parent;
+      const stakerContractMetadataRef = ref.parent.parent as FirebaseFirestore.DocumentReference<CurationLedgerEvents>;
       const collectionRef = stakerContractMetadataRef?.parent?.parent;
       if (stakerContractMetadataRef && collectionRef && !updates.has(stakerContractMetadataRef.path)) {
-        const [stakerContractChainId, stakerContractAddress] = stakerContractMetadataRef.id.split(':') as [
-          ChainId,
-          string
-        ];
-        const [collectionChainId, collectionAddress] = collectionRef.id.split(':') as [ChainId, string];
-        updates.add(stakerContractMetadataRef.path);
-        const token = getTokenByStaker(stakerContractChainId, stakerContractAddress);
-        const curationMetadataUpdate: Omit<
-          CurationMetadata,
-          'refreshCurrentSnippetBy' | 'currentSnippetRequiresAggregation'
-        > = {
-          updatedAt: Date.now(),
-          ledgerRequiresAggregation: true,
-          periodsRequireAggregation: false,
-          collectionAddress,
-          collectionChainId,
-          stakerContractAddress,
-          stakerContractChainId,
-          token
-        };
-        batchHandler.add(stakerContractMetadataRef, curationMetadataUpdate, { merge: true });
+        await triggerCurationAggregation(stakerContractMetadataRef, batchHandler);
       }
     }
     await batchHandler.flush();
@@ -168,89 +143,13 @@ export const aggregateCurationLedger = functions
   .firestore.document(
     `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_CURATION_COLL}/{stakingContractId}`
   )
-  .onWrite(async (change, context) => {
-    const [stakerContractChainId, stakerContractAddress] = context.params.stakingContractId.split(':') as [
-      ChainId,
-      string
-    ];
+  .onWrite(async (change) => {
     const stakerContractMetadata = change.after.data() as CurationMetadata | undefined;
-    const [collectionChainId, collectionAddress] = context.params.collectionId.split(':') as [ChainId, string];
-    const stakerContractMetadataRef = change.after.ref as FirebaseFirestore.DocumentReference<CurationMetadata>;
     if (!stakerContractMetadata) {
       return;
-    } else if (stakerContractMetadata.ledgerRequiresAggregation) {
-      await aggregateLedger(
-        stakerContractMetadataRef,
-        collectionAddress,
-        collectionChainId,
-        stakerContractAddress,
-        stakerContractChainId,
-        stakerContractMetadata.token
-      );
-      const triggerPeriodAggregationUpdate: Partial<CurationMetadata> = {
-        ledgerRequiresAggregation: false,
-        updatedAt: Date.now(),
-        periodsRequireAggregation: true,
-        collectionAddress,
-        collectionChainId,
-        stakerContractAddress,
-        stakerContractChainId,
-        token: stakerContractMetadata.token
-      };
-      await stakerContractMetadataRef.set(triggerPeriodAggregationUpdate, { merge: true });
-    } else if (stakerContractMetadata.periodsRequireAggregation) {
-      const collection = await getCollectionDisplayData(
-        stakerContractMetadataRef.firestore,
-        collectionAddress,
-        collectionChainId
-      );
-      await aggregateBlocks(
-        stakerContractMetadataRef,
-        collectionAddress,
-        collectionChainId,
-        stakerContractAddress,
-        stakerContractChainId,
-        stakerContractMetadata.token,
-        collection
-      );
-      const metadataUpdate: Partial<CurationMetadata> = {
-        periodsRequireAggregation: false,
-        currentSnippetRequiresAggregation: true,
-        updatedAt: Date.now()
-      };
-      await stakerContractMetadataRef.set(metadataUpdate, { merge: true });
-    } else if (stakerContractMetadata.currentSnippetRequiresAggregation) {
-      const currentBlocks = await getCurrentBlocks(stakerContractMetadataRef);
-      const currentPeriods = await getCurrentPeriods(stakerContractMetadataRef);
-      const collection = await getCollectionDisplayData(
-        stakerContractMetadataRef.firestore,
-        collectionAddress,
-        collectionChainId
-      );
-      const currentSnippet = getCurrentCurationSnippet(
-        currentPeriods,
-        currentBlocks,
-        stakerContractAddress,
-        stakerContractChainId,
-        stakerContractMetadata.token,
-        collectionAddress,
-        collectionChainId,
-        collection
-      );
-      const currentBlockExpiresAt = currentBlocks.current?.metadata?.timestamp
-        ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.metadata?.timestamp).endTimestamp
-        : null;
-      const currentPeriodExpiresAt = currentPeriods.current?.metadata?.timestamp
-        ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.metadata?.timestamp).endTimestamp
-        : null;
-      const refreshCurrentSnippetBy =
-        currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;
-      await saveCurrentCurationSnippet(currentSnippet, stakerContractMetadataRef);
-      const metadataUpdate: Partial<CurationMetadata> = {
-        currentSnippetRequiresAggregation: false,
-        updatedAt: Date.now(),
-        refreshCurrentSnippetBy
-      };
-      await stakerContractMetadataRef.set(metadataUpdate, { merge: true });
     }
+    await handlerStakerContractMetadata(
+      change.after.ref as FirebaseFirestore.DocumentReference<CurationMetadata>,
+      stakerContractMetadata
+    );
   });

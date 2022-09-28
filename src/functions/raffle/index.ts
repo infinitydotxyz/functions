@@ -18,6 +18,11 @@ import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggre
 import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
 
 /**
+ * users
+ *  {userAddress}
+ *    userRaffleOrdersLedger
+ *      {eventId}
+ * 
  * raffles
  *   {stakerChainId:stakerContractAddress}
  *       stakingContractRaffles

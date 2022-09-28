@@ -161,8 +161,8 @@ export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRa
   const maxListingPrice = listing.floorPriceEth * (config.listing.maxPercentAboveFloor / 100) + listing.floorPriceEth;
 
   const durationValid = listing.endTimeMs - listing.startTimeMs > config.listing.minTimeValid;
-  const startPriceValid = listing.startPriceEth <= maxListingPrice;
-  const endPriceValid = listing.endPriceEth <= maxListingPrice;
+  const startPriceValid = (listing.startPriceEth / listing.numTokens) <= maxListingPrice;
+  const endPriceValid = (listing.endPriceEth / listing.numTokens) <= maxListingPrice;
 
   return listing.isTopCollection && durationValid && startPriceValid && endPriceValid;
 }
@@ -175,8 +175,8 @@ export function offerAppliesToRaffle(offer: EntrantOrderItem, config: UserRaffle
   const minOfferPrice = offer.floorPriceEth * (config.offer.maxPercentBelowFloor / 100) + offer.floorPriceEth;
 
   const durationValid = offer.endTimeMs - offer.startTimeMs > config.offer.minTimeValid;
-  const startPriceValid = offer.startPriceEth >= minOfferPrice;
-  const endPriceValid = offer.endPriceEth >= minOfferPrice;
+  const startPriceValid = (offer.startPriceEth / offer.numTokens) >= minOfferPrice;
+  const endPriceValid = (offer.endPriceEth / offer.numTokens) >= minOfferPrice;
 
   return offer.isTopCollection && durationValid && startPriceValid && endPriceValid;
 }

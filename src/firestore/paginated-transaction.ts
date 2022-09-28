@@ -6,7 +6,7 @@ export async function paginatedTransaction<T>(
     data: FirebaseFirestore.QuerySnapshot<T>;
     txn: FirebaseFirestore.Transaction;
     hasNextPage: boolean;
-  }) => Promise<void>
+  }) => Promise<void> | void
 ) {
   let pagesProcessed = 0;
   let documentsProcessed = 0;

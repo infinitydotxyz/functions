@@ -12,8 +12,6 @@ import {
   UserRaffleConfig
 } from './types';
 
-
-
 export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.DocumentReference<RaffleEntrant>) {
   const db = entrantRef.firestore;
 
@@ -23,7 +21,7 @@ export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.Docu
   const raffleSnap = await raffleRef.get();
   const raffle = raffleSnap.data();
 
-  if(raffle?.type !== RaffleType.User) {
+  if (raffle?.type !== RaffleType.User) {
     throw new Error(`Unknown raffle type ${raffle?.type}`);
   }
 
@@ -44,56 +42,72 @@ export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.Docu
   const unaggregatedEventsQuery = entrantLedgerRef
     .where('isAggregated', '==', false)
     .orderBy('updatedAt', 'asc') as FirebaseFirestore.Query<EntrantLedgerItem>;
-  await paginatedTransaction(unaggregatedEventsQuery, db, { pageSize: 300, maxPages: 10 }, async ({ data, txn }) => {
-    const entrantSnap = await txn.get(entrantRef);
-    let events = data.docs.map((item) => ({ data: item.data(), ref: item.ref }));
+  const res = await paginatedTransaction(
+    unaggregatedEventsQuery,
+    db,
+    { pageSize: 300, maxPages: 10 },
+    async ({ data, txn, hasNextPage }) => {
+      const entrantSnap = await txn.get(entrantRef);
+      let events = data.docs.map((item) => ({ data: item.data(), ref: item.ref }));
 
-    const entrant: RaffleEntrant = entrantSnap.data() ?? {
-      raffleId: raffle?.id ?? '',
-      numTickets: 0,
-      raffleType: RaffleType.User,
-      chainId: raffle?.chainId ?? ChainId.Mainnet,
-      entrantAddress: entrantDisplayData.address,
-      stakerContractAddress: raffle?.stakerContractAddress ?? '',
-      updatedAt: Date.now(),
-      isFinalized: false,
-      isAggregated: false,
-      entrant: entrantDisplayData,
-      data: {
-        volumeUSDC: 0,
-        numValidOffers: 0,
-        numValidListings: 0,
-        numTicketsFromListings: 0,
-        numTicketsFromOffers: 0,
-        numTicketsFromVolume: 0
+      const entrant: RaffleEntrant = entrantSnap.data() ?? {
+        raffleId: raffle?.id ?? '',
+        numTickets: 0,
+        raffleType: RaffleType.User,
+        chainId: raffle?.chainId ?? ChainId.Mainnet,
+        entrantAddress: entrantDisplayData.address,
+        stakerContractAddress: raffle?.stakerContractAddress ?? '',
+        updatedAt: Date.now(),
+        isFinalized: false,
+        isAggregated: false,
+        entrant: entrantDisplayData,
+        data: {
+          volumeUSDC: 0,
+          numValidOffers: 0,
+          numValidListings: 0,
+          numTicketsFromListings: 0,
+          numTicketsFromOffers: 0,
+          numTicketsFromVolume: 0
+        },
+        isLedgerAggregated: false
+      };
+
+      if (entrant.isFinalized) {
+        throw new Error('Entrant has been finalized. Cannot continue to update entrant');
       }
-    };
 
-    if (entrant.isFinalized) {
-      throw new Error('Entrant has been finalized. Cannot continue to update entrant');
+      const txnStatsEvent = events.find(
+        (item) => item.data.discriminator === EntrantLedgerItemVariant.TransactionStats
+      );
+      if (txnStatsEvent) {
+        const query = entrantLedgerRef.where(
+          'discriminator',
+          '==',
+          EntrantLedgerItemVariant.TransactionStats
+        ) as FirebaseFirestore.Query<EntrantLedgerItem>;
+        const txnStatsEventsSnap = await txn.get(query);
+        const txnStatsEvents = txnStatsEventsSnap.docs.map((item) => ({ data: item.data(), ref: item.ref }));
+        events = events.filter((item) => item.data.discriminator === EntrantLedgerItemVariant.TransactionStats);
+        events = [...events, ...txnStatsEvents];
+        entrant.data.volumeUSDC = 0; // reset volume since we must sum across all applicable phases
+      }
+
+      applyEventsToEntrant(entrant, events, raffle.config);
+
+      for (const event of events) {
+        txn.set(event.ref, { isAggregated: true, updatedAt: Date.now() }, { merge: true });
+      }
+      txn.set(
+        entrantRef,
+        { ...entrant, isAggregated: false, isLedgerAggregated: !hasNextPage, updatedAt: Date.now() },
+        { merge: true }
+      );
     }
+  );
 
-    const txnStatsEvent = events.find((item) => item.data.discriminator === EntrantLedgerItemVariant.TransactionStats);
-    if (txnStatsEvent) {
-      const query = entrantLedgerRef.where(
-        'discriminator',
-        '==',
-        EntrantLedgerItemVariant.TransactionStats
-      ) as FirebaseFirestore.Query<EntrantLedgerItem>;
-      const txnStatsEventsSnap = await txn.get(query);
-      const txnStatsEvents = txnStatsEventsSnap.docs.map((item) => ({ data: item.data(), ref: item.ref }));
-      events = events.filter((item) => item.data.discriminator === EntrantLedgerItemVariant.TransactionStats);
-      events = [...events, ...txnStatsEvents];
-      entrant.data.volumeUSDC = 0; // reset volume since we must sum across all applicable phases
-    }
-
-    applyEventsToEntrant(entrant, events, raffle.config);
-
-    for (const event of events) {
-      txn.set(event.ref, { isAggregated: true, updatedAt: Date.now() }, { merge: true });
-    }
-    txn.set(entrantRef, { ...entrant, isAggregated: false, updatedAt: Date.now() }, { merge: true });
-  });
+  if (res.queryEmpty) {
+    await entrantRef.set({ isLedgerAggregated: true, updatedAt: Date.now() }, { merge: true });
+  }
 }
 
 export function applyEventsToEntrant(
@@ -135,7 +149,8 @@ export function applyEventsToEntrant(
     }
     event.data.isAggregated = true;
   }
-  entrant.numTickets = entrant.data.numTicketsFromListings + entrant.data.numTicketsFromOffers + entrant.data.numTicketsFromVolume;
+  entrant.numTickets =
+    entrant.data.numTicketsFromListings + entrant.data.numTicketsFromOffers + entrant.data.numTicketsFromVolume;
 }
 
 export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRaffleConfig) {
@@ -143,8 +158,7 @@ export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRa
     throw new Error('Item is not a listing');
   }
 
-  const maxListingPrice =
-    listing.floorPriceEth * (config.listing.maxPercentAboveFloor / 100) + listing.floorPriceEth;
+  const maxListingPrice = listing.floorPriceEth * (config.listing.maxPercentAboveFloor / 100) + listing.floorPriceEth;
 
   const durationValid = listing.endTimeMs - listing.startTimeMs > config.listing.minTimeValid;
   const startPriceValid = listing.startPriceEth <= maxListingPrice;
@@ -158,8 +172,7 @@ export function offerAppliesToRaffle(offer: EntrantOrderItem, config: UserRaffle
     throw new Error('Item is not an offer');
   }
 
-  const minOfferPrice =
-    offer.floorPriceEth * (config.offer.maxPercentBelowFloor / 100) + offer.floorPriceEth;
+  const minOfferPrice = offer.floorPriceEth * (config.offer.maxPercentBelowFloor / 100) + offer.floorPriceEth;
 
   const durationValid = offer.endTimeMs - offer.startTimeMs > config.offer.minTimeValid;
   const startPriceValid = offer.startPriceEth >= minOfferPrice;

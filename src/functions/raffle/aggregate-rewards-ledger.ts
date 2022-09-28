@@ -28,11 +28,14 @@ export async function aggregateRaffleRewardsLedger(
       const stats = calculateStatsBigInt(contributions, ({ contributionWei }) => BigInt(contributionWei));
 
       if (!raffleRewards) {
+        const raffleId = raffleRewardsRef.parent.parent?.id;
+        if (!raffleId) {
+          throw new Error('Invalid raffle id');
+        }
         const initRewards: RaffleRewardsDoc = {
+          raffleId,
           stakerContractAddress: contributions[0].stakerContractAddress,
           stakerContractChainId: contributions[0].stakerContractChainId,
-          tokenContractAddress: contributions[0].tokenContractAddress,
-          tokenContractChainId: contributions[0].tokenContractChainId,
           type: contributions[0].type,
           updatedAt: Date.now(),
           chainId: contributions[0].chainId,

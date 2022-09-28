@@ -10,24 +10,15 @@ export async function updateLedgerTriggerToAggregate(
     .doc('rewardsLedgerTrigger') as FirebaseFirestore.DocumentReference<RaffleRewardsLedgerTriggerDoc>;
 
   const ledgerTriggerSnap = await rewardsLedgerTriggerRef.get();
+  const update: RaffleRewardsLedgerTriggerDoc = {
+    requiresAggregation: true,
+    updatedAt: Date.now()
+  };
   if (!ledgerTriggerSnap.data()?.requiresAggregation) {
     if (batch) {
-      await batch.addAsync(
-        rewardsLedgerTriggerRef,
-        {
-          requiresAggregation: true,
-          updatedAt: Date.now()
-        },
-        { merge: true }
-      );
+      await batch.addAsync(rewardsLedgerTriggerRef, update, { merge: true });
     } else {
-      await rewardsLedgerTriggerRef.set(
-        {
-          requiresAggregation: true,
-          updatedAt: Date.now()
-        },
-        { merge: true }
-      );
+      await rewardsLedgerTriggerRef.set(update, { merge: true });
     }
   }
 }

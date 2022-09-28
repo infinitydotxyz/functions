@@ -7,8 +7,15 @@ import { streamQueryWithRef } from '../../firestore/stream-query';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 import { REGION } from '../../utils/constants';
 import { saveTxnFees } from './save-txn-fees';
-import { RaffleRewardsLedgerTriggerDoc } from './types';
+import {
+  EntrantLedgerItem,
+  RaffleEntrant,
+  RaffleRewardsLedgerTriggerDoc,
+  RaffleTicketTotalsDoc,
+  UserRaffle
+} from './types';
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
+import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
 
 /**
  * raffles
@@ -21,7 +28,7 @@ import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggre
  *                           {ledgerEvent} // raffle => listings, offers, phase rewards
  *                raffleTotals
  *                    {raffleRewards} // can be used to track progress of the raffle rewards in real time
- *                    {raffleTicketTotals} // contains the total number of tickets and total number of unique users involved
+ *                    {raffleTicketTotals} // contains the total number of tickets and unique users
  *                raffleTriggers
  *                    {rewardsLedgerTrigger} // triggers aggregation for the rewards ledger when a new event is added
  *                raffleRewardsLedger
@@ -146,6 +153,109 @@ export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
     // trigger function to copy docs to raffle entrants
     for await (const { ref } of phaseStream) {
       await batchHandler.addAsync(ref, { updatedAt: Date.now() }, { merge: true });
+    }
+
+    await batchHandler.flush();
+  });
+
+export const onEntrantLedgerEvent = functions
+  .region(REGION)
+  .firestore.document(
+    `raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleEntrants/{entrantId}/raffleEntrantLedger/{eventId}`
+  )
+  .onWrite(async (change) => {
+    const after = change.after.data() as EntrantLedgerItem;
+    if (after && !after.isAggregated) {
+      await change.after.ref.parent.parent?.set({ isLedgerAggregated: false, updatedAt: Date.now() }, { merge: true });
+    }
+  });
+
+export const onEntrantLedgerEventBackup = functions
+  .region(REGION)
+  .runWith({ timeoutSeconds: 540 })
+  .pubsub.schedule('every 10 minutes')
+  .onRun(async () => {
+    const db = getDb();
+    const maxAge = ONE_MIN * 10;
+    const unaggregatedLedgerEvents = db
+      .collectionGroup('raffleEntrantLedger')
+      .where('isAggregated', '==', false)
+      .where('updatedAt', '<', Date.now() - maxAge);
+
+    const stream = streamQueryWithRef(unaggregatedLedgerEvents, (_, ref) => [ref], { pageSize: 300 });
+
+    const batchHandler = new FirestoreBatchHandler();
+    const paths = new Set<string>();
+    for await (const { ref } of stream) {
+      const entrantRef = ref.parent.parent;
+      if (entrantRef && !paths.has(entrantRef.path)) {
+        paths.add(entrantRef.path);
+        await batchHandler.addAsync(entrantRef, { isLedgerAggregated: false, updatedAt: Date.now() }, { merge: true });
+      }
+    }
+    await batchHandler.flush();
+  });
+
+export const onEntrantWrite = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .firestore.document(`raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleEntrants/{entrantId}`)
+  .onWrite(async (change) => {
+    const after = change.after.data() as Partial<RaffleEntrant>;
+    if (!after.isLedgerAggregated) {
+      await aggregateRaffleRewardsLedger(change.after.ref as FirebaseFirestore.DocumentReference<RaffleEntrant>);
+    } else if (!after.isAggregated) {
+      await change.after.ref.parent.parent
+        ?.collection('raffleTotals')
+        .doc('raffleTicketTotals')
+        .set({ isAggregated: false, updatedAt: Date.now() }, { merge: true });
+    }
+  });
+
+export const updateTicketTotals = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .firestore.document(`raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleTotals/raffleTicketTotals`)
+  .onWrite(async (change) => {
+    const after = change.after.data() as Partial<RaffleTicketTotalsDoc>;
+
+    if (!after || after.isAggregated) {
+      return;
+    }
+
+    const minAge = ONE_MIN * 5;
+    if (!after.totalsUpdatedAt || after.totalsUpdatedAt < Date.now() - minAge) {
+      await updateRaffleTicketTotals(change.after.ref.parent.parent as FirebaseFirestore.DocumentReference<UserRaffle>);
+    }
+  });
+
+export const updateTicketTotalsBackup = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .pubsub.schedule('every 10 minutes')
+  .onRun(async () => {
+    const db = getDb();
+    const maxAge = ONE_MIN * 10;
+    const unaggregatedTriggers = db
+      .collectionGroup('raffleTotals')
+      .where('isAggregated', '==', false)
+      .where('totalsUpdatedAt', '<', Date.now() - maxAge);
+
+    const stream = streamQueryWithRef(unaggregatedTriggers, (_, ref) => [ref], { pageSize: 300 });
+
+    const batchHandler = new FirestoreBatchHandler();
+    const paths = new Set<string>();
+    for await (const { ref } of stream) {
+      if (!paths.has(ref.path)) {
+        paths.add(ref.path);
+        await batchHandler.addAsync(ref, { updatedAt: Date.now() }, { merge: true });
+      }
     }
 
     await batchHandler.flush();

@@ -1,4 +1,4 @@
-import { ChainId, CollectionDisplayData, UserDisplayData } from '@infinityxyz/lib/types/core';
+import { ChainId, UserDisplayData } from '@infinityxyz/lib/types/core';
 import { ONE_WEEK } from '@infinityxyz/lib/utils';
 import { RaffleType } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 
@@ -7,12 +7,24 @@ export interface RaffleRewardsLedgerTriggerDoc {
   updatedAt: number;
 }
 
+export interface RaffleTicketTotalsDoc {
+  stakerContractAddress: string;
+  stakerContractChainId: ChainId;
+  chainId: ChainId;
+  raffleId: string;
+  type: RaffleType;
+  isAggregated: boolean;
+  updatedAt: number;
+  totalsUpdatedAt: number;
+  totalNumTickets: bigint;
+  numUniqueEntrants: number;
+}
+
 export interface RaffleRewardsDoc {
   stakerContractAddress: string;
   stakerContractChainId: ChainId;
-  tokenContractAddress: string;
-  tokenContractChainId: ChainId;
   type: RaffleType;
+  raffleId: string;
   updatedAt: number;
   chainId: ChainId;
   prizePoolWei: string;
@@ -161,6 +173,7 @@ export interface RaffleEntrantBase<U, T> {
   updatedAt: number;
   isFinalized: boolean;
   isAggregated: boolean;
+  isLedgerAggregated: boolean;
   entrant: U;
   data: T;
 }

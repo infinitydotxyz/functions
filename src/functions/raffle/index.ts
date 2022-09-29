@@ -208,7 +208,7 @@ export const onEntrantWrite = functions
   .firestore.document(`raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleEntrants/{entrantId}`)
   .onWrite(async (change) => {
     const after = change.after.data() as Partial<RaffleEntrant>;
-    if(!after) {
+    if (!after) {
       return;
     }
 

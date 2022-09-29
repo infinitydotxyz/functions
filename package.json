@@ -10,7 +10,7 @@
     "start": "npm run shell",
     "deploy:dev": "npm run build && firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "npm run build && firebase deploy --only functions --project nftc-infinity",
-    "deploy:test": "npm run build && firebase deploy --only function --project nftc-test-3",
+    "deploy:test": "npm run build && firebase deploy --only functions --project nftc-test-3",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",

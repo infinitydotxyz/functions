@@ -19,7 +19,7 @@ export const onUserTransactionFeeRewardEvent = functions
     const event = snapshot.after.data() as TransactionFeeRewardDoc;
     if (!event || event.isAggregated) {
       return;
-    } 
+    }
 
     await aggregateTransactionFeeRewards(
       snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,

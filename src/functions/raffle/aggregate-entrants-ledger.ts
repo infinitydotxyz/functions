@@ -76,7 +76,7 @@ export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.Docu
       entrant = {
         ...defaultEntrant,
         ...entrant
-      }
+      };
 
       if (entrant.isFinalized) {
         throw new Error('Entrant has been finalized. Cannot continue to update entrant');
@@ -157,7 +157,8 @@ export function applyEventsToEntrant(
     event.data.isAggregated = true;
   }
   entrant.numTickets = Math.floor(
-    entrant.data.numTicketsFromListings + entrant.data.numTicketsFromOffers + entrant.data.numTicketsFromVolume);
+    entrant.data.numTicketsFromListings + entrant.data.numTicketsFromOffers + entrant.data.numTicketsFromVolume
+  );
 }
 
 export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRaffleConfig) {

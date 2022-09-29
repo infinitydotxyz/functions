@@ -24,7 +24,8 @@ export async function aggregateRaffleRewardsLedger(
       }
       const raffleRewardsSnap = await txn.get(raffleRewardsRef);
       let raffleRewards = raffleRewardsSnap.data();
-      const [stakerContractChainId, stakerContractAddress ] = (rewardsLedger.parent?.parent.parent?.id.split(':') ?? []) as [ChainId, string] | [];
+      const [stakerContractChainId, stakerContractAddress] = (rewardsLedger.parent?.parent.parent?.id.split(':') ??
+        []) as [ChainId, string] | [];
 
       const contributions = data.docs.map((item) => item.data()).filter((item) => !!item);
       const stats = calculateStatsBigInt(contributions, ({ contributionWei }) => BigInt(contributionWei));
@@ -34,7 +35,7 @@ export async function aggregateRaffleRewardsLedger(
         if (!raffleId) {
           throw new Error('Invalid raffle id');
         }
-        if(contributions.length === 0) {
+        if (contributions.length === 0) {
           throw new Error('No contributions found');
         }
         const initRewards: RaffleRewardsDoc = {

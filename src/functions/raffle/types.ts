@@ -60,8 +60,6 @@ export enum RaffleState {
 export interface StakingContractRaffle {
   stakerContractAddress: string;
   stakerContractChainId: ChainId;
-  tokenContractAddress: string;
-  tokenContractChainId: ChainId;
   type: RaffleType;
   updatedAt: number;
   chainId: ChainId;
@@ -90,19 +88,6 @@ export interface UserRaffleConfig {
 export interface UserRaffle extends StakingContractRaffle {
   config: UserRaffleConfig;
 }
-
-export const DEFAULT_USER_RAFFLE_CONFIG = {
-  listing: {
-    maxPercentAboveFloor: 5,
-    minTimeValid: ONE_WEEK,
-    ticketMultiplier: 100
-  },
-  offer: {
-    maxPercentBelowFloor: 0,
-    minTimeValid: ONE_WEEK,
-    ticketMultiplier: 500
-  }
-};
 
 export interface RaffleEntrantBase<U, T> {
   raffleId: string;

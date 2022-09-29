@@ -102,7 +102,6 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
             contributionEth: formatEth(grandPrizeContribution.toString())
           };
 
-          // TODO should we update the entrant rewards ledger? how do we want to calculate user volume for the ticket calculation?
           const phaseRaffleLedgerEventRef = phaseRaffleRef.collection('raffleRewardsLedger').doc();
           const grandPrizeRaffleLedgerEventRef = grandPrizeRaffleRef.collection('raffleRewardsLedger').doc();
           txn.set(phaseRaffleLedgerEventRef, phaseRaffleLedgerSale);

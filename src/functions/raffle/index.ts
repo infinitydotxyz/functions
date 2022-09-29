@@ -15,6 +15,8 @@ import { RaffleEntrant, RaffleRewardsLedgerTriggerDoc, RaffleTicketTotalsDoc, Us
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
 import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
 import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';
+import { aggregateRaffleRewardsLedger } from './aggregate-rewards-ledger';
+import { aggregateEntrantsLedger } from './aggregate-entrants-ledger';
 
 /**
  * users
@@ -39,8 +41,6 @@ import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';
  *                    {eventId} //
  */
 
-// TODO initialize raffles for staker contracts and backfill events?
-
 /**
  * mark the trigger to aggregate the rewards
  */
@@ -57,7 +57,7 @@ export const triggerRaffleRewardsAggregation = functions
     await updateLedgerTriggerToAggregate(raffleRef);
   });
 
-export const aggregateRaffleRewardsLedger = functions
+export const aggregateRewardsLedger = functions
   .region(REGION)
   .runWith({
     timeoutSeconds: 540
@@ -209,7 +209,7 @@ export const onEntrantWrite = functions
   .onWrite(async (change) => {
     const after = change.after.data() as Partial<RaffleEntrant>;
     if (!after.isLedgerAggregated) {
-      await aggregateRaffleRewardsLedger(change.after.ref as FirebaseFirestore.DocumentReference<RaffleEntrant>);
+      await aggregateEntrantsLedger(change.after.ref as FirebaseFirestore.DocumentReference<RaffleEntrant>);
     } else if (!after.isAggregated) {
       await change.after.ref.parent.parent
         ?.collection('raffleTotals')

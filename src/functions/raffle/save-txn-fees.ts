@@ -23,19 +23,26 @@ export async function saveTxnFees(
     }
 
     const applicableRaffles = await getApplicableRaffles(db, data.chainId, data.phaseId);
-    const ledgerItem = getEntrantFeesLedgerItem(data);
     for (const raffle of applicableRaffles) {
+      const raffleData = raffle.data();
+      const ledgerItem = getEntrantFeesLedgerItem(
+        data,
+        raffleData.stakerContractAddress,
+        raffleData.stakerContractChainId
+      );
+      raffleData.stakerContractAddress;
       const entrantPhaseDocRef = raffle.ref
         .collection('raffleEntrants')
         .doc(data.userAddress)
         .collection('raffleEntrantLedger')
         .doc(`phase:${data.phaseId}`);
+
       txn.set(entrantPhaseDocRef, ledgerItem, { merge: false });
     }
   });
 }
 
-async function getApplicableRaffles(db: FirebaseFirestore.Firestore, chainId: ChainId, phaseId: string) {
+export async function getApplicableRaffles(db: FirebaseFirestore.Firestore, chainId: ChainId, phaseId: string) {
   const stakerContracts = getRelevantStakerContracts(chainId);
   const applicableRafflesQueries: FirebaseFirestore.Query<StakingContractRaffle>[] = [];
   for (const stakerContract of stakerContracts) {
@@ -49,8 +56,14 @@ async function getApplicableRaffles(db: FirebaseFirestore.Firestore, chainId: Ch
   return results.flatMap((item) => item.docs);
 }
 
-function getEntrantFeesLedgerItem(txnFees: TransactionFeePhaseRewardsDoc): EntrantFeesLedgerItem {
+function getEntrantFeesLedgerItem(
+  txnFees: TransactionFeePhaseRewardsDoc,
+  stakerContractAddress: string,
+  stakerContractChainId: ChainId
+): EntrantFeesLedgerItem {
   return {
+    stakerContractAddress,
+    stakerContractChainId,
     phaseId: txnFees.phaseId,
     phaseName: txnFees.phaseName,
     phaseIndex: txnFees.phaseIndex,

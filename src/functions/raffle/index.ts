@@ -1,4 +1,8 @@
-import { EntrantLedgerItem, TransactionFeePhaseRewardsDoc } from '@infinityxyz/lib/types/core';
+import {
+  EntrantLedgerItem,
+  PreMergeEntrantOrderLedgerItem,
+  TransactionFeePhaseRewardsDoc
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
@@ -10,6 +14,7 @@ import { saveTxnFees } from './save-txn-fees';
 import { RaffleEntrant, RaffleRewardsLedgerTriggerDoc, RaffleTicketTotalsDoc, UserRaffle } from './types';
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
 import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
+import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';
 
 /**
  * users
@@ -255,6 +260,49 @@ export const updateTicketTotalsBackup = functions
         paths.add(ref.path);
         await batchHandler.addAsync(ref, { updatedAt: Date.now() }, { merge: true });
       }
+    }
+
+    await batchHandler.flush();
+  });
+
+export const applyOrdersToRaffleLedgers = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .firestore.document(`${firestoreConstants.USERS_COLL}/{userId}/userRaffleOrdersLedger/{orderId}`)
+  .onWrite(async (change) => {
+    const item = change.after.data() as PreMergeEntrantOrderLedgerItem;
+
+    if (!item || item.isAggregated) {
+      return;
+    }
+    const db = change.after.ref.firestore;
+
+    await addOrdersToRaffleLedgers(
+      item,
+      change.after.ref as FirebaseFirestore.DocumentReference<PreMergeEntrantOrderLedgerItem>,
+      db
+    );
+  });
+
+export const applyOrdersToRaffleLedgersBackup = functions
+  .region(REGION)
+  .runWith({
+    timeoutSeconds: 540
+  })
+  .pubsub.schedule('every 10 minutes')
+  .onRun(async () => {
+    const db = getDb();
+    const maxAge = ONE_MIN * 10;
+    const unaggregatedOrders = db
+      .collectionGroup('userRaffleOrdersLedger')
+      .where('isAggregated', '==', false)
+      .where('updatedAt', '<', Date.now() - maxAge);
+    const stream = streamQueryWithRef(unaggregatedOrders, (_, ref) => [ref], { pageSize: 300 });
+    const batchHandler = new FirestoreBatchHandler();
+    for await (const { ref } of stream) {
+      await batchHandler.addAsync(ref, { updatedAt: Date.now() }, { merge: true });
     }
 
     await batchHandler.flush();

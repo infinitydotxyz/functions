@@ -34,21 +34,25 @@ export class RewardsEventHandler {
 
   public async onPhaseStart(chainId: ChainId, phase: Phase, txn: FirebaseFirestore.Transaction) {
     const stakerContracts = getRelevantStakerContracts(chainId);
-    const raffles: { data: UserRaffle; ref: FirebaseFirestore.DocumentReference<UserRaffle>; }[] = [];
+    const raffles: { data: UserRaffle; ref: FirebaseFirestore.DocumentReference<UserRaffle> }[] = [];
     for (const stakerContractAddress of stakerContracts) {
       const rafflesRef = this._db
         .collection('raffles')
         .doc(`${chainId}:${stakerContractAddress}`)
         .collection('stakingContractRaffles');
-        const query = rafflesRef.where('activePhaseIds', 'array-contains', phase.details.id) as FirebaseFirestore.Query<UserRaffle>;
+      const query = rafflesRef.where(
+        'activePhaseIds',
+        'array-contains',
+        phase.details.id
+      ) as FirebaseFirestore.Query<UserRaffle>;
       const raffleSnap = await txn.get(query);
-      const phaseRaffles = raffleSnap.docs.map((item) => ({data: item.data(), ref: item.ref }));
+      const phaseRaffles = raffleSnap.docs.map((item) => ({ data: item.data(), ref: item.ref }));
       raffles.push(...phaseRaffles);
     }
 
     const save = () => {
       for (const raffle of raffles) {
-        if(raffle.data.state === RaffleState.Unstarted) {
+        if (raffle.data.state === RaffleState.Unstarted) {
           txn.set(raffle.ref, { state: RaffleState.InProgress }, { merge: true });
         }
       }
@@ -58,21 +62,25 @@ export class RewardsEventHandler {
 
   public async onPhaseComplete(chainId: ChainId, phase: Phase, txn: FirebaseFirestore.Transaction) {
     const stakerContracts = getRelevantStakerContracts(chainId);
-    const raffles: { data: UserRaffle; ref: FirebaseFirestore.DocumentReference<UserRaffle>; }[] = [];
+    const raffles: { data: UserRaffle; ref: FirebaseFirestore.DocumentReference<UserRaffle> }[] = [];
     for (const stakerContractAddress of stakerContracts) {
       const rafflesRef = this._db
         .collection('raffles')
         .doc(`${chainId}:${stakerContractAddress}`)
         .collection('stakingContractRaffles');
-        const query = rafflesRef.where('activePhaseIds', 'array-contains', phase.details.id) as FirebaseFirestore.Query<UserRaffle>;
+      const query = rafflesRef.where(
+        'activePhaseIds',
+        'array-contains',
+        phase.details.id
+      ) as FirebaseFirestore.Query<UserRaffle>;
       const raffleSnap = await txn.get(query);
-      const phaseRaffles = raffleSnap.docs.map((item) => ({data: item.data(), ref: item.ref }));
+      const phaseRaffles = raffleSnap.docs.map((item) => ({ data: item.data(), ref: item.ref }));
       raffles.push(...phaseRaffles);
     }
 
     const save = () => {
       for (const raffle of raffles) {
-        if(raffle.data.state === RaffleState.InProgress) {
+        if (raffle.data.state === RaffleState.InProgress) {
           txn.set(raffle.ref, { state: RaffleState.Locked }, { merge: true });
         }
       }
@@ -209,7 +217,7 @@ export class RewardsEventHandler {
             name: phase.name,
             index: phase.index
           });
-          if(phase.index === 0) {
+          if (phase.index === 0) {
             raffle.state = RaffleState.InProgress;
           }
         }
@@ -231,7 +239,7 @@ export class RewardsEventHandler {
         type: RaffleType.User,
         updatedAt: Date.now(),
         chainId,
-        state: phase.index === 0 ? RaffleState.InProgress: RaffleState.Unstarted,
+        state: phase.index === 0 ? RaffleState.InProgress : RaffleState.Unstarted,
         raffleContractAddress: '', // TODO
         raffleContractChainId: chainId,
         id,

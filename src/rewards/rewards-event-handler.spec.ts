@@ -1,7 +1,7 @@
 import { ChainId, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto/rewards';
 import { parseEther } from 'ethers/lib/utils';
-import { getDefaultFeesGenerated, TRADING_FEE_SPLIT_PHASE_1_TO_4 } from './config';
+import { DEFAULT_RAFFLE_CONFIG, getDefaultFeesGenerated, TRADING_FEE_SPLIT_PHASE_1_TO_4 } from './config';
 import { REWARD_BUFFER } from './constants';
 import { Phase } from './phases/phase.abstract';
 import { PhaseFactory } from './phases/phase.factory';
@@ -60,8 +60,8 @@ describe('RewardsEventHandler', () => {
           sellerPortion: 0.3
         },
         raffleConfig: {
-          phasePrize: { percentage: 50 },
-          grandPrize: { percentage: 50 }
+          phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+          grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
         }
       },
       {
@@ -87,8 +87,8 @@ describe('RewardsEventHandler', () => {
           sellerPortion: 0.3
         },
         raffleConfig: {
-          phasePrize: { percentage: 50 },
-          grandPrize: { percentage: 50 }
+          phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+          grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
         }
       }
     ];

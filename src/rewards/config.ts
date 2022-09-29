@@ -1,4 +1,9 @@
-import { RaffleTicketConfigDto, TokenomicsPhaseDto, TradingFeeDestination, TradingFeeSplit } from '@infinityxyz/lib/types/dto';
+import {
+  RaffleTicketConfigDto,
+  TokenomicsPhaseDto,
+  TradingFeeDestination,
+  TradingFeeSplit
+} from '@infinityxyz/lib/types/dto';
 import { ONE_WEEK } from '@infinityxyz/lib/utils';
 
 export const TRADING_FEE_SPLIT_PHASE_1_TO_4: TradingFeeSplit = {
@@ -33,7 +38,6 @@ export const DEFAULT_RAFFLE_CONFIG: RaffleTicketConfigDto = {
   }
 };
 
-
 const BUYER_PORTION = 0.7;
 const SELLER_PORTION = 0.3;
 
@@ -66,7 +70,7 @@ export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
-    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
   }
 };
 
@@ -93,7 +97,7 @@ export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
-    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
   }
 };
 
@@ -120,7 +124,7 @@ export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
-    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
   }
 };
 
@@ -147,7 +151,7 @@ export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
   },
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
-    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+    phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
   }
 };
 
@@ -170,4 +174,3 @@ export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
 export const DEFAULT_PHASES: TokenomicsPhaseDto[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map(
   (item, index) => ({ ...item, index })
 );
-

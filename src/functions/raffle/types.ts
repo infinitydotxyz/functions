@@ -53,7 +53,7 @@ export enum RaffleState {
   /**
    * winner has been selected
    */
-  Completed = 'COMPLETED'
+  Completed = 'COMPLETED' // TODO handle transitioning to completed
 }
 
 export interface StakingContractRaffle {

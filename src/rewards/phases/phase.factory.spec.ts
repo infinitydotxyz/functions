@@ -1,6 +1,6 @@
 import { TokenomicsPhaseDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { parseEther } from 'ethers/lib/utils';
-import { TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../config';
+import { DEFAULT_RAFFLE_CONFIG, TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../config';
 import { ContinuousPhase } from './continuous-phase';
 import { PhaseFactory } from './phase.factory';
 import { TradingFeeRefundBasedPhase } from './trading-fee-refund-based-phase';
@@ -37,8 +37,8 @@ const getDefaultPhase = (hasTradingFeeRefund: boolean): TokenomicsPhaseDto => {
     treasuryFeesGenerated: getFeesGenerated(0),
     tradingFeeRefund: hasTradingFeeRefund ? tradingFeeRefund : null,
     raffleConfig: {
-      phasePrize: { percentage: 50 },
-      grandPrize: { percentage: 50 }
+      phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
+      grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
     }
   };
 };

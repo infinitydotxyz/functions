@@ -48,7 +48,7 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
           if (entrant.data.numTickets > 0) {
             numEntrants += 1;
             const start = ticketNumber;
-            const end = ticketNumber + BigInt(entrant.data.numTickets) - BigInt(1);
+            const end = ticketNumber + BigInt(Math.floor(entrant.data.numTickets ?? 0)) - BigInt(1);
             const tickets = {
               start: start.toString(),
               end: end.toString()
@@ -87,7 +87,7 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
       entrants.push(item);
     }
 
-    const totalNumTickets = entrants.reduce((acc, item) => acc + BigInt(item.data.numTickets), BigInt(0));
+    const totalNumTickets = entrants.reduce((acc, item) => acc + BigInt(Math.floor(item.data.numTickets ?? 0)), BigInt(0));
     const ticketTotalsUpdate: RaffleTicketTotalsDoc = {
       updatedAt: Date.now(),
       totalNumTickets,

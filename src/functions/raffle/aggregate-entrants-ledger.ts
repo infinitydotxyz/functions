@@ -49,7 +49,7 @@ export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.Docu
       const entrantSnap = await txn.get(entrantRef);
       let events = data.docs.map((item) => ({ data: item.data(), ref: item.ref }));
 
-      const entrant: RaffleEntrant = entrantSnap.data() ?? {
+      const defaultEntrant: RaffleEntrant = {
         raffleId: raffle?.id ?? '',
         numTickets: 0,
         raffleType: RaffleType.User,
@@ -70,6 +70,13 @@ export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.Docu
         },
         isLedgerAggregated: false
       };
+
+      let entrant: RaffleEntrant = entrantSnap.data() ?? defaultEntrant;
+
+      entrant = {
+        ...defaultEntrant,
+        ...entrant
+      }
 
       if (entrant.isFinalized) {
         throw new Error('Entrant has been finalized. Cannot continue to update entrant');
@@ -118,6 +125,7 @@ export function applyEventsToEntrant(
     switch (event.data.discriminator) {
       case EntrantLedgerItemVariant.TransactionStats:
         entrant.data.volumeUSDC += event.data.volumeUSDC;
+        entrant.data.numTicketsFromVolume = entrant.data.volumeUSDC;
         break;
       case EntrantLedgerItemVariant.Offer: {
         const validOffers = [...event.data.order.items].filter((item) => {
@@ -148,8 +156,8 @@ export function applyEventsToEntrant(
     }
     event.data.isAggregated = true;
   }
-  entrant.numTickets =
-    entrant.data.numTicketsFromListings + entrant.data.numTicketsFromOffers + entrant.data.numTicketsFromVolume;
+  entrant.numTickets = Math.floor(
+    entrant.data.numTicketsFromListings + entrant.data.numTicketsFromOffers + entrant.data.numTicketsFromVolume);
 }
 
 export function listingAppliesToRaffle(listing: EntrantOrderItem, config: UserRaffleConfig) {

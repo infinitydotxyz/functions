@@ -71,17 +71,17 @@ export const triggerCurationLedgerAggregation = functions
       .collectionGroup(firestoreConstants.CURATION_LEDGER_COLL)
       .where('isAggregated', '==', false)
       .where('isStakeMerged', '==', true)
-      .where('isDeleted', '==', false) as FirebaseFirestore.Query<CurationLedgerEventType>;
+      .where('isDeleted', '==', false) as FirebaseFirestore.Query<CurationLedgerEvents>;
 
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
 
     const updates = new Set<string>();
     const batchHandler = new FirestoreBatchHandler();
     for await (const { ref } of stream) {
-      const stakerContractMetadataRef = ref.parent.parent as FirebaseFirestore.DocumentReference<CurationLedgerEvents>;
+      const stakerContractMetadataRef = ref.parent.parent as FirebaseFirestore.DocumentReference<CurationMetadata>;
       const collectionRef = stakerContractMetadataRef?.parent?.parent;
       if (stakerContractMetadataRef && collectionRef && !updates.has(stakerContractMetadataRef.path)) {
-        await triggerCurationAggregation(stakerContractMetadataRef, batchHandler);
+        await triggerCurationAggregation(ref, batchHandler);
       }
     }
     await batchHandler.flush();

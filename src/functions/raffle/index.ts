@@ -49,7 +49,7 @@ export const triggerRaffleRewardsAggregation = functions
   .firestore.document('raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleRewardsLedger/{eventId}')
   .onCreate(async (change) => {
     const ref = change.ref;
-    const raffleRef = ref.parent.parent;
+    const raffleRef = ref.parent.parent as FirebaseFirestore.DocumentReference<UserRaffle>;
     if (!raffleRef) {
       throw new Error('raffle ref not found');
     }
@@ -88,11 +88,11 @@ export const triggerRaffleRewardsAggregationBackup = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .pubsub.schedule('every 15 minutes')
+  .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
     const db = getDb();
 
-    const maxAge = ONE_MIN * 15;
+    const maxAge = ONE_MIN * 5;
     const raffleRewardsLedgers = db.collectionGroup(
       'raffleRewardsLedger'
     ) as FirebaseFirestore.CollectionGroup<RaffleLedgerSale>;
@@ -105,7 +105,7 @@ export const triggerRaffleRewardsAggregationBackup = functions
     const paths = new Set<string>();
     const batch = new FirestoreBatchHandler();
     for await (const { ref } of stream) {
-      const raffleRef = ref.parent.parent;
+      const raffleRef = ref.parent.parent as FirebaseFirestore.DocumentReference<UserRaffle>;
       if (!raffleRef) {
         continue;
       } else if (!paths.has(raffleRef.path)) {

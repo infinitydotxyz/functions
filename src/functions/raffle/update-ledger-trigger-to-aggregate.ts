@@ -1,9 +1,11 @@
+import { ONE_MIN } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { RaffleRewardsLedgerTriggerDoc } from './types';
+import { RaffleRewardsLedgerTriggerDoc, UserRaffle } from './types';
 
 export async function updateLedgerTriggerToAggregate(
-  raffleRef: FirebaseFirestore.DocumentReference,
-  batch?: FirestoreBatchHandler
+  raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>,
+  batch?: FirestoreBatchHandler,
+  minAge = ONE_MIN * 5
 ) {
   const rewardsLedgerTriggerRef = raffleRef
     .collection('raffleTriggers')
@@ -14,7 +16,10 @@ export async function updateLedgerTriggerToAggregate(
     requiresAggregation: true,
     updatedAt: Date.now()
   };
-  if (!ledgerTriggerSnap.data()?.requiresAggregation) {
+  
+  const ledgerTrigger: Partial<RaffleRewardsLedgerTriggerDoc> = ledgerTriggerSnap.data() ?? {};
+  const expired = typeof ledgerTrigger.updatedAt === 'number' && ledgerTrigger.updatedAt <= Date.now() - minAge
+  if (!ledgerTrigger?.requiresAggregation || expired) {
     if (batch) {
       await batch.addAsync(rewardsLedgerTriggerRef, update, { merge: true });
     } else {

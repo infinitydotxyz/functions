@@ -27,7 +27,8 @@
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
     "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
     "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts",
-    "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts"
+    "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts",
+    "migrate": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-rewards.ts"
   },
   "engines": {
     "node": "16"

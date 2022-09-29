@@ -1,5 +1,4 @@
 import { ChainId, UserDisplayData } from '@infinityxyz/lib/types/core';
-import { ONE_WEEK } from '@infinityxyz/lib/utils';
 import { RaffleType } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 
 export interface RaffleRewardsLedgerTriggerDoc {

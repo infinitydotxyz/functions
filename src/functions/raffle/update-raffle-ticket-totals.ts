@@ -4,6 +4,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { streamQueryWithRef } from '../../firestore/stream-query';
+import { getProvider } from '../../utils/ethersUtils';
 import { FinalizedUserRaffleEntrant, RaffleEntrant, RaffleState, RaffleTicketTotalsDoc, UserRaffle } from './types';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
@@ -23,8 +24,12 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
   const batch = new FirestoreBatchHandler();
   if (raffle.state === RaffleState.Locked) {
     // finalize the raffle
-    // TODO make sure listings/offers have been handled
-    await ensureEntrantsAreReadyToBeFinalized(raffleRef.firestore, raffle.activePhaseIds, raffle.chainId);
+    await ensureEntrantsAreReadyToBeFinalized(
+      raffleRef.firestore,
+      raffle.activePhaseIds,
+      raffle.chainId,
+      raffle.stakerContractAddress
+    );
     let ticketNumber = BigInt(0);
     let numEntrants = 0;
     const res = await paginatedTransaction(
@@ -106,7 +111,8 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
 async function ensureEntrantsAreReadyToBeFinalized(
   db: FirebaseFirestore.Firestore,
   phaseIds: string[],
-  chainId: ChainId
+  chainId: ChainId,
+  stakerContractAddress: string
 ): Promise<void> {
   const tokenomicsRef = db
     .collection(firestoreConstants.REWARDS_COLL)
@@ -114,6 +120,7 @@ async function ensureEntrantsAreReadyToBeFinalized(
   const tokenomicsSnap = await tokenomicsRef.get();
 
   const tokenomicsData = tokenomicsSnap.data();
+  const currentBlock = (await getProvider(chainId)?.getBlockNumber()) ?? Number.MAX_SAFE_INTEGER;
 
   for (const phaseId of phaseIds) {
     const tokenomicsPhase = (tokenomicsData?.phases ?? []).find((phase) => phase.id === phaseId);
@@ -121,7 +128,10 @@ async function ensureEntrantsAreReadyToBeFinalized(
       throw new Error(`Failed to find tokenomics phase ${phaseId} for chain ${chainId} in tokenomics config`);
     } else if (tokenomicsPhase.isActive) {
       throw new Error(`Entrants are not ready to be finalized. Phase ${phaseId} is still active`);
+    } else if (currentBlock >= tokenomicsPhase.lastBlockIncluded + 8) {
+      throw new Error(`Waiting for transactions to be finalized`);
     }
+
     const txnFeeRewardDocs = db
       .collectionGroup(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL)
       .where('phaseId', '==', phaseId)
@@ -132,6 +142,18 @@ async function ensureEntrantsAreReadyToBeFinalized(
       .where('isCopiedToRaffles', '==', false)
       .where('phaseId', '==', phaseId)
       .where('chainId', '==', chainId) as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
+
+    const unaggregatedOrdersQuery = db
+      .collectionGroup('userRaffleOrdersLedger')
+      .where('blockNumber', '<=', tokenomicsPhase.lastBlockIncluded)
+      .where('isAggregated', '==', false);
+
+    const unaggregatedPhaseOrdersQuery = db
+      .collectionGroup('raffleEntrantLedger')
+      .where('stakerContractChainId', '==', chainId)
+      .where('stakerContractAddress', '==', stakerContractAddress)
+      .where('phaseId', '==', phaseId)
+      .where('isAggregated', '==', false);
 
     const txnFeeRewards = await txnFeeRewardDocs.limit(2).get();
     if (txnFeeRewards.size > 0) {
@@ -144,6 +166,20 @@ async function ensureEntrantsAreReadyToBeFinalized(
     if (phaseTxnFeeRewards.size > 0) {
       throw new Error(
         `Entrants are not ready to be finalized. Phase ${phaseId} has not had its txn fee phase rewards aggregated`
+      );
+    }
+
+    const orders = await unaggregatedOrdersQuery.limit(2).get();
+    if (orders.size > 0) {
+      throw new Error(
+        `Entrants are not ready to be finalized. Phase ${phaseId} has not had all orders aggregated to entrants`
+      );
+    }
+
+    const phaseOrders = await unaggregatedPhaseOrdersQuery.limit(2).get();
+    if (phaseOrders.size > 0) {
+      throw new Error(
+        `Entrants are not ready to be finalized. Phase ${phaseId} has not had its phase orders aggregated`
       );
     }
   }

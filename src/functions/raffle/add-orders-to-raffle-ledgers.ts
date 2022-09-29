@@ -99,3 +99,4 @@ export async function addOrdersToRaffleLedgers(
     txn.set(itemRef, { isAggregated: true, updatedAt: Date.now() }, { merge: true });
   });
 }
+

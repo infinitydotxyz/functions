@@ -43,6 +43,10 @@ export async function handlerStakerContractMetadata(
     stakerContractMetadata = { ...stakerContractMetadata, ...triggerPeriodAggregationUpdate };
   }
 
+  if (stakerContractMetadata.updatedAt > originalUpdatedAt) {
+    await stakerContractMetadataRef.set(stakerContractMetadata, { merge: true });
+  }
+
   if (stakerContractMetadata.periodsRequireAggregation) {
     const collection = await getCollectionDisplayData(
       stakerContractMetadataRef.firestore,
@@ -64,6 +68,9 @@ export async function handlerStakerContractMetadata(
       updatedAt: Date.now()
     };
     stakerContractMetadata = { ...stakerContractMetadata, ...metadataUpdate };
+  }
+  if (stakerContractMetadata.updatedAt > originalUpdatedAt) {
+    await stakerContractMetadataRef.set(stakerContractMetadata, { merge: true });
   }
 
   if (stakerContractMetadata.currentSnippetRequiresAggregation) {

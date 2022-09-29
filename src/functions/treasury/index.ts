@@ -29,7 +29,7 @@ export const triggerTreasuryLedgerAggregation = functions
       'treasuryLedger'
     ) as FirebaseFirestore.CollectionGroup<TreasuryBalanceAddedEvent>;
 
-    const maxAge = ONE_MIN * 15;
+    const maxAge = ONE_MIN * 5;
     const query = treasuryLedgersRef.where('isAggregated', '==', false).where('updatedAt', '<', Date.now() - maxAge);
 
     const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });

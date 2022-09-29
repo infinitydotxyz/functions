@@ -39,8 +39,10 @@ export async function aggregatedTreasuryEvents(
         feesGeneratedEth: 0
       };
       const phaseFeesGenerated = (treasury.phases ?? {})[event.phaseId] ?? {
-        feesGeneratedWei: '0',
-        feesGeneratedEth: 0,
+        feesGenerated: {
+          feesGeneratedWei: '0',
+          feesGeneratedEth: 0,
+        },
         phaseName: event.phaseName,
         phaseId: event.phaseId,
         phaseIndex: event.phaseIndex

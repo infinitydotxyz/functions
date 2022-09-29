@@ -1,3 +1,4 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, formatEth } from '@infinityxyz/lib/utils';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
@@ -23,8 +24,9 @@ export async function aggregateRaffleRewardsLedger(
       }
       const raffleRewardsSnap = await txn.get(raffleRewardsRef);
       let raffleRewards = raffleRewardsSnap.data();
+      const [stakerContractChainId, stakerContractAddress ] = (rewardsLedger.parent?.parent.parent?.id.split(':') ?? []) as [ChainId, string] | [];
 
-      const contributions = data.docs.map((item) => item.data()).filter((item) => !item);
+      const contributions = data.docs.map((item) => item.data()).filter((item) => !!item);
       const stats = calculateStatsBigInt(contributions, ({ contributionWei }) => BigInt(contributionWei));
 
       if (!raffleRewards) {
@@ -32,10 +34,13 @@ export async function aggregateRaffleRewardsLedger(
         if (!raffleId) {
           throw new Error('Invalid raffle id');
         }
+        if(contributions.length === 0) {
+          throw new Error('No contributions found');
+        }
         const initRewards: RaffleRewardsDoc = {
           raffleId,
-          stakerContractAddress: contributions[0].stakerContractAddress,
-          stakerContractChainId: contributions[0].stakerContractChainId,
+          stakerContractAddress: stakerContractAddress ?? contributions[0].stakerContractAddress,
+          stakerContractChainId: stakerContractChainId ?? contributions[0].stakerContractChainId,
           type: contributions[0].type,
           updatedAt: Date.now(),
           chainId: contributions[0].chainId,

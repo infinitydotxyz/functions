@@ -180,7 +180,7 @@ export const onEntrantLedgerEventBackup = functions
   .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
     const db = getDb();
-    const maxAge = ONE_MIN * 10;
+    const maxAge = ONE_MIN * 5;
     const unaggregatedLedgerEvents = db
       .collectionGroup('raffleEntrantLedger')
       .where('isAggregated', '==', false)
@@ -208,6 +208,10 @@ export const onEntrantWrite = functions
   .firestore.document(`raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleEntrants/{entrantId}`)
   .onWrite(async (change) => {
     const after = change.after.data() as Partial<RaffleEntrant>;
+    if(!after) {
+      return;
+    }
+
     if (!after.isLedgerAggregated) {
       await aggregateEntrantsLedger(change.after.ref as FirebaseFirestore.DocumentReference<RaffleEntrant>);
     } else if (!after.isAggregated) {

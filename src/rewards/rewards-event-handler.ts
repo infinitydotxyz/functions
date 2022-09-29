@@ -264,7 +264,7 @@ export class RewardsEventHandler {
           updateRaffle(stakerContractAddress, chainId, phase, true);
         }
         if (phase.raffleConfig?.phasePrize) {
-          updateRaffle(stakerContractAddress, chainId, phase, true);
+          updateRaffle(stakerContractAddress, chainId, phase, false);
         }
       }
     }

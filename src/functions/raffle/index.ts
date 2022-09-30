@@ -49,7 +49,9 @@ import { aggregateEntrantsLedger } from './aggregate-entrants-ledger';
  */
 export const triggerRaffleRewardsAggregation = functions
   .region(REGION)
-  .firestore.document('raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleRewardsLedger/{eventId}')
+  .firestore.document(
+    `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL}/{eventId}`
+  )
   .onCreate(async (change) => {
     const ref = change.ref;
     const raffleRef = ref.parent.parent as FirebaseFirestore.DocumentReference<UserRaffle>;
@@ -65,14 +67,16 @@ export const aggregateRewardsLedger = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document('raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleTriggers/rewardsLedgerTrigger')
+  .firestore.document(
+    `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_TRIGGERS_COLL}/${firestoreConstants.RAFFLE_LEDGER_TRIGGER_DOC}`
+  )
   .onWrite(async (change) => {
     const after = change.after.data() as RaffleRewardsLedgerTriggerDoc;
     if (after?.requiresAggregation) {
       const rewardsLedgerTriggerRef = change.after
         .ref as FirebaseFirestore.DocumentReference<RaffleRewardsLedgerTriggerDoc>;
       const rewardsLedgerRef = rewardsLedgerTriggerRef.parent.parent?.collection(
-        'raffleRewardsLedger'
+        firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL
       ) as FirebaseFirestore.CollectionReference<RaffleLedgerSale>;
 
       if (!rewardsLedgerRef) {
@@ -97,7 +101,7 @@ export const triggerRaffleRewardsAggregationBackup = functions
 
     const maxAge = ONE_MIN * 5;
     const raffleRewardsLedgers = db.collectionGroup(
-      'raffleRewardsLedger'
+      firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL
     ) as FirebaseFirestore.CollectionGroup<RaffleLedgerSale>;
     const unaggregatedRewardsLedgers = raffleRewardsLedgers
       .where('isAggregated', '==', false)
@@ -168,7 +172,7 @@ export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
 export const onEntrantLedgerEvent = functions
   .region(REGION)
   .firestore.document(
-    `raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleEntrants/{entrantId}/raffleEntrantLedger/{eventId}`
+    `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_ENTRANTS_COLL}/{entrantId}/${firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL}/{eventId}`
   )
   .onWrite(async (change) => {
     const after = change.after.data() as EntrantLedgerItem;
@@ -185,7 +189,7 @@ export const onEntrantLedgerEventBackup = functions
     const db = getDb();
     const maxAge = ONE_MIN * 5;
     const unaggregatedLedgerEvents = db
-      .collectionGroup('raffleEntrantLedger')
+      .collectionGroup(firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL)
       .where('isAggregated', '==', false)
       .where('updatedAt', '<', Date.now() - maxAge);
 
@@ -208,7 +212,9 @@ export const onEntrantWrite = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleEntrants/{entrantId}`)
+  .firestore.document(
+    `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_ENTRANTS_COLL}/{entrantId}`
+  )
   .onWrite(async (change) => {
     const after = change.after.data() as Partial<RaffleEntrant>;
     if (!after) {
@@ -219,8 +225,8 @@ export const onEntrantWrite = functions
       await aggregateEntrantsLedger(change.after.ref as FirebaseFirestore.DocumentReference<RaffleEntrant>);
     } else if (!after.isAggregated) {
       await change.after.ref.parent.parent
-        ?.collection('raffleTotals')
-        .doc('raffleTicketTotals')
+        ?.collection(firestoreConstants.RAFFLE_TOTALS_COLL)
+        .doc(firestoreConstants.RAFFLE_TICKET_TOTALS_DOC)
         .set({ isAggregated: false, updatedAt: Date.now() }, { merge: true });
     }
   });
@@ -230,7 +236,9 @@ export const updateTicketTotals = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`raffles/{stakingContract}/stakingContractRaffles/{raffleId}/raffleTotals/raffleTicketTotals`)
+  .firestore.document(
+    `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_TOTALS_COLL}/${firestoreConstants.RAFFLE_TICKET_TOTALS_DOC}`
+  )
   .onWrite(async (change) => {
     const after = change.after.data() as Partial<RaffleTicketTotalsDoc>;
 
@@ -254,7 +262,7 @@ export const updateTicketTotalsBackup = functions
     const db = getDb();
     const maxAge = ONE_MIN * 10;
     const unaggregatedTriggers = db
-      .collectionGroup('raffleTotals')
+      .collectionGroup(firestoreConstants.RAFFLE_TOTALS_COLL)
       .where('isAggregated', '==', false)
       .where('totalsUpdatedAt', '<', Date.now() - maxAge);
 
@@ -277,7 +285,9 @@ export const applyOrdersToRaffleLedgers = functions
   .runWith({
     timeoutSeconds: 540
   })
-  .firestore.document(`${firestoreConstants.USERS_COLL}/{userId}/userRaffleOrdersLedger/{orderId}`)
+  .firestore.document(
+    `${firestoreConstants.USERS_COLL}/{userId}/${firestoreConstants.USER_RAFFLE_ORDERS_LEDGER_COLL}/{orderId}`
+  )
   .onWrite(async (change) => {
     const item = change.after.data() as PreMergeEntrantOrderLedgerItem;
 
@@ -303,7 +313,7 @@ export const applyOrdersToRaffleLedgersBackup = functions
     const db = getDb();
     const maxAge = ONE_MIN * 10;
     const unaggregatedOrders = db
-      .collectionGroup('userRaffleOrdersLedger')
+      .collectionGroup(firestoreConstants.USER_RAFFLE_ORDERS_LEDGER_COLL)
       .where('isAggregated', '==', false)
       .where('updatedAt', '<', Date.now() - maxAge);
     const stream = streamQueryWithRef(unaggregatedOrders, (_, ref) => [ref], { pageSize: 300 });

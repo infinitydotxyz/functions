@@ -15,7 +15,9 @@ import { streamQueryWithRef } from '../../firestore/stream-query';
 import { getProvider } from '../../utils/ethersUtils';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
-  const raffleEntrants = raffleRef.collection('raffleEntrants') as FirebaseFirestore.CollectionReference<RaffleEntrant>;
+  const raffleEntrants = raffleRef.collection(
+    firestoreConstants.RAFFLE_ENTRANTS_COLL
+  ) as FirebaseFirestore.CollectionReference<RaffleEntrant>;
   const raffle = (await raffleRef.get()).data();
 
   if (!raffle) {
@@ -25,8 +27,8 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
   }
 
   const totalTicketsRef = raffleRef
-    .collection('raffleTotals')
-    .doc('raffleTicketTotals') as FirebaseFirestore.DocumentReference<RaffleTicketTotalsDoc>;
+    .collection(firestoreConstants.RAFFLE_TOTALS_COLL)
+    .doc(firestoreConstants.RAFFLE_TICKET_TOTALS_DOC) as FirebaseFirestore.DocumentReference<RaffleTicketTotalsDoc>;
 
   const batch = new FirestoreBatchHandler();
   if (raffle.state === RaffleState.Locked) {
@@ -154,12 +156,12 @@ async function ensureEntrantsAreReadyToBeFinalized(
       .where('chainId', '==', chainId) as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
 
     const unaggregatedOrdersQuery = db
-      .collectionGroup('userRaffleOrdersLedger')
+      .collectionGroup(firestoreConstants.USER_RAFFLE_ORDERS_LEDGER_COLL)
       .where('blockNumber', '<=', tokenomicsPhase.lastBlockIncluded)
       .where('isAggregated', '==', false);
 
     const unaggregatedPhaseOrdersQuery = db
-      .collectionGroup('raffleEntrantLedger')
+      .collectionGroup(firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL)
       .where('stakerContractChainId', '==', chainId)
       .where('stakerContractAddress', '==', stakerContractAddress)
       .where('phaseId', '==', phaseId)

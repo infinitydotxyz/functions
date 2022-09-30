@@ -87,9 +87,9 @@ export async function addOrdersToRaffleLedgers(
               updatedAt: Date.now()
             };
             const raffleEntrantLedgerRef = raffleSnap.ref
-              .collection('raffleEntrants')
+              .collection(firestoreConstants.RAFFLE_ENTRANTS_COLL)
               .doc(item.entrantAddress)
-              .collection('raffleEntrantLedger');
+              .collection(firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL);
             const eventDocRef = raffleEntrantLedgerRef.doc(item.order.id);
             txn.set(eventDocRef, entrantOrderLedgerItem);
           }

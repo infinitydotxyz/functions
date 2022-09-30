@@ -157,7 +157,7 @@ export async function saveCurrentCurationSnippet(
   curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>
 ) {
   const curationSnippetRef = curationMetadataRef
-    .collection('curationSnippets')
+    .collection(firestoreConstants.CURATION_SNIPPETS_COLL)
     .doc(firestoreConstants.CURATION_SNIPPET_DOC);
   await curationSnippetRef.set(curationSnippet, { merge: true });
 

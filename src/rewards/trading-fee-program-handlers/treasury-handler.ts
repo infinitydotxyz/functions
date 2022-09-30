@@ -1,5 +1,6 @@
 import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
@@ -61,7 +62,11 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
-        const ref = db.collection('treasury').doc(sale.chainId).collection('treasuryLedger').doc();
+        const ref = db
+          .collection(firestoreConstants.TREASURY_COLL)
+          .doc(sale.chainId)
+          .collection(firestoreConstants.TREASURY_LEDGER_COLL)
+          .doc();
         const treasuryEventDoc: TreasuryBalanceAddedEvent = {
           phaseId: phase.details.id,
           phaseIndex: phase.details.index,

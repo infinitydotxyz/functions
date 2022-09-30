@@ -16,7 +16,7 @@ import { paginatedTransaction } from '../../firestore/paginated-transaction';
 export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.DocumentReference<RaffleEntrant>) {
   const db = entrantRef.firestore;
 
-  const entrantLedgerRef = entrantRef.collection('raffleEntrantLedger');
+  const entrantLedgerRef = entrantRef.collection(firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL);
 
   const raffleRef = entrantRef.parent.parent as FirebaseFirestore.DocumentReference<UserRaffle>;
   const raffleSnap = await raffleRef.get();

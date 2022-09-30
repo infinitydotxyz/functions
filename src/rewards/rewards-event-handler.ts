@@ -36,9 +36,9 @@ export class RewardsEventHandler {
     const raffles: { data: UserRaffle; ref: FirebaseFirestore.DocumentReference<UserRaffle> }[] = [];
     for (const stakerContractAddress of stakerContracts) {
       const rafflesRef = this._db
-        .collection('raffles')
+        .collection(firestoreConstants.RAFFLES_COLL)
         .doc(`${chainId}:${stakerContractAddress}`)
-        .collection('stakingContractRaffles');
+        .collection(firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL);
       const query = rafflesRef.where(
         'activePhaseIds',
         'array-contains',
@@ -64,9 +64,9 @@ export class RewardsEventHandler {
     const raffles: { data: UserRaffle; ref: FirebaseFirestore.DocumentReference<UserRaffle> }[] = [];
     for (const stakerContractAddress of stakerContracts) {
       const rafflesRef = this._db
-        .collection('raffles')
+        .collection(firestoreConstants.RAFFLES_COLL)
         .doc(`${chainId}:${stakerContractAddress}`)
-        .collection('stakingContractRaffles');
+        .collection(firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL);
       const query = rafflesRef.where(
         'activePhaseIds',
         'array-contains',
@@ -270,9 +270,9 @@ export class RewardsEventHandler {
 
     for (const raffle of [...raffles.values()]) {
       const ref = this._db
-        .collection('raffles')
+        .collection(firestoreConstants.RAFFLES_COLL)
         .doc(`${raffle.stakerContractChainId}:${raffle.stakerContractAddress}`)
-        .collection('stakingContractRaffles')
+        .collection(firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL)
         .doc(raffle.id);
       if (txn) {
         txn.set(ref, raffle);

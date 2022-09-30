@@ -1,5 +1,5 @@
 import { ChainId, RaffleRewardsDoc } from '@infinityxyz/lib/types/core';
-import { calculateStatsBigInt, formatEth } from '@infinityxyz/lib/utils';
+import { calculateStatsBigInt, firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 import { RaffleRewardsLedgerTriggerDoc } from './types';
@@ -17,8 +17,8 @@ export async function aggregateRaffleRewardsLedger(
     { pageSize: 300, maxPages: 10 },
     async ({ data, txn, hasNextPage }) => {
       const raffleRewardsRef = rewardsLedger.parent
-        ?.collection('raffleTotals')
-        .doc('raffleRewards') as FirebaseFirestore.DocumentReference<RaffleRewardsDoc>;
+        ?.collection(firestoreConstants.RAFFLE_TOTALS_COLL)
+        .doc(firestoreConstants.RAFFLE_TOTALS_REWARDS_DOC) as FirebaseFirestore.DocumentReference<RaffleRewardsDoc>;
       if (!raffleRewardsRef) {
         throw new Error('Invalid raffle rewards ledger ref');
       }

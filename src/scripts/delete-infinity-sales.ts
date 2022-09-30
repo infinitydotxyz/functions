@@ -1,4 +1,5 @@
 import { SaleSource } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import FirestoreBatchHandler from '../firestore/batch-handler';
 import { streamQueryWithRef } from '../firestore/stream-query';
@@ -6,7 +7,7 @@ import { streamQueryWithRef } from '../firestore/stream-query';
 async function deleteInfinitySales() {
   const db = getDb();
 
-  const sales = db.collection('sales');
+  const sales = db.collection(firestoreConstants.SALES_COLL);
   const infinitySales = sales.where('source', '==', SaleSource.Infinity);
   const stream = streamQueryWithRef(infinitySales, (_, ref) => [ref], { pageSize: 300 });
 

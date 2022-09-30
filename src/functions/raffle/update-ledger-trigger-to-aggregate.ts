@@ -1,5 +1,5 @@
 import { UserRaffle } from '@infinityxyz/lib/types/core';
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { RaffleRewardsLedgerTriggerDoc } from './types';
 
@@ -9,8 +9,10 @@ export async function updateLedgerTriggerToAggregate(
   minAge = ONE_MIN * 5
 ) {
   const rewardsLedgerTriggerRef = raffleRef
-    .collection('raffleTriggers')
-    .doc('rewardsLedgerTrigger') as FirebaseFirestore.DocumentReference<RaffleRewardsLedgerTriggerDoc>;
+    .collection(firestoreConstants.RAFFLE_TRIGGERS_COLL)
+    .doc(
+      firestoreConstants.RAFFLE_LEDGER_TRIGGER_DOC
+    ) as FirebaseFirestore.DocumentReference<RaffleRewardsLedgerTriggerDoc>;
 
   const ledgerTriggerSnap = await rewardsLedgerTriggerRef.get();
   const update: RaffleRewardsLedgerTriggerDoc = {

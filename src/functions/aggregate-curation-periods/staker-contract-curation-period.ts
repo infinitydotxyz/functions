@@ -18,13 +18,13 @@ export class StakerContractCurationPeriod {
     return this._db
       .collection(firestoreConstants.STAKING_CONTRACTS_COLL)
       .doc(`${this._metadata.stakerContractChainId}:${this._metadata.stakerContractAddress}`)
-      .collection('stakerContractCurationPeriods')
+      .collection(firestoreConstants.STAKER_CONTRACT_CURATION_PERIODS_COLL)
       .doc(`${this._metadata.timestamp}`) as FirebaseFirestore.DocumentReference<StakerContractPeriodDoc>;
   }
 
   get usersRef() {
     return this.ref.collection(
-      'stakerContractCurationPeriodsUsers'
+      firestoreConstants.STAKER_CONTRACT_CURATION_PERIOD_USERS_COLL
     ) as FirebaseFirestore.CollectionReference<StakerContractPeriodUserDoc>;
   }
 

@@ -1,4 +1,4 @@
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { getDb } from '../../firestore';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
@@ -13,7 +13,9 @@ export const onTreasuryLedgerEvent = functions
     timeoutSeconds: 540,
     maxInstances: 1 // run 1 instance to support batch aggregation on any event change
   })
-  .firestore.document(`treasury/{chainId}/treasuryLedger/{treasuryLedgerEvent}`)
+  .firestore.document(
+    `${firestoreConstants.TREASURY_COLL}/{chainId}/${firestoreConstants.TREASURY_LEDGER_COLL}/{treasuryLedgerEvent}`
+  )
   .onWrite(async (snapshot) => {
     const ledgerRef = snapshot.after.ref.parent as FirebaseFirestore.CollectionReference<TreasuryBalanceAddedEvent>;
     await aggregatedTreasuryEvents(ledgerRef);
@@ -21,12 +23,12 @@ export const onTreasuryLedgerEvent = functions
 
 export const triggerTreasuryLedgerAggregation = functions
   .region(REGION)
-  .pubsub.schedule('every 15 minutes')
+  .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
     const db = getDb();
 
     const treasuryLedgersRef = db.collectionGroup(
-      'treasuryLedger'
+      firestoreConstants.TREASURY_LEDGER_COLL
     ) as FirebaseFirestore.CollectionGroup<TreasuryBalanceAddedEvent>;
 
     const maxAge = ONE_MIN * 5;

@@ -1,6 +1,6 @@
 import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
-import { getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
@@ -43,9 +43,9 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
         const sales = this._transformSaleToCollectionPotSale(sale, phase);
         for (const sale of sales) {
           const rafflesRef = db
-            .collection('raffles')
+            .collection(firestoreConstants.RAFFLES_COLL)
             .doc(`${sale.stakerContractChainId}:${sale.stakerContractAddress}`)
-            .collection('stakingContractRaffles');
+            .collection(firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL);
           const collectionRaffleRef = rafflesRef.doc(`collection:${phase.details.id}`);
 
           const collectionPrizeRaffleLedgerSale: RaffleLedgerSale = {
@@ -54,7 +54,9 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
             contributionEth: eventFees.feesGeneratedEth
           };
 
-          const collectionRaffleLedgerEventRef = collectionRaffleRef.collection('raffleRewardsLedger').doc();
+          const collectionRaffleLedgerEventRef = collectionRaffleRef
+            .collection(firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL)
+            .doc();
           txn.set(collectionRaffleLedgerEventRef, collectionPrizeRaffleLedgerSale);
         }
       },

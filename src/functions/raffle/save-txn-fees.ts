@@ -5,6 +5,7 @@ import {
   StakingContractRaffle,
   TransactionFeePhaseRewardsDoc
 } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../aggregate-sales-stats/utils';
 
 export async function saveTxnFees(
@@ -32,9 +33,9 @@ export async function saveTxnFees(
       );
       raffleData.stakerContractAddress;
       const entrantPhaseDocRef = raffle.ref
-        .collection('raffleEntrants')
+        .collection(firestoreConstants.RAFFLE_ENTRANTS_COLL)
         .doc(data.userAddress)
-        .collection('raffleEntrantLedger')
+        .collection(firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL)
         .doc(`phase:${data.phaseId}`);
 
       txn.set(entrantPhaseDocRef, ledgerItem, { merge: false });
@@ -46,9 +47,9 @@ export async function getApplicableRaffles(db: FirebaseFirestore.Firestore, chai
   const stakerContracts = getRelevantStakerContracts(chainId);
   const applicableRafflesQueries: FirebaseFirestore.Query<StakingContractRaffle>[] = [];
   for (const stakerContract of stakerContracts) {
-    const rafflesRef = db.collection('raffles').doc(`${chainId}:${stakerContract}`);
+    const rafflesRef = db.collection(firestoreConstants.RAFFLES_COLL).doc(`${chainId}:${stakerContract}`);
     const stakerContractRaffles = rafflesRef
-      .collection('stakingContractRaffles')
+      .collection(firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL)
       .where('activePhaseIds', 'array-contains', phaseId) as FirebaseFirestore.Query<StakingContractRaffle>;
     applicableRafflesQueries.push(stakerContractRaffles);
   }

@@ -1,6 +1,6 @@
 import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
-import { formatEth, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, formatEth, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
@@ -78,9 +78,9 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
         const sales = this._transformSaleToRaffleLedgerSale(sale, phase);
         for (const sale of sales) {
           const rafflesRef = db
-            .collection('raffles')
+            .collection(firestoreConstants.RAFFLES_COLL)
             .doc(`${sale.stakerContractChainId}:${sale.stakerContractAddress}`)
-            .collection('stakingContractRaffles');
+            .collection(firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL);
           const phaseRaffleRef = rafflesRef.doc(phase.details.id);
           const grandPrizeRaffleRef = rafflesRef.doc('grandPrize');
 
@@ -96,8 +96,12 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
             contributionEth: formatEth(grandPrizeContribution.toString())
           };
 
-          const phaseRaffleLedgerEventRef = phaseRaffleRef.collection('raffleRewardsLedger').doc();
-          const grandPrizeRaffleLedgerEventRef = grandPrizeRaffleRef.collection('raffleRewardsLedger').doc();
+          const phaseRaffleLedgerEventRef = phaseRaffleRef
+            .collection(firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL)
+            .doc();
+          const grandPrizeRaffleLedgerEventRef = grandPrizeRaffleRef
+            .collection(firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL)
+            .doc();
           txn.set(phaseRaffleLedgerEventRef, phaseRaffleLedgerSale);
           txn.set(grandPrizeRaffleLedgerEventRef, grandPrizeRaffleLedgerSale);
         }

@@ -1,11 +1,18 @@
-import { ChainId, TransactionFeePhaseRewardsDoc } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  FinalizedUserRaffleEntrant,
+  RaffleEntrant,
+  RaffleState,
+  RaffleTicketTotalsDoc,
+  TransactionFeePhaseRewardsDoc,
+  UserRaffle
+} from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { getProvider } from '../../utils/ethersUtils';
-import { FinalizedUserRaffleEntrant, RaffleEntrant, RaffleState, RaffleTicketTotalsDoc, UserRaffle } from './types';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
   const raffleEntrants = raffleRef.collection('raffleEntrants') as FirebaseFirestore.CollectionReference<RaffleEntrant>;

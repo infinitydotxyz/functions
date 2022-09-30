@@ -1,10 +1,10 @@
-import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
-import { RaffleLedgerEventVariant, RaffleLedgerSale, RaffleType } from './raffle-handler';
+import { RaffleLedgerEventVariant, RaffleLedgerSale } from './raffle-handler';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
 
 export class CollectionPotHandler extends TradingFeeDestinationEventHandler {

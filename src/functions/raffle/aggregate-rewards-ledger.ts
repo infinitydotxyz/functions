@@ -1,8 +1,8 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, RaffleRewardsDoc } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, formatEth } from '@infinityxyz/lib/utils';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
-import { RaffleRewardsDoc, RaffleRewardsLedgerTriggerDoc } from './types';
+import { RaffleRewardsLedgerTriggerDoc } from './types';
 
 export async function aggregateRaffleRewardsLedger(
   rewardsLedger: FirebaseFirestore.CollectionReference<RaffleLedgerSale>,

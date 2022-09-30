@@ -1,4 +1,4 @@
-import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { formatEth, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
@@ -10,12 +10,6 @@ import { TradingFeeDestinationEventHandler } from './trading-fee-destination-eve
 export enum RaffleLedgerEventVariant {
   NftSaleFeeContribution = 'NFT_SALE_FEE_CONTRIBUTION'
 }
-
-export enum RaffleType {
-  User = 'USER',
-  Collection = 'COLLECTION'
-}
-
 export interface RaffleLedgerSale {
   type: RaffleType;
   discriminator: RaffleLedgerEventVariant.NftSaleFeeContribution;

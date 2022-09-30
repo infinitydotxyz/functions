@@ -3,13 +3,15 @@ import {
   EntrantLedgerItem,
   EntrantLedgerItemVariant,
   EntrantOrderItem,
-  UserDisplayData
+  RaffleEntrant,
+  RaffleType,
+  UserDisplayData,
+  UserRaffle,
+  UserRaffleConfig
 } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
-import { RaffleType } from '../../rewards/trading-fee-program-handlers/raffle-handler';
-import { RaffleEntrant, UserRaffle, UserRaffleConfig } from './types';
 
 export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.DocumentReference<RaffleEntrant>) {
   const db = entrantRef.firestore;

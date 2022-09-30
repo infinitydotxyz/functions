@@ -1,7 +1,10 @@
 import {
   EntrantLedgerItem,
   PreMergeEntrantOrderLedgerItem,
-  TransactionFeePhaseRewardsDoc
+  RaffleEntrant,
+  RaffleTicketTotalsDoc,
+  TransactionFeePhaseRewardsDoc,
+  UserRaffle
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
@@ -11,7 +14,7 @@ import { streamQueryWithRef } from '../../firestore/stream-query';
 import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 import { REGION } from '../../utils/constants';
 import { saveTxnFees } from './save-txn-fees';
-import { RaffleEntrant, RaffleRewardsLedgerTriggerDoc, RaffleTicketTotalsDoc, UserRaffle } from './types';
+import { RaffleRewardsLedgerTriggerDoc } from './types';
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
 import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
 import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';

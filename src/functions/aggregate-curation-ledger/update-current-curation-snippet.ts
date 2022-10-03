@@ -3,7 +3,7 @@ import { ChainId, CollectionDisplayData, Erc20TokenMetadata } from '@infinityxyz
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
-  CurationBlockUser,
+  CurationBlockStats,
   CurationBlockUsers,
   CurationPeriod,
   CurationPeriodDoc,
@@ -121,6 +121,9 @@ export function getCurrentCurationSnippet(
   const { users: currentBlockUsers, ...currentBlockDoc } = blocks.current ?? {};
   const { users: mostRecentBlockUsers, ...mostRecentBlockDoc } = blocks.mostRecent ?? {};
 
+  const currentStats: Partial<CurationBlockStats> =
+    'stats' in currentBlockDoc ? currentBlockDoc.stats : 'stats' in mostRecentBlockDoc ? mostRecentBlockDoc.stats : {};
+
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
     currentPeriod:
       'metadata' in currentPeriodDoc ? { metadata: currentPeriodDoc.metadata, stats: currentPeriodDoc.stats } : null,
@@ -142,6 +145,10 @@ export function getCurrentCurationSnippet(
       stakerContractChainId,
       tokenContractAddress: token.address,
       tokenContractChainId: token.chainId
+    },
+    stats: {
+      numCurators: currentStats?.numCurators ?? 0,
+      numCuratorVotes: currentStats?.numCuratorVotes ?? 0
     },
     collection
   };

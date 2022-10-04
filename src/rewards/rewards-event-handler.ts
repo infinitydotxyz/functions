@@ -5,8 +5,7 @@ import {
   TokenomicsPhaseDto,
   TradingFeeProgram
 } from '@infinityxyz/lib/types/dto/rewards';
-import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
-import { getRelevantStakerContracts } from '../functions/aggregate-sales-stats/utils';
+import { firestoreConstants, formatEth, getRelevantStakerContracts } from '@infinityxyz/lib/utils';
 import { DEFAULT_PHASES } from './config';
 
 import { Phase } from './phases/phase.abstract';

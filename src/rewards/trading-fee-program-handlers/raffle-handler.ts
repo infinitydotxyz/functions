@@ -1,7 +1,11 @@
 import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, formatEth, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
-import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
+import {
+  firestoreConstants,
+  formatEth,
+  getRelevantStakerContracts,
+  getTokenAddressByStakerAddress
+} from '@infinityxyz/lib/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';

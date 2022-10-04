@@ -6,8 +6,7 @@ import {
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
 import { FeesGeneratedDto, TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
-import { getRelevantStakerContracts } from '../../functions/aggregate-sales-stats/utils';
+import { firestoreConstants, getRelevantStakerContracts, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';

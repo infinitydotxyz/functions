@@ -5,8 +5,7 @@ import {
   StakingContractRaffle,
   TransactionFeePhaseRewardsDoc
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getRelevantStakerContracts } from '../aggregate-sales-stats/utils';
+import { firestoreConstants, getRelevantStakerContracts } from '@infinityxyz/lib/utils';
 
 export async function saveTxnFees(
   db: FirebaseFirestore.Firestore,

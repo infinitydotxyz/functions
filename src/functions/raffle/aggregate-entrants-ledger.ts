@@ -135,9 +135,9 @@ export function applyEventsToEntrant(
         });
         const stakeLevel = event.data.stakeLevel;
         if (stakeLevel > 0) {
-          const numOffers = Math.max(validOffers.length, event.data.order.numItems);
-          entrant.data.numValidOffers += numOffers;
-          const numTickets = numOffers * stakeLevel * config.listing.ticketMultiplier;
+          const numOffersFromOrder = Math.min(validOffers.length, event.data.order.numItems);
+          const numTickets = numOffersFromOrder * stakeLevel * config.listing.ticketMultiplier;
+          entrant.data.numValidOffers += numOffersFromOrder;
           entrant.data.numTicketsFromListings = numTickets;
         }
         break;
@@ -148,9 +148,9 @@ export function applyEventsToEntrant(
         });
         const stakeLevel = event.data.stakeLevel;
         if (stakeLevel > 0) {
-          const numListings = Math.max(validListings.length, event.data.order.numItems);
-          entrant.data.numValidOffers += numListings;
-          const numTickets = numListings * stakeLevel * config.offer.ticketMultiplier;
+          const numListingsFromOrder = Math.min(validListings.length, event.data.order.numItems);
+          const numTickets = numListingsFromOrder * stakeLevel * config.offer.ticketMultiplier;
+          entrant.data.numValidOffers += numListingsFromOrder;
           entrant.data.numTicketsFromOffers = numTickets;
         }
         break;

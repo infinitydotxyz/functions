@@ -21,7 +21,7 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
   const raffle = (await raffleRef.get()).data();
 
   if (!raffle) {
-    throw new Error(`Attempted toi update ticket totals for non-existent raffle ${raffleRef.id}`);
+    throw new Error(`Attempted to update ticket totals for non-existent raffle ${raffleRef.id}`);
   } else if (raffle?.state === RaffleState.Finalized || raffle?.state === RaffleState.Completed) {
     throw new Error(`Attempted to update ticket totals for finalized raffle ${raffleRef.id}`);
   }

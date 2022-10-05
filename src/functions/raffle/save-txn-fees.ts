@@ -38,6 +38,7 @@ export async function saveTxnFees(
         .doc(`phase:${data.phaseId}`);
 
       txn.set(entrantPhaseDocRef, ledgerItem, { merge: false });
+      txn.set(txnFeeRewardsRef, { isCopiedToRaffles: true }, { merge: true });
     }
   });
 }

@@ -1,14 +1,30 @@
 import {
   AllTimeTransactionFeeRewardsDoc,
   ChainId,
-  Phase,
-  RewardProgram,
   TransactionFeePhaseRewardsDoc,
   TransactionFeeRewardDoc
 } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, firestoreConstants } from '@infinityxyz/lib/utils';
-import { getEpochByPhase } from '../../rewards/utils';
+import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { calculateStats } from '../aggregate-sales-stats/utils';
+
+const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string): AllTimeTransactionFeeRewardsDoc => {
+  const doc: AllTimeTransactionFeeRewardsDoc = {
+    chainId,
+    userAddress,
+    rewards: 0,
+    volumeEth: 0,
+    volumeUSDC: 0,
+    volumeWei: '0',
+    updatedAt: Date.now(),
+    userSells: 0,
+    userBuys: 0,
+    protocolFeesWei: '0',
+    protocolFeesEth: 0,
+    protocolFeesUSDC: 0
+  };
+  return doc;
+};
 
 export async function aggregateTransactionFeeRewards(
   ledgerRef: FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
@@ -16,43 +32,35 @@ export async function aggregateTransactionFeeRewards(
   userAddress: string
 ) {
   const query = ledgerRef.where('isAggregated', '==', false).orderBy('updatedAt', 'asc');
-  let numResults = (await query.limit(1).get()).size;
 
-  while (numResults > 0) {
-    await ledgerRef.firestore.runTransaction(async (txn) => {
-      const userTransactionFeeRewardsRef = ledgerRef.parent;
-      if (!userTransactionFeeRewardsRef) {
-        console.error('userTransactionFeeRewardsRef is null');
-        return;
-      }
+  const userTransactionFeeRewardsRef = ledgerRef.parent;
+  if (!userTransactionFeeRewardsRef) {
+    console.error('userTransactionFeeRewardsRef is null');
+    return;
+  }
+
+  await paginatedTransaction(
+    query,
+    ledgerRef.firestore,
+    { pageSize: 100, maxPages: 10 },
+    async ({ data: unaggregatedSalesSnap, txn }) => {
       const allTimeDocRef = userTransactionFeeRewardsRef
         .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
         .doc(
           firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
         ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
       const allTimeDoc = await txn.get(allTimeDocRef);
-      const newAllTimeRewardsDoc: AllTimeTransactionFeeRewardsDoc = {
-        chainId,
-        userAddress,
-        rewards: 0,
-        volumeEth: 0,
-        volumeUSDC: 0,
-        volumeWei: '0',
-        updatedAt: Date.now(),
-        userSells: 0,
-        userBuys: 0,
-        protocolFeesWei: '0',
-        protocolFeesEth: 0,
-        protocolFeesUSDC: 0
-      };
-      const allTimeRewards = allTimeDoc.data() ?? newAllTimeRewardsDoc;
 
-      const unaggregatedSalesSnap = await txn.get(query.limit(100));
-      numResults = unaggregatedSalesSnap.size;
-
+      const allTimeRewards = allTimeDoc.data() ?? getDefaultUserAllTimeRewardsDoc(chainId, userAddress);
       const phaseRefsMap = new Map<
-        Phase,
-        { ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>; rewards: TransactionFeeRewardDoc[] }
+        string,
+        {
+          ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
+          rewards: TransactionFeeRewardDoc[];
+          phaseName: string;
+          phaseId: string;
+          phaseIndex: number;
+        }
       >();
 
       for (const doc of unaggregatedSalesSnap.docs) {
@@ -61,61 +69,65 @@ export async function aggregateTransactionFeeRewards(
           continue;
         }
 
-        const phase = phaseRefsMap.get(event.phase.name) ?? {
+        const phase = phaseRefsMap.get(event.phaseId) ?? {
+          phaseId: event.phaseId,
+          phaseName: event.phaseName,
+          phaseIndex: event.phaseIndex,
           ref: userTransactionFeeRewardsRef
             .collection(firestoreConstants.USER_REWARD_PHASES_COLL)
-            .doc(event.phase.name) as FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>,
+            .doc(event.phaseId) as FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>,
           rewards: [] as TransactionFeeRewardDoc[]
         };
 
         phase.rewards.push(event);
-        phaseRefsMap.set(event.phase.name, phase);
+        phaseRefsMap.set(event.phaseId, phase);
       }
 
       const phases: {
-        phase: Phase;
+        phaseId: string;
+        phaseName: string;
+        phaseIndex: number;
         ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
         rewards: TransactionFeeRewardDoc[];
         data?: TransactionFeePhaseRewardsDoc;
-      }[] = [...phaseRefsMap.entries()].map(([phase, { ref, rewards }]) => ({ phase, ref, rewards }));
+      }[] = [...phaseRefsMap.entries()].map(([, { ref, rewards, phaseId, phaseName, phaseIndex }]) => ({
+        phaseId,
+        phaseName,
+        phaseIndex,
+        ref,
+        rewards
+      }));
 
       const phaseDocs = phases.length > 0 ? await txn.getAll(...phases.map((item) => item.ref)) : [];
       const phasesWithData: {
-        phase: Phase;
+        phaseId: string;
+        phaseName: string;
+        phaseIndex: number;
         ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
         rewards: TransactionFeeRewardDoc[];
         data: TransactionFeePhaseRewardsDoc;
       }[] = phaseDocs.map((doc, index) => {
-        const phase = doc.data() as TransactionFeePhaseRewardsDoc;
+        const phase = doc.data();
         const item = phases[index];
-        const { epoch, phase: phaseConfig } = getEpochByPhase(item.phase);
-        const getProgramRewards = (rewardProgram: RewardProgram) => {
-          const program = phaseConfig[rewardProgram];
-          if (program && program !== true) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { rewardSupplyUsed: _, ...rest } = program;
-            return rest;
-          }
-          return null;
-        };
 
         const defaultPhase: TransactionFeePhaseRewardsDoc = {
-          epoch: epoch.name,
+          phaseName: item.phaseName,
+          phaseId: item.phaseId,
+          phaseIndex: item.phaseIndex,
+          userAddress,
           chainId,
-          phase: item.phase,
-          tradingFeeRewards: getProgramRewards(RewardProgram.TradingFee),
-          nftRewards: getProgramRewards(RewardProgram.NftReward),
           rewards: 0,
           volumeEth: 0,
-          volumeUSDC: 0,
           volumeWei: '0',
-          protocolFeesEth: 0,
-          protocolFeesWei: '0',
-          protocolFeesUSDC: 0,
-          userAddress,
+          volumeUSDC: 0,
           updatedAt: Date.now(),
           userSells: 0,
-          userBuys: 0
+          userBuys: 0,
+          protocolFeesWei: '0',
+          protocolFeesEth: 0,
+          protocolFeesUSDC: 0,
+          config: item.rewards?.[0]?.config,
+          isCopiedToRaffles: false
         };
 
         return {
@@ -133,22 +145,8 @@ export async function aggregateTransactionFeeRewards(
         const protocolFeeEthToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesEth).sum;
         const protocolFeeUSDCToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesUSDC).sum;
 
-        const { sells: sellsToAdd, buys: buysToAdd } = rewardEvents.reduce(
-          (acc, event) => {
-            const isSeller = event.userAddress === event.sale.seller;
-            if (isSeller) {
-              return {
-                sells: acc.sells + 1,
-                buys: acc.buys
-              };
-            }
-            return {
-              sells: acc.sells,
-              buys: acc.buys + 1
-            };
-          },
-          { sells: 0, buys: 0 }
-        );
+        const { sells: sellsToAdd, buys: buysToAdd } = countBuysAndSells(rewardEvents);
+
         const rewards = (data?.rewards ?? 0) + rewardsToAdd;
         const volumeEth = (data?.volumeEth ?? 0) + volumeToAdd;
         const volumeWei = (BigInt(data?.volumeWei ?? '0') + BigInt(volumeWeiToAdd)).toString();
@@ -183,7 +181,8 @@ export async function aggregateTransactionFeeRewards(
           protocolFeesUSDC,
           userSells,
           userBuys,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
+          isCopiedToRaffles: false
         };
         txn.set(ref, update, { merge: true });
       }
@@ -196,6 +195,27 @@ export async function aggregateTransactionFeeRewards(
       }
 
       txn.set(allTimeDocRef, { ...allTimeRewards, updatedAt: Date.now() }, { merge: true });
-    });
-  }
+    }
+  );
+}
+
+function countBuysAndSells(events: TransactionFeeRewardDoc[]) {
+  const { sells, buys } = events.reduce(
+    (acc, event) => {
+      const isSeller = event.userAddress === event.sale.seller;
+      if (isSeller) {
+        return {
+          sells: acc.sells + 1,
+          buys: acc.buys
+        };
+      }
+      return {
+        sells: acc.sells,
+        buys: acc.buys + 1
+      };
+    },
+    { sells: 0, buys: 0 }
+  );
+
+  return { sells, buys };
 }

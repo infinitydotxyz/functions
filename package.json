@@ -10,12 +10,7 @@
     "start": "npm run shell",
     "deploy:dev": "npm run build && firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "npm run build && firebase deploy --only functions --project nftc-infinity",
-    "deploy:test": "npm run build && npm run deploy:fns:curation-ledger && npm run deploy:fns:aggregate-sales && npm run deploy:fns:staker && npm run deploy:fns:update-curation-feed && npm run deploy:fns:rewards",
-    "deploy:fns:curation-ledger": "firebase deploy --only functions:onCurationLedgerEvent,functions:triggerCurationLedgerEventMerge,functions:triggerCurationLedgerAggregation,functions:triggerCurationMetadataAggregation,functions:aggregateCurationLedger --project nftc-test-2",
-    "deploy:fns:aggregate-sales": "firebase deploy --only functions:saveSalesToBeAggregated,functions:aggregateCollectionSales,functions:aggregateNftSales,functions:aggregateSourceSales --project nftc-test-2",
-    "deploy:fns:staker": "firebase deploy --only functions:onStakerEvent,functions:triggerStakerEvents,functions:triggerStakerContractAggregation,functions:aggregateStakerContractPeriod --project nftc-test-2",
-    "deploy:fns:update-curation-feed": "firebase deploy --only functions:saveLedgerEventsToFeed,functions:backupSaveLedgerEventsToFeed --project nftc-test-2",
-    "deploy:fns:rewards": "firebase deploy --only functions:onUserTransactionFeeRewardEvent,functions:triggerUserTransactionFeeRewardAggregation --project nftc-test-2",
+    "deploy:test": "npm run build && firebase deploy --only functions --project nftc-test-3",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -31,14 +26,17 @@
     "custom-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/custom-order.ts",
     "enqueue-order": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/enqueue-order.ts",
     "retry-match": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/retry-match.ts",
-    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts"
+    "backfill-signed-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-signed-order-to-snippet.ts",
+    "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts",
+    "migrate": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-rewards.ts",
+    "reaggregate-curation": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reaggregate-curation.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.203.2",
+    "@infinityxyz/lib": "^1.223.0",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

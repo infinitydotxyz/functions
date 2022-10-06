@@ -19,10 +19,8 @@ export const onStakerEvent = functions
     const event = change.after.data() as StakerEvents | undefined;
 
     if (!event) {
-      throw new Error(`No event data found`);
-    }
-
-    if (!event.processed) {
+      return;
+    } else if (!event.processed) {
       await handleStakerEvent(event, change.after.ref as FirebaseFirestore.DocumentReference<StakerEvents>);
     }
   });

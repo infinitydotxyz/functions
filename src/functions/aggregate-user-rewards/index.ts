@@ -14,7 +14,7 @@ export const onUserTransactionFeeRewardEvent = functions
   })
   .firestore.document(
     `${firestoreConstants.USERS_COLL}/{userId}/${firestoreConstants.USER_REWARDS_COLL}/{chainId}/${firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL}/{eventId}`
-  )
+  ) // TODO this causes some contention and could be restructured to not cause errors
   .onWrite(async (snapshot) => {
     const event = snapshot.after.data() as TransactionFeeRewardDoc;
     if (!event || event.isAggregated) {

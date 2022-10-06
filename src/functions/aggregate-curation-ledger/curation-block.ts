@@ -85,7 +85,7 @@ export class CurationBlock {
   }
 
   get feesGeneratedWei() {
-    const sum = calculateStatsBigInt(this._sales, (sale) => BigInt(sale.protocolFeeWei)).sum;
+    const sum = calculateStatsBigInt(this._sales, (sale) => BigInt(sale.feesGenerated.feesGeneratedWei)).sum;
     return sum.toString();
   }
 
@@ -119,7 +119,7 @@ export class CurationBlock {
       numCuratorVotesRemoved
     } = this.applyVoteRemovals(updatedUsersAfterAdditions, this._votesRemoved);
 
-    const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterAdditions), (user) =>
+    const voteStats = calculateStatsBigInt(Object.values(updatedUsersAfterRemovals), (user) =>
       BigInt(user.stats.votes)
     );
     const blockProtocolFeesAccruedWei = BigInt(this.feesGeneratedWei);

@@ -15,8 +15,10 @@ import {
   CurationLedgerVotesAddedWithStake,
   CurationLedgerVotesRemovedWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { FeesGeneratedDto, TradingFeeSplit } from '@infinityxyz/lib/types/dto';
 import { ONE_HOUR } from '@infinityxyz/lib/utils';
 import { parseEther } from 'ethers/lib/utils';
+import { TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../../rewards/config';
 import { formatEth } from '../../utils';
 import { CurationBlock } from './curation-block';
 
@@ -41,6 +43,19 @@ const getFees = (price: number, feePercent = 2.5) => {
   const protocolFee = formatEth(protocolFeeWei);
 
   return { protocolFeeBPS, protocolFeeWei, protocolFee, price };
+};
+
+const getEventFees = (
+  protocolFeeWei: string,
+  tradingFeeSplit: TradingFeeSplit
+): Pick<FeesGeneratedDto, 'feesGeneratedEth' | 'feesGeneratedWei'> => {
+  const curationPercent = tradingFeeSplit.CURATORS.percentage;
+  const curationFeeWei = ((BigInt(protocolFeeWei) * BigInt(curationPercent)) / BigInt(100)).toString();
+
+  return {
+    feesGeneratedEth: formatEth(curationFeeWei),
+    feesGeneratedWei: curationFeeWei
+  };
 };
 
 const getVotesAddedEvent = (
@@ -109,9 +124,11 @@ const getVotesRemovedEvent = (
 };
 
 const getSaleEvent = (price: number, feePercent: number) => {
+  const fees = getFees(price, feePercent);
+  const curationFees = getEventFees(fees.protocolFeeWei, TRADING_FEE_SPLIT_PHASE_1_TO_4);
   const sale: InfinityNftSale = {
     source: SaleSource.Infinity,
-    ...getFees(price, feePercent),
+    ...fees,
     chainId: ChainId.Mainnet,
     txHash: '0x0',
     blockNumber: 1,
@@ -139,7 +156,8 @@ const getSaleEvent = (price: number, feePercent: number) => {
     updatedAt: Date.now(),
     isStakeMerged: true,
     tokenContractAddress: '0x0',
-    tokenContractChainId: ChainId.Mainnet
+    tokenContractChainId: ChainId.Mainnet,
+    feesGenerated: curationFees as FeesGeneratedDto
   };
 
   return saleOne;
@@ -153,7 +171,7 @@ class MockCurationBlock extends CurationBlock {
       this.addEvent({ ...sale });
     }
 
-    const expectedBlockFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(num);
+    const expectedBlockFeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei) * BigInt(num);
     return { expectedBlockFeesGeneratedWei };
   }
 
@@ -238,7 +256,7 @@ describe('curation block', () => {
     block.addEvent({ ...sale });
     block.addEvent({ ...sale });
     block.addEvent({ ...sale });
-    const expectedFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(3);
+    const expectedFeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei) * BigInt(3);
     expect(block.feesGeneratedWei).toBe(expectedFeesGeneratedWei.toString());
 
     const rewards = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE, COLLECTION);
@@ -257,8 +275,8 @@ describe('curation block', () => {
     block2.addEvent({ ...sale });
     block2.addEvent({ ...sale });
     block2.addEvent({ ...sale });
-    const expectedBlockFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(3);
-    const expectedTotalFeesGeneratedWei = BigInt(sale.protocolFeeWei) * BigInt(6);
+    const expectedBlockFeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei) * BigInt(3);
+    const expectedTotalFeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei) * BigInt(6);
 
     const rewards2 = block.getBlockRewards(rewards.blockRewards, TOKEN_PRICE, COLLECTION);
     expect(rewards2.blockRewards.stats.totalProtocolFeesAccruedWei).toBe(expectedTotalFeesGeneratedWei.toString());
@@ -315,6 +333,36 @@ describe('curation block', () => {
     expect(Object.values(unVoteResult.updatedUsers).length).toBe(0);
   });
 
+  it('updated num curator votes', () => {
+    const block = new MockCurationBlock({
+      blockStart,
+      collectionAddress: '0x0',
+      chainId: ChainId.Mainnet,
+      stakerContractAddress: '0x0',
+      stakerContractChainId: ChainId.Mainnet,
+      token: TOKEN
+    });
+    const address = '0x1';
+    const vote = getVotesAddedEvent(address, 1);
+    block.addEvent(vote);
+
+    const { blockRewards } = block.getBlockRewards(defaultPrevBlockRewards, TOKEN_PRICE, COLLECTION);
+    expect(blockRewards.stats.numCuratorVotes).toBe(1);
+    expect(blockRewards.stats.numCurators).toBe(1);
+
+    const unVote = getVotesRemovedEvent(address, 1);
+    block.addEvent(unVote);
+
+    const { blockRewards: blockRewardsAfterUnVote } = block.getBlockRewards(
+      defaultPrevBlockRewards,
+      TOKEN_PRICE,
+      COLLECTION
+    );
+
+    expect(blockRewardsAfterUnVote.stats.numCuratorVotes).toBe(0);
+    expect(blockRewardsAfterUnVote.stats.numCurators).toBe(0);
+  });
+
   it('distributes rewards to a single user if they have all of the votes', () => {
     const block = new MockCurationBlock({
       blockStart,
@@ -327,7 +375,7 @@ describe('curation block', () => {
     const address = '0x1';
     const vote = getVotesAddedEvent(address, 1);
     const sale = getSaleEvent(1, 2.5);
-    const expectedBlockFeesGeneratedWei = BigInt(sale.protocolFeeWei);
+    const expectedBlockFeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei);
 
     block.addEvent(vote);
     block.addEvent(sale);
@@ -386,7 +434,7 @@ describe('curation block', () => {
     const vote1 = getVotesAddedEvent(address1, 1);
     const vote2 = getVotesAddedEvent(address2, 3);
     const sale = getSaleEvent(1, 2.5);
-    const expectedBlockFeesGeneratedWei = BigInt(sale.protocolFeeWei);
+    const expectedBlockFeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei);
 
     block.addEvent(vote1);
     block.addEvent(vote2);
@@ -453,7 +501,7 @@ describe('curation block', () => {
     const address2 = '0x2';
     const vote1 = getVotesAddedEvent(address1, 1);
     const sale = getSaleEvent(1, 2.5);
-    const expectedBlock1FeesGeneratedWei = BigInt(sale.protocolFeeWei);
+    const expectedBlock1FeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei);
 
     block1.addEvent(vote1);
     block1.addEvent(sale);
@@ -507,7 +555,7 @@ describe('curation block', () => {
       token: TOKEN
     });
     const sale2 = getSaleEvent(1, 2.5);
-    const expectedBlock2FeesGeneratedWei = BigInt(sale2.protocolFeeWei);
+    const expectedBlock2FeesGeneratedWei = BigInt(sale2.feesGenerated.feesGeneratedWei);
     const vote2 = getVotesAddedEvent(address2, 1);
     block2.addEvent(vote2);
     block2.addEvent(sale2);
@@ -559,7 +607,7 @@ describe('curation block', () => {
     });
 
     const sale = getSaleEvent(1, 2.5);
-    const expectedBlock1FeesGeneratedWei = BigInt(sale.protocolFeeWei);
+    const expectedBlock1FeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei);
     block1.addEvent(sale);
 
     const {
@@ -620,7 +668,7 @@ describe('curation block', () => {
     expect(Object.values(block2UsersRemoved).length).toBe(0);
     expect(block2Rewards.stats.numCuratorVotes).toBe(1);
 
-    const expectedBlock2FeesGeneratedWei = BigInt(sale.protocolFeeWei);
+    const expectedBlock2FeesGeneratedWei = BigInt(sale.feesGenerated.feesGeneratedWei);
 
     expect(Object.values(block2Rewards.users).length).toBe(1);
     expect(block2Rewards.stats.numCurators).toBe(1);

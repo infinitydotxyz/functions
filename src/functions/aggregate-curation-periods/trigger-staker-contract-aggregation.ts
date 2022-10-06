@@ -10,7 +10,7 @@ export async function triggerStakerContractPeriodAggregation(db: FirebaseFiresto
       .collection(firestoreConstants.STAKING_CONTRACTS_COLL)
       .doc(`${contract.chainId}:${contract.address}`);
     const stakingContractPeriodRef = stakerContractRef
-      .collection('stakerContractCurationPeriods') // TODO - move to constants
+      .collection(firestoreConstants.STAKER_CONTRACT_CURATION_PERIODS_COLL) // TODO - move to constants
       .doc(`${contract.timestamp}`);
 
     const tokenContract = getTokenAddressByStakerAddress(contract.chainId, contract.address);

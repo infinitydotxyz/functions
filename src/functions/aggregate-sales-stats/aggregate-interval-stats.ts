@@ -8,9 +8,11 @@ import { parseAggregationId } from './utils';
 export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentReference<SalesIntervalDoc>) {
   try {
     let didUpdateIntervalDoc = false;
+    const startedAt = Date.now();
     const query = ref
       .collection(firestoreConstants.INTERVAL_SALES_COLL)
-      .where('isDeleted', '==', false) as FirebaseFirestore.CollectionReference<NftSale>;
+      .where('isDeleted', '==', false)
+      .where('updatedAt', '<', startedAt) as FirebaseFirestore.CollectionReference<NftSale>;
     const sales: Map<string, NftSale> = new Map();
     const { queryEmpty } = await paginatedTransaction(
       query,
@@ -35,7 +37,7 @@ export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentRefe
             startTimestamp,
             endTimestamp,
             stats,
-            hasUnaggregatedSales: !hasNextPage
+            hasUnaggregatedSales: false
           };
           didUpdateIntervalDoc = true;
           txn.update(ref, updatedIntervalDoc);

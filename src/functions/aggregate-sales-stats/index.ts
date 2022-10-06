@@ -1,3 +1,4 @@
+import { Stats } from '@infinityxyz/lib/types/core/Stats';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
 import { REGION } from '../../utils/constants';
@@ -33,7 +34,9 @@ export const aggregateCollectionSales = functions
       if (!collectionRef) {
         throw new Error('No collection ref found');
       }
-      const statsCollectionRef = collectionRef.collection(firestoreConstants.COLLECTION_STATS_COLL);
+      const statsCollectionRef = collectionRef.collection(
+        firestoreConstants.COLLECTION_STATS_COLL
+      ) as FirebaseFirestore.CollectionReference<Stats>;
       await aggregateCollectionStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });
@@ -56,7 +59,9 @@ export const aggregateNftSales = functions
       if (!nftRef) {
         throw new Error('No collection ref found');
       }
-      const statsCollectionRef = nftRef.collection(firestoreConstants.NFT_STATS_COLL);
+      const statsCollectionRef = nftRef.collection(
+        firestoreConstants.NFT_STATS_COLL
+      ) as FirebaseFirestore.CollectionReference<Stats>;
       await aggregateNftStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });
@@ -79,7 +84,9 @@ export const aggregateSourceSales = functions
       if (!sourceStatsRef) {
         throw new Error('No collection ref found');
       }
-      const statsCollectionRef = sourceStatsRef.collection(firestoreConstants.SOURCE_STATS_COLL);
+      const statsCollectionRef = sourceStatsRef.collection(
+        firestoreConstants.SOURCE_STATS_COLL
+      ) as FirebaseFirestore.CollectionReference<Stats>;
       await aggregateSourceStats(update as SalesIntervalDoc, intervalRef, statsCollectionRef);
     }
   });

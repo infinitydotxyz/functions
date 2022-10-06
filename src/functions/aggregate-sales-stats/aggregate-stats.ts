@@ -15,6 +15,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { NftImageDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft-image.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { streamQueryWithRef } from '../../firestore/stream-query';
 import { SalesIntervalDoc, BaseStats, CurrentStats } from './types';
 import { calcPercentChange, combineCurrentStats, getStatsDocInfo } from './utils';
 
@@ -28,14 +29,16 @@ export async function aggregateHourlyStats(
   const oneHour = 60 * 1000 * 60;
   const endTimestamp = period.timestamp + oneHour;
   const salesIntervalsColl = intervalRef.parent;
-  const snapshot = await salesIntervalsColl
+  const query = salesIntervalsColl
     .where('startTimestamp', '>=', startTimestamp)
-    .where('startTimestamp', '<', endTimestamp)
-    .get();
-  const statsForHour = snapshot.docs
-    .map((item) => item.data())
-    .filter((item) => !!item.stats)
-    .map((item) => item.stats);
+    .where('startTimestamp', '<', endTimestamp);
+  const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
+  const statsForHour: CurrentStats[] = [];
+  for await (const item of stream) {
+    if (item.data.stats) {
+      statsForHour.push(item.data.stats);
+    }
+  }
   const current = combineCurrentStats(statsForHour);
   const stats = await combineWithPrevStats(current, startTimestamp, StatsPeriod.Hourly, statsCollection);
   return stats;
@@ -43,7 +46,7 @@ export async function aggregateHourlyStats(
 
 export async function aggregateDailyStats(
   timestamp: number,
-  statsCollection: FirebaseFirestore.CollectionReference
+  statsCollection: FirebaseFirestore.CollectionReference<Stats>
 ): Promise<BaseStats> {
   const period = getStatsDocInfo(timestamp, StatsPeriod.Daily);
   const startTimestamp = period.timestamp;
@@ -52,12 +55,17 @@ export async function aggregateDailyStats(
   const nextPeriod = getStatsDocInfo(timestampInNextPeriod, StatsPeriod.Daily);
   const nextPeriodTimestamp = nextPeriod.timestamp;
 
-  const snapshot = await statsCollection
+  const query = statsCollection
     .where('period', '==', StatsPeriod.Hourly)
     .where('timestamp', '>=', startTimestamp)
-    .where('timestamp', '<', nextPeriodTimestamp)
-    .get();
-  const statsForDay = snapshot.docs.map((item) => item.data()).filter((item) => !!item) as Stats[];
+    .where('timestamp', '<', nextPeriodTimestamp);
+  const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
+  const statsForDay: Stats[] = [];
+  for await (const item of stream) {
+    if (item.data) {
+      statsForDay.push(item.data);
+    }
+  }
   const current = combineCurrentStats(statsForDay);
   const stats = await combineWithPrevStats(current, startTimestamp, StatsPeriod.Daily, statsCollection);
   return stats;
@@ -138,7 +146,7 @@ export async function aggregateAllTimeStats(
 export async function aggregateSourceStats(
   update: SalesIntervalDoc,
   intervalRef: FirebaseFirestore.DocumentReference<SalesIntervalDoc>,
-  statsCollectionRef: FirebaseFirestore.CollectionReference
+  statsCollectionRef: FirebaseFirestore.CollectionReference<Stats>
 ) {
   const timestamp = Math.floor((update.startTimestamp + update.endTimestamp) / 2);
 
@@ -164,7 +172,7 @@ export async function aggregateSourceStats(
 export async function aggregateCollectionStats(
   update: SalesIntervalDoc,
   intervalRef: FirebaseFirestore.DocumentReference<SalesIntervalDoc>,
-  statsCollectionRef: FirebaseFirestore.CollectionReference
+  statsCollectionRef: FirebaseFirestore.CollectionReference<Stats>
 ) {
   const collectionRef = statsCollectionRef.parent as FirebaseFirestore.DocumentReference<Partial<Collection>>;
   const [chainId, address] = collectionRef.id.split(':');
@@ -235,7 +243,7 @@ export async function aggregateCollectionStats(
 export async function aggregateNftStats(
   update: SalesIntervalDoc,
   intervalRef: FirebaseFirestore.DocumentReference<SalesIntervalDoc>,
-  statsCollectionRef: FirebaseFirestore.CollectionReference
+  statsCollectionRef: FirebaseFirestore.CollectionReference<Stats>
 ) {
   const nftRef = statsCollectionRef.parent as FirebaseFirestore.DocumentReference<Partial<Token>>;
   const tokenId = nftRef.id;

@@ -79,7 +79,7 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
       config.rewardSupplyUsed += reward;
 
       // update phase progress - should only be done by phase authority
-      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6);
+      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6) * 100;
       return {
         applicable: true,
         phase,

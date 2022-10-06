@@ -1,7 +1,6 @@
 import { Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import {
-  Env,
   ETHEREUM_TOKEN_CONTRACT_ADDRESS,
   ETHEREUM_TOKEN_CONTRACT_ADDRESS_TEST,
   getTokenAddress
@@ -25,7 +24,7 @@ export class TokenPairFactory {
   public create(token: Erc20TokenMetadata): ITokenPair {
     const goerliToken = getTokenAddress(ChainId.Goerli);
     const mainnetTokenDev = ETHEREUM_TOKEN_CONTRACT_ADDRESS_TEST;
-    const mainnetTokenProd = ETHEREUM_TOKEN_CONTRACT_ADDRESS;
+    const mainnetTokenProd = ETHEREUM_TOKEN_CONTRACT_ADDRESS; // TODO update this once we have a uniswap pool
 
     const chainIdInt = parseInt(token.chainId, 10);
     const wethToken = new Token(

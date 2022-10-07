@@ -19,7 +19,6 @@ export async function handlerStakerContractMetadata(
   const [stakerContractChainId, stakerContractAddress] = stakerContractMetadataRef.id.split(':') as [ChainId, string];
   const collectionRef = stakerContractMetadataRef.parent.parent as FirebaseFirestore.DocumentReference<Collection>;
   const [collectionChainId, collectionAddress] = collectionRef.id.split(':') as [ChainId, string];
-  const originalUpdatedAt = stakerContractMetadata.updatedAt;
 
   if (stakerContractMetadata.ledgerRequiresAggregation) {
     await aggregateLedger(
@@ -30,9 +29,10 @@ export async function handlerStakerContractMetadata(
       stakerContractChainId,
       stakerContractMetadata.token
     );
+    const updatedAt = Date.now();
     const triggerPeriodAggregationUpdate: Partial<CurationMetadata> = {
       ledgerRequiresAggregation: false,
-      updatedAt: Date.now(),
+      updatedAt,
       periodsRequireAggregation: true,
       collectionAddress,
       collectionChainId,
@@ -41,9 +41,6 @@ export async function handlerStakerContractMetadata(
       token: stakerContractMetadata.token
     };
     stakerContractMetadata = { ...stakerContractMetadata, ...triggerPeriodAggregationUpdate };
-  }
-
-  if (stakerContractMetadata.updatedAt > originalUpdatedAt) {
     await stakerContractMetadataRef.set(stakerContractMetadata, { merge: true });
   }
 
@@ -68,8 +65,6 @@ export async function handlerStakerContractMetadata(
       updatedAt: Date.now()
     };
     stakerContractMetadata = { ...stakerContractMetadata, ...metadataUpdate };
-  }
-  if (stakerContractMetadata.updatedAt > originalUpdatedAt) {
     await stakerContractMetadataRef.set(stakerContractMetadata, { merge: true });
   }
 
@@ -106,9 +101,6 @@ export async function handlerStakerContractMetadata(
       refreshCurrentSnippetBy
     };
     stakerContractMetadata = { ...stakerContractMetadata, ...metadataUpdate };
-  }
-
-  if (stakerContractMetadata.updatedAt > originalUpdatedAt) {
     await stakerContractMetadataRef.set(stakerContractMetadata, { merge: true });
   }
 }

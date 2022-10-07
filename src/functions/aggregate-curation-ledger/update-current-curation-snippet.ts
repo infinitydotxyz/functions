@@ -123,6 +123,10 @@ export function getCurrentCurationSnippet(
 
   const currentStats: Partial<CurationBlockStats> =
     'stats' in currentBlockDoc ? currentBlockDoc.stats : 'stats' in mostRecentBlockDoc ? mostRecentBlockDoc.stats : {};
+  const currentPeriodAPR = 'stats' in currentPeriodDoc ? currentPeriodDoc.stats?.periodApr : null;
+  const mostRecentCompletedPeriodAPR = 'stats' in mostRecentPeriodDoc ? mostRecentPeriodDoc.stats?.periodApr : null;
+
+  const apr = currentPeriodAPR ?? mostRecentCompletedPeriodAPR ?? 0;
 
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
     currentPeriod:
@@ -148,7 +152,9 @@ export function getCurrentCurationSnippet(
     },
     stats: {
       numCurators: currentStats?.numCurators ?? 0,
-      numCuratorVotes: currentStats?.numCuratorVotes ?? 0
+      numCuratorVotes: currentStats?.numCuratorVotes ?? 0,
+      feesAccruedEth: currentStats.totalProtocolFeesAccruedEth ?? 0,
+      feesAPR: apr
     },
     collection
   };

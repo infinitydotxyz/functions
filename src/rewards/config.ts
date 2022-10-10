@@ -61,7 +61,7 @@ export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
   treasuryFeesGenerated: getDefaultFeesGenerated(),
   tradingFeeRefund: {
     maxReward: Number.POSITIVE_INFINITY,
-    rewardRateNumerator: 10,
+    rewardRateNumerator: 20,
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
@@ -88,7 +88,7 @@ export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
   treasuryFeesGenerated: getDefaultFeesGenerated(),
   tradingFeeRefund: {
     maxReward: Number.POSITIVE_INFINITY,
-    rewardRateNumerator: 5,
+    rewardRateNumerator: 10,
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
@@ -115,7 +115,7 @@ export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
   treasuryFeesGenerated: getDefaultFeesGenerated(),
   tradingFeeRefund: {
     maxReward: Number.POSITIVE_INFINITY,
-    rewardRateNumerator: 2,
+    rewardRateNumerator: 5,
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,
@@ -142,7 +142,7 @@ export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
   treasuryFeesGenerated: getDefaultFeesGenerated(),
   tradingFeeRefund: {
     maxReward: Number.POSITIVE_INFINITY,
-    rewardRateNumerator: 1,
+    rewardRateNumerator: 2,
     rewardRateDenominator: 1,
     rewardSupply: 200_000_000,
     rewardSupplyUsed: 0,

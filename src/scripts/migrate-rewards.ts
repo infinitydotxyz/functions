@@ -22,7 +22,9 @@ async function migrateRewards() {
     deleteInfinitySales,
     removeInfinitySalesFromFeed,
     removeEventsFromFeed,
-    deleteRaffleTickets
+    deleteRaffleTickets,
+    deleteRaffles,
+    deleteRaffleOrdersLedger
   ];
 
   const taskQueue = new PQueue({ concurrency: 100 });
@@ -82,7 +84,25 @@ async function deleteStakingContracts(db: FirebaseFirestore.Firestore) {
 
 async function deleteRaffleTickets(db: FirebaseFirestore.Firestore) {
   const raffleCollection = db.collection('raffleTickets');
+
   await recursivelyDelete(raffleCollection, batch);
+}
+
+async function deleteRaffleOrdersLedger(db: FirebaseFirestore.Firestore) {
+  const raffleOrdersLedger = db.collectionGroup(firestoreConstants.USER_RAFFLE_ORDERS_LEDGER_COLL);
+  const stream = streamQueryWithRef(raffleOrdersLedger, (_, ref) => [ref], { pageSize: 300 });
+
+  const batch = new FirestoreBatchHandler();
+  for await (const { ref } of stream) {
+    await batch.deleteAsync(ref as FirebaseFirestore.DocumentReference<any>);
+  }
+
+  await batch.flush();
+}
+
+async function deleteRaffles(db: FirebaseFirestore.Firestore) {
+  const raffles = db.collection('raffles');
+  await recursivelyDelete(raffles, batch);
 }
 
 async function deleteRewards(db: FirebaseFirestore.Firestore) {
@@ -117,10 +137,12 @@ async function deleteCollectionCurationCollections(db: FirebaseFirestore.Firesto
 
 async function deleteInfinityContracts(db: FirebaseFirestore.Firestore) {
   const contractEventsRef = db.collection(firestoreConstants.CONTRACT_EVENTS);
-  const infinityStaker = contractEventsRef.doc('1:0xbff1b5b3b9775b6a775fdc1e688d0f365b49648a');
+  const infinityStakerTest = contractEventsRef.doc('1:0xbff1b5b3b9775b6a775fdc1e688d0f365b49648a');
   const infinityExchange = contractEventsRef.doc('1:0xbada5551b2f08d3959329b2ff8d0a7cc8be26324');
-  await batch.deleteAsync(infinityStaker);
+  const infinityStaker = contractEventsRef.doc('1:0xbada55fa5ff3850fc979455f27f0ca3f1178be55');
+  await batch.deleteAsync(infinityStakerTest);
   await batch.deleteAsync(infinityExchange);
+  await batch.deleteAsync(infinityStaker);
 }
 
 async function deleteInfinitySales(db: FirebaseFirestore.Firestore) {
@@ -172,7 +194,7 @@ async function removeEventsFromFeed(db: FirebaseFirestore.Firestore) {
 
 async function recursivelyDelete(ref: FirebaseFirestore.CollectionReference<any>, batch: FirestoreBatchHandler) {
   const queue = new PQueue({
-    concurrency: 50
+    concurrency: 1000
   });
   const results = await ref.listDocuments();
   for (const ref of results) {

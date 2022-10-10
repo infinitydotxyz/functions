@@ -16,6 +16,7 @@ const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string):
     volumeEth: 0,
     volumeUSDC: 0,
     volumeWei: '0',
+    v1Airdrop: 0,
     updatedAt: Date.now(),
     userSells: 0,
     userBuys: 0,

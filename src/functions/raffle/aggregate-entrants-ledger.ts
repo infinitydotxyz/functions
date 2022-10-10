@@ -95,9 +95,10 @@ export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.Docu
         ) as FirebaseFirestore.Query<EntrantLedgerItem>;
         const txnStatsEventsSnap = await txn.get(query);
         const txnStatsEvents = txnStatsEventsSnap.docs.map((item) => ({ data: item.data(), ref: item.ref }));
-        events = events.filter((item) => item.data.discriminator === EntrantLedgerItemVariant.TransactionStats);
+        events = events.filter((item) => item.data.discriminator !== EntrantLedgerItemVariant.TransactionStats);
         events = [...events, ...txnStatsEvents];
         entrant.data.volumeUSDC = 0; // reset volume since we must sum across all applicable phases
+        entrant.data.numTicketsFromVolume = 0;
       }
 
       applyEventsToEntrant(entrant, events, raffle.config);

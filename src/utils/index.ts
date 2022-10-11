@@ -1,6 +1,7 @@
 import { ChainId, Collection, CollectionDisplayData, StakeDuration } from '@infinityxyz/lib/types/core';
 import { getCollectionDocId } from '@infinityxyz/lib/utils';
 import { firestoreConstants, ONE_YEAR } from '@infinityxyz/lib/utils/constants';
+import { BigNumber } from 'ethers';
 import { formatEther } from 'ethers/lib/utils';
 
 export function sleep(duration: number): Promise<void> {
@@ -102,4 +103,43 @@ export async function getCollectionDisplayData(
     profileImage: data?.metadata?.profileImage || '',
     bannerImage: data?.metadata?.bannerImage || ''
   };
+}
+
+export function partitionArray<T>(array: T[], size: number): T[][] {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}
+
+export function addressProgress(address: string): number {
+  const max = BigNumber.from('0xffffffffffffffffffffffffffffffffffffffff');
+  const current = BigNumber.from(address);
+  const num = parseFloat(current.mul(100_000).div(max).toString());
+  return num / 1000;
+}
+
+// example: nFormatter(1234, 1) = > 1.2K
+export function nFormatter(num: number | undefined | null, digits = 2) {
+  if (!num) {
+    return num;
+  }
+  const lookup = [
+    { value: 1, symbol: '' },
+    { value: 1e3, symbol: 'K' },
+    { value: 1e6, symbol: 'M' },
+    { value: 1e9, symbol: 'G' },
+    { value: 1e12, symbol: 'T' },
+    { value: 1e15, symbol: 'P' },
+    { value: 1e18, symbol: 'E' }
+  ];
+  const regex = /\.0+$|(\.[0-9]*[1-9])0+$/;
+  const item = lookup
+    .slice()
+    .reverse()
+    .find(function (item) {
+      return num >= item.value;
+    });
+  return item ? (num / item.value).toFixed(digits).replace(regex, '$1') + item.symbol : num.toFixed(digits + 1);
 }

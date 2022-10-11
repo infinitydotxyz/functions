@@ -31,14 +31,15 @@
     "migrate": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-rewards.ts",
     "reaggregate-curation": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reaggregate-curation.ts",
     "update-mentions": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-mentions.ts",
-    "recalc-raffles": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/recalculate-raffles.ts"
+    "recalc-raffles": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/recalculate-raffles.ts",
+    "migrate-feed": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-feed.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.232.2",
+    "@infinityxyz/lib": "^1.232.3",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

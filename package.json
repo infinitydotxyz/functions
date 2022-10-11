@@ -30,7 +30,8 @@
     "clear-infinity-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/delete-infinity-sales.ts",
     "migrate": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-rewards.ts",
     "reaggregate-curation": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reaggregate-curation.ts",
-    "update-mentions": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-mentions.ts"
+    "update-mentions": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-mentions.ts",
+    "recalc-raffles": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/recalculate-raffles.ts"
   },
   "engines": {
     "node": "16"

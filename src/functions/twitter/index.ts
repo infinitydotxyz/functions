@@ -9,7 +9,7 @@ export const updateMentionProfiles = functions
     timeoutSeconds: 540,
     memory: '2GB'
   })
-  .pubsub.schedule('every 1 days')
+  .pubsub.schedule('every 24 hours')
   .onRun(async () => {
     const db = getDb();
     await updateMentions(db);

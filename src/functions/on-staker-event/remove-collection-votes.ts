@@ -1,6 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { RageQuitEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
-import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import {
   CurationLedgerEvent,
@@ -8,6 +7,7 @@ import {
   CurationVotesRemoved
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
+import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
 
 export async function removeUserCollectionVotes(
   user: string,
@@ -70,9 +70,13 @@ export async function* getUnVoter(
     .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
     .where('userAddress', '==', userAddress)
     .where('stakerContractChainId', '==', event.stakerContractChainId)
-    .where('stakerContractAddress', '==', event.stakerContractAddress) as FirebaseFirestore.Query<CuratedCollectionDto>;
+    .where(
+      'stakerContractAddress',
+      '==',
+      event.stakerContractAddress
+    ) as FirebaseFirestore.Query<UserCuratedCollectionDto>;
   const pageSize = 200;
-  let lastCollectionProcessed: FirebaseFirestore.DocumentReference<CuratedCollectionDto> | undefined = undefined;
+  let lastCollectionProcessed: FirebaseFirestore.DocumentReference<UserCuratedCollectionDto> | undefined = undefined;
   const pageQuery = () => {
     const query = curatedCollectionsQuery.orderBy('address', 'asc').limit(pageSize);
     if (lastCollectionProcessed) {
@@ -140,7 +144,7 @@ export async function* getUnVoter(
 }
 
 export function removeVotesOnCollections(
-  collections: FirebaseFirestore.QuerySnapshot<CuratedCollectionDto>,
+  collections: FirebaseFirestore.QuerySnapshot<UserCuratedCollectionDto>,
   votesToRemove: number,
   event: TokensUnStakedEvent | RageQuitEvent,
   txn: FirebaseFirestore.Transaction,
@@ -168,18 +172,22 @@ export function removeVotesOnCollections(
 
   for (const curatedCollectionSnap of collections.docs) {
     const curatedCollection = curatedCollectionSnap.data();
-    if (curatedCollection && curatedCollection.votes) {
+    const votes = curatedCollection.curator.votes ?? (curatedCollection as any).votes; // this is for backwards compatibility
+    if (curatedCollection && votes) {
       const {
         updatedCollectionVotes,
         votesRemainingToBeRemoved: updatedVotesRemainingToBeRemoved,
         votesToRemoveFromCollection
-      } = getUpdatedVotes(curatedCollection.votes, totalCuratedVotes, votesToRemove, votesRemainingToBeRemoved);
+      } = getUpdatedVotes(votes, totalCuratedVotes, votesToRemove, votesRemainingToBeRemoved);
 
       if (updatedCollectionVotes === 0) {
         numCollectionsRemoved += 1;
       }
-      const collectionUpdate: Partial<CuratedCollectionDto> = {
-        votes: updatedCollectionVotes
+      const collectionUpdate: Partial<UserCuratedCollectionDto> = {
+        curator: {
+          ...curatedCollection.curator,
+          votes: updatedCollectionVotes
+        }
       };
       votesRemainingToBeRemoved = updatedVotesRemainingToBeRemoved;
 

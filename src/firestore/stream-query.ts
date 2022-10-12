@@ -64,8 +64,8 @@ export async function* streamQueryWithRef<
   getStartAfterField: (
     item: DocumentData,
     ref: FirebaseFirestore.DocumentReference<DocumentData>
-  ) => (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[],
-  options: StreamQueryWithRefOptions<DocumentData, TransformedPage, TransformedItem>
+  ) => (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[] = (item, ref) => [ref],
+  options: StreamQueryWithRefOptions<DocumentData, TransformedPage, TransformedItem> = { pageSize: 300 }
 ): AsyncGenerator<TransformedItem> {
   let hasNextPage = true;
   let startAfter: (string | number | FirebaseFirestore.DocumentReference<DocumentData>)[] | undefined = undefined;

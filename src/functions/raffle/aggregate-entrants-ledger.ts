@@ -135,12 +135,11 @@ export function applyEventsToEntrant(
           return !item.isSellOrder && offerAppliesToRaffle(item, config);
         });
         const stakeLevel = event.data.stakeLevel;
-        if (stakeLevel > 0) {
-          const numOffersFromOrder = Math.min(validOffers.length, event.data.order.numItems);
-          const numTicketsFromOffer = numOffersFromOrder * stakeLevel * config.offer.ticketMultiplier;
-          entrant.data.numValidOffers += numOffersFromOrder;
-          entrant.data.numTicketsFromOffers += numTicketsFromOffer;
-        }
+        const stakeLevelMultiplier = stakeLevel + 1;
+        const numOffersFromOrder = Math.min(validOffers.length, event.data.order.numItems);
+        const numTicketsFromOffer = numOffersFromOrder * stakeLevelMultiplier * config.offer.ticketMultiplier;
+        entrant.data.numValidOffers += numOffersFromOrder;
+        entrant.data.numTicketsFromOffers += numTicketsFromOffer;
         break;
       }
       case EntrantLedgerItemVariant.Listing: {
@@ -148,12 +147,11 @@ export function applyEventsToEntrant(
           return item.isSellOrder && listingAppliesToRaffle(item, config);
         });
         const stakeLevel = event.data.stakeLevel;
-        if (stakeLevel > 0) {
-          const numListingsFromOrder = Math.min(validListings.length, event.data.order.numItems);
-          const numTicketsFromListing = numListingsFromOrder * stakeLevel * config.listing.ticketMultiplier;
-          entrant.data.numValidListings += numListingsFromOrder;
-          entrant.data.numTicketsFromListings += numTicketsFromListing;
-        }
+        const numListingsFromOrder = Math.min(validListings.length, event.data.order.numItems);
+        const stakeLevelMultiplier = stakeLevel + 1;
+        const numTicketsFromListing = numListingsFromOrder * stakeLevelMultiplier * config.listing.ticketMultiplier;
+        entrant.data.numValidListings += numListingsFromOrder;
+        entrant.data.numTicketsFromListings += numTicketsFromListing;
         break;
       }
     }

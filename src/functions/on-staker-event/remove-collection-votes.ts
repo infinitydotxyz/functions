@@ -68,13 +68,14 @@ export async function* getUnVoter(
 ) {
   const curatedCollectionsQuery = userStakeRef.firestore
     .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-    .where('userAddress', '==', userAddress)
+    .where('curator.address', '==', userAddress)
     .where('stakerContractChainId', '==', event.stakerContractChainId)
     .where(
       'stakerContractAddress',
       '==',
       event.stakerContractAddress
     ) as FirebaseFirestore.Query<UserCuratedCollectionDto>;
+
   const pageSize = 200;
   let lastCollectionProcessed: FirebaseFirestore.DocumentReference<UserCuratedCollectionDto> | undefined = undefined;
   const pageQuery = () => {

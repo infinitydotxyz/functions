@@ -15,7 +15,7 @@ import {
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQuery } from '../../firestore/stream-query';
+import { streamQuery, streamQueryWithRef } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';
 import { getTokenPrice } from '../../token-price';
@@ -49,7 +49,7 @@ export class CurationBlockAggregator {
     private _stakerContractChainId: ChainId,
     private _token: Erc20TokenMetadata
   ) {
-    this._curationEvents = this._curationEvents.sort((a, b) => a.timestamp - b.timestamp);
+    this._curationEvents.sort((a, b) => a.timestamp - b.timestamp);
     for (const event of this._curationEvents) {
       const { startTimestamp } = CurationBlockAggregator.getCurationBlockRange(event.timestamp);
       let block = this._curationBlocks.get(startTimestamp);
@@ -93,18 +93,15 @@ export class CurationBlockAggregator {
     usersRemoved: CurationBlockUsers,
     usersAdded: CurationBlockUsers
   ) {
+    const updatedAt = Date.now();
     const { users, ...curationBlockRewardsDoc } = curationBlockRewards;
 
     const docId = `${curationBlockRewardsDoc.metadata.timestamp}`;
     const blockRewardsRef = this._blockRewards.doc(docId);
 
     const batch = new FirestoreBatchHandler();
-    batch.add(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
-    for (const userAddress of Object.keys(usersRemoved)) {
-      const userRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL).doc(userAddress);
-      batch.delete(userRef);
-    }
-
+    await batch.addAsync(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
+    const blockUsersRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL);
     for (const [userAddress, user] of Object.entries(users)) {
       if (usersAdded[userAddress]) {
         const userSnap = await this._blockRewards.firestore
@@ -120,8 +117,17 @@ export class CurationBlockAggregator {
           bannerImage: userProfile.bannerImage || ''
         };
       }
-      const userRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL).doc(userAddress);
-      batch.add(userRef, user, { merge: false });
+
+      user.metadata.updatedAt = updatedAt;
+      const userRef = blockUsersRef.doc(userAddress);
+      await batch.addAsync(userRef, user, { merge: false });
+    }
+    await batch.flush();
+
+    const usersToRemove = blockUsersRef.where('metadata.updatedAt', '<', updatedAt);
+    const usersToRemoveStream = streamQueryWithRef(usersToRemove);
+    for await (const userToRemove of usersToRemoveStream) {
+      await batch.deleteAsync(userToRemove.ref);
     }
     await batch.flush();
   }

@@ -1,5 +1,6 @@
 import { firestore, pubsub } from 'firebase-functions';
 import { paginatedTransaction } from './paginated-transaction';
+import { streamQueryWithRef } from './stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from './types';
 
 export interface EventProcessorConfig {
@@ -127,8 +128,9 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
   getFunctions() {
     return {
       onEvent: this._onEvent.bind(this),
-      scheduledBackup: this._scheduleBackupTrigger.bind(this),
-      process: this._onProcessTrigger.bind(this)
+      scheduledBackupEvents: this._scheduleBackupEvents.bind(this),
+      process: this._onProcessTrigger.bind(this),
+      scheduledBackupTrigger: this._scheduleBackupTrigger.bind(this)
     };
   }
 
@@ -151,10 +153,10 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
   }
 
   /**
-   * _scheduleBackupTrigger runs on a schedule to catch any events that
+   * _scheduleBackupEvents runs on a schedule to catch any events that
    * are missed/skipped during processing and re-initiates processing
    */
-  protected _scheduleBackupTrigger(schedule: (schedule: string) => pubsub.ScheduleBuilder) {
+  protected _scheduleBackupEvents(schedule: (schedule: string) => pubsub.ScheduleBuilder) {
     return schedule(this._backupOptions.schedule).onRun(async () => {
       const db = this._getDb();
 
@@ -169,6 +171,36 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
 
       if (item) {
         await this._initiateProcessing(item.ref);
+      }
+    });
+  }
+
+  /**
+   * _scheduleBackupTrigger runs on a schedule to catch any triggers that
+   * are missed/skipped
+   */
+  protected _scheduleBackupTrigger(schedule: (schedule: string) => pubsub.ScheduleBuilder) {
+    return schedule(this._backupOptions.schedule).onRun(async () => {
+      const db = this._getDb();
+
+      const triggersRequiringProcessing = db
+        .collectionGroup(this.triggerCollectionId)
+        .where('id', '==', this._triggerDocId)
+        .where('requiresProcessing', '==', true) as CollGroupRef<TriggerDoc>;
+
+      const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
+      const staleTriggersRequiringProcessing = triggersRequiringProcessing.where(
+        'updatedAt',
+        '<',
+        staleIfUpdatedBefore
+      );
+
+      const stream = streamQueryWithRef(staleTriggersRequiringProcessing);
+
+      for await (const item of stream) {
+        if(item.data) {
+          await this._triggerProcessing(item.ref, item.data);
+        }
       }
     });
   }
@@ -249,10 +281,14 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
       throw new Error('failed to get collection ref');
     }
 
-    const triggerRef = collRef.doc(this._triggerDocId);
+    const triggerRef = collRef.doc(this._triggerDocId) as DocRef<TriggerDoc>;
     const triggerDoc = await triggerRef.get();
     const data = triggerDoc.data();
-    if (!data) {
+    await this._triggerProcessing(triggerRef, data);
+  }
+
+  protected async _triggerProcessing(triggerRef: DocRef<TriggerDoc>, trigger?: TriggerDoc) {
+    if (!trigger) {
       const defaultTrigger: TriggerDoc = {
         id: this._triggerDocId,
         requiresProcessing: true,
@@ -263,8 +299,8 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
       return;
     }
 
-    const exceedsMinTriggerInterval = data.updatedAt < Date.now() - this._config.minTriggerInterval;
-    if (exceedsMinTriggerInterval && !data.requiresProcessing) {
+    const exceedsMinTriggerInterval = trigger.updatedAt < Date.now() - this._config.minTriggerInterval;
+    if (exceedsMinTriggerInterval && !trigger.requiresProcessing) {
       await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
     }
   }

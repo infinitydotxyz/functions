@@ -1,6 +1,8 @@
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import * as functions from 'firebase-functions';
+import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { ReferralsEventProcessor } from './referrals-event-processor';
+import { REGION } from '../../utils/constants';
 
 /**
  * user
@@ -13,7 +15,7 @@ import { ReferralsEventProcessor } from './referrals-event-processor';
 
 const referralsEventProcessor = new ReferralsEventProcessor(
   {
-    docBuilderCollectionPath: 'user/{userAddress}/referrals/{chainId}/referralsLedger',
+    docBuilderCollectionPath: `${firestoreConstants.USERS_COLL}/{userAddress}/referrals/{chainId}/referralsLedger`,
     batchSize: 300,
     maxPages: 2,
     minTriggerInterval: ONE_MIN
@@ -25,7 +27,15 @@ const referralsEventProcessor = new ReferralsEventProcessor(
   getDb
 );
 
-const functions = referralsEventProcessor.getFunctions();
-export const onReferrerEvent = functions.onEvent;
-export const onReferrerEventBackup = functions.scheduledBackup;
-export const onReferrerEventProcess = functions.process;
+const fns = referralsEventProcessor.getFunctions();
+const settings = functions.region(REGION).runWith({
+    timeoutSeconds: 540,
+});
+
+const documentBuilder = settings.firestore.document;
+const scheduleBuilder = settings.pubsub.schedule;
+
+export const onReferrerEvent = fns.onEvent(documentBuilder);
+export const onReferrerEventBackup = fns.scheduledBackupEvents(scheduleBuilder);
+export const onReferrerEventProcess = fns.process(documentBuilder);
+export const onReferrerEventProcessBackup = fns.scheduledBackupTrigger(scheduleBuilder);

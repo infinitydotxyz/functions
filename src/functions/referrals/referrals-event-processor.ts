@@ -1,14 +1,13 @@
 import { ChainId, MergedReferralSaleEvent, ReferralSaleEvent, ReferralTotals } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth, ONE_MIN } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
 import { FirestoreBatchEventProcessor } from '../../firestore/firestore-batch-event-processor';
 import { CollRef, CollGroupRef, Query, QuerySnap, DocRef } from '../../firestore/types';
 import { getDefaultFeesGenerated } from '../../rewards/config';
 import { getCollectionDisplayData, getNftDisplayData, getUserDisplayData } from '../../utils';
 
 export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<ReferralSaleEvent> {
-  constructor() {
+  constructor(getDb: () => FirebaseFirestore.Firestore) {
     super(
       {
         docBuilderCollectionPath: 'user/{userAddress}/referrals/{chainId}/referralsLedger',
@@ -83,7 +82,10 @@ export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<Referr
         };
 
         referralTotals.stats.numReferralSales += 1;
-        const feesGeneratedWei = (BigInt(referralTotals.stats.totalFeesGenerated.feesGeneratedWei) + BigInt(event.referralFeesGenerated.feesGeneratedWei)).toString();
+        const feesGeneratedWei = (
+          BigInt(referralTotals.stats.totalFeesGenerated.feesGeneratedWei) +
+          BigInt(event.referralFeesGenerated.feesGeneratedWei)
+        ).toString();
         referralTotals.stats.totalFeesGenerated.feesGeneratedWei = feesGeneratedWei;
         referralTotals.stats.totalFeesGenerated.feesGeneratedEth = formatEth(feesGeneratedWei);
         referralTotals.stats.totalFeesGenerated.feesGeneratedUSDC = formatEth(feesGeneratedWei) * event.ethPrice;

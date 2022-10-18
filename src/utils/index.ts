@@ -12,7 +12,6 @@ import { getCollectionDocId } from '@infinityxyz/lib/utils';
 import { firestoreConstants, ONE_YEAR } from '@infinityxyz/lib/utils/constants';
 import { BigNumber } from 'ethers';
 import { formatEther } from 'ethers/lib/utils';
-import { DocRef } from '../firestore/types';
 
 export function sleep(duration: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, duration));
@@ -120,24 +119,24 @@ export async function getNftDisplayData(
   collectionAddress: string,
   collectionChainId: ChainId,
   tokenId: string,
-  collection: CollectionDisplayData,
+  collection: CollectionDisplayData
 ): Promise<NftDisplayData> {
   const snap = await db
-  .collection(firestoreConstants.COLLECTIONS_COLL)
-  .doc(getCollectionDocId({ collectionAddress, chainId: collectionChainId }))
-  .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-  .doc(tokenId)
-  .get();
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .doc(getCollectionDocId({ collectionAddress, chainId: collectionChainId }))
+    .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+    .doc(tokenId)
+    .get();
 
   const data = (snap.data() ?? {}) as Partial<NftDto>;
-  return  {
+  return {
     collectionDisplayData: collection,
-    tokenId, 
+    tokenId,
     name: data?.metadata?.name ?? '',
     numTraitTypes: data?.numTraitTypes ?? 0,
     image: data?.metadata?.image ?? '',
     tokenStandard: data?.tokenStandard ?? TokenStandard.ERC721
-  }
+  };
 }
 
 export async function getUserDisplayData(

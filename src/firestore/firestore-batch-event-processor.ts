@@ -108,7 +108,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
    * being handled and applies where clauses such that only unprocessed
    * events are returned
    */
-  protected abstract _getUnProcessedEvents(db: CollRef<T> | CollGroupRef<T>): Query<T>;
+  protected abstract _getUnProcessedEvents(ref: CollRef<T> | CollGroupRef<T>): Query<T>;
 
   /**
    * _processEvents takes a page of events and a transaction and is expected
@@ -116,7 +116,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
    * views and events are marked as processed according to the _getUnProcessedEvents
    * query
    */
-  protected abstract _processEvents(events: QuerySnap<T>, txn: FirebaseFirestore.Transaction): Promise<void>;
+  protected abstract _processEvents(events: QuerySnap<T>, txn: FirebaseFirestore.Transaction, eventsRef: CollRef<T>): Promise<void>;
 
   /**
    * getFunctions returns cloud functions that should be registered with firebase
@@ -155,7 +155,6 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
     return schedule(this._backupOptions.schedule).onRun(async () => {
       const db = this._getDb();
       
-
       const eventsRef = db.collectionGroup(this.collectionName) as CollGroupRef<T>;
 
       const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
@@ -223,7 +222,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
           ref.firestore,
           { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
           async ({ data, txn, hasNextPage }) => {
-            await this._processEvents(data, txn);
+            await this._processEvents(data, txn, eventsRef);
             if (!hasNextPage) {
               await markAsProcessed(ref, txn);
             }

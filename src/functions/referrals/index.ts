@@ -15,7 +15,7 @@ import { REGION } from '../../utils/constants';
 
 const referralsEventProcessor = new ReferralsEventProcessor(
   {
-    docBuilderCollectionPath: `${firestoreConstants.USERS_COLL}/{userAddress}/referrals/{chainId}/referralsLedger`,
+    docBuilderCollectionPath: `${firestoreConstants.USERS_COLL}/{userAddress}/${firestoreConstants.REFERRALS_COLL}/{chainId}/${firestoreConstants.REFERRALS_LEDGER}`,
     batchSize: 300,
     maxPages: 2,
     minTriggerInterval: ONE_MIN

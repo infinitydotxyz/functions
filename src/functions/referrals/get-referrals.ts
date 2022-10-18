@@ -1,12 +1,13 @@
 import { AssetReferralDoc, ChainId } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 export async function getSaleReferral(
   db: FirebaseFirestore.Firestore,
   buyer: string,
   asset: { collection: string; tokenId: string; chainId: ChainId }
 ): Promise<AssetReferralDoc | null> {
-  const userRef = db.collection('users').doc(buyer);
-  const referralsRef = userRef.collection('referrals').doc(asset.chainId).collection('assetReferrals');
+  const userRef = db.collection(firestoreConstants.USERS_COLL).doc(buyer);
+  const referralsRef = userRef.collection(firestoreConstants.REFERRALS_COLL).doc(asset.chainId).collection(firestoreConstants.ASSET_REFERRALS_COLL);
   const collectionAssetDocId = `${asset.chainId}:${asset.collection}`;
   const tokenAssetDocId = asset.tokenId ? `${collectionAssetDocId}:${asset.tokenId}` : null;
 

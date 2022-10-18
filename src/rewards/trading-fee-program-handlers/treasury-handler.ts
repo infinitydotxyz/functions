@@ -76,9 +76,9 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
           const referralRef = db
             .collection(firestoreConstants.USERS_COLL)
             .doc(sale.referral.referrer)
-            .collection('referrals')
+            .collection(firestoreConstants.REFERRALS_COLL)
             .doc(sale.chainId)
-            .collection('referralsLedger')
+            .collection(firestoreConstants.REFERRALS_LEDGER)
             .doc() as FirebaseFirestore.DocumentReference<ReferralSaleEvent>;
           const referralEvent: PreMergeReferralSaleEvent = {
             sale: {

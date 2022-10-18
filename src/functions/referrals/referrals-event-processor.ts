@@ -1,28 +1,12 @@
 import { ChainId, MergedReferralSaleEvent, ReferralSaleEvent, ReferralTotals } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, formatEth, ONE_MIN } from '@infinityxyz/lib/utils';
+import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { FirestoreBatchEventProcessor } from '../../firestore/firestore-batch-event-processor';
 import { CollRef, CollGroupRef, Query, QuerySnap, DocRef } from '../../firestore/types';
 import { getDefaultFeesGenerated } from '../../rewards/config';
 import { getCollectionDisplayData, getNftDisplayData, getUserDisplayData } from '../../utils';
 
 export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<ReferralSaleEvent> {
-  constructor(getDb: () => FirebaseFirestore.Firestore) {
-    super(
-      {
-        docBuilderCollectionPath: 'user/{userAddress}/referrals/{chainId}/referralsLedger',
-        batchSize: 300,
-        maxPages: 2,
-        minTriggerInterval: ONE_MIN / 30
-      },
-      {
-        schedule: 'every 5 minutes',
-        tts: ONE_MIN
-      },
-      getDb
-    );
-  }
-
   protected _isEventProcessed(event: ReferralSaleEvent): boolean {
     return event.isAggregated;
   }

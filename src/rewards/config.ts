@@ -1,4 +1,5 @@
 import {
+  FeesGeneratedDto,
   RaffleTicketConfigDto,
   TokenomicsPhaseDto,
   TradingFeeDestination,
@@ -41,7 +42,7 @@ export const DEFAULT_RAFFLE_CONFIG: RaffleTicketConfigDto = {
 const BUYER_PORTION = 0.7;
 const SELLER_PORTION = 0.3;
 
-export const getDefaultFeesGenerated = () => ({
+export const getDefaultFeesGenerated = (): FeesGeneratedDto => ({
   feesGeneratedWei: '0',
   feesGeneratedEth: 0,
   feesGeneratedUSDC: 0
@@ -71,7 +72,12 @@ export const PhaseOne: Omit<TokenomicsPhaseDto, 'index'> = {
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
     phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
-  }
+  },
+  referralConfig: {
+    destinationPayer: TradingFeeDestination.Treasury,
+    percentageOfDestinationFees: 0
+  },
+  referralFeesGenerated: getDefaultFeesGenerated()
 };
 
 export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
@@ -98,7 +104,12 @@ export const PhaseTwo: Omit<TokenomicsPhaseDto, 'index'> = {
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
     phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
-  }
+  },
+  referralConfig: {
+    destinationPayer: TradingFeeDestination.Treasury,
+    percentageOfDestinationFees: 0
+  },
+  referralFeesGenerated: getDefaultFeesGenerated()
 };
 
 export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
@@ -125,7 +136,12 @@ export const PhaseThree: Omit<TokenomicsPhaseDto, 'index'> = {
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
     phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
-  }
+  },
+  referralConfig: {
+    destinationPayer: TradingFeeDestination.Treasury,
+    percentageOfDestinationFees: 0
+  },
+  referralFeesGenerated: getDefaultFeesGenerated()
 };
 
 export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
@@ -152,7 +168,12 @@ export const PhaseFour: Omit<TokenomicsPhaseDto, 'index'> = {
   raffleConfig: {
     grandPrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG },
     phasePrize: { percentage: 50, ticketConfig: DEFAULT_RAFFLE_CONFIG }
-  }
+  },
+  referralConfig: {
+    destinationPayer: TradingFeeDestination.Treasury,
+    percentageOfDestinationFees: 0
+  },
+  referralFeesGenerated: getDefaultFeesGenerated()
 };
 
 export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
@@ -168,7 +189,12 @@ export const PhaseFive: Omit<TokenomicsPhaseDto, 'index'> = {
   collectionPotFeesGenerated: getDefaultFeesGenerated(),
   treasuryFeesGenerated: getDefaultFeesGenerated(),
   tradingFeeRefund: null, // trading fee refund is no longer active
-  raffleConfig: null // raffle is no longer active
+  raffleConfig: null, // raffle is no longer active
+  referralConfig: {
+    destinationPayer: TradingFeeDestination.Treasury,
+    percentageOfDestinationFees: 0
+  },
+  referralFeesGenerated: getDefaultFeesGenerated()
 };
 
 export const DEFAULT_PHASES: TokenomicsPhaseDto[] = [PhaseOne, PhaseTwo, PhaseThree, PhaseFour, PhaseFive].map(

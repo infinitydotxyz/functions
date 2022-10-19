@@ -29,7 +29,7 @@ const referralsEventProcessor = new ReferralsEventProcessor(
 
 const fns = referralsEventProcessor.getFunctions();
 const settings = functions.region(REGION).runWith({
-    timeoutSeconds: 540,
+  timeoutSeconds: 540
 });
 
 const documentBuilder = settings.firestore.document;

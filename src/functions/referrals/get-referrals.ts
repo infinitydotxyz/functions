@@ -7,7 +7,10 @@ export async function getSaleReferral(
   asset: { collection: string; tokenId: string; chainId: ChainId }
 ): Promise<AssetReferralDoc | null> {
   const userRef = db.collection(firestoreConstants.USERS_COLL).doc(buyer);
-  const referralsRef = userRef.collection(firestoreConstants.REFERRALS_COLL).doc(asset.chainId).collection(firestoreConstants.ASSET_REFERRALS_COLL);
+  const referralsRef = userRef
+    .collection(firestoreConstants.REFERRALS_COLL)
+    .doc(asset.chainId)
+    .collection(firestoreConstants.ASSET_REFERRALS_COLL);
   const collectionAssetDocId = `${asset.chainId}:${asset.collection}`;
   const tokenAssetDocId = asset.tokenId ? `${collectionAssetDocId}:${asset.tokenId}` : null;
 

@@ -198,7 +198,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
       const stream = streamQueryWithRef(staleTriggersRequiringProcessing);
 
       for await (const item of stream) {
-        if(item.data) {
+        if (item.data) {
           await this._triggerProcessing(item.ref, item.data);
         }
       }

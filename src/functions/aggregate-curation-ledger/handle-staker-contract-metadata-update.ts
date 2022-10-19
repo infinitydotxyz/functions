@@ -3,6 +3,7 @@ import { ONE_WEEK } from '@infinityxyz/lib/utils';
 import { getCollectionDisplayData } from '../../utils';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';
+import { CurationBlock } from './curation-block';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
@@ -97,7 +98,7 @@ export async function handlerStakerContractMetadata(
       ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.metadata?.timestamp).endTimestamp
       : null;
     const refreshCurrentSnippetBy =
-      currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;
+      currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationBlockAggregator.DURATION;
     await saveCurrentCurationSnippet(currentSnippet, stakerContractMetadataRef);
     const metadataUpdate: Partial<CurationMetadata> = {
       currentSnippetRequiresAggregation: false,

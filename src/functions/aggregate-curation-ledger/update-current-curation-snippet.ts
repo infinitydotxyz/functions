@@ -210,9 +210,11 @@ export async function getApr(
   const blockInPeriodStream = streamQueryWithRef(blocksInPeriodQuery);
 
   let totalPrincipal = 0;
+  let numBlocks = 0;
   let totalInterestEth = 0;
   for await (const block of blockInPeriodStream) {
     if (block) {
+      numBlocks += 1;
       const costPerVote = block.data.stats.tokenPrice / block.data.stats.avgStakePowerPerToken;
       if (costPerVote > 0 && Number.isFinite(costPerVote)) {
         const blockPrincipal = costPerVote * block.data.stats.numCuratorVotes;
@@ -226,8 +228,15 @@ export async function getApr(
     }
   }
 
+  if(totalPrincipal === 0) {
+    return 0;
+  }
+  const principal = totalPrincipal / numBlocks;
+  if(principal === 0) {
+    return 0;
+  }
   const periodsInOneYear = ONE_YEAR / periodDuration;
-  const periodicInterestRate = totalInterestEth / totalPrincipal;
+  const periodicInterestRate = totalInterestEth / principal;
   const aprDecimal = periodicInterestRate * periodsInOneYear;
   const aprPercent = round(aprDecimal * 100, 8);
   return aprPercent;

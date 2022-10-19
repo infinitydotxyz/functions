@@ -9,7 +9,7 @@ import {
   CurationPeriodDoc,
   CurrentCurationSnippetDoc
 } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, ONE_YEAR, round } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
@@ -114,7 +114,8 @@ export function getCurrentCurationSnippet(
   token: Erc20TokenMetadata,
   collectionAddress: string,
   collectionChainId: ChainId,
-  collection: CollectionDisplayData
+  collection: CollectionDisplayData,
+  apr: number
 ): { curationSnippet: CurrentCurationSnippetDoc; users: CurationBlockUsers } {
   const { users: currentPeriodUsers, ...currentPeriodDoc } = periods.current ?? {};
   const { users: mostRecentPeriodUsers, ...mostRecentPeriodDoc } = periods.mostRecent ?? {};
@@ -123,10 +124,6 @@ export function getCurrentCurationSnippet(
 
   const currentStats: Partial<CurationBlockStats> =
     'stats' in currentBlockDoc ? currentBlockDoc.stats : 'stats' in mostRecentBlockDoc ? mostRecentBlockDoc.stats : {};
-  const currentPeriodAPR = 'stats' in currentPeriodDoc ? currentPeriodDoc.stats?.periodApr : null;
-  const mostRecentCompletedPeriodAPR = 'stats' in mostRecentPeriodDoc ? mostRecentPeriodDoc.stats?.periodApr : null;
-
-  const apr = currentPeriodAPR ?? mostRecentCompletedPeriodAPR ?? 0;
 
   const currentCurationSnippet: CurrentCurationSnippetDoc = {
     currentPeriod:
@@ -193,4 +190,45 @@ export async function saveCurrentCurationSnippet(
   }
 
   await batchHandler.flush();
+}
+
+export async function getApr(
+  curationMetadataRef: FirebaseFirestore.DocumentReference<CurationMetadata>,
+  periodDuration: number
+) {
+  const blockRewards = curationMetadataRef.collection(
+    firestoreConstants.CURATION_BLOCK_REWARDS_COLL
+  ) as FirebaseFirestore.CollectionReference<CurationBlockRewardsDoc>;
+
+  const periodStart = Date.now() - periodDuration;
+  const blocksInPeriodQuery = blockRewards
+    .where('metadata.isAggregated', '==', true)
+    .where('metadata.timestamp', '<', Date.now())
+    .where('metadata.timestamp', '>=', periodStart)
+    .orderBy('metadata.timestamp', 'desc');
+
+  const blockInPeriodStream = streamQueryWithRef(blocksInPeriodQuery);
+
+  let totalPrincipal = 0;
+  let totalInterestEth = 0;
+  for await (const block of blockInPeriodStream) {
+    if (block) {
+      const costPerVote = block.data.stats.tokenPrice / block.data.stats.avgStakePowerPerToken;
+      if (costPerVote > 0 && Number.isFinite(costPerVote)) {
+        const blockPrincipal = costPerVote * block.data.stats.numCuratorVotes;
+        if (blockPrincipal > 0) {
+          totalPrincipal += blockPrincipal;
+        }
+      }
+      if (block.data.stats.blockProtocolFeesAccruedEth > 0) {
+        totalInterestEth += block.data.stats.blockProtocolFeesAccruedEth;
+      }
+    }
+  }
+
+  const periodsInOneYear = ONE_YEAR / periodDuration;
+  const periodicInterestRate = totalInterestEth / totalPrincipal;
+  const aprDecimal = periodicInterestRate * periodsInOneYear;
+  const aprPercent = round(aprDecimal * 100, 8);
+  return aprPercent;
 }

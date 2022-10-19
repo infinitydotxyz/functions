@@ -38,7 +38,7 @@ export function calculateCuratorApr(
   /**
    * ETH = ETH/vote * votes
    */
-  const principal = costPerVote / votes;
+  const principal = costPerVote * votes;
 
   if (principal === 0) {
     return 0;

@@ -7,6 +7,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { FeesGeneratedDto, TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getRelevantStakerContracts, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { getDefaultFeesGenerated } from '../config';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
@@ -17,7 +18,7 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
-    if (this.getFeePercentage(phase) > 0) {
+    if (this.getFeePercentage(phase, false).totalPercent > 0) {
       return true;
     }
 
@@ -39,12 +40,21 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
     }
 
     const currentFees = phase.details.curationFeesGenerated;
-    const { eventFees } = this.updateFeesGenerated(currentFees, sale, phase);
+    const referralFees = phase.details.referralFeesGenerated ?? getDefaultFeesGenerated();
+    const { eventDestinationFees, eventReferralFees } = this.updateFeesGenerated(
+      currentFees,
+      sale,
+      phase,
+      referralFees
+    );
+    if (BigInt(eventReferralFees.feesGeneratedWei) > BigInt(0)) {
+      throw new Error('Not yet implemented. Implement referral fee handling for curation');
+    }
     return {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
-        const sales = this._getCurationLedgerSale(sale, eventFees);
+        const sales = this._getCurationLedgerSale(sale, eventDestinationFees);
 
         for (const curationSale of sales) {
           const collectionDocRef = db

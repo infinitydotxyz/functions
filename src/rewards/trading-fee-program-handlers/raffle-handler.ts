@@ -6,6 +6,7 @@ import {
   getRelevantStakerContracts,
   getTokenAddressByStakerAddress
 } from '@infinityxyz/lib/utils';
+import { getDefaultFeesGenerated } from '../config';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
@@ -43,7 +44,7 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
-    if (this.getFeePercentage(phase) > 0) {
+    if (this.getFeePercentage(phase, false).totalPercent > 0) {
       return true;
     }
     return false;
@@ -61,17 +62,27 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
       return this._nonApplicableResponse(phase);
     }
 
-    const fees = phase.details.raffleFeesGenerated;
-    const { eventFees } = this.updateFeesGenerated(fees, sale, phase);
+    const currentFees = phase.details.raffleFeesGenerated;
+    const referralFees = phase.details.referralFeesGenerated ?? getDefaultFeesGenerated();
+    const { eventDestinationFees, eventReferralFees } = this.updateFeesGenerated(
+      currentFees,
+      sale,
+      phase,
+      referralFees
+    );
+    if (BigInt(eventReferralFees.feesGeneratedWei) > BigInt(0)) {
+      throw new Error('Not yet implemented. Implement referral fee handling for raffle');
+    }
+
     const phasePrizePercent = phase.details.raffleConfig?.phasePrize?.percentage ?? 0;
     const grandPrizePercent = phase.details.raffleConfig?.grandPrize?.percentage ?? 0;
 
     const phasePrizeContribution = (
-      (BigInt(eventFees.feesGeneratedWei) * BigInt(phasePrizePercent)) /
+      (BigInt(eventDestinationFees.feesGeneratedWei) * BigInt(phasePrizePercent)) /
       BigInt(100)
     ).toString();
     const grandPrizeContribution = (
-      (BigInt(eventFees.feesGeneratedWei) * BigInt(grandPrizePercent)) /
+      (BigInt(eventDestinationFees.feesGeneratedWei) * BigInt(grandPrizePercent)) /
       BigInt(100)
     ).toString();
 

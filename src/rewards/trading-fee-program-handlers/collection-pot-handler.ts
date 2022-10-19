@@ -1,6 +1,7 @@
 import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getRelevantStakerContracts, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { getDefaultFeesGenerated } from '../config';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { RaffleLedgerEventVariant, RaffleLedgerSale } from './raffle-handler';
@@ -12,7 +13,7 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
-    if (this.getFeePercentage(phase) > 0) {
+    if (this.getFeePercentage(phase, false).totalPercent > 0) {
       return true;
     }
 
@@ -34,7 +35,11 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
     }
 
     const fees = phase.details.collectionPotFeesGenerated;
-    const { eventFees } = this.updateFeesGenerated(fees, sale, phase);
+    const referralFees = phase.details.referralFeesGenerated ?? getDefaultFeesGenerated();
+    const { eventDestinationFees, eventReferralFees } = this.updateFeesGenerated(fees, sale, phase, referralFees);
+    if (BigInt(eventReferralFees.feesGeneratedWei) > BigInt(0)) {
+      throw new Error('Not yet implemented. Implement referral fee handling for collection pot');
+    }
     return {
       applicable: true,
       phase,
@@ -49,8 +54,8 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
 
           const collectionPrizeRaffleLedgerSale: RaffleLedgerSale = {
             ...sale,
-            contributionWei: eventFees.feesGeneratedWei,
-            contributionEth: eventFees.feesGeneratedEth
+            contributionWei: eventDestinationFees.feesGeneratedWei,
+            contributionEth: eventDestinationFees.feesGeneratedEth
           };
 
           const collectionRaffleLedgerEventRef = collectionRaffleRef

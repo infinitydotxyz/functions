@@ -94,11 +94,7 @@ export async function handlerStakerContractMetadata(
     const currentBlockExpiresAt = currentBlocks.current?.metadata?.timestamp
       ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.metadata?.timestamp).endTimestamp
       : null;
-    const currentPeriodExpiresAt = currentPeriods.current?.metadata?.timestamp
-      ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.metadata?.timestamp).endTimestamp
-      : null;
-    const refreshCurrentSnippetBy =
-      currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationBlockAggregator.DURATION;
+    const refreshCurrentSnippetBy = currentBlockExpiresAt ?? Date.now() + CurationBlockAggregator.DURATION;
     await saveCurrentCurationSnippet(currentSnippet, stakerContractMetadataRef);
     const metadataUpdate: Partial<CurationMetadata> = {
       currentSnippetRequiresAggregation: false,

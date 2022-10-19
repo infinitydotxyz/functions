@@ -1,6 +1,13 @@
-import { ChainId, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  PreMergeReferralSaleEvent,
+  ReferralSaleEvent,
+  RewardEvent,
+  RewardSaleEvent
+} from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { getDefaultFeesGenerated } from '../config';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeDestinationEventHandler } from './trading-fee-destination-event-handler.abstract';
@@ -35,7 +42,7 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _isApplicable(event: RewardEvent, phase: Phase): boolean {
-    if (this.getFeePercentage(phase) > 0) {
+    if (this.getFeePercentage(phase, false).totalPercent > 0) {
       return true;
     }
 
@@ -57,11 +64,54 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
     }
 
     const fees = phase.details.treasuryFeesGenerated;
-    const { eventFees } = this.updateFeesGenerated(fees, sale, phase);
+    const referralFees = phase.details.referralFeesGenerated ?? getDefaultFeesGenerated();
+    const { eventDestinationFees, eventReferralFees } = this.updateFeesGenerated(fees, sale, phase, referralFees);
+
     return {
       applicable: true,
       phase,
       saveEvent: (txn, db) => {
+        if ('referral' in sale && sale.referral) {
+          const { referralPercent } = this.getFeePercentage(phase, true);
+          const referralRef = db
+            .collection(firestoreConstants.USERS_COLL)
+            .doc(sale.referral.referrer)
+            .collection(firestoreConstants.REFERRALS_COLL)
+            .doc(sale.chainId)
+            .collection(firestoreConstants.REFERRALS_LEDGER)
+            .doc() as FirebaseFirestore.DocumentReference<ReferralSaleEvent>;
+          const referralEvent: PreMergeReferralSaleEvent = {
+            sale: {
+              chainId: sale.chainId,
+              txHash: sale.txHash,
+              blockNumber: sale.blockNumber,
+              timestamp: sale.timestamp,
+              collectionAddress: sale.collectionAddress,
+              tokenId: sale.tokenId,
+              price: sale.price,
+              paymentToken: sale.paymentToken,
+              buyer: sale.buyer,
+              seller: sale.seller,
+              quantity: sale.quantity,
+              tokenStandard: sale.tokenStandard,
+              source: sale.source,
+              protocolFee: sale.protocolFee,
+              protocolFeeBPS: sale.protocolFeeBPS,
+              protocolFeeWei: sale.protocolFeeWei
+            },
+            referral: sale.referral,
+            ethPrice: sale.ethPrice,
+            docId: sale.docId,
+            updatedAt: Date.now(),
+            isAggregated: false,
+            isDeleted: false,
+            isDisplayDataMerged: false,
+            referralFeesGenerated: eventReferralFees,
+            referralRewardPercent: referralPercent
+          };
+          txn.create(referralRef, referralEvent);
+        }
+
         const ref = db
           .collection(firestoreConstants.TREASURY_COLL)
           .doc(sale.chainId)
@@ -73,8 +123,8 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
           phaseName: phase.details.name,
           chainId: sale.chainId as ChainId,
           discriminator: TreasuryEventVariant.BalanceIncrease,
-          contributionWei: eventFees.feesGeneratedWei,
-          contributionEth: eventFees.feesGeneratedEth,
+          contributionWei: eventDestinationFees.feesGeneratedWei,
+          contributionEth: eventDestinationFees.feesGeneratedEth,
           source: TreasuryIncomeSource.NftSale,
           sale,
           blockNumber: sale.blockNumber,

@@ -1,10 +1,11 @@
-import { ChainId, NftSale, SaleSource } from '@infinityxyz/lib/types/core';
+import { ChainId, NftSale, RewardSaleEvent, SaleSource } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { RewardsEventHandler } from '../../rewards/rewards-event-handler';
 import { getTokenPairPrice } from '../../token-price';
 import { USDC_MAINNET, WETH_MAINNET } from '../../token-price/constants';
+import { getSaleReferral } from '../referrals/get-referrals';
 import { AggregationInterval, SalesIntervalDoc } from './types';
 import { getIntervalAggregationId } from './utils';
 
@@ -33,12 +34,19 @@ export async function saveSalesForAggregation() {
         };
         if (saleWithDocId.source === SaleSource.Infinity && saleWithDocId.chainId === ChainId.Mainnet) {
           const tokenPrice = await getTokenPairPrice(WETH_MAINNET, USDC_MAINNET);
-          const saleEvent = {
+          const asset = {
+            collection: sale.collectionAddress,
+            tokenId: sale.tokenId,
+            chainId: sale.chainId as ChainId
+          };
+          const referral = await getSaleReferral(db, sale.buyer, asset);
+          const saleEvent: RewardSaleEvent = {
             ...saleWithDocId,
             chainId: saleWithDocId.chainId as ChainId,
-            ethPrice: tokenPrice.token1PerToken0
+            ethPrice: tokenPrice.token1PerToken0,
+            referral: referral ?? undefined
           };
-          await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
+          await rewardsEventHandler.onEvents(saleEvent.chainId as ChainId, [saleEvent], tx, db);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);

@@ -1,11 +1,14 @@
 import { ChainId, Collection } from '@infinityxyz/lib/types/core';
+import { ONE_WEEK } from '@infinityxyz/lib/utils';
 import { getCollectionDisplayData } from '../../utils';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';
+import { CurationBlock } from './curation-block';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
 import {
+  getApr,
   getCurrentBlocks,
   getCurrentCurationSnippet,
   getCurrentPeriods,
@@ -71,6 +74,7 @@ export async function handlerStakerContractMetadata(
   if (stakerContractMetadata.currentSnippetRequiresAggregation) {
     const currentBlocks = await getCurrentBlocks(stakerContractMetadataRef);
     const currentPeriods = await getCurrentPeriods(stakerContractMetadataRef);
+    const apr = await getApr(stakerContractMetadataRef, ONE_WEEK);
     const collection = await getCollectionDisplayData(
       stakerContractMetadataRef.firestore,
       collectionAddress,
@@ -84,16 +88,13 @@ export async function handlerStakerContractMetadata(
       stakerContractMetadata.token,
       collectionAddress,
       collectionChainId,
-      collection
+      collection,
+      apr
     );
     const currentBlockExpiresAt = currentBlocks.current?.metadata?.timestamp
       ? CurationBlockAggregator.getCurationBlockRange(currentBlocks.current?.metadata?.timestamp).endTimestamp
       : null;
-    const currentPeriodExpiresAt = currentPeriods.current?.metadata?.timestamp
-      ? CurationPeriodAggregator.getCurationPeriodRange(currentPeriods.current?.metadata?.timestamp).endTimestamp
-      : null;
-    const refreshCurrentSnippetBy =
-      currentBlockExpiresAt ?? currentPeriodExpiresAt ?? Date.now() + CurationPeriodAggregator.DURATION;
+    const refreshCurrentSnippetBy = currentBlockExpiresAt ?? Date.now() + CurationBlockAggregator.DURATION;
     await saveCurrentCurationSnippet(currentSnippet, stakerContractMetadataRef);
     const metadataUpdate: Partial<CurationMetadata> = {
       currentSnippetRequiresAggregation: false,

@@ -8,6 +8,7 @@ import {
   RewardListingEvent,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
+import PQueue from 'p-queue';
 import { FirestoreBatchEventProcessor } from '../../firestore/firestore-batch-event-processor';
 import { CollRef, CollGroupRef, Query, QuerySnap, DocRef } from '../../firestore/types';
 import { getTokenPairPrice } from '../../token-price';
@@ -28,66 +29,94 @@ export class RewardsEventMerger extends FirestoreBatchEventProcessor<PreMergedRe
 
   protected async _processEvents(
     events: QuerySnap<PreMergedRewardEvent>,
-    txn: FirebaseFirestore.Transaction,
+    txn: FirebaseFirestore.Transaction
   ): Promise<void> {
     const getUserStakeLevel = getCachedUserStakeLevel();
 
     const items = events.docs.map((item) => {
-        return {
-            event: item.data(),
-            ref: item.ref
-        }
-    })
+      return {
+        event: item.data(),
+        ref: item.ref
+      };
+    });
 
-    for (const item of items) {
-      const data = item.event
-      const ref = item.ref as DocRef<PreMergedRewardEvent | RewardEvent>;
+    const queue = new PQueue({ concurrency: 10 });
 
-      switch (data.discriminator) {
-        case RewardEventVariant.Sale: {
-            const merged = await this.getMergedSaleEvent(data, this._getDb());
-            txn.set(ref, {...merged, updatedAt: Date.now() }, { merge: true });
-            break;
-        }
-        case RewardEventVariant.Listing: {
-            const merged = await this.getMergedListingEvent(data, getUserStakeLevel);
-            txn.set(ref, {...merged, updatedAt: Date.now() }, { merge: true });
-            break;
-        }
-        default: {
-            console.error(`Merging is not implemented for event type: ${(data as any)?.discriminator}`)
-        }
-      }
-    }
+    const promises = await Promise.all(
+      items.map(async (item) => {
+        await queue.add(async () => {
+          const data = item.event;
+          const ref = item.ref as DocRef<PreMergedRewardEvent | RewardEvent>;
+
+          switch (data.discriminator) {
+            case RewardEventVariant.Sale: {
+              const merged = await this.getMergedSaleEvent(data, this._getDb());
+              txn.set(ref, { ...merged, updatedAt: Date.now() }, { merge: true });
+              break;
+            }
+            case RewardEventVariant.Listing: {
+              const merged = await this.getMergedListingEvent(data, getUserStakeLevel);
+              txn.set(ref, { ...merged, updatedAt: Date.now() }, { merge: true });
+              break;
+            }
+            default: {
+              console.error(`Merging is not implemented for event type: ${(data as any)?.discriminator}`);
+            }
+          }
+        });
+      })
+    );
+
+    /**
+     * these should resolve at the same time
+     */
+    await Promise.all(promises);
+    await queue.onIdle();
   }
 
-  protected async getMergedListingEvent(event: PreMergedRewardListingEvent, getUserStakeLevel: (userAddress: string, stakerContractAddress: string, stakerContractChainId: ChainId, blockNumber: number) => Promise<number | null>): Promise<RewardListingEvent> {
-    const stakeLevel = await getUserStakeLevel(event.order.makerAddress, event.stakerContractAddress, event.stakerContractChainId, event.blockNumber);
+  protected async getMergedListingEvent(
+    event: PreMergedRewardListingEvent,
+    getUserStakeLevel: (
+      userAddress: string,
+      stakerContractAddress: string,
+      stakerContractChainId: ChainId,
+      blockNumber: number
+    ) => Promise<number | null>
+  ): Promise<RewardListingEvent> {
+    const stakeLevel = await getUserStakeLevel(
+      event.order.makerAddress,
+      event.stakerContractAddress,
+      event.stakerContractChainId,
+      event.blockNumber
+    );
     const merged: RewardListingEvent = {
-        ...event,
-        isMerged: true,
-        stakeLevel: stakeLevel ?? 0,
+      ...event,
+      isMerged: true,
+      stakeLevel: stakeLevel ?? 0
     };
 
     return merged;
   }
 
-  protected async getMergedSaleEvent(saleEvent: PreMergedRewardSaleEvent, db: FirebaseFirestore.Firestore): Promise<RewardSaleEvent> {
+  protected async getMergedSaleEvent(
+    saleEvent: PreMergedRewardSaleEvent,
+    db: FirebaseFirestore.Firestore
+  ): Promise<RewardSaleEvent> {
     const tokenPrice = await getTokenPairPrice(WETH_MAINNET, USDC_MAINNET, saleEvent.blockNumber);
     const asset = {
       collection: saleEvent.collectionAddress,
       tokenId: saleEvent.tokenId,
-      chainId: saleEvent.chainId as ChainId
+      chainId: saleEvent.chainId
     };
 
     const referral = await getSaleReferral(db, saleEvent.buyer, asset);
 
     const merged: RewardSaleEvent = {
-        ...saleEvent,
-        discriminator: RewardEventVariant.Sale,
-        isMerged: true,
-        referral: referral ?? undefined,
-        ethPrice: tokenPrice.token1PerToken0
+      ...saleEvent,
+      discriminator: RewardEventVariant.Sale,
+      isMerged: true,
+      referral: referral ?? undefined,
+      ethPrice: tokenPrice.token1PerToken0
     };
 
     return merged;

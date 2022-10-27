@@ -7,7 +7,7 @@ import { REGION } from '../../utils/constants';
 const rewardsEventMerger = new RewardsEventMerger(
   {
     docBuilderCollectionPath: `${firestoreConstants.REWARDS_COLL}/{chainId}/rewardsLedger/{eventId}`,
-    batchSize: 100,
+    batchSize: 300,
     maxPages: 3,
     minTriggerInterval: ONE_MIN
   },
@@ -21,7 +21,7 @@ const rewardsEventMerger = new RewardsEventMerger(
 const fns = rewardsEventMerger.getFunctions();
 
 const settings = functions.region(REGION).runWith({
-    timeoutSeconds: 540
+  timeoutSeconds: 540
 });
 
 const documentBuilder = settings.firestore.document;

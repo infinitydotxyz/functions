@@ -32,6 +32,11 @@ export interface EventProcessorConfig {
    * ms to wait between triggering event processing
    */
   minTriggerInterval: number;
+
+  /**
+   * an optional id to support multiple triggers for the same collection
+   */
+  id?: string;
 }
 
 /**
@@ -82,7 +87,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
   }
 
   protected get _triggerDocId() {
-    return `_trigger:${this.collectionName}`;
+    return `_trigger:${this.collectionName}${this._config.id ? ':' + this._config.id : ''}`;
   }
 
   get docBuilderTriggerDocPath() {

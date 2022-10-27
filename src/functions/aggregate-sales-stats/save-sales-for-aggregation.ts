@@ -8,7 +8,6 @@ import {
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { streamQueryWithRef } from '../../firestore/stream-query';
-import { RewardsEventHandler } from '../../rewards/rewards-event-handler';
 import { AggregationInterval, SalesIntervalDoc } from './types';
 import { getIntervalAggregationId } from './utils';
 
@@ -20,7 +19,6 @@ export async function saveSalesForAggregation() {
   const unaggregatedSalesStream = streamQueryWithRef(unaggregatedSales, (item, ref) => [ref], {
     pageSize: 300
   });
-  const rewardsEventHandler = new RewardsEventHandler(db);
 
   const saveSale = async (ref: FirebaseFirestore.DocumentReference<NftSale>) => {
     try {
@@ -47,7 +45,6 @@ export async function saveSalesForAggregation() {
             .doc(saleWithDocId.chainId)
             .collection('rewardsLedger');
           tx.set(rewardsLedgerRef.doc(), saleEvent);
-          // await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);

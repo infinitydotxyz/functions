@@ -1,9 +1,7 @@
-import { InfinityStakerABI } from '@infinityxyz/lib/abi/infinityStaker';
-import { ChainId, EntrantOrderLedgerItem, PreMergeEntrantOrderLedgerItem } from '@infinityxyz/lib/types/core';
+import { EntrantOrderLedgerItem, PreMergeEntrantOrderLedgerItem } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { ethers } from 'ethers';
-import { getProvider } from '../../utils/ethersUtils';
+import { getCachedUserStakeLevel } from '../../utils/get-cached-user-stake-level';
 import { getApplicableRaffles } from './save-txn-fees';
 
 export async function addOrdersToRaffleLedgers(
@@ -23,44 +21,7 @@ export async function addOrdersToRaffleLedgers(
     (phase) => phase.isActive === true || phase.lastBlockIncluded >= item.blockNumber
   );
 
-  const cache: Map<string, Promise<number | null>> = new Map();
-  const getCacheId = (
-    userAddress: string,
-    stakerContractAddress: string,
-    stakerContractChainId: ChainId,
-    blockNumber: number
-  ) => {
-    return `${userAddress}-${stakerContractAddress}-${stakerContractChainId}-${blockNumber}`;
-  };
-  const getUserStakeLevel = (
-    userAddress: string,
-    stakerContractAddress: string,
-    stakerContractChainId: ChainId,
-    blockNumber: number
-  ) => {
-    const id = getCacheId(userAddress, stakerContractAddress, stakerContractChainId, blockNumber);
-    const cachedStakeLevel = cache.get(id);
-
-    const getStakeLevel = async (): Promise<number | null> => {
-      try {
-        const stakerContract = new ethers.Contract(stakerContractAddress, InfinityStakerABI, getProvider(chainId));
-        const [stakeLevel] = (await stakerContract.functions.getUserStakeLevel(item.entrantAddress, {
-          blockTag: item.blockNumber
-        })) as [number];
-        return stakeLevel;
-      } catch (err) {
-        console.error(err);
-        return null;
-      }
-    };
-
-    if (cachedStakeLevel) {
-      return cachedStakeLevel;
-    }
-    const promise = getStakeLevel();
-    cache.set(id, promise);
-    return promise;
-  };
+  const getUserStakeLevel = getCachedUserStakeLevel();
 
   await db.runTransaction(async (txn) => {
     if (applicablePhase) {

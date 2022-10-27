@@ -36,20 +36,11 @@ export async function saveSalesForAggregation() {
           updatedAt: Date.now()
         };
         if (saleWithDocId.source === SaleSource.Infinity) {
-          // const tokenPrice = await getTokenPairPrice(WETH_MAINNET, USDC_MAINNET);
-          // const asset = {
-          //   collection: sale.collectionAddress,
-          //   tokenId: sale.tokenId,
-          //   chainId: sale.chainId as ChainId
-          // };
-          // const referral = await getSaleReferral(db, sale.buyer, asset);
           const saleEvent: PreMergedRewardSaleEvent = {
             ...saleWithDocId,
             discriminator: RewardEventVariant.Sale,
             chainId: saleWithDocId.chainId as ChainId,
             isMerged: false
-            // ethPrice: tokenPrice.token1PerToken0,
-            // referral: referral ?? undefined
           };
           const rewardsLedgerRef = db
             .collection(firestoreConstants.REWARDS_COLL)

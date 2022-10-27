@@ -1,4 +1,4 @@
-import { ChainId, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RewardEventVariant, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto/rewards';
 import { parseEther } from 'ethers/lib/utils';
 import { DEFAULT_RAFFLE_CONFIG, getDefaultFeesGenerated, TRADING_FEE_SPLIT_PHASE_1_TO_4 } from './config';
@@ -111,7 +111,8 @@ describe('RewardsEventHandler', () => {
       protocolFeeWei: parseEther('1').toString(),
       txHash: '0x0',
       buyer: '0x0',
-      seller: '0x0'
+      seller: '0x0',
+      discriminator: RewardEventVariant.Sale
     } as any;
 
     const expectedRewardsPerSale = 10;

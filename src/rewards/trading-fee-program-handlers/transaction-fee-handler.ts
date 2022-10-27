@@ -1,4 +1,4 @@
-import { ChainId, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
+import { RewardListingEvent, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
 import { TradingFeeProgram, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, round } from '@infinityxyz/lib/utils';
 import { BigNumber } from 'ethers';
@@ -51,6 +51,27 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
         protocolFeesUSDC: sellerProtocolFee * sale.ethPrice
       }
     };
+  }
+
+  protected _onListing(listing: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse {
+    if (!phase.isActive) {
+      throw new Error('Phase is not active');
+    }
+    const config = phase.details.tradingFeeRefund;
+    if (!config) {
+      return this._nonApplicableResponse(phase);
+    } else if (phase.authority !== ProgressAuthority.TradingFees) {
+      /**
+       * phase rewards can exceed the phase supply
+       */
+      throw new Error(
+        'Found applicable phase but authority is not trading fees. This may have unintended consequences.'
+      );
+    }
+
+    // TODO
+
+    return this._nonApplicableResponse(phase);
   }
 
   protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
@@ -154,7 +175,7 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
   ): { buyer: TransactionFeeRewardDoc; seller: TransactionFeeRewardDoc } {
     const base = {
       sale,
-      chainId: sale.chainId as ChainId,
+      chainId: sale.chainId,
       isSplit: sale.isSplit ?? false,
       phase: phase.toJSON(),
       isAggregated: false,

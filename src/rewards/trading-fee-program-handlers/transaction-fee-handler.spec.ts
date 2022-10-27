@@ -1,4 +1,4 @@
-import { RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { RewardListingEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { parseEther } from 'ethers/lib/utils';
 import { Phase } from '../phases/phase.abstract';
@@ -27,6 +27,10 @@ class MockTransactionFeeHandler extends TransactionFeeHandler {
 
   onSale(sale: RewardSaleEvent, phase: Phase) {
     return this._onSale(sale, phase);
+  }
+
+  onListing(listing: RewardListingEvent, phase: Phase) {
+    return this._onListing(listing, phase);
   }
 }
 

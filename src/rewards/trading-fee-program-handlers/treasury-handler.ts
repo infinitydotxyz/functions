@@ -3,6 +3,7 @@ import {
   PreMergeReferralSaleEvent,
   ReferralSaleEvent,
   RewardEvent,
+  RewardListingEvent,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
@@ -47,6 +48,10 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
     }
 
     return false;
+  }
+
+  protected _onListing(listing: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse {
+    return this._nonApplicableResponse(phase);
   }
 
   protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
@@ -121,7 +126,7 @@ export class TreasuryHandler extends TradingFeeDestinationEventHandler {
           phaseId: phase.details.id,
           phaseIndex: phase.details.index,
           phaseName: phase.details.name,
-          chainId: sale.chainId as ChainId,
+          chainId: sale.chainId,
           discriminator: TreasuryEventVariant.BalanceIncrease,
           contributionWei: eventDestinationFees.feesGeneratedWei,
           contributionEth: eventDestinationFees.feesGeneratedEth,

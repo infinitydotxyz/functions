@@ -228,11 +228,11 @@ export async function getApr(
     }
   }
 
-  if(totalPrincipal === 0) {
+  if (totalPrincipal === 0) {
     return 0;
   }
   const principal = totalPrincipal / numBlocks;
-  if(principal === 0) {
+  if (principal === 0) {
     return 0;
   }
   const periodsInOneYear = ONE_YEAR / periodDuration;

@@ -1,4 +1,4 @@
-import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { RaffleType, RewardEvent, RewardListingEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getRelevantStakerContracts, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { getDefaultFeesGenerated } from '../config';
@@ -18,6 +18,10 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
     }
 
     return false;
+  }
+
+  protected _onListing(listing: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse {
+    return this._nonApplicableResponse(phase);
   }
 
   protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
@@ -69,10 +73,10 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _transformSaleToCollectionPotSale(sale: RewardSaleEvent, phase: Phase) {
-    const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
+    const stakerContracts = getRelevantStakerContracts(sale.chainId);
     const raffleLedgerSales = stakerContracts.map((stakerContract) => {
       const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
-        sale.chainId as ChainId,
+        sale.chainId,
         stakerContract
       );
       const raffleLedgerSale: Omit<RaffleLedgerSale, 'contributionWei' | 'contributionEth'> = {
@@ -82,12 +86,12 @@ export class CollectionPotHandler extends TradingFeeDestinationEventHandler {
         phaseId: phase.details.id,
         phaseIndex: phase.details.index,
         updatedAt: Date.now(),
-        chainId: sale.chainId as ChainId,
+        chainId: sale.chainId,
         buyerAddress: sale.buyer,
         sellerAddress: sale.seller,
         collectionAddress: sale.collectionAddress,
         stakerContractAddress: stakerContract,
-        stakerContractChainId: sale.chainId as ChainId,
+        stakerContractChainId: sale.chainId,
         tokenContractAddress,
         tokenContractChainId,
         blockNumber: sale.blockNumber,

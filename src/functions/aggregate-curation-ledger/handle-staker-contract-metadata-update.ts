@@ -3,9 +3,7 @@ import { ONE_WEEK } from '@infinityxyz/lib/utils';
 import { getCollectionDisplayData } from '../../utils';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';
-import { CurationBlock } from './curation-block';
 import { CurationBlockAggregator } from './curation-block-aggregator';
-import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
 import {
   getApr,

@@ -1,4 +1,4 @@
-import { ChainId, NftSale, RewardSaleEvent, SaleSource } from '@infinityxyz/lib/types/core';
+import { ChainId, NftSale, RewardEventVariant, RewardSaleEvent, SaleSource } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { streamQueryWithRef } from '../../firestore/stream-query';
@@ -42,11 +42,12 @@ export async function saveSalesForAggregation() {
           const referral = await getSaleReferral(db, sale.buyer, asset);
           const saleEvent: RewardSaleEvent = {
             ...saleWithDocId,
+            discriminator: RewardEventVariant.Sale,
             chainId: saleWithDocId.chainId as ChainId,
             ethPrice: tokenPrice.token1PerToken0,
             referral: referral ?? undefined
           };
-          await rewardsEventHandler.onEvents(saleEvent.chainId as ChainId, [saleEvent], tx, db);
+          await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);

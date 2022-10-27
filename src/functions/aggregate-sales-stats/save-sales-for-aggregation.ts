@@ -1,11 +1,14 @@
-import { ChainId, NftSale, RewardEventVariant, RewardSaleEvent, SaleSource } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  NftSale,
+  PreMergedRewardSaleEvent,
+  RewardEventVariant,
+  SaleSource
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../../firestore';
 import { streamQueryWithRef } from '../../firestore/stream-query';
 import { RewardsEventHandler } from '../../rewards/rewards-event-handler';
-import { getTokenPairPrice } from '../../token-price';
-import { USDC_MAINNET, WETH_MAINNET } from '../../token-price/constants';
-import { getSaleReferral } from '../referrals/get-referrals';
 import { AggregationInterval, SalesIntervalDoc } from './types';
 import { getIntervalAggregationId } from './utils';
 
@@ -32,22 +35,28 @@ export async function saveSalesForAggregation() {
           docId: ref.id,
           updatedAt: Date.now()
         };
-        if (saleWithDocId.source === SaleSource.Infinity && saleWithDocId.chainId === ChainId.Mainnet) {
-          const tokenPrice = await getTokenPairPrice(WETH_MAINNET, USDC_MAINNET);
-          const asset = {
-            collection: sale.collectionAddress,
-            tokenId: sale.tokenId,
-            chainId: sale.chainId as ChainId
-          };
-          const referral = await getSaleReferral(db, sale.buyer, asset);
-          const saleEvent: RewardSaleEvent = {
+        if (saleWithDocId.source === SaleSource.Infinity) {
+          // const tokenPrice = await getTokenPairPrice(WETH_MAINNET, USDC_MAINNET);
+          // const asset = {
+          //   collection: sale.collectionAddress,
+          //   tokenId: sale.tokenId,
+          //   chainId: sale.chainId as ChainId
+          // };
+          // const referral = await getSaleReferral(db, sale.buyer, asset);
+          const saleEvent: PreMergedRewardSaleEvent = {
             ...saleWithDocId,
             discriminator: RewardEventVariant.Sale,
             chainId: saleWithDocId.chainId as ChainId,
-            ethPrice: tokenPrice.token1PerToken0,
-            referral: referral ?? undefined
+            isMerged: false
+            // ethPrice: tokenPrice.token1PerToken0,
+            // referral: referral ?? undefined
           };
-          await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
+          const rewardsLedgerRef = db
+            .collection(firestoreConstants.REWARDS_COLL)
+            .doc(saleWithDocId.chainId)
+            .collection('rewardsLedger');
+          tx.set(rewardsLedgerRef.doc(), saleEvent);
+          // await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);

@@ -5,13 +5,15 @@ import {
   RaffleState,
   RaffleTicketTotalsDoc,
   TransactionFeePhaseRewardsDoc,
-  UserRaffle
+  UserRaffle,
+  UserRewardsEventDoc
 } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { paginatedTransaction } from '../../firestore/paginated-transaction';
 import { streamQueryWithRef } from '../../firestore/stream-query';
+import { CollGroupRef } from '../../firestore/types';
 import { getProvider } from '../../utils/ethersUtils';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
@@ -148,7 +150,7 @@ async function ensureEntrantsAreReadyToBeFinalized(
       .collectionGroup(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL)
       .where('phaseId', '==', phaseId)
       .where('chainId', '==', chainId)
-      .where('isAggregated', '==', false);
+      .where('isAggregated', '==', false) as CollGroupRef<UserRewardsEventDoc>;
     const phaseTxnFeeDocs = db
       .collectionGroup(firestoreConstants.USER_REWARD_PHASES_COLL)
       .where('isCopiedToRaffles', '==', false)

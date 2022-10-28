@@ -14,4 +14,4 @@ export interface TradingFeeProgramEventHandler {
 
 export type RewardListingEventSplit = RewardListingEvent & {
   amountRemainingFromSplit: number;
-}
+};

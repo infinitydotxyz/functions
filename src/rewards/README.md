@@ -18,5 +18,3 @@
                     - {Phase}
                 - userAllTimeRewards
                     - userAllTimeTransactionFeeRewards
-            
-

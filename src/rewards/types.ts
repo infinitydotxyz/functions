@@ -1,4 +1,4 @@
-import { RewardEvent } from '@infinityxyz/lib/types/core';
+import { RewardEvent, RewardListingEvent } from '@infinityxyz/lib/types/core';
 import { Phase } from './phases/phase.abstract';
 
 export type TradingFeeEventHandlerResponse = {
@@ -10,4 +10,8 @@ export type TradingFeeEventHandlerResponse = {
 
 export interface TradingFeeProgramEventHandler {
   onEvent(event: RewardEvent, phase: Phase): TradingFeeEventHandlerResponse;
+}
+
+export type RewardListingEventSplit = RewardListingEvent & {
+  amountRemainingFromSplit: number;
 }

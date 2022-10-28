@@ -39,7 +39,7 @@
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@infinityxyz/lib": "^1.258.0",
+    "@infinityxyz/lib": "^1.260.2",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

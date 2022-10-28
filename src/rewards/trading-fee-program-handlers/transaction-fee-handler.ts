@@ -1,15 +1,80 @@
-import { RewardListingEvent, RewardSaleEvent, TransactionFeeRewardDoc } from '@infinityxyz/lib/types/core';
+import { ListingRewardsDoc, RewardListingEvent, RewardSaleEvent, TransactionFeeRewardDoc, UserRewardsEventDoc } from '@infinityxyz/lib/types/core';
 import { TradingFeeProgram, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, round } from '@infinityxyz/lib/utils';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
+import { CollRef } from '../../firestore/types';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
-import { TradingFeeEventHandlerResponse } from '../types';
+import { RewardListingEventSplit, TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
+
+
 
 export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
   constructor() {
     super(TradingFeeProgram.TokenRefund);
+  }
+
+  protected _getListingReward(
+    listing: RewardListingEvent | RewardListingEventSplit,
+    config: TradingFeeRefundDto
+  ) {   
+    const listingConfig = config.listingRewardsConfig;
+    if(!listingConfig) {
+      return {
+        reward: 0,
+      }
+    };
+    
+    const durationValid = listing.order.endTimeMs - listing.order.startTimeMs > listingConfig.minTimeValid;
+    if(!durationValid) {
+      return  {
+        reward: 0
+      }
+    }
+
+    if('amountRemainingFromSplit' in listing) {
+      return {
+        reward: listing.amountRemainingFromSplit
+      }
+    }
+
+    /**
+     * filter out any listings that don't meet the duration or price requirements
+     */
+    const validListings = listing.order.items.filter((item) => {
+      if(item.floorPriceEth === null) {
+        return false;
+      }
+      const maxListingPrice = (item.floorPriceEth * (listingConfig.maxPercentAboveFloor / 100)) + item.floorPriceEth;
+      const startPriceValid = listing.order.startPriceEth / item.numTokens <= maxListingPrice;
+      const endPriceValid = listing.order.endPriceEth / item.numTokens <= maxListingPrice;
+      return startPriceValid && endPriceValid;
+    });
+    
+
+    /**
+     * calculate the rewards for each item in the order
+     */
+    const stakeLevelMultiplier = listing.stakeLevel + 1;
+    const rewardsByItem = validListings.map((item) => {
+      const itemReward = item.rewardMultiplier * stakeLevelMultiplier * listingConfig.ticketMultiplier;
+      return itemReward;
+    });
+
+    /**
+     * prefer the most rewarding items in the order
+     * 
+     * only allow the user to get rewards for the number of 
+     * items that will be included in a txn
+     */
+    const maxItemsInReward = Math.min(validListings.length, listing.order.numItems);
+    const decreasingRewards = rewardsByItem.sort((a, b) => b - a);
+    const reward = decreasingRewards.slice(0, maxItemsInReward).reduce((acc, item) => acc + item, 0);
+
+    return {
+      reward
+    }
   }
 
   protected _getSaleReward(
@@ -53,7 +118,7 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
     };
   }
 
-  protected _onListing(listing: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse {
+  protected _onListing(listing: RewardListingEvent | RewardListingEventSplit, phase: Phase): TradingFeeEventHandlerResponse {
     if (!phase.isActive) {
       throw new Error('Phase is not active');
     }
@@ -67,11 +132,58 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
       throw new Error(
         'Found applicable phase but authority is not trading fees. This may have unintended consequences.'
       );
+    } else if (!config.listingRewardsConfig) {
+      return this._nonApplicableResponse(phase);
     }
 
-    // TODO
+    const totalListingRewardsSupply = config.rewardSupply * (config.listingRewardsConfig.maxRewardSupplyPercent / 100);
+    const listingRewardsRemaining = totalListingRewardsSupply - config.listingRewardsConfig.rewardSupplyUsed;
+    const rewardSupplyRemaining = config.rewardSupply - config.rewardSupplyUsed;
+    
+    
+    let { reward } = this._getListingReward(listing, config) 
+    
+    const supplyRemaining = Math.min(listingRewardsRemaining, rewardSupplyRemaining);
+    const shouldRollOverToNextPhase = rewardSupplyRemaining < listingRewardsRemaining;
 
-    return this._nonApplicableResponse(phase);
+    if (reward <= supplyRemaining || !shouldRollOverToNextPhase) {
+      reward = Math.min(reward, listingRewardsRemaining);
+      config.rewardSupplyUsed += reward;
+      config.listingRewardsConfig.rewardSupplyUsed += reward;
+
+      // update phase progress - should only be done by phase authority
+      phase.details.progress = round(config.rewardSupplyUsed / config.rewardSupply, 6) * 100;
+      const listingEvent = this._getListingEvent(listing, phase, reward, config);
+      return {
+        applicable: true,
+        phase,
+        saveEvent: (txn, db) => {
+          const makerRef = db.collection(firestoreConstants.USERS_COLL).doc(listing.order.makerAddress);
+          
+          const makerTransactionFeeRewards = makerRef
+            .collection(firestoreConstants.USER_REWARDS_COLL)
+            .doc(listing.chainId)
+            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL) as CollRef<UserRewardsEventDoc>;
+
+          txn.create(makerTransactionFeeRewards.doc(), listingEvent);
+        },
+        split: undefined
+      };
+    }
+
+    /**
+     * we split the listing if the reward causes the current phase to end
+     */
+    const split = this._splitListing(listing, reward, supplyRemaining);
+
+    return {
+      applicable: true,
+      phase,
+      saveEvent: () => {
+        return;
+      },
+      split
+    };
   }
 
   protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
@@ -110,11 +222,11 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
           const buyerTransactionFeeRewards = buyerRef
             .collection(firestoreConstants.USER_REWARDS_COLL)
             .doc(sale.chainId)
-            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL);
+            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL) as CollRef<UserRewardsEventDoc>;
           const sellerTransactionFeeRewards = sellerRef
             .collection(firestoreConstants.USER_REWARDS_COLL)
             .doc(sale.chainId)
-            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL);
+            .collection(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL) as CollRef<UserRewardsEventDoc>;
           txn.create(buyerTransactionFeeRewards.doc(), buyer);
           txn.create(sellerTransactionFeeRewards.doc(), seller);
         },
@@ -132,6 +244,30 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
       },
       split
     };
+  }
+
+  protected _splitListing(
+    listing: RewardListingEvent,
+    reward: number,
+    rewardRemaining: number
+  ): {
+    current: RewardListingEventSplit;
+    remainder: RewardListingEventSplit;
+  } {
+    const split: {
+      current: RewardListingEventSplit;
+      remainder: RewardListingEventSplit;
+    } = {
+      current: {
+        ...listing,
+        amountRemainingFromSplit: rewardRemaining
+      },
+      remainder: {
+        ...listing,
+        amountRemainingFromSplit: reward - rewardRemaining
+      }
+    }
+    return split;
   }
 
   protected _splitSale(
@@ -166,6 +302,30 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
     };
   }
 
+  protected _getListingEvent(listing: RewardListingEvent, 
+    phase: Phase,
+    listingRewards: number,
+    config: TradingFeeRefundDto): ListingRewardsDoc {
+      const doc: ListingRewardsDoc = {
+        userAddress: listing.order.makerAddress,
+        listing,
+        chainId: listing.chainId,
+        isSplit: listing.isSplit ?? false,
+        isAggregated: false,
+        /**
+         * buyer and seller both receive the full volume of the sale
+         */
+        updatedAt: Date.now(),
+        config,
+        phaseId: phase.details.id,
+        phaseName: phase.details.name,
+        phaseIndex: phase.details.index,
+        listingReward: listingRewards,
+      };
+
+      return doc;
+    }
+
   protected _getBuyerAndSellerEvents(
     sale: RewardSaleEvent,
     phase: Phase,
@@ -173,11 +333,10 @@ export class TransactionFeeHandler extends TradingFeeProgramEventHandler {
     sellerReward: { reward: number; protocolFeesWei: string; protocolFeesEth: number; protocolFeesUSDC: number },
     config: TradingFeeRefundDto
   ): { buyer: TransactionFeeRewardDoc; seller: TransactionFeeRewardDoc } {
-    const base = {
+    const base: Omit< TransactionFeeRewardDoc, 'userAddress' | 'reward' | 'protocolFeesWei' | 'protocolFeesEth' | 'protocolFeesUSDC'> = {
       sale,
       chainId: sale.chainId,
       isSplit: sale.isSplit ?? false,
-      phase: phase.toJSON(),
       isAggregated: false,
       /**
        * buyer and seller both receive the full volume of the sale

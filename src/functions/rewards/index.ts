@@ -7,7 +7,7 @@ import { RewardsEventProcessor } from './rewards-event-processor';
 
 const rewardsEventMerger = new RewardsEventMerger(
   {
-    docBuilderCollectionPath: `${firestoreConstants.REWARDS_COLL}/{chainId}/rewardsLedger/{eventId}`,
+    docBuilderCollectionPath: `${firestoreConstants.REWARDS_COLL}/{chainId}/rewardsLedger`,
     batchSize: 300,
     maxPages: 3,
     minTriggerInterval: ONE_MIN,
@@ -22,7 +22,7 @@ const rewardsEventMerger = new RewardsEventMerger(
 
 const rewardsEventProcessor = new RewardsEventProcessor(
   {
-    docBuilderCollectionPath: `${firestoreConstants.REWARDS_COLL}/{chainId}/rewardsLedger/{eventId}`,
+    docBuilderCollectionPath: `${firestoreConstants.REWARDS_COLL}/{chainId}/rewardsLedger`,
     batchSize: 30,
     maxPages: 30,
     minTriggerInterval: ONE_MIN,

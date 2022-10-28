@@ -173,14 +173,14 @@ export async function aggregateTransactionFeeRewards(
         const protocolFeesUSDC = (data?.protocolFeesUSDC ?? 0) + protocolFeeUSDCToAdd;
         const userSells = (data?.userSells ?? 0) + sellsToAdd;
         const userBuys = (data?.userBuys ?? 0) + buysToAdd;
-        const userListings = (data?.userListings ?? 0) + listingsToAdd;
+        const userListings = (data?.userListings || 0) + listingsToAdd;
 
         allTimeRewards.rewards += rewardsToAdd;
-        allTimeRewards.listingRewards += listingsToAdd;
+        allTimeRewards.listingRewards = (allTimeRewards?.listingRewards ?? 0) + listingsToAdd;
         allTimeRewards.volumeEth += volumeToAdd;
         allTimeRewards.userSells += sellsToAdd;
         allTimeRewards.userBuys += buysToAdd;
-        allTimeRewards.userListings += listingsToAdd;
+        allTimeRewards.userListings = (allTimeRewards?.userListings ?? 0) + listingsToAdd;
         allTimeRewards.volumeWei = (BigInt(allTimeRewards.volumeWei) + BigInt(volumeWeiToAdd)).toString();
         allTimeRewards.volumeUSDC += volumeUSDCToAdd;
         allTimeRewards.protocolFeesEth += protocolFeeEthToAdd;

@@ -14,3 +14,4 @@ export * from './raffle';
 export * from './referrals';
 export * from './treasury';
 export * from './twitter';
+export * from './on-feed-write';

@@ -15,3 +15,4 @@ export * from './referrals';
 export * from './rewards';
 export * from './treasury';
 export * from './twitter';
+export * from './on-feed-write';

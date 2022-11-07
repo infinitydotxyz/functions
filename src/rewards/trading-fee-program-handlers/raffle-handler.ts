@@ -1,4 +1,4 @@
-import { ChainId, RaffleType, RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { ChainId, RaffleType, RewardEvent, RewardListingEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import {
   firestoreConstants,
@@ -48,6 +48,10 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
       return true;
     }
     return false;
+  }
+
+  protected _onListing(listing: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse {
+    return this._nonApplicableResponse(phase);
   }
 
   protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
@@ -126,10 +130,10 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _transformSaleToRaffleLedgerSale(sale: RewardSaleEvent, phase: Phase) {
-    const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
+    const stakerContracts = getRelevantStakerContracts(sale.chainId);
     const raffleLedgerSales = stakerContracts.map((stakerContract) => {
       const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
-        sale.chainId as ChainId,
+        sale.chainId,
         stakerContract
       );
       const raffleLedgerSale: Omit<RaffleLedgerSale, 'contributionWei' | 'contributionEth'> = {
@@ -139,12 +143,12 @@ export class RaffleHandler extends TradingFeeDestinationEventHandler {
         phaseId: phase.details.id,
         phaseIndex: phase.details.index,
         updatedAt: Date.now(),
-        chainId: sale.chainId as ChainId,
+        chainId: sale.chainId,
         buyerAddress: sale.buyer,
         sellerAddress: sale.seller,
         collectionAddress: sale.collectionAddress,
         stakerContractAddress: stakerContract,
-        stakerContractChainId: sale.chainId as ChainId,
+        stakerContractChainId: sale.chainId,
         tokenContractAddress,
         tokenContractChainId,
         timestamp: sale.timestamp,

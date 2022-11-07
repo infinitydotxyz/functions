@@ -1,8 +1,8 @@
 import {
-  ChainId,
   CurationLedgerEvent,
   CurationLedgerSale,
   RewardEvent,
+  RewardListingEvent,
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
 import { FeesGeneratedDto, TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
@@ -21,8 +21,11 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
     if (this.getFeePercentage(phase, false).totalPercent > 0) {
       return true;
     }
-
     return false;
+  }
+
+  protected _onListing(listing: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse {
+    return this._nonApplicableResponse(phase);
   }
 
   protected _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse {
@@ -72,10 +75,10 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
   }
 
   protected _getCurationLedgerSale(sale: RewardSaleEvent, feesGenerated: FeesGeneratedDto): CurationLedgerSale[] {
-    const stakerContracts = getRelevantStakerContracts(sale.chainId as ChainId);
+    const stakerContracts = getRelevantStakerContracts(sale.chainId);
     const curationSales = stakerContracts.map((stakerContract) => {
       const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
-        sale.chainId as ChainId,
+        sale.chainId,
         stakerContract
       );
       const curationSale: CurationLedgerSale = {
@@ -83,11 +86,11 @@ export class CurationHandler extends TradingFeeDestinationEventHandler {
         docId: sale.docId,
         updatedAt: Date.now(),
         discriminator: CurationLedgerEvent.Sale,
-        chainId: sale.chainId as ChainId,
+        chainId: sale.chainId,
         collectionAddress: sale.collectionAddress,
-        collectionChainId: sale.chainId as ChainId,
+        collectionChainId: sale.chainId,
         stakerContractAddress: stakerContract,
-        stakerContractChainId: sale.chainId as ChainId,
+        stakerContractChainId: sale.chainId,
         isStakeMerged: true,
         tokenContractAddress,
         tokenContractChainId,

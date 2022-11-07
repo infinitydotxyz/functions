@@ -4,7 +4,7 @@
 
 - rewards 
     - {chainId} // contains the current state of the rewards programs
-        - ledger 
+        - rewardsLedger
             - {eventId} // contains events to be added to reward programs
         
 

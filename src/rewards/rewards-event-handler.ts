@@ -148,10 +148,10 @@ export class RewardsEventHandler {
         phase = updatedPhase;
 
         if (phase.isActive === false) {
-          const saveOnComplete = await this.onPhaseComplete(event.chainId as ChainId, phase, txn);
+          const saveOnComplete = await this.onPhaseComplete(event.chainId, phase, txn);
           saves.push(saveOnComplete);
           if (nextPhase) {
-            const saveOnPhaseStart = await this.onPhaseStart(event.chainId as ChainId, nextPhase, txn);
+            const saveOnPhaseStart = await this.onPhaseStart(event.chainId, nextPhase, txn);
             saves.push(saveOnPhaseStart);
           }
         }
@@ -159,15 +159,18 @@ export class RewardsEventHandler {
     }
 
     phase.lastBlockIncluded = Math.max(phase.lastBlockIncluded, event.blockNumber);
-    const currentFees = phase.details.feesGenerated;
-    const feesGeneratedWei = (BigInt(currentFees.feesGeneratedWei) + BigInt(event.protocolFeeWei)).toString();
-    const feesGeneratedEth = formatEth(feesGeneratedWei);
-    const newFees: FeesGeneratedDto = {
-      feesGeneratedWei: feesGeneratedWei,
-      feesGeneratedEth: feesGeneratedEth,
-      feesGeneratedUSDC: feesGeneratedEth * event.ethPrice
-    };
-    phase.details.feesGenerated = newFees;
+
+    if ('protocolFeeWei' in event) {
+      const currentFees = phase.details.feesGenerated;
+      const feesGeneratedWei = (BigInt(currentFees.feesGeneratedWei) + BigInt(event.protocolFeeWei)).toString();
+      const feesGeneratedEth = formatEth(feesGeneratedWei);
+      const newFees: FeesGeneratedDto = {
+        feesGeneratedWei: feesGeneratedWei,
+        feesGeneratedEth: feesGeneratedEth,
+        feesGeneratedUSDC: feesGeneratedEth * event.ethPrice
+      };
+      phase.details.feesGenerated = newFees;
+    }
 
     save();
     return { phase, nextPhase };

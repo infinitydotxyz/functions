@@ -1,4 +1,4 @@
-import { RewardEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
+import { RewardEvent, RewardEventVariant, RewardListingEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { Phase } from '../phases/phase.abstract';
 import {
@@ -10,15 +10,22 @@ export abstract class TradingFeeProgramEventHandler implements ITradingFeeProgra
   constructor(protected readonly _variant: TradingFeeProgram) {}
 
   onEvent(event: RewardEvent, phase: Phase): TradingFeeEventHandlerResponse {
-    if ('txHash' in event && 'price' in event && 'buyer' in event && 'seller' in event) {
-      return this._onSale(event, phase);
-    } else {
-      console.log(JSON.stringify(event, null, 2));
-      throw new Error(`Unknown event ${(event as any)?.discriminator}`);
+    switch (event.discriminator) {
+      case RewardEventVariant.Sale: {
+        return this._onSale(event, phase);
+      }
+      case RewardEventVariant.Listing: {
+        return this._onListing(event, phase);
+      }
+      default:
+        console.log(JSON.stringify(event, null, 2));
+        throw new Error(`Unknown event ${(event as any)?.discriminator}`);
     }
   }
 
   protected abstract _onSale(sale: RewardSaleEvent, phase: Phase): TradingFeeEventHandlerResponse;
+
+  protected abstract _onListing(sale: RewardListingEvent, phase: Phase): TradingFeeEventHandlerResponse;
 
   protected _nonApplicableResponse(phase: Phase): TradingFeeEventHandlerResponse {
     return {

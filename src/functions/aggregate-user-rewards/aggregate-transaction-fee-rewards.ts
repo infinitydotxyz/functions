@@ -22,7 +22,9 @@ const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string):
     userBuys: 0,
     protocolFeesWei: '0',
     protocolFeesEth: 0,
-    protocolFeesUSDC: 0
+    protocolFeesUSDC: 0,
+    userListings: 0,
+    listingRewards: 0
   };
   return doc;
 };
@@ -127,6 +129,8 @@ export async function aggregateTransactionFeeRewards(
           protocolFeesWei: '0',
           protocolFeesEth: 0,
           protocolFeesUSDC: 0,
+          userListings: 0,
+          listingRewards: 0,
           config: item.rewards?.[0]?.config,
           isCopiedToRaffles: false
         };

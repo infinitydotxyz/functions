@@ -10,11 +10,15 @@ export const onFeedWrite = functions
     timeoutSeconds: 540
   })
   .firestore.document(`${firestoreConstants.FEED_COLL}/{documentId}`)
-  .onWrite(async ({after}) => {
+  .onWrite(async ({ after }) => {
     try {
       const type: EventType = after.get('type');
 
-      if ((type === EventType.NftSale && after.get('source') === SaleSource.Infinity) || type === EventType.NftOffer || type === EventType.NftListing) {
+      if (
+        (type === EventType.NftSale && after.get('source') === SaleSource.Infinity) ||
+        type === EventType.NftOffer ||
+        type === EventType.NftListing
+      ) {
         const document = after.data() as FeedEvent;
         await notifySocials(document);
       }

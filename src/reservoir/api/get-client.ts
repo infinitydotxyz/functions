@@ -31,7 +31,6 @@ export type ReservoirClient = <P extends Paths, M extends Methods<P>>(
   method: M
 ) => (params: Parameters<P, M>) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M> }>;
 
-
 export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => {
   const baseUrl = chainIdToBasUrl[chainId];
 

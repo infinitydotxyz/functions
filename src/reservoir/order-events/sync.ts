@@ -7,7 +7,7 @@ import { getOrderEventRef } from './utils';
 export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
-  maxPages = 100
+  pageSize = 300
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
@@ -16,13 +16,12 @@ export async function* sync(
   let hasNextPage = true;
   let continuation = initialSync.data.data.continuation;
   let pageNumber = 0;
-  const pageSize = 300;
   const client = Reservoir.Api.getClient(initialSync.data.metadata.chainId, config.reservoirApiKey);
   const expectedOrderSide = initialSync.data.metadata.type;
   const method =
     expectedOrderSide === 'bid' ? Reservoir.Api.Events.BidEvents.getEvents : Reservoir.Api.Events.AskEvents.getEvents;
 
-  while (hasNextPage && (pageNumber += 1) <= maxPages) {
+  while (true) {
     const page = await method(client, {
       continuation: continuation || undefined,
       limit: pageSize,
@@ -31,10 +30,10 @@ export async function* sync(
     const numItems = (page.data?.events ?? []).length;
     const events = page.data.events;
 
-    const { eventsSaved } = await db.runTransaction(async (txn) => {
+    const { numEventsSaved } = await db.runTransaction(async (txn) => {
       const snap = await txn.get(initialSync.ref);
       const currentSync = snap.data() as SyncMetadata;
-      let eventsSaved = 0;
+      let numEventsSaved = 0;
 
       if (currentSync.data.continuation !== continuation) {
         throw new Error('Continuation changed');
@@ -53,7 +52,8 @@ export async function* sync(
           ...item,
           isSellOrder: !('bid' in item),
           order,
-          eventRef
+          eventRef,
+          hasNextPage
         };
       });
 
@@ -89,26 +89,30 @@ export async function* sync(
             }
           };
           txn.create(item.eventRef, data);
-          eventsSaved += 1;
+          numEventsSaved += 1;
         }
       }
 
       hasNextPage = page.data.continuation !== continuation && numItems < pageSize && !!page.data.continuation;
-      continuation = page.data.continuation ?? '';
+      if (!page.data.continuation) {
+        throw new Error('Failed to find continuation');
+      }
+      continuation = page.data.continuation;
+      pageNumber += 1;
 
       /**
        * update sync metadata
        */
       const update: Partial<SyncMetadata> = {
         data: {
-          eventsProcessed: currentSync.data.eventsProcessed + eventsSaved,
+          eventsProcessed: currentSync.data.eventsProcessed + numEventsSaved,
           continuation
         }
       };
       txn.set(initialSync.ref, update, { merge: true });
 
       return {
-        eventsSaved
+        numEventsSaved
       };
     });
 
@@ -116,7 +120,8 @@ export async function* sync(
       continuation,
       pageNumber,
       pageSize,
-      eventsSaved
+      numEventsSaved,
+      numEventsFound: numItems
     };
   }
 }

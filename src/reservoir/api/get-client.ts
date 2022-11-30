@@ -1,8 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { chainIdToBasUrl } from './constants';
 import { paths } from '@reservoir0x/reservoir-kit-client';
 import { join, normalize } from 'path';
 import got, { Method } from 'got';
+import { config } from '../../utils/config';
 
 export type Paths = keyof paths;
 export type Methods<P extends Paths> = keyof paths[P];
@@ -32,7 +32,7 @@ export type ReservoirClient = <P extends Paths, M extends Methods<P>>(
 ) => (params: Parameters<P, M>) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M> }>;
 
 export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => {
-  const baseUrl = chainIdToBasUrl[chainId];
+  const baseUrl = config.reservoirBaseUrls[chainId];
 
   if (!baseUrl) {
     throw new Error(`Unsupported chainId ${chainId}`);

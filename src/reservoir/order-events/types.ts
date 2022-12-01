@@ -22,9 +22,10 @@ export type FirestoreOrderEvent = {
     isSellOrder: boolean;
     updatedAt: number;
     processed: boolean;
+    chainId: ChainId;
     migrationId: 1;
     orderId: string;
-    status: Reservoir.Api.Events.Types.OrderStatus;
+    status: Reservoir.Api.Orders.Types.OrderStatus;
   };
   data: {
     event: Reservoir.Api.Events.Types.ReservoirEventMetadata;

@@ -1,6 +1,5 @@
 import { definitions } from '@reservoir0x/reservoir-kit-client';
-
-export type OrderStatus = 'active' | 'inactive' | 'expired' | 'cancelled' | 'filled';
+import * as Orders from "../orders";
 
 export type EventV2Kind =
   | 'new-order'
@@ -23,7 +22,7 @@ export interface ReservoirEventMetadata {
 
 export interface AskV2Order {
   id: string;
-  status: OrderStatus;
+  status: Orders.Types.OrderStatus;
   contract: string;
   tokenId: string;
   maker: string;
@@ -38,7 +37,7 @@ export interface AskV2Order {
 
 export interface BidV1Order {
   id: string;
-  status: OrderStatus;
+  status: Orders.Types.OrderStatus;
   contract: string;
   tokenSetId?: string;
   maker: string;

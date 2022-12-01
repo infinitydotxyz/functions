@@ -27,6 +27,10 @@ export class RewardsEventMerger extends FirestoreBatchEventProcessor<PreMergedRe
     return ref.where('isMerged', '==', false);
   }
 
+  protected _applyUpdatedAtLessThanFilter(query: Query<PreMergedRewardEvent>, timestamp: number): Query<PreMergedRewardEvent> {
+    return query.where('updatedAt', '<', timestamp);
+  }
+
   protected async _processEvents(
     events: QuerySnap<PreMergedRewardEvent>,
     txn: FirebaseFirestore.Transaction

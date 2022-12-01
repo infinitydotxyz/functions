@@ -78,7 +78,7 @@ export interface TriggerDoc {
  *   {_<collectionName>} // contains triggers for processing events collection
  *      _trigger:<collectionName>
  */
-export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number }> {
+export abstract class FirestoreBatchEventProcessor<T> {
   readonly collectionName: string;
   protected readonly _docBuilderCollectionParentPath: string;
 
@@ -114,6 +114,13 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
    * events are returned
    */
   protected abstract _getUnProcessedEvents(ref: CollRef<T> | CollGroupRef<T>): Query<T>;
+
+  /**
+   * _applyUpdatedAtLessThanFilter takes a query of events and applies a 
+   * where clause to filter out events that have been updated after the 
+   * provided timestamp
+   */
+  protected abstract _applyUpdatedAtLessThanFilter(query: Query<T>, timestamp: number): Query<T>;
 
   /**
    * _processEvents takes a page of events and a transaction and is expected
@@ -169,7 +176,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
 
       const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
       const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
-      const staleUnProcessedEvents = unProcessedEvents.where('updatedAt', '<', staleIfUpdatedBefore).limit(1);
+      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore).limit(1);
 
       const snapshot = await staleUnProcessedEvents.get();
       const item = snapshot.docs.find((item) => !!item);
@@ -255,7 +262,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
         /**
          * prevents processing events that were updated after the trigger was marked
          */
-        const unProcessedEventsBeforeNow = unProcessedEvents.where('updatedAt', '<', Date.now());
+        const unProcessedEventsBeforeNow = this._applyUpdatedAtLessThanFilter(unProcessedEvents, Date.now());
 
         const res = await paginatedTransaction(
           unProcessedEventsBeforeNow,

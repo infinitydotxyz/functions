@@ -1,4 +1,5 @@
 import * as Events from './events';
+import * as Orders from './orders';
 import { getClient } from './get-client';
 
-export { Events, getClient };
+export { Events, Orders, getClient };

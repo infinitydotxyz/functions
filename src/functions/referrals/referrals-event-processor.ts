@@ -17,6 +17,10 @@ export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<Referr
     return ref.where('isAggregated', '==', false);
   }
 
+  protected _applyUpdatedAtLessThanFilter(query: Query<ReferralSaleEvent>, timestamp: number): Query<ReferralSaleEvent> {
+    return query.where('updatedAt', '<', timestamp);
+  }
+
   protected async _processEvents(
     events: QuerySnap<ReferralSaleEvent>,
     txn: FirebaseFirestore.Transaction,

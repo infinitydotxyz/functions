@@ -12,6 +12,10 @@ export class RewardsEventProcessor extends FirestoreBatchEventProcessor<RewardEv
     return ref.where('isAggregated', '==', false).where('isMerged', '==', true);
   }
 
+  protected _applyUpdatedAtLessThanFilter(query: Query<RewardEvent>, timestamp: number): Query<RewardEvent> {
+    return query.where('updatedAt', '<',timestamp);
+  }
+
   protected async _processEvents(snap: QuerySnap<RewardEvent>, txn: FirebaseFirestore.Transaction): Promise<void> {
     const db = this._getDb();
     const rewardsEventHandler = new RewardsEventHandler(db);

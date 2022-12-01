@@ -10,7 +10,7 @@ import {
 import { NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { getCollectionDocId } from '@infinityxyz/lib/utils';
 import { firestoreConstants, ONE_YEAR } from '@infinityxyz/lib/utils/constants';
-import { BigNumber } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
 import { formatEther } from 'ethers/lib/utils';
 
 export function sleep(duration: number): Promise<void> {
@@ -190,4 +190,8 @@ export function nFormatter(num: number | undefined | null, digits = 2) {
       return num >= item.value;
     });
   return item ? (num / item.value).toFixed(digits).replace(regex, '$1') + item.symbol : num.toFixed(digits + 1);
+}
+
+export function bn(value: BigNumberish): BigNumber {
+  return BigNumber.from(value);
 }

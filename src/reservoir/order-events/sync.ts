@@ -81,7 +81,8 @@ export async function* sync(
               migrationId: 1,
               processed: false,
               orderId: item.order.id,
-              status: item.order.status
+              status: item.order.status,
+              chainId: currentSync.metadata.chainId
             },
             data: {
               event: item.event,

@@ -1,4 +1,4 @@
-import { OrderItemPrice } from '../orders/orders.types';
+import { OrderItemPrice } from '../matching-engine/orders/orders.types';
 import { getOneToManyOrderIntersection } from './intersection';
 import { testOrderIntersection } from './intersection.spec';
 

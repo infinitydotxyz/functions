@@ -1,17 +1,16 @@
-import { Order } from '../orders/order';
-import { Node } from './node';
-import { getDb } from '../firestore';
-import { OrderItem } from '../orders/order-item';
+import { Order } from './order';
+import { Node } from '../graph/node';
+import { getDb } from '../../firestore';
+import { OrderItem } from './order-item';
 import {
   FirestoreOrder,
   FirestoreOrderItem,
   FirestoreOrderMatches,
   FirestoreOrderMatchOneToMany
 } from '@infinityxyz/lib/types/core';
-import { OrderNodeCollection } from './order-node-collection';
-import { OneToManyMatch, OneToManyOrderMatchSearch } from './algorithms/one-to-many-search';
-import { OrderItem as IOrderItem } from '../orders/orders.types';
-import { OneToOneOrderMatchSearch } from './algorithms/one-to-one-search';
+import { OrderNodeCollection } from '../graph/order-node-collection';
+import { OrderItem as IOrderItem } from './orders.types';
+import * as Algorithms from '../algorithms';
 
 export class OrdersGraph {
   constructor(public root: Node<Order>) {}
@@ -76,7 +75,7 @@ export class OrdersGraph {
     log: (message: string) => void
   ) {
     try {
-      const searcher = new OneToOneOrderMatchSearch(rootOrderNode, matchingOrderNodes, log);
+      const searcher = new Algorithms.OneToOne.MatchSearch(rootOrderNode, matchingOrderNodes, log);
       const matches = searcher.search();
       const firestoreMatches = matches.map((item) =>
         rootOrderNode.data.order.getFirestoreOrderMatch(item, item.price, item.timestamp)
@@ -102,7 +101,7 @@ export class OrdersGraph {
         return [];
       }
       const oneToManyMatchingOrderNodes = this.filterOneToManyMatches(matchingOrderNodes);
-      const searcher = new OneToManyOrderMatchSearch(rootOrderNode, oneToManyMatchingOrderNodes, log);
+      const searcher = new Algorithms.OneToMany.MatchSearch(rootOrderNode, oneToManyMatchingOrderNodes, log);
       const matches = searcher.search();
 
       const firestoreOrderMatches: FirestoreOrderMatches[] = matches.map((item) => {
@@ -119,7 +118,7 @@ export class OrdersGraph {
   private transformOrderMatchToFirestoreOrderMatch({
     intersection,
     edges
-  }: OneToManyMatch): FirestoreOrderMatchOneToMany {
+  }: Algorithms.OneToMany.Match): FirestoreOrderMatchOneToMany {
     const orderItemMatches = edges.map((item) => {
       return {
         orderItem: item.from,

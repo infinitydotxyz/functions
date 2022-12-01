@@ -2,7 +2,7 @@ import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getDb } from '../firestore';
 import { streamQuery } from '../firestore/stream-query';
-import { Order } from '../orders/order';
+import * as MatchingEngine from '../matching-engine';
 
 async function scanForMatches(id: string) {
   const db = getDb();
@@ -17,7 +17,7 @@ async function scanForMatches(id: string) {
   for await (const orderData of orders) {
     try {
       console.log(`Scanning order ${++orderNum}`);
-      const order = new Order(orderData);
+      const order = new MatchingEngine.Order(orderData);
       const { matches } = await order.searchForMatches();
       await order.saveMatches(matches);
       console.log(`Found: ${matches.length} matches for order: ${order.firestoreOrder.id}`);

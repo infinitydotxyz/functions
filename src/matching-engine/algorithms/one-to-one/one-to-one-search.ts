@@ -1,17 +1,8 @@
 import { Order } from '../../orders/order';
 import { OrderItem as IOrderItem, OrderItemMatch, ValidationResponse } from '../../orders/orders.types';
-import { getOrderIntersection } from '../../utils/intersection';
-import { OrderMatchSearch } from './order-match-search.abstract';
-
-export type OneToOneMatch = {
-  order: Order;
-  orderItems: IOrderItem[];
-  opposingOrder: Order;
-  opposingOrderItems: IOrderItem[];
-  matches: OrderItemMatch[];
-  price: number;
-  timestamp: number;
-};
+import { getOrderIntersection } from '../../../utils/intersection';
+import { OrderMatchSearch } from '../order-match-search.abstract';
+import { OneToOneMatch } from './types';
 
 export class OneToOneOrderMatchSearch extends OrderMatchSearch<OneToOneMatch> {
   public search(): OneToOneMatch[] {

@@ -1,6 +1,6 @@
-import { Edge } from '../edge';
-import { Node } from '../node';
-import { OrderItemNodeData, OrderNodeCollection } from '../order-node-collection';
+import { Edge } from '../graph/edge';
+import { Node } from '../graph/node';
+import { OrderItemNodeData, OrderNodeCollection } from '../graph/order-node-collection';
 
 export abstract class OrderMatchSearch<T> {
   constructor(

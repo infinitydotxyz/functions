@@ -1,6 +1,6 @@
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core';
-import { getOrderIntersection } from '../../utils/intersection';
-import { OrderPriceIntersection } from '../../utils/intersection.types';
+import { getOrderIntersection } from '../../../utils/intersection';
+import { OrderPriceIntersection } from '../../../utils/intersection.types';
 import { OrderItemPrice, ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 

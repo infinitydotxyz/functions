@@ -1,15 +1,8 @@
-import { OrderNodeCollection } from '../order-node-collection';
+import { OrderNodeCollection } from '../../graph/order-node-collection';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core';
-import { getOneToManyOrderIntersection } from '../../utils/intersection';
-import { OrderPriceIntersection } from '../../utils/intersection.types';
-import { OrderMatchSearch } from './order-match-search.abstract';
-
-export type OneToManyMatch = {
-  firestoreOrder: FirestoreOrder;
-  opposingFirestoreOrders: FirestoreOrder[];
-  intersection: OrderPriceIntersection;
-  edges: { from: FirestoreOrderItem; to: FirestoreOrderItem; numItems: number }[];
-};
+import { getOneToManyOrderIntersection } from '../../../utils/intersection';
+import { OrderMatchSearch } from '../order-match-search.abstract';
+import { OneToManyMatch } from './types';
 
 export class OneToManyOrderMatchSearch extends OrderMatchSearch<OneToManyMatch> {
   public search(): OneToManyMatch[] {

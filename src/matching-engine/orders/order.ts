@@ -12,14 +12,14 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
+import { getDb } from '../../firestore';
+import FirestoreBatchHandler from '../../firestore/batch-handler';
 import { OrderItem } from './order-item';
 import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
 import { createHash } from 'crypto';
-import { Node } from '../graph/node';
-import { OrdersGraph } from '../graph/orders-graph';
-import { OneToOneMatch } from '../graph/algorithms/one-to-one-search';
+import { OrdersGraph } from './orders-graph';
+import * as Graph from '../graph';
+import * as Algorithms from '../algorithms';
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -61,7 +61,7 @@ export class Order {
      */
     const possibilities = await this.getPossibleMatches(orderItems);
 
-    const node = new Node(this, this.firestoreOrder.numItems);
+    const node = new Graph.Node(this, this.firestoreOrder.numItems);
     const graph = new OrdersGraph(node);
 
     const { matches, requiresScan } = await graph.search(possibilities);
@@ -96,7 +96,7 @@ export class Order {
   }
 
   public getFirestoreOrderMatch(
-    orderMatch: OneToOneMatch,
+    orderMatch: Algorithms.OneToOne.Match,
     price: number,
     timestamp: number
   ): FirestoreOrderMatch | FirestoreOrderMatchOneToOne {

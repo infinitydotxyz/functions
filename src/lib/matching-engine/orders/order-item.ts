@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 
-import { streamQuery } from '../../firestore/stream-query';
+import { streamQuery } from '../../../firestore/stream-query';
 import { Constraint, constraints } from './constraints/constraint.types';
 import { OrderItemConstraint } from './constraints/order-item-constraint.abstract';
 import { OrderItemStartTimeConstraint } from './constraints/start-time-constraint';

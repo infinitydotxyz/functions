@@ -19,8 +19,9 @@
     "esModuleInterop": true,
     "baseUrl": "src",
     "paths": {
+      "@/config/*": ["config/*"],
       "@/firestore/*": ["firestore/*"],
-      "@/config/*": ["config/*"]
+      "@/lib/*": ["lib/*"]
     }
   },
   "include": ["src/**/*"],

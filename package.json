@@ -81,6 +81,7 @@
   "private": true,
   "_moduleAliases": {
     "@/firestore": "dist/firestore",
-    "@/config": "dist/config"
+    "@/config": "dist/config",
+    "@/lib": "dist/lib"
   }
 }

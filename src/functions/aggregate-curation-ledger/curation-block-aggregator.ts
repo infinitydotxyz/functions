@@ -17,8 +17,8 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { streamQuery, streamQueryWithRef } from '@/firestore/stream-query';
+import { getTokenPrice } from '@/lib/utils/token-price';
 
-import { getTokenPrice } from '../../token-price';
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';

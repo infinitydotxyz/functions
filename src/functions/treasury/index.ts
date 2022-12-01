@@ -6,8 +6,8 @@ import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
+import { TreasuryBalanceAddedEvent } from '@/lib/rewards/trading-fee-program-handlers/treasury-handler';
 
-import { TreasuryBalanceAddedEvent } from '../../rewards/trading-fee-program-handlers/treasury-handler';
 import { aggregatedTreasuryEvents } from './aggregate-treasury-events';
 
 export const onTreasuryLedgerEvent = functions

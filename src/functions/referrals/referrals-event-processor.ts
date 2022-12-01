@@ -4,9 +4,8 @@ import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 
 import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
-
-import { getDefaultFeesGenerated } from '../../rewards/config';
-import { getCollectionDisplayData, getNftDisplayData, getUserDisplayData } from '../../utils';
+import { getDefaultFeesGenerated } from '@/lib/rewards/config';
+import { getCollectionDisplayData, getNftDisplayData, getUserDisplayData } from '@/lib/utils';
 
 export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<ReferralSaleEvent> {
   protected _isEventProcessed(event: ReferralSaleEvent): boolean {

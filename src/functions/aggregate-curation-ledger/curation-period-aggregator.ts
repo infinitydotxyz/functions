@@ -11,8 +11,8 @@ import {
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { streamQueryWithRef } from '@/firestore/stream-query';
+import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth } from '@/lib/utils';
 
-import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth } from '../../utils';
 import { calculateStats, calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/utils';
 import { CurationBlock } from './curation-block';
 import { CurationPeriodState } from './types';

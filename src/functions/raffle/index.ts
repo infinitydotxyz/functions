@@ -14,8 +14,8 @@ import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
+import { RaffleLedgerSale } from '@/lib/rewards/trading-fee-program-handlers/raffle-handler';
 
-import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
 import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';
 import { aggregateEntrantsLedger } from './aggregate-entrants-ledger';
 import { aggregateRaffleRewardsLedger } from './aggregate-rewards-ledger';

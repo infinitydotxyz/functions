@@ -1,11 +1,11 @@
 import {
+  InfinityLinkType,
   Collection,
   CurationLedgerEvent,
   CurationLedgerEvents,
   CurationVotesAdded,
   CurationVotesRemoved,
   EventType,
-  InfinityLinkType,
   UserVoteEvent,
   UserVoteRemovedEvent
 } from '@infinityxyz/lib/types/core';

@@ -1,8 +1,11 @@
 import * as functions from 'firebase-functions';
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
+
+import { ONE_MIN, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { config } from '@/config/index';
+import { getDb } from '@/firestore/db';
+
 import { RewardsEventMerger } from './rewards-event-merger';
-import { REGION } from '../../utils/constants';
 import { RewardsEventProcessor } from './rewards-event-processor';
 
 const rewardsEventMerger = new RewardsEventMerger(
@@ -38,7 +41,7 @@ const rewardsEventProcessor = new RewardsEventProcessor(
 const merger = rewardsEventMerger.getFunctions();
 const processor = rewardsEventProcessor.getFunctions();
 
-const settings = functions.region(REGION).runWith({
+const settings = functions.region(config.firebase.region).runWith({
   timeoutSeconds: 540
 });
 

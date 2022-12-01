@@ -1,4 +1,5 @@
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
+
 import { OrderItemConstraint as AbstractOrderItemConstraint } from './constraints/order-item-constraint.abstract';
 
 export type OrderItemPrice = Pick<

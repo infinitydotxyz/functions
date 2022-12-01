@@ -1,4 +1,5 @@
 import { FeedEvent } from '@infinityxyz/lib/types/core';
+
 import { notifyDiscordWebhook } from './socials/discord';
 
 /**

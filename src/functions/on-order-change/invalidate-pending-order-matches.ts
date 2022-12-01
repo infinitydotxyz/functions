@@ -6,15 +6,16 @@ import {
   OrderMatchStateError
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
 
 export async function invalidatePendingOrderMatches(
   orderId: string,
   orderStatus: OBOrderStatus.ValidInactive | OBOrderStatus.Invalid
 ) {
   const db = getDb();
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   const matchesQuery = db.collection(firestoreConstants.ORDER_MATCHES_COLL).where('ids', 'array-contains', orderId);
   const activeMatchesQuery = matchesQuery.where('state.status', '==', FirestoreOrderMatchStatus.Active);
   const inactiveMatchesQuery = matchesQuery.where('state.status', '==', FirestoreOrderMatchStatus.Inactive);

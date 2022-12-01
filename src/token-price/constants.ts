@@ -1,6 +1,7 @@
+import JSBI from 'jsbi';
+
 import { ChainId, Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ETHEREUM_WETH_ADDRESS } from '@infinityxyz/lib/utils';
-import JSBI from 'jsbi';
 
 export const WETH_MAINNET: Erc20TokenMetadata = {
   chainId: ChainId.Mainnet,

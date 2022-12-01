@@ -10,10 +10,12 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { CollGroupRef } from '../../firestore/types';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { CollGroupRef } from '@/firestore/types';
+
 import { getProvider } from '../../utils/ethersUtils';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
@@ -32,7 +34,7 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
     .collection(firestoreConstants.RAFFLE_TOTALS_COLL)
     .doc(firestoreConstants.RAFFLE_TICKET_TOTALS_DOC) as FirebaseFirestore.DocumentReference<RaffleTicketTotalsDoc>;
 
-  const batch = new FirestoreBatchHandler();
+  const batch = new BatchHandler();
   if (raffle.state === RaffleState.Locked) {
     // finalize the raffle
     await ensureEntrantsAreReadyToBeFinalized(

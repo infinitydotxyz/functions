@@ -1,4 +1,5 @@
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+
 import { OrderPriceIntersection } from '../../../utils/intersection.types';
 
 export type OneToManyMatch = {

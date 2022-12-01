@@ -1,3 +1,5 @@
+import * as functions from 'firebase-functions';
+
 import {
   CurationLedgerEvents,
   CurationLedgerSale,
@@ -5,14 +7,15 @@ import {
   CurationVotesRemoved
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { createFeedEventForLedgerEvent } from './create-feed-event';
-import * as functions from 'firebase-functions';
 
 export const saveLedgerEventsToFeed = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -27,7 +30,7 @@ export const saveLedgerEventsToFeed = functions
   });
 
 export const backupSaveLedgerEventsToFeed = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

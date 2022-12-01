@@ -1,6 +1,6 @@
-import { NodeCollection } from './node-collection';
-import { Node } from './node';
 import { Edge } from './edge';
+import { Node } from './node';
+import { NodeCollection } from './node-collection';
 
 describe('node collection', () => {
   it('adds and remove nodes', () => {

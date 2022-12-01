@@ -1,7 +1,10 @@
-import { ChainId, FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
-import { getTxnCurrencyAddress, getOBComplicationAddress } from '@infinityxyz/lib/utils';
 import { nanoid } from 'nanoid';
-import { getDb } from '../../../firestore';
+
+import { ChainId, FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
+import { getOBComplicationAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
+
+import { getDb } from '@/firestore/db';
+
 import { OrderItem } from '../order-item';
 import { OrderItemChainIdConstraint } from './chain-id-constraint';
 import { constraints } from './constraint.types';

@@ -1,3 +1,6 @@
+import { BigNumber } from 'ethers';
+import { formatEther } from 'ethers/lib/utils';
+
 import {
   ChainId,
   Collection,
@@ -9,9 +12,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { getCollectionDocId } from '@infinityxyz/lib/utils';
-import { firestoreConstants, ONE_YEAR } from '@infinityxyz/lib/utils/constants';
-import { BigNumber } from 'ethers';
-import { formatEther } from 'ethers/lib/utils';
+import { ONE_YEAR, firestoreConstants } from '@infinityxyz/lib/utils/constants';
 
 export function sleep(duration: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, duration));

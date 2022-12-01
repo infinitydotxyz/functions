@@ -1,6 +1,7 @@
 import { Edge } from './edge';
 import { EdgeType } from './graph.types';
 import { Node as INode } from './graph.types';
+
 export class Node<T> implements INode<T> {
   private _edges: Set<Edge<T>>;
   private _incomingEdges: Set<Edge<T>>;

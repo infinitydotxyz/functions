@@ -1,6 +1,8 @@
+import { parseEther } from 'ethers/lib/utils';
+
 import { RewardListingEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
-import { parseEther } from 'ethers/lib/utils';
+
 import { Phase } from '../phases/phase.abstract';
 import { TradingFeeRefundBasedPhase } from '../phases/trading-fee-refund-based-phase';
 import { getMockPhaseConfig } from '../phases/trading-fee-refund-based-phase.spec';

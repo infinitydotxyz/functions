@@ -1,11 +1,12 @@
 import { FirestoreOrder } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
 
 export async function triggerScans(orders: FirestoreOrder[]) {
   try {
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     const ids = new Set();
     for (const order of orders) {
       if (!ids.has(order.id)) {

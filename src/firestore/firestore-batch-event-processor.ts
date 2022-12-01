@@ -1,4 +1,5 @@
 import { firestore, pubsub } from 'firebase-functions';
+
 import { paginatedTransaction } from './paginated-transaction';
 import { streamQueryWithRef } from './stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from './types';

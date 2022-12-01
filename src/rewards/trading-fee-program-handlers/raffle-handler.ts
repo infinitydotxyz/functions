@@ -6,6 +6,7 @@ import {
   getRelevantStakerContracts,
   getTokenAddressByStakerAddress
 } from '@infinityxyz/lib/utils';
+
 import { getDefaultFeesGenerated } from '../config';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';

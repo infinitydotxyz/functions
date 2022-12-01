@@ -1,6 +1,7 @@
 import { FirestoreOrderItem, OBOrderStatus, OrderDirection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../../firestore';
+
+import { getDb } from '@/firestore/db';
 
 export async function getBestNftOrder(
   nft: { collectionAddress: string; chainId: string; tokenId: string },

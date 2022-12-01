@@ -1,4 +1,5 @@
 import { TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
+
 import { Phase as IPhase } from './phase.interface';
 
 export enum ProgressAuthority {

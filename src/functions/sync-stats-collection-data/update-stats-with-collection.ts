@@ -1,4 +1,5 @@
 import { Collection, StatsPeriod } from '@infinityxyz/lib/types/core';
+
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
 
 export async function updateStatsWithCollection(

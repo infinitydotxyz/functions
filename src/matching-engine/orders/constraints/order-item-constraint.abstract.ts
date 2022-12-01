@@ -1,6 +1,7 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
 import { OrderItem as IOrderItem, OrderItem, ValidationResponse } from '../orders.types';
 
 export abstract class OrderItemConstraint implements IOrderItem {

@@ -1,6 +1,7 @@
-import { OrderNodeCollection } from '../../graph/order-node-collection';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core';
+
 import { getOneToManyOrderIntersection } from '../../../utils/intersection';
+import { OrderNodeCollection } from '../../graph/order-node-collection';
 import { OrderMatchSearch } from '../order-match-search.abstract';
 import { OneToManyMatch } from './types';
 

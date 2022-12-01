@@ -1,10 +1,12 @@
 import { ChainId, Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { Token } from '@uniswap/sdk-core';
-import { getDb } from '../firestore';
-import { TokenPairFactory } from './token-pair-factory';
-import { TokenPair } from './token-pair';
-import { CachedTokenPair } from './cached-token-pair';
+
+import { getDb } from '@/firestore/db';
+
 import { getProvider } from '../utils/ethersUtils';
+import { CachedTokenPair } from './cached-token-pair';
+import { TokenPair } from './token-pair';
+import { TokenPairFactory } from './token-pair-factory';
 
 export async function getTokenPrice(token: Erc20TokenMetadata, blockNumber?: number) {
   const db = getDb();

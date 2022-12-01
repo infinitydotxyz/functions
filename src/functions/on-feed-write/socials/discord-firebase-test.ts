@@ -5,10 +5,11 @@
  *
  * $ npx ts-node ./src/functions/on-feed-write/socials/discord-firebase-test.ts
  */
-
 import { EventType, FeedEvent } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../../../firestore';
+
+import { getDb } from '@/firestore/db';
+
 import { notifyDiscordWebhook } from './discord';
 
 // min and max included

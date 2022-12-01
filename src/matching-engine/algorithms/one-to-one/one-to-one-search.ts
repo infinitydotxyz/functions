@@ -1,6 +1,6 @@
+import { getOrderIntersection } from '../../../utils/intersection';
 import { Order } from '../../orders/order';
 import { OrderItem as IOrderItem, OrderItemMatch, ValidationResponse } from '../../orders/orders.types';
-import { getOrderIntersection } from '../../../utils/intersection';
 import { OrderMatchSearch } from '../order-match-search.abstract';
 import { OneToOneMatch } from './types';
 

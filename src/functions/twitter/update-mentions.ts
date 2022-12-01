@@ -1,11 +1,14 @@
-import { InfinityTweet } from '@infinityxyz/lib/types/services/twitter';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { differenceInMinutes } from 'date-fns';
 import PQueue from 'p-queue';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
+
+import { InfinityTweet } from '@infinityxyz/lib/types/services/twitter';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { addressProgress, nFormatter, partitionArray } from '../../utils';
-import { getTwitterProfileImage, getCachedIsValidTwitterProfileImage } from './update-profile-image';
+import { getCachedIsValidTwitterProfileImage, getTwitterProfileImage } from './update-profile-image';
 
 export async function updateMentions(db: FirebaseFirestore.Firestore) {
   const mentionsRef = db.collectionGroup(
@@ -45,7 +48,7 @@ export async function updateMentions(db: FirebaseFirestore.Firestore) {
     }
   };
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for await (const { data, ref } of stream) {
     queue
       .add(async () => {

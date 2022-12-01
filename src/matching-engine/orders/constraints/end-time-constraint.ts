@@ -1,4 +1,5 @@
 import { FirestoreOrderItem, OrderDirection } from '@infinityxyz/lib/types/core';
+
 import { ValidationResponse } from '../orders.types';
 import { OrderItemConstraint } from './order-item-constraint.abstract';
 

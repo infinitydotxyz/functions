@@ -1,11 +1,13 @@
+import { nanoid } from 'nanoid';
+
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
+import { streamQuery } from '../../firestore/stream-query';
+import { Constraint, constraints } from './constraints/constraint.types';
+import { OrderItemConstraint } from './constraints/order-item-constraint.abstract';
 import { OrderItemStartTimeConstraint } from './constraints/start-time-constraint';
 import { OrderItem as IOrderItem, ValidationResponse } from './orders.types';
-import { Constraint, constraints } from './constraints/constraint.types';
-import { streamQuery } from '../../firestore/stream-query';
-import { nanoid } from 'nanoid';
-import { OrderItemConstraint } from './constraints/order-item-constraint.abstract';
 
 export class OrderItem implements IOrderItem {
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>;

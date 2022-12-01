@@ -1,8 +1,8 @@
 import { StakerEvents } from '@infinityxyz/lib/types/core';
 import {
   CurationLedgerEvent,
-  CurationLedgerEvents,
   CurationLedgerEventStake,
+  CurationLedgerEvents,
   CurationLedgerVotesAddedWithStake,
   CurationLedgerVotesRemovedWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger/curation-ledger-events';

@@ -1,10 +1,12 @@
-import { REGION } from '../../utils/constants';
 import * as functions from 'firebase-functions';
+
+import { config } from '@/config/index';
+
 import { markExpiredOrdersInvalid } from './mark-expired-orders-invalid';
 import { markOrdersValidActive } from './mark-orders-valid-active';
 
 export const updateOrderStatus = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

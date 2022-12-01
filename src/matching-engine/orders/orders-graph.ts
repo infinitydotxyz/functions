@@ -1,16 +1,18 @@
-import { Order } from './order';
-import { Node } from '../graph/node';
-import { getDb } from '../../firestore';
-import { OrderItem } from './order-item';
 import {
   FirestoreOrder,
   FirestoreOrderItem,
-  FirestoreOrderMatches,
-  FirestoreOrderMatchOneToMany
+  FirestoreOrderMatchOneToMany,
+  FirestoreOrderMatches
 } from '@infinityxyz/lib/types/core';
-import { OrderNodeCollection } from '../graph/order-node-collection';
-import { OrderItem as IOrderItem } from './orders.types';
+
+import { getDb } from '@/firestore/db';
+
 import * as Algorithms from '../algorithms';
+import { Node } from '../graph/node';
+import { OrderNodeCollection } from '../graph/order-node-collection';
+import { Order } from './order';
+import { OrderItem } from './order-item';
+import { OrderItem as IOrderItem } from './orders.types';
 
 export class OrdersGraph {
   constructor(public root: Node<Order>) {}

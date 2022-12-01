@@ -1,13 +1,16 @@
-import { REGION } from '../../utils/constants';
 import * as functions from 'firebase-functions';
-import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
+import { config } from '@/config/index';
+
+import * as MatchingEngine from '../../matching-engine';
 import { invalidatePendingOrderMatches } from './invalidate-pending-order-matches';
 import { triggerScans } from './trigger-scan';
-import * as MatchingEngine from '../../matching-engine';
 
 export const onOrderChange = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

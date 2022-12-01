@@ -1,8 +1,10 @@
 import { NftSale } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
+
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+
 import { Sales } from './models/sales';
-import { SalesIntervalDoc, AggregationInterval } from './types';
+import { AggregationInterval, SalesIntervalDoc } from './types';
 import { parseAggregationId } from './utils';
 
 export async function aggregateIntervalSales(ref: FirebaseFirestore.DocumentReference<SalesIntervalDoc>) {

@@ -1,6 +1,8 @@
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../firestore';
+
+import { getDb } from '@/firestore/db';
+
 import { streamQuery } from '../firestore/stream-query';
 import * as MatchingEngine from '../matching-engine';
 

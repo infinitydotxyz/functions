@@ -1,12 +1,13 @@
-import admin, { ServiceAccount } from 'firebase-admin';
-import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json'; // TODO adi change in release
+import admin from 'firebase-admin';
+
+import { config } from '../config';
 
 let db: FirebaseFirestore.Firestore;
 
 export function getDb(): FirebaseFirestore.Firestore {
   if (!db) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as ServiceAccount)
+      credential: admin.credential.cert(config.firebase.serviceAccount)
     });
     db = admin.firestore();
     db.settings({ ignoreUndefinedProperties: true });

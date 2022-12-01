@@ -1,4 +1,5 @@
 import { RewardEvent, RewardListingEvent } from '@infinityxyz/lib/types/core';
+
 import { Phase } from './phases/phase.abstract';
 
 export type TradingFeeEventHandlerResponse = {

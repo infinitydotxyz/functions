@@ -1,8 +1,10 @@
 import { ethers } from 'ethers';
 import { readFile, readdir, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { WalletWithBalances } from './types';
+
 import { ERC20ABI } from '@infinityxyz/lib/abi/erc20';
+
+import { WalletWithBalances } from './types';
 
 export async function loadWallets(
   provider: ethers.providers.JsonRpcProvider,

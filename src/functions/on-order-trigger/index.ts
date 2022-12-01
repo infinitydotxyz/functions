@@ -1,17 +1,19 @@
+import * as functions from 'firebase-functions';
+
 import {
   FirestoreOrderMatch,
-  FirestoreOrderMatches,
   FirestoreOrderMatchStatus,
+  FirestoreOrderMatches,
   OrderMatchStatePending
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
 
 export const onOrderTrigger = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -28,7 +30,7 @@ export const onOrderTrigger = functions
       /**
        * update the status of order matches to active
        */
-      const batchHandler = new FirestoreBatchHandler();
+      const batchHandler = new BatchHandler();
       for await (const orderMatch of orderMatches) {
         const match = orderMatch.data() as FirestoreOrderMatch;
         const orderState: OrderMatchStatePending = {

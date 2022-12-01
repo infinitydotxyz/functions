@@ -1,7 +1,9 @@
+import { ethers } from 'ethers';
+
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { NULL_ADDRESS } from '@infinityxyz/lib/utils';
 import { Token } from '@uniswap/sdk-core';
-import { ethers } from 'ethers';
+
 import { CachedTokenPair } from './cached-token-pair';
 import { USDC_MAINNET, WETH_MAINNET } from './constants';
 import { TokenPair } from './token-pair';

@@ -1,5 +1,6 @@
-import { ChainNFTs } from '@infinityxyz/lib/types/core/OBOrder';
 import { ethers } from 'ethers';
+
+import { ChainNFTs } from '@infinityxyz/lib/types/core/OBOrder';
 
 export interface WalletWithBalances {
   wallet: ethers.Wallet;

@@ -1,20 +1,21 @@
 import { ChainId, CollectionDisplayData, Erc20TokenMetadata, StatsPeriod } from '@infinityxyz/lib/types/core';
-import { calculateStats, calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/utils';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth } from '../../utils';
-import { CurationBlock } from './curation-block';
-import { CurationPeriodState } from './types';
 import {
   CurationBlockRewards,
   CurationBlockRewardsDoc,
   CurationBlockUser,
   CurationPeriod,
-  CurationPeriod as ICurationPeriod,
   CurationPeriodDoc,
   CurationPeriodUser,
   CurationPeriodUsers
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
+import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth } from '../../utils';
+import { calculateStats, calculateStatsBigInt, getStatsDocInfo } from '../aggregate-sales-stats/utils';
+import { CurationBlock } from './curation-block';
+import { CurationPeriodState } from './types';
 
 const ONE_WEEK = 60 * 60 * 24 * 7 * 1000;
 export class CurationPeriodAggregator {
@@ -109,7 +110,7 @@ export class CurationPeriodAggregator {
     return blocksByPeriod;
   }
 
-  getPeriodRewards(blocks: CurationBlockRewards[], collection: CollectionDisplayData): ICurationPeriod {
+  getPeriodRewards(blocks: CurationBlockRewards[], collection: CollectionDisplayData): CurationPeriod {
     const mostRecentBlock = blocks[blocks.length - 1] as CurationBlockRewards | undefined;
     const blockProtocolFeeStats = calculateStatsBigInt(blocks, (block) =>
       BigInt(block.stats.blockProtocolFeesAccruedWei)

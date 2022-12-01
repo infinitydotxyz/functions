@@ -1,3 +1,6 @@
+import { BigNumber } from 'ethers';
+import { parseEther } from 'ethers/lib/utils';
+
 import {
   ListingRewardsDoc,
   RewardListingEvent,
@@ -7,8 +10,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { TradingFeeProgram, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, round } from '@infinityxyz/lib/utils';
-import { BigNumber } from 'ethers';
-import { parseEther } from 'ethers/lib/utils';
+
 import { CollRef } from '../../firestore/types';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { RewardListingEventSplit, TradingFeeEventHandlerResponse } from '../types';

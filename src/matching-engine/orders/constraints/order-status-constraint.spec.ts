@@ -1,4 +1,5 @@
 import { OBOrderStatus } from '@infinityxyz/lib/types/core';
+
 import { getOrderItem } from './chain-id-constraint.spec';
 import { constraints } from './constraint.types';
 import { OrderItemOrderStatusConstraint } from './order-status-constraint';

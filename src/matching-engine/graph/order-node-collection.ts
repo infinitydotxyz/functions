@@ -1,7 +1,7 @@
 import { Order } from '../orders/order';
-import { NodeCollection } from './node-collection';
 import { OrderItem as IOrderItem } from '../orders/orders.types';
 import { Node } from './node';
+import { NodeCollection } from './node-collection';
 
 interface Data {
   order: Order;

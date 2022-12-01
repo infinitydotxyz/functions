@@ -1,11 +1,14 @@
+import * as functions from 'firebase-functions';
+
 import { Collection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import * as functions from 'firebase-functions';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+
 import { updateNftsWithCollection } from './update-nfts-with-collection';
 
 export const syncNftCollectionData = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

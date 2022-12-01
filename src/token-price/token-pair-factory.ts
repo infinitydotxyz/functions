@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import { Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import {
@@ -6,7 +8,7 @@ import {
   getTokenAddress
 } from '@infinityxyz/lib/utils';
 import { Token } from '@uniswap/sdk-core';
-import { ethers } from 'ethers';
+
 import { CachedTokenPair } from './cached-token-pair';
 import { WETH_MAINNET } from './constants';
 import { TokenPair } from './token-pair';

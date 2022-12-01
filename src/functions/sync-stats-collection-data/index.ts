@@ -1,11 +1,14 @@
+import * as functions from 'firebase-functions';
+
 import { Collection } from '@infinityxyz/lib/types/core/Collection';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import * as functions from 'firebase-functions';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+
 import { updateStatsWithCollection } from './update-stats-with-collection';
 
 export const syncStatsCollectionData = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

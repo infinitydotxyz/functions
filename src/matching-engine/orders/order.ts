@@ -1,25 +1,28 @@
+import { createHash } from 'crypto';
+
 import {
   ChainId,
   FirestoreOrderMatch,
   FirestoreOrderMatchCollection,
-  FirestoreOrderMatches,
   FirestoreOrderMatchMethod,
   FirestoreOrderMatchOneToMany,
   FirestoreOrderMatchOneToOne,
   FirestoreOrderMatchStatus,
   FirestoreOrderMatchToken,
+  FirestoreOrderMatches,
   UserOrderRole
 } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { OrderItem } from './order-item';
-import { OneToManyOrderItemMatch, OrderItem as IOrderItem, OrderItemMatch } from './orders.types';
-import { createHash } from 'crypto';
-import { OrdersGraph } from './orders-graph';
-import * as Graph from '../graph';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+
 import * as Algorithms from '../algorithms';
+import * as Graph from '../graph';
+import { OrderItem } from './order-item';
+import { OrdersGraph } from './orders-graph';
+import { OrderItem as IOrderItem, OneToManyOrderItemMatch, OrderItemMatch } from './orders.types';
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -355,7 +358,7 @@ export class Order {
     const getMatchRef = (match: FirestoreOrderMatches) => {
       return this.db.collection(firestoreConstants.ORDER_MATCHES_COLL).doc(`${match.id}`);
     };
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
 
     const matchIds = new Set<string>();
     for (const match of matches) {

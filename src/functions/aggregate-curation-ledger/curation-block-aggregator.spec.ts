@@ -1,4 +1,5 @@
 import { parse } from 'date-fns';
+
 import { CurationBlockAggregator } from './curation-block-aggregator';
 
 describe('curation block aggregator', () => {

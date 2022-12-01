@@ -1,5 +1,7 @@
-import { ChainId, NftSale, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { formatEther } from 'ethers/lib/utils';
+
+import { ChainId, NftSale, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
+
 import { AggregationInterval, CurrentStats } from '../types';
 import { calculateStats, calculateStatsBigInt, getIntervalAggregationId, getStatsDocInfo } from '../utils';
 

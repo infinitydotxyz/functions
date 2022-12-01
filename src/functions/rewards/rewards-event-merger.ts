@@ -13,10 +13,10 @@ import {
 
 import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
+import { getCachedUserStakeLevel } from '@/lib/utils/get-cached-user-stake-level';
+import { getTokenPairPrice } from '@/lib/utils/token-price';
+import { USDC_MAINNET, WETH_MAINNET } from '@/lib/utils/token-price/constants';
 
-import { getTokenPairPrice } from '../../token-price';
-import { USDC_MAINNET, WETH_MAINNET } from '../../token-price/constants';
-import { getCachedUserStakeLevel } from '../../utils/get-cached-user-stake-level';
 import { getSaleReferral } from '../referrals/get-referrals';
 
 export class RewardsEventMerger extends FirestoreBatchEventProcessor<PreMergedRewardEvent> {

@@ -5,8 +5,8 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { streamQueryWithRef } from '@/firestore/stream-query';
+import { getCollectionDisplayData } from '@/lib/utils';
 
-import { getCollectionDisplayData } from '../../utils';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationMetadata } from './types';
 

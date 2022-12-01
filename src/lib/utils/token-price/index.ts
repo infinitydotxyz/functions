@@ -3,7 +3,7 @@ import { Token } from '@uniswap/sdk-core';
 
 import { getDb } from '@/firestore/db';
 
-import { getProvider } from '../utils/ethersUtils';
+import { getProvider } from '../ethersUtils';
 import { CachedTokenPair } from './cached-token-pair';
 import { TokenPair } from './token-pair';
 import { TokenPairFactory } from './token-pair-factory';

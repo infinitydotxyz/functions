@@ -2,8 +2,7 @@ import { FirestoreOrder, FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 
 import { getDb } from '@/firestore/db';
-
-import { getErc721Owner } from '../../utils/ethersUtils';
+import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
 export const updateOrderStatus = async (
   orderRef: FirebaseFirestore.DocumentReference<FirestoreOrder>,

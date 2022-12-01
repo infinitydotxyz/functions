@@ -6,8 +6,8 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { streamQueryWithRef } from '@/firestore/stream-query';
+import { addressProgress, nFormatter, partitionArray } from '@/lib/utils';
 
-import { addressProgress, nFormatter, partitionArray } from '../../utils';
 import { getCachedIsValidTwitterProfileImage, getTwitterProfileImage } from './update-profile-image';
 
 export async function updateMentions(db: FirebaseFirestore.Firestore) {

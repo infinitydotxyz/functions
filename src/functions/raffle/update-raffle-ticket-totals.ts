@@ -15,8 +15,7 @@ import { BatchHandler } from '@/firestore/batch-handler';
 import { paginatedTransaction } from '@/firestore/paginated-transaction';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef } from '@/firestore/types';
-
-import { getProvider } from '../../utils/ethersUtils';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
   const raffleEntrants = raffleRef.collection(

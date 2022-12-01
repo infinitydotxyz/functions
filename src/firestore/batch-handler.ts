@@ -1,4 +1,5 @@
-import { sleep } from '../utils';
+import { sleep } from '@/lib/utils';
+
 import { getDb } from './db';
 
 const MAX_BATCH_SIZE = 300;

@@ -2,7 +2,8 @@ import { EntrantOrderLedgerItem, PreMergeEntrantOrderLedgerItem } from '@infinit
 import { TokenomicsConfigDto, TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
-import { getCachedUserStakeLevel } from '../../utils/get-cached-user-stake-level';
+import { getCachedUserStakeLevel } from '@/lib/utils/get-cached-user-stake-level';
+
 import { getApplicableRaffles } from './save-txn-fees';
 
 export async function addOrdersToRaffleLedgers(

@@ -11,7 +11,7 @@ import {
 import { TradingFeeProgram, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, round } from '@infinityxyz/lib/utils';
 
-import { CollRef } from '../../firestore/types';
+import { CollRef } from '../../../firestore/types';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { RewardListingEventSplit, TradingFeeEventHandlerResponse } from '../types';
 import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';

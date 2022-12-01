@@ -1,13 +1,13 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
 
-import { FirestoreBatchEventProcessor } from '../../firestore/firestore-batch-event-processor';
-import { CollRef, DocRef, QuerySnap } from '../../firestore/types';
-import * as Reservoir from '../../reservoir';
-import { bn } from '../../utils';
-import { config } from '../../utils/config';
+import { config } from '@/config/index';
+import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
+import { Reservoir } from '@/lib/index';
+import { bn } from '@/lib/utils';
 
-export type FirestoreOrderEvent = Reservoir.OrderEvents.Types.FirestoreOrderEvent;
+type FirestoreOrderEvent = Reservoir.OrderEvents.Types.FirestoreOrderEvent;
 
 export interface FirestoreOrder {
   metadata: {
@@ -91,7 +91,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
   }
 
   protected async _getReservoirOrder(id: string, chainId: ChainId, isSellOrder: boolean) {
-    const client = Reservoir.Api.getClient(chainId, config.reservoirApiKey);
+    const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
     const OrderSide = isSellOrder ? Reservoir.Api.Orders.AskOrders : Reservoir.Api.Orders.BidOrders;
     const response = await OrderSide.getOrders(client, {
       ids: id,

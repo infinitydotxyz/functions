@@ -1,6 +1,7 @@
-import { DocRef } from '../../firestore/types';
-import * as Reservoir from '../../reservoir';
-import { config } from '../../utils/config';
+import { config } from '@/config/index';
+import { DocRef } from '@/firestore/types';
+
+import { Reservoir } from '../..';
 import { FirestoreOrderEvent, SyncMetadata } from './types';
 import { getOrderEventRef } from './utils';
 
@@ -16,7 +17,7 @@ export async function* sync(
   let hasNextPage = true;
   let continuation = initialSync.data.data.continuation;
   let pageNumber = 0;
-  const client = Reservoir.Api.getClient(initialSync.data.metadata.chainId, config.reservoirApiKey);
+  const client = Reservoir.Api.getClient(initialSync.data.metadata.chainId, config.reservoir.apiKey);
   const expectedOrderSide = initialSync.data.metadata.type;
   const method =
     expectedOrderSide === 'bid' ? Reservoir.Api.Events.BidEvents.getEvents : Reservoir.Api.Events.AskEvents.getEvents;

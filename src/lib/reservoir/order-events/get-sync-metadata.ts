@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 
-import { CollRef, DocRef, Firestore } from '../../firestore/types';
+import { CollRef, DocRef, Firestore } from '../../../firestore/types';
 import { SyncMetadata } from './types';
 
 export const getOrderEventSyncsRef = (db: Firestore) => {

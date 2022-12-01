@@ -1,4 +1,4 @@
-import { DocRef, Firestore } from '../../firestore/types';
+import { DocRef, Firestore } from '../../../firestore/types';
 import { FirestoreOrderEvent } from './types';
 
 export const getOrderEventRef = (db: Firestore, orderId: string, eventId: number) => {

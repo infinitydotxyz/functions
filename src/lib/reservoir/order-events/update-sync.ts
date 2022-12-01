@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 
-import { Firestore } from '../../firestore/types';
+import { Firestore } from '../../../firestore/types';
 import { getOrderEventSyncRef, getOrderEventSyncsRef } from './get-sync-metadata';
 import { SyncMetadata, SyncMetadataType } from './types';
 

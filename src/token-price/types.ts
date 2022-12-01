@@ -1,5 +1,6 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { ethers } from 'ethers';
+
+import { ChainId } from '@infinityxyz/lib/types/core';
 
 export interface PoolImmutables {
   factory: string;

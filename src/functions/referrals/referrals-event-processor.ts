@@ -1,8 +1,10 @@
 import { ChainId, MergedReferralSaleEvent, ReferralSaleEvent, ReferralTotals } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
-import { FirestoreBatchEventProcessor } from '../../firestore/firestore-batch-event-processor';
-import { CollRef, CollGroupRef, Query, QuerySnap, DocRef } from '../../firestore/types';
+
+import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
+
 import { getDefaultFeesGenerated } from '../../rewards/config';
 import { getCollectionDisplayData, getNftDisplayData, getUserDisplayData } from '../../utils';
 
@@ -17,7 +19,10 @@ export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<Referr
     return ref.where('isAggregated', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter(query: Query<ReferralSaleEvent>, timestamp: number): Query<ReferralSaleEvent> {
+  protected _applyUpdatedAtLessThanFilter(
+    query: Query<ReferralSaleEvent>,
+    timestamp: number
+  ): Query<ReferralSaleEvent> {
     return query.where('updatedAt', '<', timestamp);
   }
 

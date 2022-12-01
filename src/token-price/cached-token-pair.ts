@@ -1,7 +1,8 @@
-import { TokenPair } from './token-pair.abstract';
-import { TokenPairType, TokenPrice } from './types';
-import { TokenPair as ITokenPair } from './token-pair.interface';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { TokenPair } from './token-pair.abstract';
+import { TokenPair as ITokenPair } from './token-pair.interface';
+import { TokenPairType, TokenPrice } from './types';
 
 const ONE_HOUR = 60 * 60 * 1000;
 export class CachedTokenPair implements ITokenPair {

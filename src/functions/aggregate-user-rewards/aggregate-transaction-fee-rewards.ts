@@ -5,7 +5,9 @@ import {
   UserRewardsEventDoc
 } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, firestoreConstants } from '@infinityxyz/lib/utils';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
+
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+
 import { calculateStats } from '../aggregate-sales-stats/utils';
 
 const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string): AllTimeTransactionFeeRewardsDoc => {

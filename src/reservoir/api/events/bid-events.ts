@@ -1,5 +1,5 @@
 import { ReservoirClient } from '../get-client';
-import { ReservoirEventMetadata, BidV1Order } from './types';
+import { BidV1Order, ReservoirEventMetadata } from './types';
 
 export interface BidEventOptions {
   contract?: string;

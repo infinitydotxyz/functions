@@ -1,7 +1,10 @@
+import * as functions from 'firebase-functions';
+
 import { Stats } from '@infinityxyz/lib/types/core/Stats';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import * as functions from 'firebase-functions';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+
 import { aggregateIntervalSales } from './aggregate-interval-stats';
 import { aggregateCollectionStats, aggregateNftStats, aggregateSourceStats } from './aggregate-stats';
 import { retriggerAggregation } from './retrigger-aggregation';
@@ -9,7 +12,7 @@ import { saveSalesForAggregation } from './save-sales-for-aggregation';
 import { SalesIntervalDoc } from './types';
 
 export const saveSalesToBeAggregated = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .pubsub.schedule('every 1 minutes')
   .onRun(async () => {
     await saveSalesForAggregation();
@@ -17,7 +20,7 @@ export const saveSalesToBeAggregated = functions
   });
 
 export const aggregateCollectionSales = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -42,7 +45,7 @@ export const aggregateCollectionSales = functions
   });
 
 export const aggregateNftSales = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -67,7 +70,7 @@ export const aggregateNftSales = functions
   });
 
 export const aggregateSourceSales = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

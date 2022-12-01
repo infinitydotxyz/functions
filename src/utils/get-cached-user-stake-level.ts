@@ -1,6 +1,8 @@
+import { ethers } from 'ethers';
+
 import { InfinityStakerABI } from '@infinityxyz/lib/abi/infinityStaker';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { ethers } from 'ethers';
+
 import { getProvider } from './ethersUtils';
 
 export const getCachedUserStakeLevel = () => {

@@ -5,8 +5,8 @@
  *
  * $ npx ts-node ./src/functions/on-feed-write/socials/discord-test.ts
  */
-
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core';
+
 import { notifyDiscordWebhook } from './discord';
 
 const dummyEvents = [

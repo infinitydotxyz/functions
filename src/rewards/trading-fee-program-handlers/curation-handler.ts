@@ -7,6 +7,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { FeesGeneratedDto, TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getRelevantStakerContracts, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+
 import { getDefaultFeesGenerated } from '../config';
 import { Phase, ProgressAuthority } from '../phases/phase.abstract';
 import { TradingFeeEventHandlerResponse } from '../types';

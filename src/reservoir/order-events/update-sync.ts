@@ -1,7 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { SyncMetadata, SyncMetadataType } from './types';
+
 import { Firestore } from '../../firestore/types';
 import { getOrderEventSyncRef, getOrderEventSyncsRef } from './get-sync-metadata';
+import { SyncMetadata, SyncMetadataType } from './types';
 
 const DEFAULT_TYPES: SyncMetadataType[] = ['ask', 'bid'];
 

@@ -11,7 +11,8 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
+
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
 
 export async function aggregateEntrantsLedger(entrantRef: FirebaseFirestore.DocumentReference<RaffleEntrant>) {
   const db = entrantRef.firestore;

@@ -1,6 +1,8 @@
-import { getOBOrderPrice } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
-import { OrderItemPrice } from '../orders/orders.types';
+
+import { getOBOrderPrice } from '@infinityxyz/lib/utils';
+
+import { OrderItemPrice } from '../matching-engine/orders/orders.types';
 import {
   GetPriceAtTimeForEquation,
   LineSegment,

@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers';
-import { goerliDoodlesAbi } from '../abi/goerli-doodles.abi';
 
+import { goerliDoodlesAbi } from '../abi/goerli-doodles.abi';
 import { WalletWithBalances } from './types';
 
 export async function mintTokens(

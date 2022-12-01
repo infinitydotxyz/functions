@@ -1,11 +1,12 @@
 import { FirestoreOrder } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
 
 async function clearUsersOrders(userAddresses: string[]) {
   const db = getDb();
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for (const userAddress of userAddresses) {
     const stream = db
       .collection(firestoreConstants.ORDERS_COLL)

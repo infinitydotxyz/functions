@@ -1,5 +1,7 @@
-import { TokenomicsPhaseDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
 import { parseEther } from 'ethers/lib/utils';
+
+import { TokenomicsPhaseDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
+
 import { DEFAULT_RAFFLE_CONFIG, TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../config';
 import { ContinuousPhase } from './continuous-phase';
 import { PhaseFactory } from './phase.factory';

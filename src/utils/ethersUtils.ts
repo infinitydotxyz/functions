@@ -1,6 +1,7 @@
+import { ethers } from 'ethers';
+
 import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-import { ethers } from 'ethers';
 
 const ethProvider = new ethers.providers.StaticJsonRpcProvider(process.env.ALCHEMY_JSON_RPC_ETH_MAINNET);
 

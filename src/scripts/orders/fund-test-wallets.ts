@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { BigNumberish, ethers } from 'ethers';
+
 import { getWalletWithBalances } from './load-wallets';
 import { WalletWithBalances } from './types';
 

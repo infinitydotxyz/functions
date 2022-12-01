@@ -1,5 +1,6 @@
 import { definitions } from '@reservoir0x/reservoir-kit-client';
-import * as Orders from "../orders";
+
+import * as Orders from '../orders';
 
 export type EventV2Kind =
   | 'new-order'

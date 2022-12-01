@@ -6,8 +6,8 @@ import {
   TradingFeeProgram
 } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants, formatEth, getRelevantStakerContracts } from '@infinityxyz/lib/utils';
-import { DEFAULT_PHASES } from './config';
 
+import { DEFAULT_PHASES } from './config';
 import { Phase } from './phases/phase.abstract';
 import { PhaseFactory } from './phases/phase.factory';
 import { CollectionPotHandler } from './trading-fee-program-handlers/collection-pot-handler';

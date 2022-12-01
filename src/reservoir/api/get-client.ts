@@ -1,7 +1,9 @@
+import got, { Method } from 'got';
+import { join, normalize } from 'path';
+
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { paths } from '@reservoir0x/reservoir-kit-client';
-import { join, normalize } from 'path';
-import got, { Method } from 'got';
+
 import { config } from '../../utils/config';
 
 export type Paths = keyof paths;

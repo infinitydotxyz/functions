@@ -1,11 +1,13 @@
 import { UserRaffle } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+import { ONE_MIN, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+
 import { RaffleRewardsLedgerTriggerDoc } from './types';
 
 export async function updateLedgerTriggerToAggregate(
   raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>,
-  batch?: FirestoreBatchHandler,
+  batch?: BatchHandler,
   minAge = ONE_MIN * 5
 ) {
   const rewardsLedgerTriggerRef = raffleRef

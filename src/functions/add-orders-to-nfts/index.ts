@@ -1,15 +1,18 @@
+import * as functions from 'firebase-functions';
+
 import { FirestoreOrder, FirestoreOrderItem, OrderItemSnippet, Token } from '@infinityxyz/lib/types/core';
 import { ChainOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+import { getDb } from '@/firestore/db';
+
 import { getBestNftOrder } from './get-best-nft-order';
 import { getNftRef } from './get-nft-ref';
 import { getRelevantOrderItemSnippet } from './get-relevant-order-item-snippet';
 
 export const addOrdersToNfts = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

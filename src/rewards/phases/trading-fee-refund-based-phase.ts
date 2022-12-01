@@ -1,4 +1,5 @@
 import { TokenomicsPhaseDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto';
+
 import { REWARD_BUFFER } from '../constants';
 import { Phase, ProgressAuthority } from './phase.abstract';
 

@@ -1,11 +1,13 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import * as Reservoir from '../reservoir';
-import { getDb } from '../firestore';
+
+import { getDb } from '@/firestore/db';
+
 import { syncOrderEvents } from '../functions/reservoir/sync-order-events';
+import * as Reservoir from '../reservoir';
 
 async function main() {
   const db = getDb();
-  //   await syncOrderEvents(db, 20_000);
+  await syncOrderEvents(db, 20_000);
 }
 
 void main();

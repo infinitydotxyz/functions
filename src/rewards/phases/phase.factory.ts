@@ -1,4 +1,5 @@
 import { TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
+
 import { ContinuousPhase } from './continuous-phase';
 import { Phase } from './phase.abstract';
 import { TokenomicsPhaseWithTradingFeeRefund, TradingFeeRefundBasedPhase } from './trading-fee-refund-based-phase';

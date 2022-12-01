@@ -6,8 +6,10 @@ import {
   SaleSource
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
-import { streamQueryWithRef } from '../../firestore/stream-query';
+
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { AggregationInterval, SalesIntervalDoc } from './types';
 import { getIntervalAggregationId } from './utils';
 

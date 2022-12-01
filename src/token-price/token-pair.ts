@@ -1,11 +1,13 @@
-import { computePoolAddress } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
+import JSBI from 'jsbi';
+
 import { Price, Token } from '@uniswap/sdk-core';
 import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json';
-import { TokenPairType, TokenPrice } from './types';
-import { TokenPair as AbstractTokenPair } from './token-pair.abstract';
-import JSBI from 'jsbi';
+import { computePoolAddress } from '@uniswap/v3-sdk';
+
 import { DEFAULT_POOL_FEE, FACTORY_ADDRESS, Q192 } from './constants';
+import { TokenPair as AbstractTokenPair } from './token-pair.abstract';
+import { TokenPairType, TokenPrice } from './types';
 
 export class TokenPair extends AbstractTokenPair {
   protected static _POOL_FEE = DEFAULT_POOL_FEE;

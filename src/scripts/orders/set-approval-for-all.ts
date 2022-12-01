@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+
 import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 
 export async function setApprovalForAll(

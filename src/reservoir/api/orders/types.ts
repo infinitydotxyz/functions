@@ -29,7 +29,7 @@ export interface BaseOrder {
 }
 
 export interface AskOrder extends BaseOrder {
-    isDynamic?: boolean;
+  isDynamic?: boolean;
 }
 export type BidOrder = BaseOrder;
 

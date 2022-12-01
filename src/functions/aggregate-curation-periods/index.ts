@@ -1,13 +1,16 @@
+import * as functions from 'firebase-functions';
+
 import { StakerContractPeriodDoc } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+import { getDb } from '@/firestore/db';
+
 import { aggregateStakerContractPeriods } from './aggregate-staker-contract-periods';
 import { triggerStakerContractPeriodAggregation } from './trigger-staker-contract-aggregation';
 
 export const triggerStakerContractAggregation = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -18,7 +21,7 @@ export const triggerStakerContractAggregation = functions
   });
 
 export const aggregateStakerContractPeriod = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540,
     memory: '2GB'

@@ -1,9 +1,11 @@
-import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
+import { format, parse } from 'date-fns';
+import { formatEther } from 'ethers/lib/utils';
+
 import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
-import { format, parse } from 'date-fns';
+import { ALL_TIME_STATS_TIMESTAMP, trimLowerCase } from '@infinityxyz/lib/utils';
+
 import { AggregationInterval, CurrentStats } from './types';
-import { formatEther } from 'ethers/lib/utils';
 
 export const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz

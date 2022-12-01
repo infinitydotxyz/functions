@@ -1,8 +1,11 @@
+import PQueue from 'p-queue';
+
 import { Collection, OrderDirection, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../firestore';
+
+import { getDb } from '@/firestore/db';
+
 import { streamQuery } from '../firestore/stream-query';
-import PQueue from 'p-queue';
 import { updateNftsWithCollection } from '../functions/sync-nft-collection-data/update-nfts-with-collection';
 
 export async function backfillCollectionDataToNfts(): Promise<void> {

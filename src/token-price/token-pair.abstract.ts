@@ -1,5 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { Token } from '@uniswap/sdk-core';
+
 import { TokenPair as ITokenPair } from './token-pair.interface';
 import { TokenPairType, TokenPrice } from './types';
 

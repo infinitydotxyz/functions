@@ -1,4 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+
 import * as Reservoir from '../../reservoir';
 
 export type SyncMetadataType = 'ask' | 'bid';

@@ -1,14 +1,16 @@
+import { ethers } from 'ethers';
+
 import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
 import { getExchangeAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
-import { ethers } from 'ethers';
+
 import { fundTestWallets } from './orders/fund-test-wallets';
 import { getFundingWallet } from './orders/get-funding-wallet';
 import { loadWallets } from './orders/load-wallets';
 import { mintTokens } from './orders/mint-tokens';
 import { postOrder } from './orders/post-order';
+import { setApprovalForAll } from './orders/set-approval-for-all';
 import { signOrder } from './orders/sign-order';
 import { WalletWithTokens } from './orders/types';
-import { setApprovalForAll } from './orders/set-approval-for-all';
 
 const GOERLI_DOODLES = {
   address: '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',

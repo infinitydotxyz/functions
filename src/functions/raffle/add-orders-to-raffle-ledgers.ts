@@ -1,6 +1,7 @@
 import { EntrantOrderLedgerItem, PreMergeEntrantOrderLedgerItem } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+
 import { getCachedUserStakeLevel } from '../../utils/get-cached-user-stake-level';
 import { getApplicableRaffles } from './save-txn-fees';
 

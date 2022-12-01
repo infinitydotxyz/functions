@@ -1,8 +1,9 @@
 import { Collection, Token } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
-import { streamQueryWithRef } from '../firestore/stream-query';
+import { NULL_ADDRESS, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
 
 export async function backfillSignedOrderToSnippet() {
   const db = getDb();
@@ -33,7 +34,7 @@ export async function backfillSignedOrderToSnippet() {
     const offers = nfts.where('ordersSnippet.offer.hasOrder', '==', true);
 
     const nftsWithListingsStream = await listings.get();
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
 
     for (const snap of nftsWithListingsStream.docs) {
       numListings += 1;

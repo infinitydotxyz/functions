@@ -1,5 +1,7 @@
+import { APIEmbed, WebhookClient } from 'discord.js';
+
 import { EventType, FeedEvent, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core';
-import { WebhookClient, APIEmbed } from 'discord.js';
+
 import { DISCORD_WEBHOOK_URL } from '../../../utils/constants';
 
 const BASE_URL = 'https://infinity.xyz';

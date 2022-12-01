@@ -1,5 +1,6 @@
 import { RewardEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeDestination } from '@infinityxyz/lib/types/dto';
+
 import { Phase } from '../phases/phase.abstract';
 import { TradingFeeRefundBasedPhase } from '../phases/trading-fee-refund-based-phase';
 import { getMockPhaseConfig } from '../phases/trading-fee-refund-based-phase.spec';

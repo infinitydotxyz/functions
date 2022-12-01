@@ -1,9 +1,10 @@
 import { RewardEvent, RewardEventVariant, RewardListingEvent, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TradingFeeProgram } from '@infinityxyz/lib/types/dto';
+
 import { Phase } from '../phases/phase.abstract';
 import {
-  TradingFeeEventHandlerResponse,
-  TradingFeeProgramEventHandler as ITradingFeeProgramEventHandler
+  TradingFeeProgramEventHandler as ITradingFeeProgramEventHandler,
+  TradingFeeEventHandlerResponse
 } from '../types';
 
 export abstract class TradingFeeProgramEventHandler implements ITradingFeeProgramEventHandler {

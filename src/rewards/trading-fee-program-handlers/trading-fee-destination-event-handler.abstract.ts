@@ -1,6 +1,7 @@
 import { RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { FeesGeneratedDto, TradingFeeDestination, TradingFeeProgram } from '@infinityxyz/lib/types/dto';
 import { formatEth } from '@infinityxyz/lib/utils';
+
 import { Phase } from '../phases/phase.abstract';
 import { TradingFeeProgramEventHandler } from './trading-fee-program-event-handler.abstract';
 

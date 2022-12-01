@@ -1,6 +1,7 @@
 import { Collection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
 
 export async function updateNftsWithCollection(
   collection: Partial<Collection>,
@@ -16,7 +17,7 @@ export async function updateNftsWithCollection(
     hasBlueCheck: collection?.hasBlueCheck ?? false
   };
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   let tokenIdStartAfter = '';
   let done = false;
   const limit = 1000;

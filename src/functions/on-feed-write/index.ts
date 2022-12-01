@@ -1,11 +1,14 @@
+import * as functions from 'firebase-functions';
+
 import { EventType, FeedEvent, SaleSource } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import * as functions from 'firebase-functions';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+
 import { notifySocials } from './notify-socials';
 
 export const onFeedWrite = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

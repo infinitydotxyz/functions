@@ -1,7 +1,9 @@
+import { parseEther } from 'ethers/lib/utils';
+
 import { ChainId, RewardEventVariant, RewardSaleEvent } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TradingFeeRefundDto } from '@infinityxyz/lib/types/dto/rewards';
-import { parseEther } from 'ethers/lib/utils';
-import { DEFAULT_RAFFLE_CONFIG, getDefaultFeesGenerated, TRADING_FEE_SPLIT_PHASE_1_TO_4 } from './config';
+
+import { DEFAULT_RAFFLE_CONFIG, TRADING_FEE_SPLIT_PHASE_1_TO_4, getDefaultFeesGenerated } from './config';
 import { REWARD_BUFFER } from './constants';
 import { Phase } from './phases/phase.abstract';
 import { PhaseFactory } from './phases/phase.factory';

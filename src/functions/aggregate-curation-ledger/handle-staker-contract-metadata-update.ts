@@ -1,5 +1,6 @@
 import { ChainId, Collection } from '@infinityxyz/lib/types/core';
 import { ONE_WEEK } from '@infinityxyz/lib/utils';
+
 import { getCollectionDisplayData } from '../../utils';
 import { aggregateLedger } from './aggregate-ledger';
 import { aggregateBlocks } from './aggregate-periods';

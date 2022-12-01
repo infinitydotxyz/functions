@@ -1,13 +1,16 @@
-import { REGION } from '../../utils/constants';
 import * as functions from 'firebase-functions';
-import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core';
-import { Order } from '../../orders/order';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
+import { config } from '@/config/index';
+
+import * as MatchingEngine from '../../matching-engine';
 import { invalidatePendingOrderMatches } from './invalidate-pending-order-matches';
 import { triggerScans } from './trigger-scan';
 
 export const onOrderChange = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -19,12 +22,12 @@ export const onOrderChange = functions
       switch (updatedOrder?.orderStatus) {
         case OBOrderStatus.ValidActive: {
           if (updatedOrder.enqueued) {
-            const order = new Order(updatedOrder);
+            const order = new MatchingEngine.Order(updatedOrder);
             const { matches } = await order.searchForMatches();
             await order.saveMatches(matches);
             await order.markScanned();
           } else if (!updatedOrder.lastScannedAt || updatedOrder.lastScannedAt < Date.now() - 30_000) {
-            const order = new Order(updatedOrder);
+            const order = new MatchingEngine.Order(updatedOrder);
             const { matches, requiresScan } = await order.searchForMatches();
             await order.saveMatches(matches);
             await order.markScanned();

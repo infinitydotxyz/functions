@@ -1,6 +1,6 @@
 import { DocRef } from '../../firestore/types';
-import { config } from '../../utils/config';
 import * as Reservoir from '../../reservoir';
+import { config } from '../../utils/config';
 import { FirestoreOrderEvent, SyncMetadata } from './types';
 import { getOrderEventRef } from './utils';
 

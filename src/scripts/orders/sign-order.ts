@@ -1,8 +1,10 @@
-import { ChainNFTs, ChainId, ChainOBOrder } from '@infinityxyz/lib/types/core';
+import { Wallet, ethers } from 'ethers';
+import { defaultAbiCoder, splitSignature } from 'ethers/lib/utils';
+
+import { ChainId, ChainNFTs, ChainOBOrder } from '@infinityxyz/lib/types/core';
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 import { getOBComplicationAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
-import { Wallet, ethers } from 'ethers';
-import { splitSignature, defaultAbiCoder } from 'ethers/lib/utils';
+
 import { getOrderNonce } from './get-order-nonce';
 
 export async function signOrder(

@@ -1,4 +1,5 @@
 import { firestore, pubsub } from 'firebase-functions';
+
 import { paginatedTransaction } from './paginated-transaction';
 import { streamQueryWithRef } from './stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from './types';
@@ -116,8 +117,8 @@ export abstract class FirestoreBatchEventProcessor<T> {
   protected abstract _getUnProcessedEvents(ref: CollRef<T> | CollGroupRef<T>): Query<T>;
 
   /**
-   * _applyUpdatedAtLessThanFilter takes a query of events and applies a 
-   * where clause to filter out events that have been updated after the 
+   * _applyUpdatedAtLessThanFilter takes a query of events and applies a
+   * where clause to filter out events that have been updated after the
    * provided timestamp
    */
   protected abstract _applyUpdatedAtLessThanFilter(query: Query<T>, timestamp: number): Query<T>;
@@ -176,7 +177,9 @@ export abstract class FirestoreBatchEventProcessor<T> {
 
       const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
       const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
-      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore).limit(1);
+      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore).limit(
+        1
+      );
 
       const snapshot = await staleUnProcessedEvents.get();
       const item = snapshot.docs.find((item) => !!item);

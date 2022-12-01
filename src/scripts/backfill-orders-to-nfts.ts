@@ -1,11 +1,14 @@
 import Emitter from 'events';
+
 import { FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
-import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { OrderItemSnippet, Token } from '@infinityxyz/lib/types/core/Token';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
+import { getDb } from '@/firestore/db';
+
 import { getBestNftOrder } from '../functions/add-orders-to-nfts/get-best-nft-order';
 import { getNftRef } from '../functions/add-orders-to-nfts/get-nft-ref';
 import { getRelevantOrderItemSnippet } from '../functions/add-orders-to-nfts/get-relevant-order-item-snippet';
-import { getDb } from '../firestore';
 
 async function main() {
   console.log('Backfilling orders...');

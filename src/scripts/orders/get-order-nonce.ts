@@ -1,7 +1,8 @@
 import { ethers } from 'ethers';
-import phin from 'phin';
-import { getAuthHeaders } from './get-auth-headers';
 import { join } from 'path';
+import phin from 'phin';
+
+import { getAuthHeaders } from './get-auth-headers';
 
 export async function getOrderNonce(wallet: ethers.Wallet, baseUrl: string): Promise<number> {
   const headers = await getAuthHeaders(wallet);

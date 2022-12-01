@@ -1,17 +1,20 @@
-import { CurationLedgerEvents, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { REGION } from '../../utils/constants';
+
+import { CurationLedgerEventType, CurationLedgerEvents } from '@infinityxyz/lib/types/core/curation-ledger';
+import { ONE_MIN, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { config } from '@/config/index';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { handlerStakerContractMetadata } from './handle-staker-contract-metadata-update';
 import { mergeStake } from './merge-stake';
 import { triggerCurationAggregation } from './trigger-curation-aggregation';
 import { CurationMetadata } from './types';
 
 export const onCurationLedgerEvent = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -31,7 +34,7 @@ export const onCurationLedgerEvent = functions
   });
 
 export const triggerCurationLedgerEventMerge = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -47,7 +50,7 @@ export const triggerCurationLedgerEventMerge = functions
 
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
 
-    const batch = new FirestoreBatchHandler();
+    const batch = new BatchHandler();
     for await (const item of stream) {
       const triggerUpdate: Partial<CurationLedgerEventType> = {
         updatedAt: Date.now()
@@ -57,7 +60,7 @@ export const triggerCurationLedgerEventMerge = functions
   });
 
 export const triggerCurationLedgerAggregation = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -76,7 +79,7 @@ export const triggerCurationLedgerAggregation = functions
     const stream = streamQueryWithRef(curationEventsToAggregate, (item, ref) => [ref], { pageSize: 300 });
 
     const updates = new Set<string>();
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     for await (const { ref } of stream) {
       const stakerContractMetadataRef = ref.parent.parent as FirebaseFirestore.DocumentReference<CurationMetadata>;
       const collectionRef = stakerContractMetadataRef?.parent?.parent;
@@ -88,7 +91,7 @@ export const triggerCurationLedgerAggregation = functions
   });
 
 export const triggerCurationMetadataAggregation = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -120,7 +123,7 @@ export const triggerCurationMetadataAggregation = functions
     });
 
     const updates = new Set<string>();
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     const streamAndTrigger = async (stream: AsyncIterableIterator<{ ref: FirebaseFirestore.DocumentReference }>) => {
       for await (const { ref } of stream) {
         if (!updates.has(ref.path)) {
@@ -136,7 +139,7 @@ export const triggerCurationMetadataAggregation = functions
   });
 
 export const aggregateCurationLedger = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })

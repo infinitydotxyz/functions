@@ -34,13 +34,15 @@
     "update-mentions": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-mentions.ts",
     "recalc-raffles": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/recalculate-raffles.ts",
     "migrate-feed": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-feed.ts",
-    "reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reservoir.ts"
+    "reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reservoir.ts",
+    "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts"
   },
   "engines": {
     "node": "16"
   },
   "main": "dist/index.js",
   "dependencies": {
+    "@georgeroman/evm-tx-simulator": "^0.0.9",
     "@infinityxyz/lib": "^1.263.0",
     "@reservoir0x/reservoir-kit-client": "^0.1.17",
     "@reservoir0x/sdk": "^0.0.252",
@@ -62,21 +64,21 @@
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
     "@types/jest": "^27.5.0",
-    "@typescript-eslint/eslint-plugin": "^5.23.0",
-    "@typescript-eslint/parser": "^5.23.0",
-    "eslint": "^7.6.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
-    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-import": "^2.26.0",
     "firebase-functions-test": "^0.2.0",
     "jest": "^28.1.0",
     "prettier": "^2.8.0",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.2",
-    "ts-node": "^10.8.2",
+    "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.1",
-    "typescript": "^4.6.4"
+    "typescript": "^4.9.3"
   },
   "private": true,
   "_moduleAliases": {

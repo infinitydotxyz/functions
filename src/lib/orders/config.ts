@@ -1,22 +1,20 @@
 import * as Sdk from '@reservoir0x/sdk';
-import { OrderKind } from '../reservoir/api/orders/types';
 
+import { OrderKind } from '../reservoir/api/orders/types';
 import * as Transformers from './order-transformer';
 
 const infinityConfig = {
   'single-token': {
     enabled: false
-    // transformer: Sdk.Infinity.Builders.SingleToken // TODO
   },
   'contract-wide': {
     enabled: false
-    // transformer: Sdk.Infinity.Builders.ContractWide // TODO
   },
   complex: {
     enabled: false
-    // transformer: Sdk.Infinity.Builders.Complex // TODO
   }
-} satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
+};
+// } satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
 
 const seaportConfig = {
   'single-token': {
@@ -32,7 +30,8 @@ const seaportConfig = {
   'token-list': {
     enabled: false
   }
-} satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
+};
+// } satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
 
 export const config = {
   infinity: {
@@ -125,5 +124,5 @@ export const config = {
     source: 'forward',
     enabled: false
   }
-// };
-} satisfies Record<OrderKind, unknown>; // TODO uncomment once ts 4.9 is supported by vscode and dependencies
+};
+// } satisfies Record<OrderKind, unknown>; // TODO uncomment once ts 4.9 is supported by vscode and dependencies

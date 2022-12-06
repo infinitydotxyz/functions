@@ -1,10 +1,9 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
-import * as Sdk from '@reservoir0x/sdk';
+import { ChainId, ChainOBOrder } from '@infinityxyz/lib/types/core';
 
 import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
 import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
-import { Reservoir } from '@/lib/index';
+import { Orderbook, Reservoir } from '@/lib/index';
 import { bn } from '@/lib/utils';
 
 type FirestoreOrderEvent = Reservoir.OrderEvents.Types.FirestoreOrderEvent;
@@ -13,11 +12,34 @@ export interface FirestoreOrder {
   metadata: {
     id: string;
     chainId: ChainId;
+    source: Reservoir.Api.Orders.Types.OrderKind;
     updatedAt: number;
-    status: Reservoir.Api.Orders.Types.OrderStatus;
+    hasError: boolean;
+  };
+  error?: {
+    errorCode: Orderbook.Errors.ErrorCode;
+    value: string;
+    source: Reservoir.Api.Orders.Types.OrderKind | 'unknown';
+    type: 'unsupported' | 'unexpected';
   };
   data: {
+    isSellOrder: boolean;
     rawOrder: any;
+    infinityOrder: ChainOBOrder;
+    gasUsage: string;
+    isDynamic: boolean;
+  };
+  status: {
+    status: Reservoir.Api.Orders.Types.OrderStatus;
+    /**
+     * the order is valid if it is active or inactive
+     */
+    isValid: boolean;
+    mostRecentEvent: {
+      id: string;
+      orderedId: number;
+      status: Reservoir.Api.Orders.Types.OrderStatus;
+    };
   };
 }
 
@@ -47,16 +69,29 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     const orderRef = eventsRef.parent as DocRef<FirestoreOrder>;
     const orderSnap = await txn.get(orderRef);
 
-    // TODO handle the case where we have unprocessed events that aren't the most recent event
+    /**
+     * include the most recent event
+     */
+    const mostRecentEventQuery = eventsRef.orderBy('data.event.id', 'desc').limit(1);
+    const mostRecentEventSnap = await txn.get(mostRecentEventQuery);
 
-    const descendingEvents = eventsSnap.docs
+    const ids = new Set();
+
+    const descendingEvents = [...eventsSnap.docs, ...mostRecentEventSnap.docs]
       .map((item) => {
         return {
           data: item.data(),
           ref: item.ref
         };
       })
-      .sort((a, b) => (bn(a.data.data.event.id).gt(bn(b.data.data.event.id)) ? -1 : 1));
+      .sort((a, b) => (bn(a.data.data.event.id).gt(bn(b.data.data.event.id)) ? -1 : 1))
+      .filter((item) => {
+        if (ids.has(item.data.data.event.id)) {
+          return false;
+        }
+        ids.add(item.data.data.event.id);
+        return true;
+      });
 
     const orderId = orderRef.id;
     const sameOrder = descendingEvents.every((event) => event.data.data.order.id === orderId);
@@ -72,42 +107,28 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
 
     let order: FirestoreOrder;
     if (!orderSnap.exists) {
-      const isSellOrder = sampleEvent.data.metadata.isSellOrder;
-      // TODO get/build order
-      const reservoirOrder = await this._getReservoirOrder(orderId, sampleEvent.data.metadata.chainId, isSellOrder);
-      const rawData = reservoirOrder.rawData;
-      if (!rawData) {
-        throw new Error('Failed to get raw order data');
-      }
-
-      const nativeOrder = Sdk;
+      // const { chainId } = sampleEvent.data.metadata;
+      // const { isSellOrder } = sampleEvent.data.metadata;
+      // const reservoirOrder = await this._getReservoirOrder(orderId, sampleEvent.data.metadata.chainId, isSellOrder);
+      // const rawData = reservoirOrder.rawData;
+      // if (!rawData) {
+      //   throw new Error('Failed to get raw order data');
+      // }
+      // try {
+      //   const factory = new Orderbook.Transformers.OrderTransformerFactory();
+      //   const transformer = factory.create(chainId, reservoirOrder);
+      //   const result = await transformer.transform();
+      //   if (result.isNative) {
+      //   }
+      // } catch (err) {
+      //   // TODO save error
+      // }
     } else {
       const data = orderSnap.data();
       if (!data) {
         throw new Error('Order exists but is missing data');
       }
-      order = data;
+      // order = data.status.status;
     }
-  }
-
-  protected async _getReservoirOrder(id: string, chainId: ChainId, isSellOrder: boolean) {
-    const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
-    const OrderSide = isSellOrder ? Reservoir.Api.Orders.AskOrders : Reservoir.Api.Orders.BidOrders;
-    const response = await OrderSide.getOrders(client, {
-      ids: id,
-      includeMetadata: true,
-      includeRawData: true,
-      limit: 1
-    });
-
-    const order = response.data.orders[0];
-
-    if (!order) {
-      throw new Error(`Order not found. OrderId: ${id}`);
-    } else if (!order.rawData) {
-      throw new Error(`Order does not have raw data. OrderId: ${id}`);
-    }
-
-    return order;
   }
 }

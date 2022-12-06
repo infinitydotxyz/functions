@@ -8,6 +8,7 @@ export enum ErrorCode {
   OrderTokenStandard = 7,
   DuplicateToken = 8,
   OrderTokenQuantity = 9,
+  GasUsage = 10,
 
   SeaportOrderType = 100,
   SeaportConduitKey = 101,

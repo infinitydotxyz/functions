@@ -1,6 +1,3 @@
-import * as Sdk from '@reservoir0x/sdk';
-
-import { OrderKind } from '../reservoir/api/orders/types';
 import * as Transformers from './order-transformer';
 
 const infinityConfig = {

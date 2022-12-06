@@ -1,3 +1,5 @@
+import { BigNumberish } from 'ethers';
+
 import { Infinity } from '@reservoir0x/sdk';
 
 export interface NativeTransformationResult {
@@ -11,7 +13,17 @@ export interface NonNativeTransformationResult<T> {
 
   sourceOrder: T;
 
-  infinityOrders: Infinity.Order[];
+  infinityOrder: Infinity.Order;
+
+  getSourceTxn: (
+    timestamp: number,
+    from: string
+  ) => {
+    data: string;
+    to: string;
+    from: string;
+    value?: BigNumberish;
+  };
 }
 
 export type TransformationResult<T> = NativeTransformationResult | NonNativeTransformationResult<T>;

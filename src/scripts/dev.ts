@@ -1,7 +1,18 @@
+import { BigNumberish, ethers } from 'ethers';
+import { parseEther, parseUnits } from 'ethers/lib/utils';
+
+import { getCallTrace } from '@georgeroman/evm-tx-simulator';
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { Seaport } from '@reservoir0x/sdk';
+
+import { bn } from '@/lib/utils';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { config } from '../config';
-import { Orders, Reservoir } from '../lib';
+import { Orderbook, Reservoir } from '../lib';
+
+const testMatchExecutor = trimLowerCase('0x367b6cF125db1540F0DA0523200781d4b3147ceD');
 
 async function main() {
   const chainId = ChainId.Mainnet;
@@ -16,7 +27,7 @@ async function main() {
 
   console.log(JSON.stringify(order, null, 2));
 
-  const factory = new Orders.Transformers.OrderTransformerFactory();
+  const factory = new Orderbook.Transformers.OrderTransformerFactory();
 
   const transformer = factory.create(chainId, order);
 
@@ -24,32 +35,57 @@ async function main() {
 
   console.log('\n\n');
   console.log(JSON.stringify(result, null, 2));
+
+  if (!result.isNative) {
+    const o = result.sourceOrder;
+    const seaport = new Seaport.Exchange(1);
+
+    const matchParams = o.buildMatching();
+    const data = seaport.fillOrderTx(testMatchExecutor, o, matchParams);
+    const provider = getProvider(ChainId.Mainnet);
+    if (!provider) {
+      throw new Error('Failed to get provider');
+    }
+    const res = await simulateFulfill(data, provider);
+    const gasUsed = bn(res).toString();
+    console.log(`Gas Used: ${gasUsed}`);
+  }
 }
 
 void main();
 
-// public async simulateFulfill(params: { to: string; data: string; value: BigNumberish }): Promise<BigNumberish> {
-//   const testMatchExecutor = trimLowerCase('0x367b6cF125db1540F0DA0523200781d4b3147ceD');
+async function simulateFulfill(
+  params: { to: string; data: string; value?: BigNumberish; from: string },
+  provider: ethers.providers.StaticJsonRpcProvider
+): Promise<BigNumberish> {
+  //   const price = bn(this.startPrice).gt(bn(this.endPrice)) ? this.startPrice : this.endPrice;
+  try {
+    const result = await getCallTrace(
+      {
+        ...params,
+        gas: 10000000,
+        gasPrice: parseUnits('50', 'gwei'),
+        value: params.value ?? '0',
+        balanceOverrides: {
+          [testMatchExecutor]: bn(params.value ?? '0').add(parseEther('1'))
+        }
+      },
+      provider
+    );
 
-//   const price = bn(this.startPrice).gt(bn(this.endPrice)) ? this.startPrice : this.endPrice;
-//   const result = await getCallTrace(
-//     {
-//       from: testMatchExecutor,
-//       ...params,
-//       gas: 10000000,
-//       gasPrice: 0,
-//       balanceOverrides: {
-//         [testMatchExecutor]: price
-//       }
-//     },
-//     this._provider
-//   );
+    console.log(JSON.stringify(result, null, 2));
+    const gasUsed = bn((result as any).gasUsed);
 
-//   const gasUsed = bn((result as any).gasUsed);
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    if (!bn(result.output).eq(1)) {
+      throw new Error(`Reverted`);
+    }
 
-//   if (result.error) {
-//     throw new Error(result.error);
-//   }
-
-//   return gasUsed;
-// }
+    return gasUsed;
+  } catch (err) {
+    console.error(err);
+    return '0';
+  }
+}

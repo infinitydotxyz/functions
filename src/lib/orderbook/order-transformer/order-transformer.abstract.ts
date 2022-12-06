@@ -92,15 +92,18 @@ export abstract class OrderTransformer<SourceOrder = never> {
 
     const order = new Sdk.Infinity.Order(this.chainId, {
       signer: ethers.constants.AddressZero, // TODO must be updated
+      nonce: '0', // TODO must be updated
+      maxGasPrice: '0', // TODO must be updated
       isSellOrder: this.isSellOrder,
       startTime: this.startTime,
       endTime: this.endTime,
       startPrice: this.startPrice.toString(),
       endPrice: this.endPrice.toString(),
-      currency: this.currency,
+      /**
+       * all orders are in WETH for simplicity
+       */
+      currency: Sdk.Common.Addresses.Weth[this.chainId],
       numItems: this.numItems,
-      nonce: '0', // TODO must be updated
-      maxGasPrice: '0', // TODO must be updated
       nfts: this.nfts,
       complication: Sdk.Infinity.Addresses.Complication[this.chainId],
       extraParams: ethers.constants.HashZero

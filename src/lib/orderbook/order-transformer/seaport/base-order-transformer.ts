@@ -88,11 +88,7 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
     if (!zones.includes(this._components.zone)) {
       throw new OrderError('unknown zone', ErrorCode.SeaportZone, this._components.zone, this.source, 'unsupported');
     }
-    /**
-     * conduit should be zero for now
-     * - not sure what the implications are for allowing non-seaport
-     * conduits
-     */
+
     if (this._components.conduitKey !== Seaport.Addresses.OpenseaConduitKey[this.chainId]) {
       throw new OrderError(
         `invalid conduitKey`,

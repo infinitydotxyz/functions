@@ -39,11 +39,21 @@ export class ReservoirOrderBuilder extends OrderBuilder {
 
       const isDynamic = infinityOrder.startPrice !== infinityOrder.endPrice;
 
+      let chainOBOrder;
+      if (result.isNative) {
+        chainOBOrder = infinityOrder.getSignedOrder();
+      } else {
+        chainOBOrder = {
+          ...infinityOrder.getInternalOrder(infinityOrder.params),
+          sig: ''
+        };
+      }
+
       const order: RawOrderWithoutError = {
         ...baseOrder,
         source: reservoirOrder.kind,
         rawOrder: sourceOrder.params,
-        infinityOrder: infinityOrder.getSignedOrder(),
+        infinityOrder: chainOBOrder,
         gasUsage,
         isDynamic,
         createdAt: new Date(reservoirOrder.createdAt).getTime()
@@ -58,6 +68,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
         };
         return orderData;
       }
+      console.error(err);
       const orderData: RawOrderWithError = {
         ...baseOrder,
         error: new UnexpectedOrderError(`failed to build order ${orderId}`).toJSON(),

@@ -1,11 +1,9 @@
-import { ChainId, ChainOBOrder } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
 import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
 import { RawFirestoreOrder } from '@/lib/orderbook/order/types';
-import { bn } from '@/lib/utils';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 type FirestoreOrderEvent = Reservoir.OrderEvents.Types.FirestoreOrderEvent;

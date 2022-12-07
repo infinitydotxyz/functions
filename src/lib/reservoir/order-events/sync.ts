@@ -1,5 +1,6 @@
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
+import { bn } from '@/lib/utils';
 
 import { Reservoir } from '../..';
 import { FirestoreOrderEvent, SyncMetadata } from './types';
@@ -66,7 +67,7 @@ export async function* sync(
 
         if (!item || !snap) {
           throw new Error('Event or snap');
-        } else if (item.event.id.toString() !== snap.ref.id) {
+        } else if (!bn(item.event.id.toString()).eq(snap.ref.id)) {
           throw new Error('Event id mismatch');
         }
 

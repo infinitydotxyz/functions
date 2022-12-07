@@ -7,7 +7,7 @@ import * as Reservoir from '../lib/reservoir';
 
 async function main() {
   const db = getDb();
-  await syncOrderEvents(db, 20_000);
+  await syncOrderEvents(db, 5_000);
 }
 
 void main();

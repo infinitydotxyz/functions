@@ -51,10 +51,10 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
   public get startPrice() {
     const items = this.isSellOrder ? this._components.consideration : this._components.offer;
 
-    const price = bn(0);
+    let price = bn(0);
 
     for (const item of items) {
-      price.add(bn(item.startAmount));
+      price = price.add(bn(item.startAmount));
     }
 
     return price.toString();
@@ -63,10 +63,10 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
   public get endPrice() {
     const items = this.isSellOrder ? this._components.consideration : this._components.offer;
 
-    const price = bn(0);
+    let price = bn(0);
 
     for (const item of items) {
-      price.add(bn(item.endAmount));
+      price = price.add(bn(item.endAmount));
     }
 
     return price.toString();

@@ -1,19 +1,11 @@
-import { BigNumberish, ethers } from 'ethers';
-import { parseEther, parseUnits } from 'ethers/lib/utils';
 import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoir-order-event-processor';
 
-import { getCallTrace } from '@georgeroman/evm-tx-simulator';
-import { ChainId } from '@infinityxyz/lib/types/core';
-import { ONE_MIN, firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
-import { Seaport } from '@reservoir0x/sdk';
+import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { CollRef, Query, QuerySnap } from '@/firestore/types';
-import { bn } from '@/lib/utils';
-import { getProvider } from '@/lib/utils/ethersUtils';
 
-import { config } from '../config';
-import { Orderbook, Reservoir } from '../lib';
+import { Reservoir } from '../lib';
 
 class Dev extends ReservoirOrderStatusEventProcessor {
   async process(
@@ -42,7 +34,6 @@ async function main() {
   );
 
   const db = getDb();
-  ////0x00ab1dafb9825ffabd429db01a7a39b39d032722397be02163c664814c12ffcc/orderStatusEvents
   const start = Date.now();
   const eventsRef = db
     .collection('ordersV2')

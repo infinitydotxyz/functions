@@ -114,57 +114,51 @@ export class Order {
   async load(
     txn?: FirebaseFirestore.Transaction
   ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder; requiresSave: boolean }> {
-    let rawOrderSnap, displayOrderSnap;
-    if (txn) {
-      [rawOrderSnap, displayOrderSnap] = (await txn.getAll<any>(this.rawRef, this.chainDisplayRef)) as [
-        DocSnap<RawFirestoreOrder>,
-        DocSnap<FirestoreDisplayOrder>
-      ];
-    } else {
-      [rawOrderSnap, displayOrderSnap] = (await this._db.getAll(this.rawRef, this.chainDisplayRef)) as [
-        DocSnap<RawFirestoreOrder>,
-        DocSnap<FirestoreDisplayOrder>
-      ];
-    }
+    const getAll = txn ? txn.getAll.bind(txn)<any> : this._db.getAll.bind(this._db);
 
-    const rawOrder = rawOrderSnap.data();
-    if (!rawOrderSnap.exists || !rawOrder) {
-      const { rawOrder, displayOrder } = await this._build(txn);
+    const [rawFirestoreOrderSnap, displayOrderSnap] = (await getAll(this.rawRef, this.chainDisplayRef)) as [
+      DocSnap<RawFirestoreOrder>,
+      DocSnap<FirestoreDisplayOrder>
+    ];
+
+    const rawFirestoreOrder = rawFirestoreOrderSnap.data();
+    if (!rawFirestoreOrderSnap.exists || !rawFirestoreOrder?.order) {
+      const update = await this._build(txn);
 
       return {
-        rawOrder,
-        displayOrder,
+        rawOrder: update.rawOrder,
+        displayOrder: update.displayOrder,
         requiresSave: true
       };
     }
 
     const displayOrder = displayOrderSnap.data();
     if (!displayOrderSnap.exists || !displayOrder) {
-      if ('error' in rawOrder) {
+      if ('error' in rawFirestoreOrder) {
         return {
-          rawOrder,
+          rawOrder: rawFirestoreOrder,
           displayOrder: {
-            metadata: rawOrder.metadata,
-            order: rawOrder.order,
-            error: rawOrder.error
+            metadata: rawFirestoreOrder.metadata,
+            order: rawFirestoreOrder.order,
+            error: rawFirestoreOrder.error
           },
           requiresSave: true
         };
       }
 
-      const infinityOrder = (rawOrder.rawOrder as RawOrderWithoutError).infinityOrder;
-      const displayData = await this._getDisplayData(infinityOrder.nfts, rawOrder.order.maker);
-      const displayOrder = this._getDisplayOrder(rawOrder, displayData);
+      const infinityOrder = (rawFirestoreOrder.rawOrder as RawOrderWithoutError).infinityOrder;
+      const displayData = await this._getDisplayData(infinityOrder.nfts, rawFirestoreOrder.order.maker);
+      const displayOrder = this._getDisplayOrder(rawFirestoreOrder, displayData);
 
       return {
-        rawOrder,
+        rawOrder: rawFirestoreOrder,
         displayOrder,
         requiresSave: true
       };
     }
 
     return {
-      rawOrder,
+      rawOrder: rawFirestoreOrder,
       displayOrder,
       requiresSave: false
     };
@@ -228,7 +222,6 @@ export class Order {
       const status = await this.getOrderStatus(txn, result.source === 'infinity' ? result.infinityOrder : undefined);
       const rawOrder = this._getRawFirestoreOrder(result, displayData, status);
       const displayOrder = this._getDisplayOrder(rawOrder, displayData);
-
       return {
         rawOrder,
         displayOrder

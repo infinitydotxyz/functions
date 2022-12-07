@@ -3,6 +3,13 @@ import { sleep } from '@infinityxyz/lib/utils';
 import { Firestore } from '../../firestore/types';
 import * as Reservoir from '../../lib/reservoir';
 
+/**
+ * a wrapper function to handle syncing multiple chains and order type events
+ * at once
+ *
+ * note: if we are unable to handle the required throughput we can separate
+ * these into separate processes to improve scalability
+ */
 export async function syncOrderEvents(db: Firestore, maxDuration: number, options?: { pollInterval?: number }) {
   const start = Date.now();
   const stop = start + maxDuration;

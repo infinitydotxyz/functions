@@ -8,7 +8,7 @@ import { OrderBuilder } from './order-builder.abstract';
 
 export class ReservoirOrderBuilder extends OrderBuilder {
   public async buildOrder(orderId: string, isSellOrder: boolean): Promise<RawOrder> {
-    const baseOrder: Omit<BaseRawOrder, 'createdAt'> = {
+    const baseOrder: Omit<BaseRawOrder, 'createdAt' | 'infinityOrderId'> = {
       id: orderId,
       chainId: this._chainId,
       updatedAt: Date.now(),
@@ -51,6 +51,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
 
       const order: RawOrderWithoutError = {
         ...baseOrder,
+        infinityOrderId: infinityOrder.hash(),
         source: reservoirOrder.kind,
         rawOrder: sourceOrder.params,
         infinityOrder: chainOBOrder,

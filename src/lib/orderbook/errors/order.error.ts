@@ -45,7 +45,7 @@ export class OrderKindError extends OrderError {
 
 export class OrderSourceError extends OrderError {
   constructor(source: string, type: 'unsupported' | 'unexpected' = 'unsupported') {
-    super(`order source`, ErrorCode.OrderSource, source, 'unknown', type);
+    super(`order source`, ErrorCode.OrderSource, source, source as any, type);
   }
 }
 

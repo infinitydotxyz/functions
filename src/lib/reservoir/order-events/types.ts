@@ -17,7 +17,7 @@ export interface SyncMetadata {
   };
 }
 
-export type FirestoreOrderEvent = {
+export type ReservoirOrderEvent = {
   metadata: {
     /**
      * lexicographically sorted id

@@ -1,47 +1,14 @@
 import { ChainId, ChainOBOrder } from '@infinityxyz/lib/types/core';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
 import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
+import { RawFirestoreOrder } from '@/lib/orderbook/order/types';
 import { bn } from '@/lib/utils';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 type FirestoreOrderEvent = Reservoir.OrderEvents.Types.FirestoreOrderEvent;
-
-export interface FirestoreOrder {
-  metadata: {
-    id: string;
-    chainId: ChainId;
-    source: Reservoir.Api.Orders.Types.OrderKind;
-    updatedAt: number;
-    hasError: boolean;
-  };
-  error?: {
-    errorCode: Orderbook.Errors.ErrorCode;
-    value: string;
-    source: Reservoir.Api.Orders.Types.OrderKind | 'unknown';
-    type: 'unsupported' | 'unexpected';
-  };
-  data: {
-    isSellOrder: boolean;
-    rawOrder: any;
-    infinityOrder: ChainOBOrder;
-    gasUsage: string;
-    isDynamic: boolean;
-  };
-  status: {
-    status: Reservoir.Api.Orders.Types.OrderStatus;
-    /**
-     * the order is valid if it is active or inactive
-     */
-    isValid: boolean;
-    mostRecentEvent: {
-      id: string;
-      orderedId: number;
-      status: Reservoir.Api.Orders.Types.OrderStatus;
-    };
-  };
-}
 
 export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProcessor<FirestoreOrderEvent> {
   protected _isEventProcessed(event: FirestoreOrderEvent): boolean {
@@ -66,69 +33,56 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     txn: FirebaseFirestore.Transaction,
     eventsRef: CollRef<Reservoir.OrderEvents.Types.FirestoreOrderEvent>
   ): Promise<void> {
-    const orderRef = eventsRef.parent as DocRef<FirestoreOrder>;
-    const orderSnap = await txn.get(orderRef);
-
-    /**
-     * include the most recent event
-     */
-    const mostRecentEventQuery = eventsRef.orderBy('data.event.id', 'desc').limit(1);
-    const mostRecentEventSnap = await txn.get(mostRecentEventQuery);
-
-    const ids = new Set();
-
-    const descendingEvents = [...eventsSnap.docs, ...mostRecentEventSnap.docs]
-      .map((item) => {
-        return {
-          data: item.data(),
-          ref: item.ref
-        };
-      })
-      .sort((a, b) => (bn(a.data.data.event.id).gt(bn(b.data.data.event.id)) ? -1 : 1))
-      .filter((item) => {
-        if (ids.has(item.data.data.event.id)) {
-          return false;
-        }
-        ids.add(item.data.data.event.id);
-        return true;
-      });
+    const orderRef = eventsRef.parent as DocRef<RawFirestoreOrder>;
+    const events = [...eventsSnap.docs].map((item) => {
+      return {
+        data: item.data(),
+        ref: item.ref
+      };
+    });
 
     const orderId = orderRef.id;
-    const sameOrder = descendingEvents.every((event) => event.data.data.order.id === orderId);
+    const sameOrder = events.every((event) => event.data.data.order.id === orderId);
     if (!sameOrder) {
       throw new Error(`All events must be for the same order. OrderId: ${orderId}`);
     }
 
-    const sampleEvent = descendingEvents[0];
+    const sampleEvent = events[0];
 
     if (!sampleEvent) {
       throw new Error(`No events found for order: ${orderId}`);
     }
+    const { chainId } = sampleEvent.data.metadata;
+    const { isSellOrder } = sampleEvent.data.metadata;
+    const provider = getProvider(chainId);
+    if (!provider) {
+      throw new Error(`No provider found for chainId: ${chainId}`);
+    }
+    const simulationAccount = trimLowerCase('0x74265Fc35f4df36d36b4fF18362F14f50790204F');
+    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, simulationAccount);
 
-    let order: FirestoreOrder;
-    if (!orderSnap.exists) {
-      // const { chainId } = sampleEvent.data.metadata;
-      // const { isSellOrder } = sampleEvent.data.metadata;
-      // const reservoirOrder = await this._getReservoirOrder(orderId, sampleEvent.data.metadata.chainId, isSellOrder);
-      // const rawData = reservoirOrder.rawData;
-      // if (!rawData) {
-      //   throw new Error('Failed to get raw order data');
-      // }
-      // try {
-      //   const factory = new Orderbook.Transformers.OrderTransformerFactory();
-      //   const transformer = factory.create(chainId, reservoirOrder);
-      //   const result = await transformer.transform();
-      //   if (result.isNative) {
-      //   }
-      // } catch (err) {
-      //   // TODO save error
-      // }
-    } else {
-      const data = orderSnap.data();
-      if (!data) {
-        throw new Error('Order exists but is missing data');
-      }
-      // order = data.status.status;
+    const order = new Orderbook.Orders.Order(orderId, chainId, isSellOrder, orderRef.firestore, provider, gasSimulator);
+    const orderStatus = await order.getOrderStatus(txn);
+
+    const { rawOrder, displayOrder, requiresSave } = await order.load(txn);
+    if (requiresSave) {
+      await order.save(rawOrder, displayOrder, txn);
+    } else if (orderStatus !== rawOrder.order?.status) {
+      const update = await order.refresh(txn);
+      await order.save(update.rawOrder, update.displayOrder, txn);
+    }
+
+    for (const event of events) {
+      event.data.metadata;
+      const update: Pick<Reservoir.OrderEvents.Types.FirestoreOrderEvent, 'metadata'> = {
+        metadata: {
+          ...event.data.metadata,
+          processed: true,
+          updatedAt: Date.now()
+        }
+      };
+
+      txn.set(event.ref, update, { merge: true });
     }
   }
 }

@@ -19,6 +19,9 @@ export interface SyncMetadata {
 
 export type FirestoreOrderEvent = {
   metadata: {
+    /**
+     * lexicographically sorted id
+     */
     id: string;
     isSellOrder: boolean;
     updatedAt: number;

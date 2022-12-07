@@ -3,7 +3,7 @@ import { DocRef } from '@/firestore/types';
 
 import { Reservoir } from '../..';
 import { FirestoreOrderEvent, SyncMetadata } from './types';
-import { getOrderEventRef } from './utils';
+import { getOrderEventId, getOrderEventRef } from './utils';
 
 export async function* sync(
   db: FirebaseFirestore.Firestore,
@@ -76,7 +76,7 @@ export async function* sync(
         if (!snap.exists) {
           const data: FirestoreOrderEvent = {
             metadata: {
-              id: item.event.id.toString(),
+              id: getOrderEventId(item.event.id),
               isSellOrder: item.isSellOrder,
               updatedAt: Date.now(),
               migrationId: 1,

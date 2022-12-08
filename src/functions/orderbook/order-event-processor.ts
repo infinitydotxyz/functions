@@ -108,8 +108,6 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         );
       }
 
-      console.log('Error while getting order', err);
-
       return;
     }
 
@@ -168,8 +166,6 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     );
 
     await baseOrder.save(rawOrder, displayOrder, txn);
-
-    console.log(`Saved order`);
   }
 
   protected async _getOrder(

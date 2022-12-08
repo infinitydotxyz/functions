@@ -20,6 +20,7 @@ export interface BaseRawOrder {
 export interface RawOrderWithoutError extends BaseRawOrder {
   source: Reservoir.Api.Orders.Types.OrderKind;
   rawOrder: any;
+  infinityOrderId: string;
   infinityOrder: ChainOBOrder;
   gasUsage: string;
   isDynamic: boolean;

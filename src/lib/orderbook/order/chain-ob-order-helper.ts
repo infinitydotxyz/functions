@@ -1,5 +1,3 @@
-import { BigNumber } from 'ethers';
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ChainOBOrderDto } from '@infinityxyz/lib/types/dto';
 import { formatEth } from '@infinityxyz/lib/utils';
@@ -11,26 +9,10 @@ import { Infinity } from '@reservoir0x/sdk';
  */
 export class ChainOBOrderHelper extends Infinity.Order {
   constructor(chainId: ChainId, order: ChainOBOrderDto) {
-    const constraints = order.constraints.map((item) => BigNumber.from(item).toString());
-    /**
-     * addresses are trimLowerCased in the construction of the extended class
-     * nfts are normalized and de-duplicated in the construction of the extended class
-     */
-    super(parseInt(chainId), {
-      isSellOrder: order.isSellOrder,
-      signer: order.signer,
-      numItems: parseInt(constraints[0], 10),
-      startPrice: constraints[1],
-      endPrice: constraints[2],
-      startTime: parseInt(constraints[3], 10),
-      endTime: parseInt(constraints[4], 10),
-      nonce: constraints[5],
-      maxGasPrice: constraints[6],
-      nfts: order.nfts,
-      complication: order.execParams[0],
-      currency: order.execParams[1],
-      extraParams: order.extraParams,
-      signature: order.sig
+    const constraints = order.constraints.map((item) => item.toString());
+    super(parseInt(chainId, 10), {
+      ...order,
+      constraints
     });
   }
 

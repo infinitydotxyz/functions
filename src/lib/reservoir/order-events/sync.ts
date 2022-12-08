@@ -3,9 +3,20 @@ import { DocRef } from '@/firestore/types';
 import { bn } from '@/lib/utils';
 
 import { Reservoir } from '../..';
-import { FirestoreOrderEvent, SyncMetadata } from './types';
-import { getOrderEventId, getOrderEventRef } from './utils';
+import { ReservoirOrderEvent, SyncMetadata } from './types';
+import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
 
+/**
+ * Efficiently sync a large number of events from the Reservoir API
+ *
+ * - Maintains the sync state in a firestore document
+ *   - This allows us to resume syncing from the last known state
+ *   - It is also safe to re-process events - duplicates will be skipped
+ * - Pulls events from the Reservoir API
+ * - Saves events to the reservoir order events collection in firestore
+ * and does a minimal amount of transformation in order to maximize
+ * throughput
+ */
 export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
@@ -49,7 +60,7 @@ export async function* sync(
         const order = 'bid' in item ? item.bid : item.order;
         const orderId = order.id;
 
-        const eventRef = getOrderEventRef(db, orderId, id);
+        const eventRef = getReservoirOrderEventRef(db, orderId, id);
         return {
           ...item,
           isSellOrder: !('bid' in item),
@@ -75,9 +86,9 @@ export async function* sync(
          * only save events once
          */
         if (!snap.exists) {
-          const data: FirestoreOrderEvent = {
+          const data: ReservoirOrderEvent = {
             metadata: {
-              id: getOrderEventId(item.event.id),
+              id: getReservoirOrderEventId(item.event.id),
               isSellOrder: item.isSellOrder,
               updatedAt: Date.now(),
               migrationId: 1,

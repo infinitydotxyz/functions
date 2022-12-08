@@ -12,6 +12,7 @@ export * from './update-curation-feed';
 export * from './update-order-status';
 export * from './raffle';
 export * from './referrals';
+export * from './reservoir';
 export * from './rewards';
 export * from './treasury';
 export * from './twitter';

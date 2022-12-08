@@ -162,7 +162,7 @@ export interface RawFirestoreOrderWithoutError {
     hasError: false;
   };
 
-  rawOrder: RawOrder;
+  rawOrder: RawOrderWithoutError;
 
   order: QueryableOrder;
 }

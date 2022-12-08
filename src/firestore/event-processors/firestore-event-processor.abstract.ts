@@ -1,76 +1,13 @@
 import { firestore, pubsub } from 'firebase-functions';
 
-import { paginatedTransaction } from './paginated-transaction';
-import { streamQueryWithRef } from './stream-query';
-import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from './types';
-
-export interface EventProcessorConfig {
-  /**
-   * a path to the collection of events to process
-   * uses the same syntax as defining a function listener
-   */
-  docBuilderCollectionPath: string;
-
-  /**
-   * size of the batch of events that will be processed
-   * - firestore supports a max of 500 writes per transaction
-   * so this should be set according to the number of writes
-   * you are expecting to perform
-   *
-   * the processor also requires 1 write per page
-   */
-  batchSize: number;
-
-  /**
-   * max number of pages to process
-   * - set it to something reasonable to avoid a bug causing
-   * an expensive infinite loop of reads and writes, and increase
-   * it as more scalability is required
-   */
-  maxPages: number;
-
-  /**
-   * ms to wait between triggering event processing
-   */
-  minTriggerInterval: number;
-
-  /**
-   * an optional id to support multiple triggers for the same collection
-   */
-  id?: string;
-}
+import { paginatedTransaction } from '../paginated-transaction';
+import { streamQueryWithRef } from '../stream-query';
+import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '../types';
+import { BackupOptions, EventProcessorConfig, TriggerDoc } from './types';
 
 /**
- * Backup options provides
- */
-export interface BackupOptions {
-  /**
-   * a schedule to query for unprocessed events and trigger processing
-   * - Both Unix Crontab and App Engine syntax are supported
-   * https://firebase.google.com/docs/functions/schedule-functions
-   */
-  schedule: string;
-
-  /**
-   * time to stale applied to unprocessed events query to determine if
-   * they were missed during processing
-   */
-  tts: number;
-}
-
-export interface TriggerDoc {
-  id: string;
-  requiresProcessing: boolean;
-  lastProcessedAt: number;
-  updatedAt: number;
-}
-
-/**
- * FirestoreBatchEventProcessor provides the boilerplate code for implementing
+ * FirestoreEventProcessor provides the boilerplate code for implementing
  * a scalable, transaction based, event-driven architecture for an event stream
- * where each event requires one-time processing and the aggregated data should
- * be reset if re-processing all events is required
- *
  *
  * given a path to a collection of events, the processor will create the following
  * ...
@@ -79,7 +16,7 @@ export interface TriggerDoc {
  *   {_<collectionName>} // contains triggers for processing events collection
  *      _trigger:<collectionName>
  */
-export abstract class FirestoreBatchEventProcessor<T> {
+export abstract class FirestoreEventProcessor<T> {
   readonly collectionName: string;
   protected readonly _docBuilderCollectionParentPath: string;
 
@@ -133,7 +70,23 @@ export abstract class FirestoreBatchEventProcessor<T> {
     events: QuerySnap<T>,
     txn: FirebaseFirestore.Transaction,
     eventsRef: CollRef<T>
-  ): Promise<void>;
+  ): Promise<void> | void;
+
+  protected abstract _getEventsForProcessing(ref: CollRef<T>):
+    | Promise<{
+        query: Query<T>;
+        applyStartAfter?: (
+          query: FirebaseFirestore.Query<T>,
+          lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
+        ) => FirebaseFirestore.Query<T>;
+      }>
+    | {
+        query: Query<T>;
+        applyStartAfter?: (
+          query: FirebaseFirestore.Query<T>,
+          lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
+        ) => FirebaseFirestore.Query<T>;
+      };
 
   /**
    * getFunctions returns cloud functions that should be registered with firebase
@@ -150,6 +103,7 @@ export abstract class FirestoreBatchEventProcessor<T> {
   /**
    * _onEvent is called when an event changes in the collection
    * and updates the trigger document to initiate processing
+   * if the event has not been processed
    */
   protected _onEvent(document: (path: string) => firestore.DocumentBuilder) {
     return document(`${this._config.docBuilderCollectionPath}/{eventDoc}`).onWrite(async (change) => {
@@ -260,15 +214,10 @@ export abstract class FirestoreBatchEventProcessor<T> {
         if (!eventsRef) {
           throw new Error(`Failed to process events. Events ref not found`);
         }
-        const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
-
-        /**
-         * prevents processing events that were updated after the trigger was marked
-         */
-        const unProcessedEventsBeforeNow = this._applyUpdatedAtLessThanFilter(unProcessedEvents, Date.now());
+        const { query: eventsQuery, applyStartAfter } = await this._getEventsForProcessing(eventsRef);
 
         const res = await paginatedTransaction(
-          unProcessedEventsBeforeNow,
+          eventsQuery,
           ref.firestore,
           { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
           async ({ data, txn, hasNextPage }) => {
@@ -276,7 +225,8 @@ export abstract class FirestoreBatchEventProcessor<T> {
             if (!hasNextPage) {
               await markAsProcessed(ref, txn);
             }
-          }
+          },
+          applyStartAfter
         );
 
         if (res.queryEmpty) {

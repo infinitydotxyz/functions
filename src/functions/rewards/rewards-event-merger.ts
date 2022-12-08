@@ -11,7 +11,7 @@ import {
   RewardSaleEvent
 } from '@infinityxyz/lib/types/core';
 
-import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { getCachedUserStakeLevel } from '@/lib/utils/get-cached-user-stake-level';
 import { getTokenPairPrice } from '@/lib/utils/token-price';

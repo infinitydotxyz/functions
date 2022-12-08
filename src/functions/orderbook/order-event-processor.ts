@@ -1,14 +1,22 @@
 import { ethers } from 'ethers';
 
+import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { getExchangeAddress } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, DocSnap, Firestore, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook } from '@/lib/index';
+import { InfinityLogDecoder } from '@/lib/orderbook/log-decoders';
 import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
-import { OrderCreatedEvent, OrderEventKind, OrderEventMetadata } from '@/lib/orderbook/order/order-events/types';
+import {
+  OrderCreatedEvent,
+  OrderEventKind,
+  OrderEventMetadata,
+  OrderSaleEvent
+} from '@/lib/orderbook/order/order-events/types';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { FirestoreDisplayOrder, RawFirestoreOrder } from '@/lib/orderbook/order/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -111,21 +119,49 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       return;
     }
 
+    const provider = getProvider(orderUpdater.rawOrder.metadata.chainId);
+    if (!provider) {
+      throw new Error('invalid chain id');
+    }
+
     for (const item of items) {
       const { data: event, ref } = item;
 
       switch (event.metadata.eventKind) {
         case OrderEventKind.Created:
-        case OrderEventKind.Cancelled:
-        case OrderEventKind.Expired:
-        case OrderEventKind.Sale:
         case OrderEventKind.BalanceChange:
         case OrderEventKind.ApprovalChange:
         case OrderEventKind.Bootstrap:
         case OrderEventKind.Revalidation:
         case OrderEventKind.PriceUpdate: // TODO handle this differently to support dynamic orders
+        case OrderEventKind.Cancelled:
+        case OrderEventKind.Expired:
           orderUpdater.setStatus(event.data.status);
           break;
+        case OrderEventKind.Sale: {
+          const isNative = orderUpdater.rawOrder.metadata.source === 'infinity';
+
+          if (isNative) {
+            orderUpdater.setStatus(event.data.status);
+          } else {
+            const saleEvent = event as OrderSaleEvent;
+
+            const orderHashes = await this._getSaleOrderHashes(
+              saleEvent.data.txHash,
+              saleEvent.metadata.chainId,
+              provider
+            );
+
+            if (orderHashes.size > 0) {
+              // TODO improve this to make sure the txn included this order
+              orderUpdater.setStatus(event.data.status);
+            } else {
+              orderUpdater.setStatus('expired');
+            }
+          }
+
+          break;
+        }
 
         default:
           throw new Error(`Unknown event kind: ${(event?.metadata as any)?.eventKind}`);
@@ -150,10 +186,6 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     //save order
     const rawOrder = orderUpdater.rawOrder;
     const displayOrder = orderUpdater.displayOrder;
-    const provider = getProvider(rawOrder.metadata.chainId);
-    if (!provider) {
-      throw new Error('invalid chain id');
-    }
     const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
     const db = this._getDb();
     const baseOrder = new BaseOrder(
@@ -230,5 +262,33 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       displayOrder: result.displayOrder,
       baseOrder
     };
+  }
+
+  protected async _getSaleOrderHashes(
+    txHash: string,
+    chainId: ChainId,
+    provider: ethers.providers.StaticJsonRpcProvider
+  ) {
+    const receipt = await provider.getTransactionReceipt(txHash);
+    const logs = receipt.logs;
+    const contract = new ethers.Contract(getExchangeAddress(chainId), InfinityExchangeABI, provider);
+    const logDecoder = new InfinityLogDecoder(contract, chainId);
+
+    const orderHashes = new Set();
+
+    for (const log of logs) {
+      const matchOrderEvent = logDecoder.decodeMatchOrderEvent(log);
+      const takeOrderEvent = logDecoder.decodeTakeOrderEvent(log);
+      if (matchOrderEvent?.buyOrderHash) {
+        orderHashes.add(matchOrderEvent.buyOrderHash);
+      }
+      if (matchOrderEvent?.sellOrderHash) {
+        orderHashes.add(matchOrderEvent.sellOrderHash);
+      }
+      if (takeOrderEvent?.orderHash) {
+        orderHashes.add(takeOrderEvent.orderHash);
+      }
+    }
+    return orderHashes;
   }
 }

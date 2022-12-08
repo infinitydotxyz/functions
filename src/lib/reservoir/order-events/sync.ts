@@ -38,7 +38,8 @@ export async function* sync(
     const page = await method(client, {
       continuation: continuation || undefined,
       limit: pageSize,
-      sortDirection: 'asc'
+      // sortDirection: 'asc'
+      sortDirection: 'desc' // TODO
     });
     const numItems = (page.data?.events ?? []).length;
     const events = page.data.events;

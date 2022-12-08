@@ -22,10 +22,11 @@ import {
   OrderItemToken,
   RawFirestoreOrder,
   RawFirestoreOrderWithError,
+  RawOrder,
   RawOrderWithoutError
 } from './types';
 
-export class Order {
+export class BaseOrder {
   get rawRef() {
     return this._db.collection('ordersV2').doc(this._id) as DocRef<RawFirestoreOrder>;
   }
@@ -146,7 +147,7 @@ export class Order {
         };
       }
 
-      const infinityOrder = (rawFirestoreOrder.rawOrder as RawOrderWithoutError).infinityOrder;
+      const infinityOrder = rawFirestoreOrder.rawOrder.infinityOrder;
       const displayData = await this._getDisplayData(infinityOrder.nfts, rawFirestoreOrder.order.maker);
       const displayOrder = this._getDisplayOrder(rawFirestoreOrder, displayData);
 
@@ -194,36 +195,46 @@ export class Order {
     txn?: FirebaseFirestore.Transaction
   ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder }> {
     const orderBuilder = new ReservoirOrderBuilder(this._chainId, this._gasSimulator);
-
     const result = await orderBuilder.buildOrder(this._id, this._isSellOrder);
-    if ('error' in result) {
-      const rawOrder: RawFirestoreOrderWithError = {
+
+    return await this.buildFromRawOrder(result, txn);
+  }
+
+  public async buildFromRawOrder(
+    rawOrder: RawOrder,
+    txn?: FirebaseFirestore.Transaction
+  ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder }> {
+    if ('error' in rawOrder) {
+      const rawFirestoreOrder: RawFirestoreOrderWithError = {
         metadata: {
           id: this._id,
           chainId: this._chainId,
-          source: result.error.source as any,
+          source: rawOrder.error.source as any,
           updatedAt: Date.now(),
           createdAt: 0,
           hasError: true
         },
-        error: result.error
+        error: rawOrder.error
       };
 
       const displayOrder: FirestoreDisplayOrderWithError = {
-        ...rawOrder
+        ...rawFirestoreOrder
       };
 
-      return { rawOrder, displayOrder };
+      return { rawOrder: rawFirestoreOrder, displayOrder };
     } else {
       /**
        * TODO how do we handle the maker as the match executor?
        */
-      const displayData = await this._getDisplayData(result.infinityOrder.nfts, result.infinityOrder.signer);
-      const status = await this.getOrderStatus(txn, result.source === 'infinity' ? result.infinityOrder : undefined);
-      const rawOrder = this._getRawFirestoreOrder(result, displayData, status);
-      const displayOrder = this._getDisplayOrder(rawOrder, displayData);
+      const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
+      const status = await this.getOrderStatus(
+        txn,
+        rawOrder.source === 'infinity' ? rawOrder.infinityOrder : undefined
+      );
+      const rawFirestoreOrder = this._getRawFirestoreOrder(rawOrder, displayData, status);
+      const displayOrder = this._getDisplayOrder(rawFirestoreOrder, displayData);
       return {
-        rawOrder,
+        rawOrder: rawFirestoreOrder,
         displayOrder
       };
     }
@@ -462,7 +473,7 @@ export class Order {
 
     const data = result.docs?.[0]?.data?.() ?? {};
 
-    const status = data.data.status ?? 'inactive';
+    const status = data?.data?.status ?? 'inactive';
 
     if (!status && !!chainOBOrder) {
       const orderHelper = new ChainOBOrderHelper(this._chainId, chainOBOrder);

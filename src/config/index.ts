@@ -1,6 +1,7 @@
 import { ServiceAccount } from 'firebase-admin';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 // TODO adi change in release
 import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
@@ -27,5 +28,8 @@ export const config = {
       [ChainId.Goerli]: getEnvVariable('RESERVOIR_BASE_URL_GOERLI', false) || 'https://api-goerli.reservoir.tools/',
       [ChainId.Polygon]: getEnvVariable('RESERVOIR_BASE_URL_POLYGON', false) || 'https://api-polygon.reservoir.tools/'
     }
+  },
+  orderbook: {
+    gasSimulationAccount: trimLowerCase('0x74265Fc35f4df36d36b4fF18362F14f50790204F')
   }
 };

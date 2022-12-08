@@ -2,7 +2,7 @@ import { ChainId, MergedReferralSaleEvent, ReferralSaleEvent, ReferralTotals } f
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 
-import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { getDefaultFeesGenerated } from '@/lib/rewards/config';
 import { getCollectionDisplayData, getNftDisplayData, getUserDisplayData } from '@/lib/utils';

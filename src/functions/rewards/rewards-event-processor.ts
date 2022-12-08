@@ -1,6 +1,6 @@
 import { RewardEvent } from '@infinityxyz/lib/types/core';
 
-import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, Query, QuerySnap } from '@/firestore/types';
 import { RewardsEventHandler } from '@/lib/rewards/rewards-event-handler';
 

@@ -1,6 +1,5 @@
-import { trimLowerCase } from '@infinityxyz/lib/utils';
-
-import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { config } from '@/config/index';
+import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
 import {
@@ -321,8 +320,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       throw new Error(`No provider found for chainId: ${metadata.chainId}`);
     }
 
-    const simulationAccount = trimLowerCase('0x74265Fc35f4df36d36b4fF18362F14f50790204F'); // random unused account
-    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, simulationAccount);
+    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
     const orderId = data.order.id;
 
     const order = new Orderbook.Orders.Order(
@@ -343,7 +341,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     if (rawOrder.metadata.hasError) {
       status = 'inactive';
     } else {
-      status = rawOrder.order?.status ?? 'inactive';
+      status = metadata.status ?? rawOrder.order?.status ?? 'inactive';
     }
     return { rawOrder: rawOrder.rawOrder, status };
   }

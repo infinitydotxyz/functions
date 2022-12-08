@@ -17,7 +17,8 @@ import {
   OrderRevalidationEvent,
   OrderSaleEvent
 } from '@/lib/orderbook/order/order-events/types';
-import { RawFirestoreOrder } from '@/lib/orderbook/order/types';
+import { RawFirestoreOrder, RawOrder } from '@/lib/orderbook/order/types';
+import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
@@ -148,6 +149,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       processed: false,
       migrationId: 1,
       timestamp,
+      updatedAt: Date.now(),
       eventSource: 'reservoir'
     };
 
@@ -246,7 +248,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
         return expiryEvent;
       }
       case 'new-order': {
-        const rawOrder = await this._getRawOrder({ data, metadata }, this._getDb(), txn);
+        const { rawOrder, status } = await this._getRawOrder({ data, metadata }, this._getDb(), txn);
         const orderCreatedEvent: OrderCreatedEvent = {
           metadata: {
             ...baseMetadata,
@@ -255,7 +257,8 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
           },
           data: {
             isNative: data.order.source === 'infinity',
-            order: rawOrder
+            order: rawOrder,
+            status
           }
         };
         return orderCreatedEvent;
@@ -312,7 +315,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     { data, metadata }: ReservoirOrderEvent,
     db: FirebaseFirestore.Firestore,
     txn?: FirebaseFirestore.Transaction
-  ) {
+  ): Promise<{ rawOrder: RawOrder; status: OrderStatus }> {
     const provider = getProvider(metadata.chainId);
     if (!provider) {
       throw new Error(`No provider found for chainId: ${metadata.chainId}`);
@@ -336,6 +339,12 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     if (!rawOrder.rawOrder) {
       throw new Error(`No raw order found for order: ${orderId}`);
     }
-    return rawOrder.rawOrder;
+    let status: OrderStatus;
+    if (rawOrder.metadata.hasError) {
+      status = 'inactive';
+    } else {
+      status = rawOrder.order?.status ?? 'inactive';
+    }
+    return { rawOrder: rawOrder.rawOrder, status };
   }
 }

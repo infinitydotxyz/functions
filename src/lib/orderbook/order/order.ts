@@ -7,13 +7,13 @@ import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef, DocRef, DocSnap, Firestore } from '@/firestore/types';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
-import { FirestoreOrderEvent } from '@/lib/reservoir/order-events/types';
 import { bn } from '@/lib/utils';
 import { GWEI } from '@/lib/utils/constants';
 
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
+import { OrderEvents } from './order-events/types';
 import {
   DisplayOrder,
   FirestoreDisplayOrder,
@@ -450,8 +450,8 @@ export class Order {
   }
 
   public async getOrderStatus(txn?: FirebaseFirestore.Transaction, chainOBOrder?: ChainOBOrder): Promise<OrderStatus> {
-    const orderStatusEvents = this.rawRef.collection('orderStatusEvents') as CollRef<FirestoreOrderEvent>;
-    const query = orderStatusEvents.orderBy('metadata.id', 'desc').limit(1);
+    const orderEvents = this.rawRef.collection('orderEvents') as CollRef<OrderEvents>;
+    const query = orderEvents.orderBy('metadata.timestamp', 'desc').limit(1);
 
     let result;
     if (txn) {
@@ -462,7 +462,7 @@ export class Order {
 
     const data = result.docs?.[0]?.data?.() ?? {};
 
-    const status = data?.metadata?.status ?? 'inactive';
+    const status = data.data.status ?? 'inactive';
 
     if (!status && !!chainOBOrder) {
       const orderHelper = new ChainOBOrderHelper(this._chainId, chainOBOrder);

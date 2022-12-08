@@ -25,6 +25,7 @@ export interface OrderEventMetadata {
   migrationId: 1;
   eventKind: OrderEventKind;
   timestamp: number;
+  updatedAt: number;
   eventSource: 'reservoir' | 'infinity-orderbook';
 }
 
@@ -48,6 +49,7 @@ export interface OrderCreatedEvent extends BaseOrderEvent {
      */
     isNative: boolean;
     order: RawOrder;
+    status: OrderStatus;
   };
 }
 

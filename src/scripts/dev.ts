@@ -9,9 +9,9 @@ import { Reservoir } from '../lib';
 
 class Dev extends ReservoirOrderStatusEventProcessor {
   async process(
-    eventsSnap: QuerySnap<Reservoir.OrderEvents.Types.FirestoreOrderEvent>,
+    eventsSnap: QuerySnap<Reservoir.OrderEvents.Types.ReservoirOrderEvent>,
     txn: FirebaseFirestore.Transaction,
-    eventsRef: CollRef<Reservoir.OrderEvents.Types.FirestoreOrderEvent>
+    eventsRef: CollRef<Reservoir.OrderEvents.Types.ReservoirOrderEvent>
   ) {
     await this._processEvents(eventsSnap, txn, eventsRef);
   }
@@ -37,12 +37,12 @@ async function main() {
   const start = Date.now();
   const eventsRef = db
     .collection('ordersV2')
-    .doc('0x03c4d159856bcf000d75c8c22d46072cbe6f3f2fa1d896524eb717004ee0505a')
-    .collection('orderStatusEvents') as CollRef<Reservoir.OrderEvents.Types.FirestoreOrderEvent>;
+    .doc('0x00b97364e033ec517e975e60a77f055d3b60acef3fd53e24c19a861cc54bb7cf')
+    .collection('reservoirOrderEvents') as CollRef<Reservoir.OrderEvents.Types.ReservoirOrderEvent>;
   const query = eventsRef
     .where('metadata.processed', '==', false)
     .where('metadata.updatedAt', '<', start)
-    .limit(100) as Query<Reservoir.OrderEvents.Types.FirestoreOrderEvent>;
+    .limit(100) as Query<Reservoir.OrderEvents.Types.ReservoirOrderEvent>;
 
   const snap = await query.get();
 

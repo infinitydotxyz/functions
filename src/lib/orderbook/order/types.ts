@@ -17,8 +17,32 @@ export interface BaseRawOrder {
   createdAt: number;
 }
 
+export type OrderSource =
+  | 'wyvern-v2'
+  | 'wyvern-v2.3'
+  | 'looks-rare'
+  | 'zeroex-v4-erc721'
+  | 'zeroex-v4-erc1155'
+  | 'foundation'
+  | 'x2y2'
+  | 'seaport'
+  | 'rarible'
+  | 'element-erc721'
+  | 'element-erc1155'
+  | 'quixotic'
+  | 'nouns'
+  | 'zora-v3'
+  | 'mint'
+  | 'cryptopunks'
+  | 'sudoswap'
+  | 'universe'
+  | 'nftx'
+  | 'blur'
+  | 'infinity'
+  | 'forward';
+
 export interface RawOrderWithoutError extends BaseRawOrder {
-  source: Reservoir.Api.Orders.Types.OrderKind;
+  source: OrderSource;
   rawOrder: any;
   infinityOrderId: string;
   infinityOrder: ChainOBOrder;

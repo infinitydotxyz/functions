@@ -1,16 +1,17 @@
 import { providers } from 'ethers/lib/ethers';
 
-import { Firestore } from '@/firestore/types';
-import { OrderStatus } from '@/lib/reservoir/api/orders/types';
-
-import { GasSimulator } from './gas-simulator/gas-simulator';
 import {
   DisplayOrder,
   FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
   RawFirestoreOrder,
   RawFirestoreOrderWithoutError
-} from './types';
+} from '@infinityxyz/lib/types/core';
+
+import { Firestore } from '@/firestore/types';
+import { OrderStatus } from '@/lib/reservoir/api/orders/types';
+
+import { GasSimulator } from './gas-simulator/gas-simulator';
 
 export class OrderUpdater {
   protected _rawOrder: RawFirestoreOrderWithoutError;

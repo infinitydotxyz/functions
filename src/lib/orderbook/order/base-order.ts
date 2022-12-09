@@ -1,6 +1,23 @@
 import { constants, providers } from 'ethers';
 
-import { ChainId, ChainNFTs, ChainOBOrder, TokenStandard, UserDisplayData } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  ChainNFTs,
+  ChainOBOrder,
+  DisplayOrder,
+  FirestoreDisplayOrder,
+  FirestoreDisplayOrderWithError,
+  OrderEvents,
+  OrderItem,
+  OrderItemToken,
+  OrderSource,
+  RawFirestoreOrder,
+  RawFirestoreOrderWithError,
+  RawOrder,
+  RawOrderWithoutError,
+  TokenStandard,
+  UserDisplayData
+} from '@infinityxyz/lib/types/core';
 import { CollectionDto, NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 
@@ -13,18 +30,6 @@ import { GWEI } from '@/lib/utils/constants';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
-import { OrderEvents } from './order-events/types';
-import {
-  DisplayOrder,
-  FirestoreDisplayOrder,
-  FirestoreDisplayOrderWithError,
-  OrderItem,
-  OrderItemToken,
-  RawFirestoreOrder,
-  RawFirestoreOrderWithError,
-  RawOrder,
-  RawOrderWithoutError
-} from './types';
 
 export class BaseOrder {
   get rawRef() {
@@ -80,7 +85,7 @@ export class BaseOrder {
             return [collectionWideOrderRef];
           }
           default: {
-            throw new Error(`Unsupported order kind: ${(item as any)?.kind}`);
+            throw new Error(`Unsupported order kind: ${(item as unknown as any)?.kind}`);
           }
         }
       });
@@ -209,7 +214,7 @@ export class BaseOrder {
         metadata: {
           id: this._id,
           chainId: this._chainId,
-          source: rawOrder.error.source as any,
+          source: rawOrder.error.source as string as OrderSource,
           updatedAt: Date.now(),
           createdAt: 0,
           hasError: true

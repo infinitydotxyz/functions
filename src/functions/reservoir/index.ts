@@ -27,8 +27,8 @@ const reservoirOrderEventProcessor = new ReservoirOrderStatusEventProcessor(
     id: 'processor'
   },
   {
-    schedule: 'every 5 minutes',
-    tts: ONE_MIN * 2
+    schedule: 'every 2 minutes',
+    tts: ONE_MIN
   },
   getDb
 );

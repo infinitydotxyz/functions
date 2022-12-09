@@ -1,7 +1,16 @@
 import { ethers } from 'ethers';
 
 import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
-import { ChainId } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  FirestoreDisplayOrder,
+  OrderCreatedEvent,
+  OrderEventKind,
+  OrderEventMetadata,
+  OrderEvents,
+  OrderSaleEvent,
+  RawFirestoreOrder
+} from '@infinityxyz/lib/types/core';
 import { getExchangeAddress } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
@@ -11,17 +20,8 @@ import { Orderbook } from '@/lib/index';
 import { InfinityLogDecoder } from '@/lib/orderbook/log-decoders';
 import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
-import {
-  OrderCreatedEvent,
-  OrderEventKind,
-  OrderEventMetadata,
-  OrderSaleEvent
-} from '@/lib/orderbook/order/order-events/types';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
-import { FirestoreDisplayOrder, RawFirestoreOrder } from '@/lib/orderbook/order/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
-
-type OrderEvents = Orderbook.Orders.OrderEvents.Types.OrderEvents;
 
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number } } = OrderEvents>(
@@ -38,7 +38,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     return query.where('metadata.timestamp', '<', timestamp);
   }
 
-  protected _isEventProcessed(event: Orderbook.Orders.OrderEvents.Types.OrderEvents): boolean {
+  protected _isEventProcessed(event: OrderEvents): boolean {
     return event.metadata.processed;
   }
 
@@ -56,9 +56,9 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
   }
 
   protected async _processEvents(
-    events: QuerySnap<Orderbook.Orders.OrderEvents.Types.OrderEvents>,
+    events: QuerySnap<OrderEvents>,
     txn: FirebaseFirestore.Transaction,
-    eventsRef: CollRef<Orderbook.Orders.OrderEvents.Types.OrderEvents>
+    eventsRef: CollRef<OrderEvents>
   ) {
     const items = events.docs.map((item) => {
       return {
@@ -72,16 +72,16 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       throw new Error('No event found');
     }
 
-    const rawOrderRef = eventsRef.parent as DocRef<Orderbook.Orders.Types.RawFirestoreOrder>;
+    const rawOrderRef = eventsRef.parent as DocRef<RawFirestoreOrder>;
     const chainDisplayRef = eventsRef.firestore
       .collection('ordersV2ByChain')
       .doc(sampleEvent.chainId)
       .collection('chainV2Orders')
-      .doc(rawOrderRef.id) as DocRef<Orderbook.Orders.Types.FirestoreDisplayOrder>;
+      .doc(rawOrderRef.id) as DocRef<FirestoreDisplayOrder>;
 
     const [rawOrderSnap, chainDisplaySnap] = (await txn.getAll<any>(rawOrderRef, chainDisplayRef)) as [
-      DocSnap<Orderbook.Orders.Types.RawFirestoreOrder>,
-      DocSnap<Orderbook.Orders.Types.FirestoreDisplayOrder>
+      DocSnap<RawFirestoreOrder>,
+      DocSnap<FirestoreDisplayOrder>
     ];
 
     const orderCreatedEvent = items.find((item) => item.data.metadata.eventKind === OrderEventKind.Created) as
@@ -164,7 +164,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         }
 
         default:
-          throw new Error(`Unknown event kind: ${(event?.metadata as any)?.eventKind}`);
+          throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);
       }
 
       const metadataUpdate: OrderEventMetadata = {

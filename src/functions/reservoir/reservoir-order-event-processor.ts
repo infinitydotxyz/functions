@@ -1,7 +1,3 @@
-import { config } from '@/config/index';
-import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
-import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
-import { Orderbook, Reservoir } from '@/lib/index';
 import {
   OrderApprovalChangeEvent,
   OrderBalanceChangeEvent,
@@ -14,9 +10,15 @@ import {
   OrderExpiredEvent,
   OrderPriceUpdateEvent,
   OrderRevalidationEvent,
-  OrderSaleEvent
-} from '@/lib/orderbook/order/order-events/types';
-import { RawFirestoreOrder, RawOrder } from '@/lib/orderbook/order/types';
+  OrderSaleEvent,
+  RawFirestoreOrder,
+  RawOrder
+} from '@infinityxyz/lib/types/core';
+
+import { config } from '@/config/index';
+import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
+import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
+import { Orderbook, Reservoir } from '@/lib/index';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';

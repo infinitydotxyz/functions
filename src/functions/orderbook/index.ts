@@ -16,7 +16,7 @@ const orderEventProcessor = new OrderEventProcessor(
     id: 'processor'
   },
   {
-    schedule: 'every 5 minutes',
+    schedule: 'every 2 minutes',
     tts: ONE_MIN
   },
   getDb

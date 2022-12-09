@@ -1,9 +1,10 @@
+import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from '@infinityxyz/lib/types/core';
+
 import { config } from '@/config/index';
 import { Orderbook, Reservoir } from '@/lib/index';
 
 import { ErrorCode, NotFoundError, OrderError, UnexpectedOrderError } from '../../errors';
 import { TransformationResult } from '../../order-transformer/types';
-import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from '../types';
 import { OrderBuilder } from './order-builder.abstract';
 
 export class ReservoirOrderBuilder extends OrderBuilder {

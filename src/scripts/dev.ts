@@ -98,10 +98,10 @@ async function orderEventProcessor(id: string) {
 }
 
 async function main() {
-  const id = '0x2a8ebfb65df446c052cb9b84e30cffed39cda3734d5b36a9f7a1f5a16be91f14';
+  const id = '0xb24ce9be2f568ccb351b6f74ede03e1d828cd8cafe251131b16f46017174fdd9';
 
   // await getDb().collection('ordersV2').doc(id).delete();
-  // await reservoirOrderProcessor(id);
+  await reservoirOrderProcessor(id);
   await orderEventProcessor(id);
 }
 

@@ -20,7 +20,9 @@ import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
 export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
-  pageSize = 300
+  pageSize = 300,
+  contract?: string,
+  startTimestamp?: number
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
@@ -38,8 +40,9 @@ export async function* sync(
     const page = await method(client, {
       continuation: continuation || undefined,
       limit: pageSize,
-      // sortDirection: 'asc'
-      sortDirection: 'desc' // TODO
+      sortDirection: 'asc',
+      contract: contract,
+      startTimestamp: startTimestamp
     });
     const numItems = (page.data?.events ?? []).length;
     const events = page.data.events;
@@ -71,7 +74,8 @@ export async function* sync(
         };
       });
 
-      const eventSnaps = await txn.getAll(...eventsWithRefs.map((item) => item.eventRef));
+      const eventSnaps =
+        eventsWithRefs.length > 0 ? await txn.getAll(...eventsWithRefs.map((item) => item.eventRef)) : [];
 
       for (let i = 0; i < eventsWithRefs.length; i += 1) {
         const item = eventsWithRefs[i];
@@ -109,10 +113,12 @@ export async function* sync(
       }
 
       hasNextPage = page.data.continuation !== continuation && numItems < pageSize && !!page.data.continuation;
-      if (!page.data.continuation) {
+      if (!page.data.continuation && continuation) {
         throw new Error('Failed to find continuation');
       }
-      continuation = page.data.continuation;
+      if (page.data.continuation) {
+        continuation = page.data.continuation;
+      }
       pageNumber += 1;
 
       /**

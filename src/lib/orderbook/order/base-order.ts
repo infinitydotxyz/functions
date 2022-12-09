@@ -1,4 +1,4 @@
-import { constants, providers } from 'ethers';
+import { constants, ethers, providers } from 'ethers';
 
 import {
   ChainId,
@@ -24,8 +24,9 @@ import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef, DocRef, DocSnap, Firestore } from '@/firestore/types';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
-import { bn } from '@/lib/utils';
+import { bn, getUserDisplayData } from '@/lib/utils';
 import { GWEI } from '@/lib/utils/constants';
+import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
@@ -59,6 +60,10 @@ export class BaseOrder {
       .filter((item) => !!item)
       .flatMap((item) => {
         const collectionRef = this._db.collection('collections').doc(`${this._chainId}:${item.address}`);
+        const collectionOrderRef = collectionRef
+          .collection('collectionV2Orders')
+          .doc(this._id) as DocRef<FirestoreDisplayOrder>;
+
         switch (item.kind) {
           case 'single-token': {
             const tokenRef = collectionRef
@@ -66,10 +71,10 @@ export class BaseOrder {
               .doc(item.token.tokenId)
               .collection('tokenV2Orders')
               .doc(this._id) as DocRef<FirestoreDisplayOrder>;
-            return [tokenRef];
+            return [collectionOrderRef, tokenRef];
           }
           case 'token-list': {
-            return item.tokens.map((token) => {
+            const tokenRefs = item.tokens.map((token) => {
               const tokenRef = collectionRef
                 .collection('nfts')
                 .doc(token.tokenId)
@@ -77,12 +82,14 @@ export class BaseOrder {
                 .doc(this._id) as DocRef<FirestoreDisplayOrder>;
               return tokenRef;
             });
+
+            return [collectionOrderRef, ...tokenRefs];
           }
           case 'collection-wide': {
             const collectionWideOrderRef = collectionRef
               .collection('collectionWideV2Orders')
               .doc(this._id) as DocRef<FirestoreDisplayOrder>;
-            return [collectionWideOrderRef];
+            return [collectionOrderRef, collectionWideOrderRef];
           }
           default: {
             throw new Error(`Unsupported order kind: ${(item as unknown as any)?.kind}`);
@@ -271,7 +278,7 @@ export class BaseOrder {
     return displayOrder;
   }
 
-  protected async _getDisplayData(nfts: ChainNFTs[], maker: string): Promise<DisplayOrder> {
+  protected async _getDisplayData(nfts: ChainNFTs[], maker: string, taker?: string): Promise<DisplayOrder> {
     const collectionRefs = nfts.map((nft) => {
       return this._db.collection('collections').doc(`${this._chainId}:${nft.collection}`);
     });
@@ -287,12 +294,21 @@ export class BaseOrder {
     });
 
     const makerRef = this._db.collection('users').doc(maker);
+    const includeTaker = taker != null && taker != ethers.constants.AddressZero;
+
+    const takerRef = includeTaker ? this._db.collection('users').doc(taker) : undefined;
 
     const refs = [...collectionRefs, ...tokenRefs, makerRef];
 
+    if (includeTaker && takerRef) {
+      refs.push(takerRef);
+    }
+
     const docs = await this._db.getAll(...refs);
 
-    const makerDoc = docs.pop() as DocSnap<Partial<UserProfileDto>>;
+    const makerSnap = docs.pop() as DocSnap<Partial<UserProfileDto>>;
+    const takerSnap = includeTaker ? (docs.pop() as DocSnap<Partial<UserProfileDto>>) : undefined;
+
     const collectionDocs = docs.slice(0, collectionRefs.length) as DocSnap<Partial<CollectionDto>>[];
     const tokenDocs = docs.slice(collectionRefs.length) as DocSnap<Partial<NftDto>>[];
 
@@ -309,18 +325,49 @@ export class BaseOrder {
       let item: OrderItem;
       const collectionKey = `${this._chainId}:${collectionAddress}`;
       const collection = collectionData[collectionKey];
-      const tokensWithData = tokens.map((token) => {
-        const data = tokenData[`${collectionKey}:${token.tokenId}`] ?? {};
-        const orderItemToken: OrderItemToken = {
-          tokenId: token.tokenId,
-          name: data.metadata?.name ?? '',
-          numTraitTypes: data.numTraitTypes ?? 0,
-          image: data.metadata?.image ?? '',
-          tokenStandard: data.tokenStandard ?? TokenStandard.ERC721,
-          quantity: token.numTokens
-        };
-        return orderItemToken;
-      });
+
+      const tokensWithData = await Promise.all(
+        tokens.map(async (token) => {
+          const data = tokenData[`${collectionKey}:${token.tokenId}`] ?? {};
+          let owner = data.owner ?? data.ownerData?.address ?? '';
+          let ownerData = data.ownerData;
+
+          if (!owner) {
+            try {
+              owner = await getErc721Owner({
+                address: collectionAddress,
+                tokenId: token.tokenId,
+                chainId: this._chainId
+              });
+            } catch (err) {
+              console.error(`Failed to get owner`, err);
+              owner = 'unknown'; // default to unknown to support query + update
+            }
+          }
+
+          if (!ownerData && owner !== 'unknown') {
+            const ref = this._db.collection('users').doc(owner) as DocRef<UserProfileDto>;
+            ownerData = await getUserDisplayData(ref);
+          }
+
+          const orderItemToken: OrderItemToken = {
+            tokenId: token.tokenId,
+            name: data.metadata?.name ?? '',
+            numTraitTypes: data.numTraitTypes ?? 0,
+            image: data.metadata?.image ?? '',
+            tokenStandard: data.tokenStandard ?? TokenStandard.ERC721,
+            quantity: token.numTokens,
+            owner: ownerData ?? {
+              address: owner ?? 'unknown',
+              username: '',
+              profileImage: '',
+              bannerImage: '',
+              displayName: ''
+            }
+          };
+          return orderItemToken;
+        })
+      );
 
       switch (tokens.length) {
         case 0:
@@ -368,7 +415,9 @@ export class BaseOrder {
       items.push(item);
     }
 
-    const makerData = makerDoc.data() ?? {};
+    const makerData = makerSnap.data() ?? {};
+    const takerData = includeTaker ? takerSnap?.data() ?? {} : undefined;
+
     const makerDisplayData: UserDisplayData = {
       address: maker,
       displayName: makerData.displayName ?? '',
@@ -377,6 +426,16 @@ export class BaseOrder {
       bannerImage: makerData.bannerImage ?? ''
     };
 
+    const takerDisplayData: UserDisplayData | undefined = includeTaker
+      ? {
+          address: taker,
+          displayName: takerData?.displayName ?? '',
+          username: takerData?.username ?? '',
+          profileImage: takerData?.profileImage ?? '',
+          bannerImage: takerData?.bannerImage ?? ''
+        }
+      : undefined;
+
     switch (items.length) {
       case 0:
         throw new Error('No items in order');
@@ -384,13 +443,15 @@ export class BaseOrder {
         return {
           kind: 'single-collection',
           item: items[0],
-          maker: makerDisplayData
+          maker: makerDisplayData,
+          taker: takerDisplayData
         };
       default:
         return {
           kind: 'multi-collection',
           items,
-          maker: makerDisplayData
+          maker: makerDisplayData,
+          taker: takerDisplayData
         };
     }
   }
@@ -411,6 +472,21 @@ export class BaseOrder {
     const items = 'item' in displayOrder ? [displayOrder.item] : displayOrder.items;
     const hasBlueCheck = items.every((item) => item.hasBlueCheck === true);
 
+    const owners = [
+      ...new Set(
+        items.flatMap((item) => {
+          switch (item.kind) {
+            case 'collection-wide':
+              return [null];
+            case 'single-token':
+              return [item.token.owner.address];
+            case 'token-list':
+              return item.tokens.map((token) => token.owner.address);
+          }
+        })
+      )
+    ].filter((item) => item !== null && item !== 'unknown') as string[];
+
     const order: RawFirestoreOrder = {
       metadata: {
         id: this._id,
@@ -428,6 +504,7 @@ export class BaseOrder {
         startTimeMs: orderHelper.startTimeMs,
         endTimeMs: orderHelper.endTimeMs,
         maker: orderHelper.signer,
+        owners: owners,
         taker: constants.AddressZero, // TODO update this if private orders are supported
         numItems: orderHelper.numItems,
         currency: orderHelper.currency,

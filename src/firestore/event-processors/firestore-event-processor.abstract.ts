@@ -32,6 +32,8 @@ export abstract class FirestoreEventProcessor<T> {
     return [this._docBuilderCollectionParentPath, this.triggerCollectionId, this._triggerDocId].join('/');
   }
 
+  db: FirebaseFirestore.Firestore;
+
   constructor(
     protected _config: EventProcessorConfig,
     protected _backupOptions: BackupOptions,
@@ -39,6 +41,7 @@ export abstract class FirestoreEventProcessor<T> {
   ) {
     this.collectionName = this.getCollectionName();
     this._docBuilderCollectionParentPath = this.getCollectionParentPath();
+    this.db = this._getDb();
   }
 
   /**
@@ -218,7 +221,7 @@ export abstract class FirestoreEventProcessor<T> {
 
         const res = await paginatedTransaction(
           eventsQuery,
-          ref.firestore,
+          this.db,
           { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
           async ({ data, txn, hasNextPage }) => {
             await this._processEvents(data, txn, eventsRef);

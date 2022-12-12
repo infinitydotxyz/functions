@@ -22,7 +22,7 @@ export const config = {
     region: 'us-east1'
   },
   reservoir: {
-    apiKey: getEnvVariable('RESERVOIR_API_KEY'),
+    apiKey: getEnvVariable('RESERVOIR_API_KEY', false),
     baseUrls: {
       [ChainId.Mainnet]: getEnvVariable('RESERVOIR_BASE_URL_MAINNET', false) || 'https://api.reservoir.tools/',
       [ChainId.Goerli]: getEnvVariable('RESERVOIR_BASE_URL_GOERLI', false) || 'https://api-goerli.reservoir.tools/',

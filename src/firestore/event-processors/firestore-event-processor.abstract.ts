@@ -105,7 +105,7 @@ export abstract class FirestoreEventProcessor<T> {
    * and updates the trigger document to initiate processing
    * if the event has not been processed
    */
-  protected _onEvent(document: (path: string) => firestore.DocumentBuilder) {
+  protected _onEvent(document: (path: string) => firestore.DocumentBuilder<string>) {
     return document(`${this._config.docBuilderCollectionPath}/{eventDoc}`).onWrite(async (change) => {
       const ref = change.after.ref as FirebaseFirestore.DocumentReference<T>;
       const data = change.after.data() as T | undefined;
@@ -182,7 +182,7 @@ export abstract class FirestoreEventProcessor<T> {
    * - make sure you are familiar with the constraints of this helper before
    * implementing the `_processEvents` method
    */
-  protected _onProcessTrigger(document: (path: string) => firestore.DocumentBuilder) {
+  protected _onProcessTrigger(document: (path: string) => firestore.DocumentBuilder<string>) {
     return document(this.docBuilderTriggerDocPath).onWrite(async (change) => {
       const ref = change.after.ref as FirebaseFirestore.DocumentReference<TriggerDoc>;
       const data = change.after.data() as TriggerDoc | undefined;

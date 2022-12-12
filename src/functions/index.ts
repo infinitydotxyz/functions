@@ -17,3 +17,4 @@ export * from './rewards';
 export * from './treasury';
 export * from './twitter';
 export * from './on-feed-write';
+export * from './orderbook';

@@ -24,7 +24,8 @@ const reservoirOrderEventProcessor = new ReservoirOrderStatusEventProcessor(
     batchSize: 200,
     maxPages: 3,
     minTriggerInterval: ONE_MIN,
-    id: 'processor'
+    id: 'processor',
+    isCollectionGroup: true
   },
   {
     schedule: 'every 2 minutes',

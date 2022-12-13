@@ -32,6 +32,11 @@ export interface EventProcessorConfig {
    * an optional id to support multiple triggers for the same collection
    */
   id?: string;
+
+  /**
+   * whether there are event streams spread across collections
+   */
+  isCollectionGroup?: boolean;
 }
 
 /**

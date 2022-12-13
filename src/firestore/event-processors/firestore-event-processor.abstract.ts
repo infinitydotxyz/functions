@@ -117,7 +117,7 @@ export abstract class FirestoreEventProcessor<T> {
       }
       const isProcessed = this._isEventProcessed(data);
       if (!isProcessed) {
-        await this._initiateProcessing(ref);
+        await this._initiateProcessing(ref, false);
       }
     });
   }
@@ -134,15 +134,21 @@ export abstract class FirestoreEventProcessor<T> {
 
       const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
       const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
-      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore).limit(
-        1
-      );
+      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore);
 
-      const snapshot = await staleUnProcessedEvents.get();
-      const item = snapshot.docs.find((item) => !!item);
+      let query = staleUnProcessedEvents;
+      if (!this._config.isCollectionGroup) {
+        query = query.limit(1);
+      }
 
-      if (item) {
-        await this._initiateProcessing(item.ref);
+      const stream = streamQueryWithRef(query);
+
+      const handledTriggers = new Set<string>();
+      for await (const item of stream) {
+        const parentPath = item.ref.parent.parent?.path;
+        if (parentPath && !handledTriggers.has(parentPath)) {
+          await this._initiateProcessing(item.ref, true); // TODO optimize this
+        }
       }
     });
   }
@@ -171,7 +177,7 @@ export abstract class FirestoreEventProcessor<T> {
 
       for await (const item of stream) {
         if (item.data) {
-          await this._triggerProcessing(item.ref, item.data);
+          await this._triggerProcessing(item.ref, true, item.data);
         }
       }
     });
@@ -243,7 +249,7 @@ export abstract class FirestoreEventProcessor<T> {
    * _initiateProcessing updates the trigger document to initiate
    * processing of events in the collection
    */
-  protected async _initiateProcessing(docRef: DocRef<T>) {
+  protected async _initiateProcessing(docRef: DocRef<T>, isBackup: boolean) {
     const collRef = docRef.parent.parent?.collection(`_${this.collectionName}`);
     if (!collRef) {
       throw new Error('failed to get collection ref');
@@ -252,10 +258,10 @@ export abstract class FirestoreEventProcessor<T> {
     const triggerRef = collRef.doc(this._triggerDocId) as DocRef<TriggerDoc>;
     const triggerDoc = await triggerRef.get();
     const data = triggerDoc.data();
-    await this._triggerProcessing(triggerRef, data);
+    await this._triggerProcessing(triggerRef, isBackup, data);
   }
 
-  protected async _triggerProcessing(triggerRef: DocRef<TriggerDoc>, trigger?: TriggerDoc) {
+  protected async _triggerProcessing(triggerRef: DocRef<TriggerDoc>, isBackup: boolean, trigger?: TriggerDoc) {
     if (!trigger) {
       const defaultTrigger: TriggerDoc = {
         id: this._triggerDocId,
@@ -268,7 +274,9 @@ export abstract class FirestoreEventProcessor<T> {
     }
 
     const exceedsMinTriggerInterval = trigger.updatedAt < Date.now() - this._config.minTriggerInterval;
-    if (exceedsMinTriggerInterval && !trigger.requiresProcessing) {
+    if (exceedsMinTriggerInterval && isBackup && trigger.requiresProcessing) {
+      await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
+    } else if (exceedsMinTriggerInterval && !isBackup && !trigger.requiresProcessing) {
       await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
     }
   }

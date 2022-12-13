@@ -5,7 +5,8 @@ import { ChainId, OrderEvents } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
-import { CollRef, Query, QuerySnap } from '@/firestore/types';
+import { TriggerDoc } from '@/firestore/event-processors/types';
+import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import * as Reservoir from '@/lib/reservoir';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';

@@ -19,6 +19,7 @@ import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
+import { ErrorCode, OrderError } from '@/lib/orderbook/errors';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -77,38 +78,76 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       throw new Error(`No events found: ${orderId}`);
     }
 
-    const results = [];
+    const successful = [];
+    const failed = [];
     for (const event of events) {
       const { data, metadata } = event.data;
-      const transformedEvent = await this._transformEvent({ data, metadata }, txn);
+      try {
+        const transformedEvent = await this._transformEvent({ data, metadata }, txn);
 
-      const transformedEventRef = orderRef
-        .collection('orderEvents')
-        .doc(transformedEvent.metadata.id) as DocRef<OrderEvents>;
+        const transformedEventRef = orderRef
+          .collection('orderEvents')
+          .doc(transformedEvent.metadata.id) as DocRef<OrderEvents>;
+        const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
+          metadata: {
+            ...event.data.metadata,
+            processed: true,
+            updatedAt: Date.now()
+          }
+        };
 
-      const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
-        metadata: {
-          ...event.data.metadata,
-          processed: true,
-          updatedAt: Date.now()
+        const result = {
+          transformedEvent,
+          transformedEventRef,
+          reservoirEventUpdate: reservoirEventUpdate,
+          reservoirEventRef: event.ref
+        };
+        successful.push(result);
+      } catch (err) {
+        let error;
+        if (err instanceof OrderError) {
+          error = err.toJSON();
+        } else if (err instanceof Error) {
+          const message = err.message;
+          error = {
+            errorCode: ErrorCode.Unexpected,
+            value: 'unknown',
+            source: 'unknown',
+            reason: message,
+            type: 'unknown'
+          };
+        } else {
+          error = {
+            errorCode: ErrorCode.Unexpected,
+            value: 'unknown',
+            source: 'unknown',
+            reason: 'unknown',
+            type: 'unknown'
+          };
         }
-      };
-
-      const result = {
-        transformedEvent,
-        transformedEventRef,
-        reservoirEventUpdate: reservoirEventUpdate,
-        reservoirEventRef: event.ref
-      };
-
-      results.push(result);
+        const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata' | 'error'> = {
+          metadata: {
+            ...event.data.metadata,
+            processed: true,
+            updatedAt: Date.now(),
+            hasError: true
+          },
+          error
+        };
+        const result = {
+          reservoirEventUpdate: reservoirEventUpdate,
+          reservoirEventRef: event.ref
+        };
+        failed.push(result);
+      }
     }
 
-    const transformedEventsSnaps = await txn.getAll(...results.map((item) => item.transformedEventRef));
+    const transformedEventsSnaps =
+      successful.length > 0 ? await txn.getAll(...successful.map((item) => item.transformedEventRef)) : [];
 
-    for (let resultIndex = 0; resultIndex < results.length; resultIndex += 1) {
+    for (let resultIndex = 0; resultIndex < successful.length; resultIndex += 1) {
       const transformedEventSnap = transformedEventsSnaps[resultIndex];
-      const result = results[resultIndex];
+      const result = successful[resultIndex];
 
       if (transformedEventSnap.ref.id !== result.transformedEventRef.id) {
         throw new Error(
@@ -127,6 +166,10 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
        * update the reservoir event as processed
        */
       txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
+    }
+
+    for (const item of failed) {
+      txn.set(item.reservoirEventRef, item.reservoirEventUpdate, { merge: true });
     }
   }
 
@@ -337,6 +380,17 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     const { rawOrder } = await order.load(txn);
 
     if (!rawOrder.rawOrder) {
+      if ('error' in rawOrder) {
+        const reason =
+          'reason' in rawOrder.error && typeof rawOrder.error.reason === 'string' ? rawOrder.error.reason : 'unknown';
+        throw new OrderError(
+          reason,
+          rawOrder.error.errorCode,
+          rawOrder.error.value,
+          rawOrder.error.source,
+          rawOrder.error.type
+        );
+      }
       throw new Error(`No raw order found for order: ${orderId}`);
     }
     let status: OrderStatus;

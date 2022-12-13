@@ -1,5 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 
+import { ErrorCode } from '@/lib/orderbook/errors';
+
 import * as Reservoir from '..';
 
 export type SyncMetadataType = 'ask' | 'bid' | 'collection-ask' | 'collection-bid';
@@ -28,9 +30,17 @@ export type ReservoirOrderEvent = {
     migrationId: 1;
     orderId: string;
     status: Reservoir.Api.Orders.Types.OrderStatus;
+    hasError?: boolean;
   };
   data: {
     event: Reservoir.Api.Events.Types.ReservoirEventMetadata;
     order: Reservoir.Api.Events.Types.BidV1Order | Reservoir.Api.Events.Types.AskV2Order;
+  };
+  error?: {
+    errorCode: ErrorCode;
+    value: string;
+    source: string;
+    reason: string;
+    type: string;
   };
 };

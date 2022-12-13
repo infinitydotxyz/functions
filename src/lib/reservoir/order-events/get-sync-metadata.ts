@@ -13,8 +13,12 @@ export const getOrderEventSyncsRef = (db: Firestore) => {
 export const getOrderEventSyncRef = (
   syncsRef: CollRef<SyncMetadata>,
   chainId: ChainId,
-  type: SyncMetadata['metadata']['type']
+  type: SyncMetadata['metadata']['type'],
+  collection?: string
 ) => {
+  if (type === 'collection-ask' || type === 'collection-bid') {
+    return syncsRef.doc(`${chainId}:${type}:${collection}`) as DocRef<SyncMetadata>;
+  }
   return syncsRef.doc(`${chainId}:${type}`) as DocRef<SyncMetadata>;
 };
 

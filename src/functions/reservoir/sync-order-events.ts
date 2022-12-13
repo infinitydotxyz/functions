@@ -13,7 +13,7 @@ import * as Reservoir from '../../lib/reservoir';
 export async function syncOrderEvents(
   db: Firestore,
   maxDuration: number,
-  options?: { pollInterval?: number; contract?: string; startTimestamp?: number }
+  options?: { pollInterval?: number; startTimestamp?: number }
 ) {
   const start = Date.now();
   const stop = start + maxDuration;
@@ -22,13 +22,7 @@ export async function syncOrderEvents(
   const syncs = await Reservoir.OrderEvents.SyncMetadata.getSyncMetadata(db);
   await Promise.all(
     syncs.map(async (syncMetadata) => {
-      const syncIterator = Reservoir.OrderEvents.sync(
-        db,
-        syncMetadata,
-        300,
-        options?.contract,
-        options?.startTimestamp
-      );
+      const syncIterator = Reservoir.OrderEvents.sync(db, syncMetadata, 300, options?.startTimestamp);
       for await (const pageDetails of syncIterator) {
         console.log(
           `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Found ${pageDetails.numEventsFound} Saved ${pageDetails.numEventsSaved} Page ${pageDetails.pageNumber}`

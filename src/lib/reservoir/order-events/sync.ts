@@ -21,7 +21,6 @@ export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
   pageSize = 300,
-  contract?: string,
   startTimestamp?: number
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
@@ -36,12 +35,13 @@ export async function* sync(
   const method =
     expectedOrderSide === 'bid' ? Reservoir.Api.Events.BidEvents.getEvents : Reservoir.Api.Events.AskEvents.getEvents;
 
+  const contract = initialSync.data.metadata.collection ? { contract: initialSync.data.metadata.collection } : {};
   while (true) {
     const page = await method(client, {
       continuation: continuation || undefined,
       limit: pageSize,
       sortDirection: 'asc',
-      contract: contract,
+      ...contract,
       startTimestamp: startTimestamp
     });
     const numItems = (page.data?.events ?? []).length;

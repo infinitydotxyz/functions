@@ -4,17 +4,24 @@ import { Firestore } from '../../../firestore/types';
 import { getOrderEventSyncRef, getOrderEventSyncsRef } from './get-sync-metadata';
 import { SyncMetadata, SyncMetadataType } from './types';
 
-const DEFAULT_TYPES: SyncMetadataType[] = ['ask', 'bid'];
+const CHAIN_TYPES: SyncMetadataType[] = ['ask', 'bid'];
+const COLLECTION_TYPES: SyncMetadataType[] = ['collection-ask', 'collection-bid'];
 
 type SyncUpdater = (db: Firestore, chainId: ChainId, types: SyncMetadataType[]) => Promise<void>;
 
-export const addSyncs: SyncUpdater = (db, chainId, types = DEFAULT_TYPES) => {
+export const addSyncs: SyncUpdater = (db, chainId, types?: SyncMetadataType[], collection?: string) => {
+  if (!types && collection) {
+    types = COLLECTION_TYPES;
+  } else {
+    types = CHAIN_TYPES;
+  }
+
   const syncsRef = getOrderEventSyncsRef(db);
   const syncs = types.map((item) => {
     return {
       chainId,
       type: item,
-      ref: getOrderEventSyncRef(syncsRef, chainId, item)
+      ref: getOrderEventSyncRef(syncsRef, chainId, item, collection)
     };
   });
 
@@ -32,7 +39,8 @@ export const addSyncs: SyncUpdater = (db, chainId, types = DEFAULT_TYPES) => {
             chainId: sync.chainId,
             type: sync.type,
             updatedAt: Date.now(),
-            isPaused: false
+            isPaused: false,
+            collection
           },
           data: {
             eventsProcessed: 0,
@@ -45,13 +53,25 @@ export const addSyncs: SyncUpdater = (db, chainId, types = DEFAULT_TYPES) => {
   });
 };
 
-const updateIsPaused = (db: Firestore, chainId: ChainId, types = DEFAULT_TYPES, isPaused: boolean) => {
+const updateIsPaused = (
+  db: Firestore,
+  chainId: ChainId,
+  isPaused: boolean,
+  types?: SyncMetadataType[],
+  collection?: string
+) => {
+  if (!types && collection) {
+    types = COLLECTION_TYPES;
+  } else {
+    types = CHAIN_TYPES;
+  }
+
   const syncsRef = getOrderEventSyncsRef(db);
   const syncs = types.map((item) => {
     return {
       chainId,
       type: item,
-      ref: getOrderEventSyncRef(syncsRef, chainId, item)
+      ref: getOrderEventSyncRef(syncsRef, chainId, item, collection)
     };
   });
   return db.runTransaction(async (txn) => {
@@ -68,7 +88,8 @@ const updateIsPaused = (db: Firestore, chainId: ChainId, types = DEFAULT_TYPES, 
             chainId: sync.chainId,
             type: sync.type,
             updatedAt: Date.now(),
-            isPaused
+            isPaused,
+            collection
           },
           data: {
             eventsProcessed: 0,
@@ -81,10 +102,10 @@ const updateIsPaused = (db: Firestore, chainId: ChainId, types = DEFAULT_TYPES, 
   });
 };
 
-export const pauseSyncs: SyncUpdater = (db, chainId, types = DEFAULT_TYPES) => {
-  return updateIsPaused(db, chainId, types, true);
+export const pauseSyncs: SyncUpdater = (db, chainId, types?: SyncMetadataType[], collection?: string) => {
+  return updateIsPaused(db, chainId, true, types, collection);
 };
 
-export const unpauseSyncs: SyncUpdater = (db, chainId, types = DEFAULT_TYPES) => {
-  return updateIsPaused(db, chainId, types, false);
+export const unpauseSyncs: SyncUpdater = (db, chainId, types?: SyncMetadataType[], collection?: string) => {
+  return updateIsPaused(db, chainId, false, types, collection);
 };

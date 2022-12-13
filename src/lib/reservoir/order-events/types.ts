@@ -2,7 +2,7 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 
 import * as Reservoir from '..';
 
-export type SyncMetadataType = 'ask' | 'bid';
+export type SyncMetadataType = 'ask' | 'bid' | 'collection-ask' | 'collection-bid';
 
 export interface SyncMetadata {
   metadata: {
@@ -10,6 +10,7 @@ export interface SyncMetadata {
     chainId: ChainId;
     updatedAt: number;
     isPaused: boolean;
+    collection?: string;
   };
   data: {
     eventsProcessed: number;
@@ -19,9 +20,6 @@ export interface SyncMetadata {
 
 export type ReservoirOrderEvent = {
   metadata: {
-    /**
-     * lexicographically sorted id
-     */
     id: string;
     isSellOrder: boolean;
     updatedAt: number;

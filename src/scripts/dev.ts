@@ -97,7 +97,7 @@ async function orderEventProcessor(id: string) {
 }
 
 async function main() {
-  const id = '0x0044d95e7fcbc1ee1abf0ed19a96380a056211811a33b1c69f34141e598e3d9f';
+  const id = '0x053589c285f3f65e11685830ade4f3a8217ffceeed2f356602d469fd252bddfc';
   // const db = getDb();
   // await Reservoir.OrderEvents.addSyncs(
   //   db,
@@ -107,7 +107,21 @@ async function main() {
   // );
   // await getDb().collection('ordersV2').doc(id).delete();
   await reservoirOrderProcessor(id);
-  await orderEventProcessor(id);
+  // await orderEventProcessor(id);
+
+  // const db = getDb();
+  // const result = await db
+  //   .collectionGroup('_reservoirOrderEvents')
+  //   .where('id', '==', '_trigger:reservoirOrderEvents:processor')
+  //   .where('requiresProcessing', '==', true)
+  //   .where('updatedAt', '<', Date.now())
+  //   .limit(2)
+  //   .get();
+
+  // for (const item of result.docs) {
+  //   console.log(item.ref.path);
+  //   console.log(JSON.stringify(item.data(), null, 2));
+  // }
 }
 
 void main();

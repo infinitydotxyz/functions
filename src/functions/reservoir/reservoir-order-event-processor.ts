@@ -145,6 +145,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     const transformedEventsSnaps =
       successful.length > 0 ? await txn.getAll(...successful.map((item) => item.transformedEventRef)) : [];
 
+    const handledEvents = new Set();
     for (let resultIndex = 0; resultIndex < successful.length; resultIndex += 1) {
       const transformedEventSnap = transformedEventsSnaps[resultIndex];
       const result = successful[resultIndex];
@@ -158,18 +159,25 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       /**
        * only save the event if it doesn't already exist
        */
-      if (!transformedEventSnap.exists) {
+      if (!transformedEventSnap.exists && !handledEvents.has(transformedEventSnap.ref.path)) {
+        handledEvents.add(transformedEventSnap.ref.path);
         txn.create(result.transformedEventRef, result.transformedEvent);
       }
 
-      /**
-       * update the reservoir event as processed
-       */
-      txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
+      if (!handledEvents.has(result.reservoirEventRef.path)) {
+        /**
+         * update the reservoir event as processed
+         */
+        txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
+        handledEvents.add(result.reservoirEventRef.path);
+      }
     }
 
     for (const item of failed) {
-      txn.set(item.reservoirEventRef, item.reservoirEventUpdate, { merge: true });
+      if (!handledEvents.has(item.reservoirEventRef.path)) {
+        txn.set(item.reservoirEventRef, item.reservoirEventUpdate, { merge: true });
+        handledEvents.add(item.reservoirEventRef.path);
+      }
     }
   }
 

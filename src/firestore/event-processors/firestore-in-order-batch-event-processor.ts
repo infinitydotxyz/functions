@@ -12,8 +12,11 @@ export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEv
     query = this._applyOrderBy(query, false);
 
     const firstUnprocessedEventSnap = await query.limit(1).get();
-
-    const startAfterQuery = this._applyOrderBy(ref, true).startAfter(firstUnprocessedEventSnap.docs[0]?.ref);
+    const firstRef = firstUnprocessedEventSnap.docs[0]?.ref;
+    let startAfterQuery = this._applyOrderBy(ref, true);
+    if (firstRef) {
+      startAfterQuery = startAfterQuery.startAfter(firstRef);
+    }
     const startAfterSnap = await startAfterQuery.limit(1).get();
     const firstStartAfter = startAfterSnap.docs[0];
 

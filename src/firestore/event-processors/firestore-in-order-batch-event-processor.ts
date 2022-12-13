@@ -18,11 +18,15 @@ export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEv
     const firstStartAfter = startAfterSnap.docs[0];
 
     const applyStartAfter = (query: Query<T>, lastPageSnap?: QuerySnap<T>) => {
-      if (!lastPageSnap) {
+      if (!lastPageSnap && firstStartAfter) {
         return query.startAfter(firstStartAfter.ref);
+      } else if (lastPageSnap) {
+        const lastItem = lastPageSnap.docs[lastPageSnap.docs.length - 1];
+        if (lastItem) {
+          return query.startAfter(lastItem.ref);
+        }
       }
-      const lastItem = lastPageSnap.docs[lastPageSnap.docs.length - 1];
-      return query.startAfter(lastItem.ref);
+      return query;
     };
 
     return {

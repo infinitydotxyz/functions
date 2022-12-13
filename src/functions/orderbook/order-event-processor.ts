@@ -73,7 +73,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     }
 
     const rawOrderRef = eventsRef.parent as DocRef<RawFirestoreOrder>;
-    const chainDisplayRef = eventsRef.firestore
+    const chainDisplayRef = this.db
       .collection('ordersV2ByChain')
       .doc(sampleEvent.chainId)
       .collection('chainV2Orders')

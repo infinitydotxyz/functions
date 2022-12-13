@@ -28,6 +28,7 @@ import { bn, getUserDisplayData } from '@/lib/utils';
 import { GWEI } from '@/lib/utils/constants';
 import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
+import { Orderbook } from '../..';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
@@ -177,6 +178,37 @@ export class BaseOrder {
     };
   }
 
+  public async getGasUsage(rawOrder: RawFirestoreOrder) {
+    if (rawOrder.metadata.source === 'infinity') {
+      return rawOrder.order?.gasUsage ?? 0;
+    }
+    try {
+      const factory = new Orderbook.Transformers.OrderTransformerFactory();
+
+      if (!rawOrder.rawOrder || 'error' in rawOrder.rawOrder) {
+        return rawOrder.order?.gasUsage ?? 0;
+      }
+      const transformer = factory.create(this._chainId, {
+        kind: rawOrder.rawOrder.source,
+        side: rawOrder.rawOrder.isSellOrder ? 'sell' : 'buy',
+        rawData: rawOrder.rawOrder.rawOrder
+      });
+
+      const transformationResult = await transformer.transform();
+      if (!transformationResult.isNative) {
+        const gasUsageString = await this._gasSimulator.simulate(
+          transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
+        );
+        return parseInt(gasUsageString, 10);
+      }
+
+      return rawOrder.order?.gasUsage ?? 0;
+    } catch (err) {
+      console.warn(`Failed to estimate gas`, err);
+      return rawOrder.order?.gasUsage ?? 0;
+    }
+  }
+
   public async save(
     rawOrder: RawFirestoreOrder,
     displayOrder: FirestoreDisplayOrder,
@@ -207,13 +239,14 @@ export class BaseOrder {
     txn?: FirebaseFirestore.Transaction
   ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder }> {
     const orderBuilder = new ReservoirOrderBuilder(this._chainId, this._gasSimulator);
-    const result = await orderBuilder.buildOrder(this._id, this._isSellOrder);
+    const { order, initialStatus } = await orderBuilder.buildOrder(this._id, this._isSellOrder);
 
-    return await this.buildFromRawOrder(result, txn);
+    return await this.buildFromRawOrder(order, initialStatus, txn);
   }
 
   public async buildFromRawOrder(
     rawOrder: RawOrder,
+    initialStatus?: OrderStatus,
     txn?: FirebaseFirestore.Transaction
   ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder }> {
     if ('error' in rawOrder) {
@@ -239,10 +272,10 @@ export class BaseOrder {
        * TODO how do we handle the maker as the match executor?
        */
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
-      const status = await this.getOrderStatus(
-        txn,
-        rawOrder.source === 'infinity' ? rawOrder.infinityOrder : undefined
-      );
+      const status =
+        initialStatus === 'active'
+          ? 'active'
+          : await this.getOrderStatus(txn, rawOrder.source === 'infinity' ? rawOrder.infinityOrder : undefined);
       const rawFirestoreOrder = this._getRawFirestoreOrder(rawOrder, displayData, status);
       const displayOrder = this._getDisplayOrder(rawFirestoreOrder, displayData);
       return {

@@ -7,12 +7,12 @@ import { SyncMetadata, SyncMetadataType } from './types';
 const CHAIN_TYPES: SyncMetadataType[] = ['ask', 'bid'];
 const COLLECTION_TYPES: SyncMetadataType[] = ['collection-ask', 'collection-bid'];
 
-type SyncUpdater = (db: Firestore, chainId: ChainId, types: SyncMetadataType[]) => Promise<void>;
+type SyncUpdater = (db: Firestore, chainId: ChainId, types: SyncMetadataType[], collection?: string) => Promise<void>;
 
 export const addSyncs: SyncUpdater = (db, chainId, types?: SyncMetadataType[], collection?: string) => {
   if (!types && collection) {
     types = COLLECTION_TYPES;
-  } else {
+  } else if (!types) {
     types = CHAIN_TYPES;
   }
 
@@ -62,7 +62,7 @@ const updateIsPaused = (
 ) => {
   if (!types && collection) {
     types = COLLECTION_TYPES;
-  } else {
+  } else if (!types) {
     types = CHAIN_TYPES;
   }
 

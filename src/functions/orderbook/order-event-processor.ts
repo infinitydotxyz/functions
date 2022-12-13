@@ -124,6 +124,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       throw new Error('invalid chain id');
     }
 
+    const initialStatus = orderUpdater.rawOrder.order.status;
     for (const item of items) {
       const { data: event, ref } = item;
 
@@ -183,9 +184,11 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       );
     }
 
+    const finalStatus = orderUpdater.rawOrder.order.status;
+
     //save order
-    const rawOrder = orderUpdater.rawOrder;
-    const displayOrder = orderUpdater.displayOrder;
+    let rawOrder = orderUpdater.rawOrder;
+    let displayOrder = orderUpdater.displayOrder;
     const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
     const db = this._getDb();
     const baseOrder = new BaseOrder(
@@ -196,6 +199,16 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       provider,
       gasSimulator
     );
+
+    const updateGasUsage = initialStatus !== finalStatus && finalStatus === 'active';
+    if (updateGasUsage) {
+      const gasUsage = await baseOrder.getGasUsage(rawOrder);
+
+      orderUpdater.setGasUsage(gasUsage);
+
+      rawOrder = orderUpdater.rawOrder;
+      displayOrder = orderUpdater.displayOrder;
+    }
 
     await baseOrder.save(rawOrder, displayOrder, txn);
   }
@@ -256,7 +269,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     const metadata = event.metadata;
     const baseOrder = new BaseOrder(order.id, metadata.chainId, metadata.isSellOrder, db, provider, gasSimulator);
 
-    const result = await baseOrder.buildFromRawOrder(order, txn);
+    const result = await baseOrder.buildFromRawOrder(order, undefined, txn);
     return {
       rawOrder: result.rawOrder,
       displayOrder: result.displayOrder,

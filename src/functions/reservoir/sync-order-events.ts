@@ -22,20 +22,29 @@ export async function syncOrderEvents(
   const syncs = await Reservoir.OrderEvents.SyncMetadata.getSyncMetadata(db);
   await Promise.all(
     syncs.map(async (syncMetadata) => {
-      const syncIterator = Reservoir.OrderEvents.sync(db, syncMetadata, 300, options?.startTimestamp);
-      for await (const pageDetails of syncIterator) {
-        console.log(
-          `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Found ${pageDetails.numEventsFound} Saved ${pageDetails.numEventsSaved} Page ${pageDetails.pageNumber}`
-        );
-        if (Date.now() > stop) {
-          return;
-        }
-        if (pageDetails.numEventsFound < pageDetails.pageSize) {
-          await sleep(pollInterval);
+      try {
+        const syncIterator = Reservoir.OrderEvents.sync(db, syncMetadata, 300, options?.startTimestamp);
+        for await (const pageDetails of syncIterator) {
+          console.log(
+            `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Found ${pageDetails.numEventsFound} Saved ${pageDetails.numEventsSaved} Page ${pageDetails.pageNumber}`
+          );
           if (Date.now() > stop) {
             return;
           }
+          if (pageDetails.numEventsFound < pageDetails.pageSize) {
+            await sleep(pollInterval);
+            if (Date.now() > stop) {
+              return;
+            }
+          }
         }
+      } catch (err) {
+        console.error(
+          `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
+            syncMetadata.data.metadata.collection ?? ''
+          }`,
+          err
+        );
       }
     })
   );

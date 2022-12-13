@@ -6,10 +6,9 @@ import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { CollRef, Query, QuerySnap } from '@/firestore/types';
+import * as Reservoir from '@/lib/reservoir';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
-
-import { Reservoir } from '../lib';
 
 async function reservoirOrderProcessor(id: string) {
   class Dev extends ReservoirOrderStatusEventProcessor {
@@ -92,14 +91,19 @@ async function orderEventProcessor(id: string) {
   await db.runTransaction(async (txn) => {
     const snap = await txn.get(query);
 
-    console.log(`Found" ${snap.docs.length} events`);
     await processor.process(snap, txn, eventsRef);
   });
 }
 
 async function main() {
-  const id = '0xb24ce9be2f568ccb351b6f74ede03e1d828cd8cafe251131b16f46017174fdd9';
-
+  const id = '0x0002acdfd8e5b4b47861b64128c1543b4cbf811906387155e8039b0097de6929';
+  // const db = getDb();
+  // await Reservoir.OrderEvents.addSyncs(
+  //   db,
+  //   ChainId.Mainnet,
+  //   ['collection-ask'],
+  //   '0xea67b4dd7bacae340bc4e43652044b5cded1963c'
+  // );
   // await getDb().collection('ordersV2').doc(id).delete();
   await reservoirOrderProcessor(id);
   await orderEventProcessor(id);

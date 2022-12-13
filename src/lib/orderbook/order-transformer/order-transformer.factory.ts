@@ -8,7 +8,7 @@ import { ErrorCode } from '../errors';
 import { OrderError, OrderKindError, OrderSourceError } from '../errors/order.error';
 
 export class OrderTransformerFactory {
-  public create(chainId: ChainId, reservoirOrder: Reservoir.Api.Orders.Types.Order) {
+  public create(chainId: ChainId, reservoirOrder: Pick<Reservoir.Api.Orders.Types.Order, 'kind' | 'side' | 'rawData'>) {
     const source = reservoirOrder.kind;
     const provider = getProvider(chainId);
     if (!provider) {

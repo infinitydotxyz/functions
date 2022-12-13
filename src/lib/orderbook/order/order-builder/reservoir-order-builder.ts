@@ -8,7 +8,10 @@ import { TransformationResult } from '../../order-transformer/types';
 import { OrderBuilder } from './order-builder.abstract';
 
 export class ReservoirOrderBuilder extends OrderBuilder {
-  public async buildOrder(orderId: string, isSellOrder: boolean): Promise<RawOrder> {
+  public async buildOrder(
+    orderId: string,
+    isSellOrder: boolean
+  ): Promise<{ order: RawOrder; initialStatus: 'active' | 'inactive' }> {
     const baseOrder: Omit<BaseRawOrder, 'createdAt' | 'infinityOrderId'> = {
       id: orderId,
       chainId: this._chainId,
@@ -33,7 +36,13 @@ export class ReservoirOrderBuilder extends OrderBuilder {
        * calculate the gas used to fulfill the order on the
        * external marketplace
        */
-      const gasUsage = await this._getGasUsage(result, reservoirOrder.kind, reservoirOrder.id);
+      let gasUsage = '0';
+      let initialStatus: 'active' | 'inactive' = 'active';
+      try {
+        gasUsage = await this._getGasUsage(result, reservoirOrder.kind, reservoirOrder.id);
+      } catch (err) {
+        initialStatus = 'inactive';
+      }
 
       const infinityOrder = result.isNative ? result.order : result.infinityOrder;
       const sourceOrder = result.isNative ? result.order : result.sourceOrder;
@@ -60,7 +69,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
         isDynamic,
         createdAt: new Date(reservoirOrder.createdAt).getTime()
       };
-      return order;
+      return { order, initialStatus };
     } catch (err) {
       if (err instanceof OrderError) {
         const orderData: RawOrderWithError = {
@@ -68,7 +77,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
           error: err.toJSON(),
           createdAt: 0
         };
-        return orderData;
+        return { order: orderData, initialStatus: 'inactive' };
       }
       console.error(err);
       const orderData: RawOrderWithError = {
@@ -76,7 +85,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
         error: new UnexpectedOrderError(`failed to build order ${orderId}`).toJSON(),
         createdAt: 0
       };
-      return orderData;
+      return { order: orderData, initialStatus: 'inactive' };
     }
   }
 

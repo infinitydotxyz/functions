@@ -17,7 +17,7 @@ export abstract class OrderTransformer<SourceOrder = never> {
 
   constructor(
     protected _chainId: ChainId,
-    protected _reservoirOrder: Reservoir.Api.Orders.Types.Order,
+    protected _reservoirOrder: Pick<Reservoir.Api.Orders.Types.Order, 'kind' | 'source' | 'side' | 'rawData'>,
     protected _provider: ethers.providers.StaticJsonRpcProvider
   ) {
     if (!this._reservoirOrder.rawData) {

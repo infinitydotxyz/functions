@@ -24,7 +24,7 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
 
   constructor(
     _chainId: ChainId,
-    _reservoirOrder: Reservoir.Api.Orders.Types.Order,
+    _reservoirOrder: Pick<Reservoir.Api.Orders.Types.Order, 'kind' | 'source' | 'side' | 'rawData'>,
     _provider: ethers.providers.StaticJsonRpcProvider
   ) {
     super(_chainId, _reservoirOrder, _provider);

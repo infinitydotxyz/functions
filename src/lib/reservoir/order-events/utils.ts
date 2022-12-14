@@ -1,12 +1,12 @@
 import { BigNumberish } from 'ethers';
 
-import { toLexicographicalStr } from '@infinityxyz/lib/utils';
+import { toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 
 import { DocRef, Firestore } from '../../../firestore/types';
 import { ReservoirOrderEvent } from './types';
 
 export const getReservoirOrderEventId = (id: BigNumberish) => {
-  return toLexicographicalStr(id, 128);
+  return toNumericallySortedLexicographicStr(id, 128);
 };
 
 export const getReservoirOrderEventRef = (db: Firestore, orderId: string, eventId: BigNumberish) => {

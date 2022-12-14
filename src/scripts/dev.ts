@@ -1,5 +1,6 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
 import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoir-order-event-processor';
+import { syncOrderEvents } from 'functions/reservoir/sync-order-events';
 
 import { ChainId, OrderEvents } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
@@ -97,7 +98,10 @@ async function orderEventProcessor(id: string) {
 }
 
 async function main() {
-  const id = '0x053589c285f3f65e11685830ade4f3a8217ffceeed2f356602d469fd252bddfc';
+  const db = getDb();
+  const stopIn = ONE_MIN * 8.75;
+  await syncOrderEvents(db, stopIn, { pollInterval: 1000 * 10, delay: 5000 });
+  // const id = '0x053589c285f3f65e11685830ade4f3a8217ffceeed2f356602d469fd252bddfc';
   // const db = getDb();
   // await Reservoir.OrderEvents.addSyncs(
   //   db,
@@ -106,7 +110,7 @@ async function main() {
   //   '0xea67b4dd7bacae340bc4e43652044b5cded1963c'
   // );
   // await getDb().collection('ordersV2').doc(id).delete();
-  await reservoirOrderProcessor(id);
+  // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
 
   // const db = getDb();

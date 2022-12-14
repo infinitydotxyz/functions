@@ -13,7 +13,7 @@ import * as Reservoir from '../../lib/reservoir';
 export async function syncOrderEvents(
   db: Firestore,
   maxDuration: number,
-  options?: { pollInterval?: number; startTimestamp?: number }
+  options?: { pollInterval?: number; startTimestamp?: number; delay?: number }
 ) {
   const start = Date.now();
   const stop = start + maxDuration;
@@ -36,6 +36,8 @@ export async function syncOrderEvents(
             if (Date.now() > stop) {
               return;
             }
+          } else if (options?.delay) {
+            await sleep(options.delay);
           }
         }
       } catch (err) {

@@ -116,9 +116,6 @@ export async function* sync(
         }
 
         hasNextPage = page.data.continuation !== continuation && numItems < pageSize && !!page.data.continuation;
-        if (!page.data.continuation && continuation) {
-          throw new Error('Failed to find continuation');
-        }
         if (page.data.continuation) {
           continuation = page.data.continuation;
         }

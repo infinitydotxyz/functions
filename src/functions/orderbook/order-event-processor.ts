@@ -5,6 +5,7 @@ import {
   ChainId,
   FirestoreDisplayOrder,
   OrderCreatedEvent,
+  OrderDirection,
   OrderEventKind,
   OrderEventMetadata,
   OrderEvents,
@@ -26,9 +27,9 @@ import { getProvider } from '@/lib/utils/ethersUtils';
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number } } = OrderEvents>(
     query: CollRef<Events> | Query<Events>,
-    reverse?: boolean | undefined
+    direction: OrderDirection = OrderDirection.Ascending
   ): Query<Events> {
-    return query.orderBy('metadata.timestamp', reverse ? 'asc' : 'desc');
+    return query.orderBy('metadata.timestamp', direction);
   }
 
   protected _applyOrderByLessThan<Events extends { metadata: { timestamp: number } } = OrderEvents>(

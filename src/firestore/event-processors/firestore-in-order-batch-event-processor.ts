@@ -1,3 +1,5 @@
+import { OrderDirection } from '@infinityxyz/lib/types/core';
+
 import { CollRef, Query, QuerySnap } from '../types';
 import { FirestoreEventProcessor } from './firestore-event-processor.abstract';
 
@@ -8,12 +10,18 @@ import { FirestoreEventProcessor } from './firestore-event-processor.abstract';
  */
 export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEventProcessor<T> {
   protected async _getEventsForProcessing(ref: CollRef<T>) {
+    /**
+     * get the first unprocessed event
+     */
     let query = this._getUnProcessedEvents(ref);
-    query = this._applyOrderBy(query, false);
+    query = this._applyOrderBy(query, OrderDirection.Ascending);
 
     const firstUnprocessedEventSnap = await query.limit(1).get();
     const firstRef = firstUnprocessedEventSnap.docs[0]?.ref;
-    let startAfterQuery = this._applyOrderBy(ref, true);
+    /**
+     * get the event before the first unprocessed event
+     */
+    let startAfterQuery = this._applyOrderBy(ref, OrderDirection.Descending);
     if (firstRef) {
       startAfterQuery = startAfterQuery.startAfter(firstRef);
     }
@@ -33,12 +41,12 @@ export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEv
     };
 
     return {
-      query: this._applyOrderByLessThan(this._applyOrderBy(ref, false), Date.now()),
+      query: this._applyOrderByLessThan(this._applyOrderBy(ref, OrderDirection.Ascending), Date.now()),
       applyStartAfter
     };
   }
 
-  protected abstract _applyOrderBy(query: CollRef<T> | Query<T>, reverse?: boolean): Query<T>;
+  protected abstract _applyOrderBy(query: CollRef<T> | Query<T>, direction: OrderDirection): Query<T>;
 
   protected abstract _applyOrderByLessThan(query: CollRef<T> | Query<T>, timestamp: number): Query<T>;
 }

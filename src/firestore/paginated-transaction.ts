@@ -1,4 +1,4 @@
-import { QuerySnap } from './types';
+import { Query, QuerySnap } from './types';
 
 /**
  * provides boilerplate for performing transactions in a loop
@@ -34,7 +34,7 @@ export async function paginatedTransaction<T>(
   applyStartAfter?: (
     query: FirebaseFirestore.Query<T>,
     lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
-  ) => FirebaseFirestore.Query<T>
+  ) => FirebaseFirestore.Query<T> | undefined
 ) {
   let pagesProcessed = 0;
   let documentsProcessed = 0;
@@ -42,9 +42,12 @@ export async function paginatedTransaction<T>(
   let lastPageSnap: QuerySnap<T>;
   for (let x = 0; x < options.maxPages; x += 1) {
     const res = await db.runTransaction<Error | { queryEmpty: boolean }>(async (txn) => {
-      let pageQuery = query;
+      let pageQuery: Query<T> | undefined = query;
       if (applyStartAfter && typeof applyStartAfter === 'function') {
         pageQuery = applyStartAfter(pageQuery, lastPageSnap);
+        if (pageQuery == null) {
+          return { queryEmpty: true };
+        }
       }
       pageQuery = query.limit(options.pageSize);
       let items: FirebaseFirestore.QuerySnapshot<T>;

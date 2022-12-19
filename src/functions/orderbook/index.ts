@@ -20,7 +20,8 @@ const orderEventProcessor = new OrderEventProcessor(
     schedule: 'every 2 minutes',
     tts: ONE_MIN
   },
-  getDb
+  getDb,
+  true
 );
 
 const processor = orderEventProcessor.getFunctions();

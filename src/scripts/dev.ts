@@ -1,12 +1,16 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
 import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoir-order-event-processor';
 import { syncOrderEvents } from 'functions/reservoir/sync-order-events';
+import PQueue from 'p-queue';
 
-import { ChainId, OrderEvents } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection, OrderEvents } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
 
+import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { TriggerDoc } from '@/firestore/event-processors/types';
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import * as Reservoir from '@/lib/reservoir';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
@@ -101,7 +105,7 @@ async function main() {
   // const db = getDb();
   // const stopIn = ONE_MIN * 8.75;
   // await syncOrderEvents(db, stopIn, { pollInterval: 1000 * 10, delay: 5000 });
-  const id = '0x00080fc79268b013aa60d58c90aa611736698cb51c02c78a2c2ce6ee2f5ec090';
+  // const id = '0x00080fc79268b013aa60d58c90aa611736698cb51c02c78a2c2ce6ee2f5ec090';
   // const db = getDb();
   // await Reservoir.OrderEvents.addSyncs(
   //   db,
@@ -111,19 +115,54 @@ async function main() {
   // );
   // await getDb().collection('ordersV2').doc(id).delete();
   // await reservoirOrderProcessor(id);
-  await orderEventProcessor(id);
-  // const db = getDb();
-  // const result = await db
-  //   .collectionGroup('_reservoirOrderEvents')
-  //   .where('id', '==', '_trigger:reservoirOrderEvents:processor')
-  //   .where('requiresProcessing', '==', true)
-  //   .where('updatedAt', '<', Date.now())
-  //   .limit(2)
-  //   .get();
-  // for (const item of result.docs) {
-  //   console.log(item.ref.path);
-  //   console.log(JSON.stringify(item.data(), null, 2));
-  // }
+  // await orderEventProcessor(id);
+
+  await triggerOrderEvents();
+}
+
+async function triggerOrderEvents() {
+  const db = getDb();
+  const orders = db.collection('ordersV2');
+
+  const query = streamQueryWithRef(orders);
+
+  const pQueue = new PQueue({
+    concurrency: 100
+  });
+
+  for await (const item of query) {
+    pQueue
+      .add(async () => {
+        console.log(`Processing: ${item.ref.id}`);
+        const batchHandler = new BatchHandler();
+        const orderEvents = item.ref.collection('orderEvents') as CollRef<OrderEvents>;
+
+        const orderEventQuery = orderEvents
+          .where('metadata.processed', '==', true)
+          .orderBy('metadata.updatedAt', 'asc');
+
+        const orderEventStream = streamQueryWithRef(orderEventQuery);
+        for await (const orderEvent of orderEventStream) {
+          const update: Pick<OrderEvents, 'metadata'> = {
+            metadata: {
+              ...orderEvent.data.metadata,
+              processed: false,
+              updatedAt: Date.now()
+            }
+          };
+          await batchHandler.addAsync(orderEvent.ref, update, { merge: true });
+        }
+
+        await batchHandler.flush();
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
+  console.log('Waiting for queue to finish');
+  await pQueue.onIdle();
+  console.log(`Done`);
 }
 
 void main();

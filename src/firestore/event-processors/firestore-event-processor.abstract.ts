@@ -37,7 +37,8 @@ export abstract class FirestoreEventProcessor<T> {
   constructor(
     protected _config: EventProcessorConfig,
     protected _backupOptions: BackupOptions,
-    protected _getDb: () => FirebaseFirestore.Firestore
+    protected _getDb: () => FirebaseFirestore.Firestore,
+    protected _debug: boolean = false
   ) {
     this.collectionName = this.getCollectionName();
     this._docBuilderCollectionParentPath = this.getCollectionParentPath();
@@ -81,14 +82,14 @@ export abstract class FirestoreEventProcessor<T> {
         applyStartAfter?: (
           query: FirebaseFirestore.Query<T>,
           lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
-        ) => FirebaseFirestore.Query<T>;
+        ) => FirebaseFirestore.Query<T> | undefined;
       }>
     | {
         query: Query<T>;
         applyStartAfter?: (
           query: FirebaseFirestore.Query<T>,
           lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
-        ) => FirebaseFirestore.Query<T>;
+        ) => FirebaseFirestore.Query<T> | undefined;
       };
 
   /**
@@ -112,12 +113,14 @@ export abstract class FirestoreEventProcessor<T> {
     return document(`${this._config.docBuilderCollectionPath}/{eventDoc}`).onWrite(async (change) => {
       const ref = change.after.ref as FirebaseFirestore.DocumentReference<T>;
       const data = change.after.data() as T | undefined;
-      if (!data) {
-        return;
+      let triggered = false;
+      if (data && !this._isEventProcessed(data)) {
+        const res = await this._initiateProcessing(ref, false);
+        triggered = res.triggered;
       }
-      const isProcessed = this._isEventProcessed(data);
-      if (!isProcessed) {
-        await this._initiateProcessing(ref, false);
+
+      if (this._debug) {
+        console.log(`Event change detected for ${change.after.ref.path}. Triggered processing: ${triggered}`);
       }
     });
   }
@@ -129,6 +132,14 @@ export abstract class FirestoreEventProcessor<T> {
   protected _scheduleBackupEvents(schedule: (schedule: string) => pubsub.ScheduleBuilder) {
     return schedule(this._backupOptions.schedule).onRun(async () => {
       const db = this._getDb();
+
+      const debugData = {
+        numItemsTriggered: 0,
+        numItemsNotTriggered: 0,
+        numDuplicatedFound: 0,
+        firstItemTriggered: '',
+        numItemsFailed: 0
+      };
 
       const eventsRef = db.collectionGroup(this.collectionName) as CollGroupRef<T>;
 
@@ -145,10 +156,28 @@ export abstract class FirestoreEventProcessor<T> {
 
       const handledTriggers = new Set<string>();
       for await (const item of stream) {
-        const parentPath = item.ref.parent.parent?.path;
-        if (parentPath && !handledTriggers.has(parentPath)) {
-          await this._initiateProcessing(item.ref, true); // TODO optimize this
+        try {
+          const parentPath = item.ref.parent.parent?.path;
+          if (parentPath && !handledTriggers.has(parentPath)) {
+            const { triggered } = await this._initiateProcessing(item.ref, false); // TODO optimize this
+            if (triggered) {
+              debugData.numItemsTriggered += 1;
+            } else {
+              debugData.numItemsNotTriggered += 1;
+            }
+          } else {
+            debugData.numDuplicatedFound += 1;
+          }
+        } catch (err) {
+          debugData.numItemsFailed += 1;
+          // ignore
         }
+      }
+      if (this._debug) {
+        console.log(
+          `Scheduled backup completed for: ${this.collectionName}. Is collection group: ${this._config.isCollectionGroup}`,
+          `Triggered: ${debugData.numItemsTriggered}, Not triggered: ${debugData.numItemsNotTriggered}, Duplicates: ${debugData.numDuplicatedFound}, Failed: ${debugData.numItemsFailed}`
+        );
       }
     });
   }
@@ -160,6 +189,12 @@ export abstract class FirestoreEventProcessor<T> {
   protected _scheduleBackupTrigger(schedule: (schedule: string) => pubsub.ScheduleBuilder) {
     return schedule(this._backupOptions.schedule).onRun(async () => {
       const db = this._getDb();
+
+      const debugData = {
+        numItemsTriggered: 0,
+        numItemsNotTriggered: 0,
+        numItemsFailed: 0
+      };
 
       const triggersRequiringProcessing = db
         .collectionGroup(this.triggerCollectionId)
@@ -176,9 +211,25 @@ export abstract class FirestoreEventProcessor<T> {
       const stream = streamQueryWithRef(staleTriggersRequiringProcessing);
 
       for await (const item of stream) {
-        if (item.data) {
-          await this._triggerProcessing(item.ref, true, item.data);
+        try {
+          if (item.data) {
+            const { triggered } = await this._triggerProcessing(item.ref, true, item.data);
+            if (triggered) {
+              debugData.numItemsTriggered += 1;
+            } else {
+              debugData.numItemsNotTriggered += 1;
+            }
+          }
+        } catch (err) {
+          debugData.numItemsFailed += 1;
         }
+      }
+
+      if (this._debug) {
+        console.log(
+          `Scheduled backup trigger completed for: ${this.triggerCollectionId}`,
+          `Triggered: ${debugData.numItemsTriggered}, Not triggered: ${debugData.numItemsNotTriggered}, Failed: ${debugData.numItemsFailed}`
+        );
       }
     });
   }
@@ -198,6 +249,12 @@ export abstract class FirestoreEventProcessor<T> {
       if (!data) {
         return;
       }
+
+      const debugData = {
+        pagesProcessed: 0,
+        documentsProcessed: 0,
+        markedAsProcessed: false
+      };
 
       if (data.requiresProcessing) {
         let wasMarked = false;
@@ -223,10 +280,10 @@ export abstract class FirestoreEventProcessor<T> {
         if (!eventsRef) {
           throw new Error(`Failed to process events. Events ref not found`);
         }
-        const { query: eventsQuery, applyStartAfter } = await this._getEventsForProcessing(eventsRef);
+        const eventsForProcessing = await this._getEventsForProcessing(eventsRef);
 
         const res = await paginatedTransaction(
-          eventsQuery,
+          eventsForProcessing.query,
           this.db,
           { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
           async ({ data, txn, hasNextPage }) => {
@@ -235,12 +292,23 @@ export abstract class FirestoreEventProcessor<T> {
               await markAsProcessed(ref, txn);
             }
           },
-          applyStartAfter
+          eventsForProcessing.applyStartAfter
         );
 
         if (res.queryEmpty) {
           await markAsProcessed(ref);
         }
+
+        debugData.markedAsProcessed = wasMarked;
+        debugData.pagesProcessed = res.pagesProcessed;
+        debugData.documentsProcessed = res.documentsProcessed;
+      }
+
+      if (this._debug) {
+        console.log(
+          `Trigger processed for: ${ref.path}. Required Processing: ${data.requiresProcessing}`,
+          `Processed: ${debugData.pagesProcessed} pages, ${debugData.documentsProcessed} documents, Marked as processed: ${debugData.markedAsProcessed}`
+        );
       }
     });
   }
@@ -249,7 +317,7 @@ export abstract class FirestoreEventProcessor<T> {
    * _initiateProcessing updates the trigger document to initiate
    * processing of events in the collection
    */
-  protected async _initiateProcessing(docRef: DocRef<T>, isBackup: boolean) {
+  protected async _initiateProcessing(docRef: DocRef<T>, isBackup: boolean): Promise<{ triggered: boolean }> {
     const collRef = docRef.parent.parent?.collection(`_${this.collectionName}`);
     if (!collRef) {
       throw new Error('failed to get collection ref');
@@ -258,10 +326,14 @@ export abstract class FirestoreEventProcessor<T> {
     const triggerRef = collRef.doc(this._triggerDocId) as DocRef<TriggerDoc>;
     const triggerDoc = await triggerRef.get();
     const data = triggerDoc.data();
-    await this._triggerProcessing(triggerRef, isBackup, data);
+    return await this._triggerProcessing(triggerRef, isBackup, data);
   }
 
-  protected async _triggerProcessing(triggerRef: DocRef<TriggerDoc>, isBackup: boolean, trigger?: TriggerDoc) {
+  protected async _triggerProcessing(
+    triggerRef: DocRef<TriggerDoc>,
+    isBackup: boolean,
+    trigger?: TriggerDoc
+  ): Promise<{ triggered: boolean }> {
     if (!trigger) {
       const defaultTrigger: TriggerDoc = {
         id: this._triggerDocId,
@@ -270,15 +342,18 @@ export abstract class FirestoreEventProcessor<T> {
         updatedAt: Date.now()
       };
       await triggerRef.set(defaultTrigger, { merge: true });
-      return;
+      return { triggered: true };
     }
 
     const exceedsMinTriggerInterval = trigger.updatedAt < Date.now() - this._config.minTriggerInterval;
     if (exceedsMinTriggerInterval && isBackup && trigger.requiresProcessing) {
       await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
+      return { triggered: true };
     } else if (exceedsMinTriggerInterval && !isBackup && !trigger.requiresProcessing) {
       await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
+      return { triggered: true };
     }
+    return { triggered: false };
   }
 
   protected getCollectionName() {

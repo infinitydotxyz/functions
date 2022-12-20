@@ -35,7 +35,8 @@
     "recalc-raffles": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/recalculate-raffles.ts",
     "migrate-feed": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/migrate-feed.ts",
     "reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reservoir.ts",
-    "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts"
+    "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
+    "snapshot": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/snapshot.ts"
   },
   "engines": {
     "node": "16"
@@ -43,7 +44,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.273.1",
+    "@infinityxyz/lib": "^1.274.0",
     "@reservoir0x/reservoir-kit-client": "^0.1.17",
     "@reservoir0x/sdk": "^0.0.262",
     "@uniswap/sdk-core": "^3.0.1",
@@ -54,6 +55,7 @@
     "ethers": "^5.6.6",
     "firebase-admin": "^10.2.0",
     "firebase-functions": "^4.1.0",
+    "flatbuffers": "^22.12.6",
     "got": "^11.8.3",
     "jsbi": "^3.1.4",
     "module-alias": "^2.2.2",

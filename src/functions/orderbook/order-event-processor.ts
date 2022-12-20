@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { nanoid } from 'nanoid';
 
 import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
 import {
@@ -10,6 +11,9 @@ import {
   OrderEventMetadata,
   OrderEvents,
   OrderSaleEvent,
+  OrderStatusChangedEvent,
+  OrderStatusCreatedEvent,
+  OrderStatusEventKind,
   RawFirestoreOrder
 } from '@infinityxyz/lib/types/core';
 import { getExchangeAddress } from '@infinityxyz/lib/utils';
@@ -201,7 +205,8 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       gasSimulator
     );
 
-    const updateGasUsage = initialStatus !== finalStatus && finalStatus === 'active';
+    const statusChanged = initialStatus !== finalStatus;
+    const updateGasUsage = statusChanged && finalStatus === 'active';
     if (updateGasUsage) {
       const gasUsage = await baseOrder.getGasUsage(rawOrder);
 
@@ -209,6 +214,32 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
 
       rawOrder = orderUpdater.rawOrder;
       displayOrder = orderUpdater.displayOrder;
+    }
+
+    if (orderCreatedEvent != null) {
+      const statusChanged: OrderStatusCreatedEvent = {
+        id: nanoid(),
+        orderId: rawOrder.metadata.id,
+        chainId: rawOrder.metadata.chainId,
+        status: rawOrder.order.status,
+        timestamp: Date.now(),
+        order: rawOrder.rawOrder.infinityOrder,
+        kind: OrderStatusEventKind.Created
+      };
+      const ref = db.collection('orderStatusChanges').doc(statusChanged.id);
+      txn.create(ref, statusChanged);
+    } else if (statusChanged) {
+      const statusChanged: OrderStatusChangedEvent = {
+        id: nanoid(),
+        orderId: rawOrder.metadata.id,
+        chainId: rawOrder.metadata.chainId,
+        status: rawOrder.order.status,
+        prevStatus: initialStatus,
+        timestamp: Date.now(),
+        kind: rawOrder.order.status === 'active' ? OrderStatusEventKind.Activated : OrderStatusEventKind.Deactivated
+      };
+      const ref = db.collection('orderStatusChanges').doc(statusChanged.id);
+      txn.create(ref, statusChanged);
     }
 
     await baseOrder.save(rawOrder, displayOrder, txn);

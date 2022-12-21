@@ -7,9 +7,21 @@ import { SyncMetadata, SyncMetadataType } from './types';
 const CHAIN_TYPES: SyncMetadataType[] = ['ask', 'bid'];
 const COLLECTION_TYPES: SyncMetadataType[] = ['collection-ask', 'collection-bid'];
 
-type SyncUpdater = (db: Firestore, chainId: ChainId, types: SyncMetadataType[], collection?: string) => Promise<void>;
+type SyncUpdater = (
+  db: Firestore,
+  chainId: ChainId,
+  types: SyncMetadataType[],
+  collection?: string,
+  startAt?: number
+) => Promise<void>;
 
-export const addSyncs: SyncUpdater = (db, chainId, types?: SyncMetadataType[], collection?: string) => {
+export const addSyncs: SyncUpdater = (
+  db,
+  chainId,
+  types?: SyncMetadataType[],
+  collection?: string,
+  startAt?: number
+) => {
   if (!types && collection) {
     types = COLLECTION_TYPES;
   } else if (!types) {
@@ -44,6 +56,7 @@ export const addSyncs: SyncUpdater = (db, chainId, types?: SyncMetadataType[], c
           },
           data: {
             eventsProcessed: 0,
+            minTimestampMs: startAt ?? 0,
             continuation: ''
           }
         };

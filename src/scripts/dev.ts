@@ -13,6 +13,7 @@ import { paginatedTransaction } from '@/firestore/paginated-transaction';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import * as Reservoir from '@/lib/reservoir';
+import { SyncMetadata } from '@/lib/reservoir/order-events';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
@@ -102,7 +103,15 @@ async function orderEventProcessor(id: string) {
 }
 
 async function main() {
-  // const db = getDb();
+  const db = getDb();
+  await Reservoir.OrderEvents.addSyncs(
+    db,
+    ChainId.Mainnet,
+    ['collection-ask'],
+    '0x3bf2922f4520a8ba0c2efc3d2a1539678dad5e9d',
+    1671555997414
+  );
+
   // const stopIn = ONE_MIN * 8.75;
   // await syncOrderEvents(db, stopIn, { pollInterval: 1000 * 10, delay: 5000 });
   // const id = '0x00080fc79268b013aa60d58c90aa611736698cb51c02c78a2c2ce6ee2f5ec090';
@@ -116,89 +125,6 @@ async function main() {
   // await getDb().collection('ordersV2').doc(id).delete();
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
-  await triggerOrderEvents();
-
-  // class Dev extends OrderEventProcessor {
-  //   async process(
-  //     eventsSnap: QuerySnap<OrderEvents>,
-  //     txn: FirebaseFirestore.Transaction,
-  //     eventsRef: CollRef<OrderEvents>
-  //   ) {
-  //     await this._processEvents(eventsSnap, txn, eventsRef);
-  //   }
-  //   async getEventsForProcessing(ref: CollRef<OrderEvents>) {
-  //     return super._getEventsForProcessing(ref);
-  //   }
-
-  //   async run() {
-  //     const eventsRef = this._getDb()
-  //       .collection('ordersV2')
-  //       .doc('0x0002acdfd8e5b4b47861b64128c1543b4cbf811906387155e8039b0097de6929')
-  //       .collection('orderEvents') as CollRef<OrderEvents>;
-  //     const eventsForProcessing = await processor.getEventsForProcessing(eventsRef);
-
-  //     const ref = eventsRef.parent?.collection('_orderEvents').doc(this._triggerDocId) as DocRef<TriggerDoc>;
-
-  //     let wasMarked = false;
-  //     const markAsProcessed = async (ref: DocRef<TriggerDoc>, txn?: FirebaseFirestore.Transaction) => {
-  //       if (wasMarked) {
-  //         return;
-  //       }
-  //       const update: Partial<TriggerDoc> = {
-  //         requiresProcessing: false,
-  //         lastProcessedAt: Date.now(),
-  //         updatedAt: Date.now()
-  //       };
-
-  //       if (txn) {
-  //         txn.set(ref, update, { merge: true });
-  //       } else {
-  //         await ref.set(update, { merge: true });
-  //       }
-  //       wasMarked = true;
-  //     };
-
-  //     let page = 0;
-  //     const res = await paginatedTransaction(
-  //       eventsForProcessing.query,
-  //       this._getDb(),
-  //       { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
-  //       async ({ data, txn, hasNextPage }) => {
-  //         page += 1;
-  //         console.log(`Processing page: ${page} hasNextPage: ${hasNextPage}`);
-  //         data.docs.forEach((doc) => {
-  //           console.log(`Processing doc: ${doc.ref.id}`);
-  //         });
-
-  //         await this._processEvents(data, txn, eventsRef);
-
-  //         console.log(`Completed processing page: ${page} hasNextPage: ${hasNextPage}`);
-  //         if (!hasNextPage) {
-  //           console.log(`Marking as processed`);
-  //           await markAsProcessed(ref, txn);
-  //         }
-  //       },
-  //       eventsForProcessing.applyStartAfter
-  //     );
-  //   }
-  // }
-
-  // const processor = new Dev(
-  //   {
-  //     docBuilderCollectionPath: `ordersV2/{orderId}/orderEvents`,
-  //     batchSize: 100,
-  //     maxPages: 3,
-  //     minTriggerInterval: ONE_MIN,
-  //     id: 'processor'
-  //   },
-  //   {
-  //     schedule: 'every 5 minutes',
-  //     tts: ONE_MIN
-  //   },
-  //   getDb
-  // );
-
-  // await processor.run();
 }
 
 async function triggerOrderEvents() {

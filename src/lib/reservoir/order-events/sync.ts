@@ -37,6 +37,10 @@ export async function* sync(
   const method =
     expectedOrderSide === 'bid' ? Reservoir.Api.Events.BidEvents.getEvents : Reservoir.Api.Events.AskEvents.getEvents;
 
+  const minTimestampSeconds = initialSync.data.data.minTimestampMs
+    ? Math.floor(initialSync.data.data.minTimestampMs / 1000)
+    : 0;
+  const minTimestamp = startTimestamp ?? minTimestampSeconds;
   const contract = initialSync.data.metadata.collection ? { contract: initialSync.data.metadata.collection } : {};
   while (true) {
     try {
@@ -45,7 +49,7 @@ export async function* sync(
         limit: pageSize,
         sortDirection: 'asc',
         ...contract,
-        startTimestamp: startTimestamp
+        startTimestamp: minTimestamp
       });
       const numItems = (page.data?.events ?? []).length;
       const events = page.data.events;
@@ -127,6 +131,7 @@ export async function* sync(
         const update: Partial<SyncMetadata> = {
           data: {
             eventsProcessed: currentSync.data.eventsProcessed + numEventsSaved,
+            minTimestampMs: currentSync.data.minTimestampMs ?? 0,
             continuation
           }
         };

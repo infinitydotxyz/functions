@@ -305,7 +305,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
           metadata: {
             ...baseMetadata,
             eventKind: OrderEventKind.Created,
-            id: `${metadata.id}`
+            id: `${OrderEventKind.Created}:${rawOrder.id}`
           },
           data: {
             isNative: data.order.source === 'infinity',

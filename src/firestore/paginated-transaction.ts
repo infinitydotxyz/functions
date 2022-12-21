@@ -65,10 +65,11 @@ export async function paginatedTransaction<T>(
         return { queryEmpty: true };
       }
 
-      await cb({ data: items, txn, hasNextPage: items.docs.length === options.pageSize });
+      const hasNextPage = items.docs.length === options.pageSize;
+      await cb({ data: items, txn, hasNextPage: hasNextPage });
       documentsProcessed += items.size;
 
-      return { queryEmpty: false };
+      return { queryEmpty: !hasNextPage };
     });
 
     if (!('queryEmpty' in res)) {

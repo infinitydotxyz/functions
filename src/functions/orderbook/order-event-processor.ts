@@ -11,12 +11,10 @@ import {
   OrderEventMetadata,
   OrderEvents,
   OrderSaleEvent,
-  OrderStatusChangedEvent,
-  OrderStatusCreatedEvent,
-  OrderStatusEventKind,
+  OrderStatusEvent,
   RawFirestoreOrder
 } from '@infinityxyz/lib/types/core';
-import { getExchangeAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getExchangeAddress } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
@@ -129,6 +127,8 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       throw new Error('invalid chain id');
     }
 
+    const saves: (() => void)[] = [];
+
     const initialStatus = orderUpdater.rawOrder.order.status;
     for (const item of items) {
       const { data: event, ref } = item;
@@ -180,13 +180,15 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         processed: true
       };
 
-      txn.set(
-        ref,
-        {
-          metadata: metadataUpdate as any
-        },
-        { merge: true }
-      );
+      saves.push(() => {
+        txn.set(
+          ref,
+          {
+            metadata: metadataUpdate as any
+          },
+          { merge: true }
+        );
+      });
     }
 
     const finalStatus = orderUpdater.rawOrder.order.status;
@@ -216,33 +218,58 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       displayOrder = orderUpdater.displayOrder;
     }
 
-    if (orderCreatedEvent != null) {
-      const statusChanged: OrderStatusCreatedEvent = {
+    /**
+     * saves order status changes and the raw order
+     */
+    const saveOrderStatusEvent = async (event: OrderStatusEvent) => {
+      const orderStatusChanges = db
+        .collection(firestoreConstants.ORDERS_V2_COLL)
+        .doc(event.orderId)
+        .collection('orderStatusChanges') as CollRef<OrderStatusEvent>;
+
+      const currentOrderStatusEvent = await txn.get(
+        orderStatusChanges.where('orderId', '==', event.orderId).where('isMostRecent', '==', true)
+      );
+
+      if (currentOrderStatusEvent.docs.length > 1) {
+        console.error('More than one current order status event found for order', event.orderId);
+      } else if (currentOrderStatusEvent.docs.length === 1) {
+        const currentEvent = currentOrderStatusEvent.docs[0].data();
+        if (currentEvent.status === event.status) {
+          return; // no need to save this event
+        }
+      }
+      for (const doc of currentOrderStatusEvent.docs) {
+        saves.push(() => {
+          txn.set(doc.ref, { isMostRecent: false }, { merge: true });
+        });
+      }
+
+      const ref = orderStatusChanges.doc(event.id);
+
+      saves.push(() => {
+        txn.create(ref, event);
+      });
+    };
+
+    if (orderCreatedEvent != null || statusChanged) {
+      const statusChanged: OrderStatusEvent = {
         id: nanoid(),
         orderId: rawOrder.metadata.id,
         chainId: rawOrder.metadata.chainId,
         status: rawOrder.order.status,
         timestamp: Date.now(),
         order: rawOrder.rawOrder.infinityOrder,
-        kind: OrderStatusEventKind.Created
+        isMostRecent: true
       };
-      const ref = db.collection('orderStatusChanges').doc(statusChanged.id);
-      txn.create(ref, statusChanged);
-    } else if (statusChanged) {
-      const statusChanged: OrderStatusChangedEvent = {
-        id: nanoid(),
-        orderId: rawOrder.metadata.id,
-        chainId: rawOrder.metadata.chainId,
-        status: rawOrder.order.status,
-        prevStatus: initialStatus,
-        timestamp: Date.now(),
-        kind: rawOrder.order.status === 'active' ? OrderStatusEventKind.Activated : OrderStatusEventKind.Deactivated
-      };
-      const ref = db.collection('orderStatusChanges').doc(statusChanged.id);
-      txn.create(ref, statusChanged);
+      await saveOrderStatusEvent(statusChanged);
     }
 
     await baseOrder.save(rawOrder, displayOrder, txn);
+
+    for (const save of saves) {
+      save();
+    }
   }
 
   protected async _getOrder(

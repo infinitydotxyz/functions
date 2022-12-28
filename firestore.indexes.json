@@ -1,7 +1,61 @@
 {
   "indexes": [
     {
+      "collectionGroup": "_nftTransferEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requiresProcessing",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "_orderEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requiresProcessing",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "_referralsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requiresProcessing",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "_reservoirOrderEvents",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
@@ -3421,6 +3475,52 @@
       ]
     },
     {
+      "collectionGroup": "nftTransferEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "data.blockNumber",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "data.blockHash",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nftTransferEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.timestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nftTransferEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "data.blockTimestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "orderEvents",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -3476,6 +3576,48 @@
         },
         {
           "fieldPath": "metadata.orderId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orderEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orderEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.timestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orderEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.timestamp",
           "order": "DESCENDING"
         }
       ]
@@ -6305,6 +6447,42 @@
       ]
     },
     {
+      "collectionGroup": "orderSnapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "orderStatusChanges",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isMostRecent",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "orderStatusEvents",
       "queryScope": "COLLECTION",
       "fields": [
@@ -6384,6 +6562,20 @@
         },
         {
           "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reservoirOrderEvents",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.updatedAt",
           "order": "ASCENDING"
         }
       ]
@@ -7219,11 +7411,13 @@
     {
       "collectionGroup": "collections",
       "fieldPath": "attributes",
+      "ttl": false,
       "indexes": []
     },
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "avgPricePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7246,6 +7440,7 @@
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "ceilPricePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7268,6 +7463,7 @@
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "discordFollowersPercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7290,6 +7486,7 @@
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "floorPricePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7312,6 +7509,7 @@
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "numSalesPercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7334,6 +7532,7 @@
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "twitterFollowersPercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7356,6 +7555,7 @@
     {
       "collectionGroup": "collectionStats",
       "fieldPath": "volumePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7378,6 +7578,7 @@
     {
       "collectionGroup": "curationCollection",
       "fieldPath": "refreshCurrentSnippetBy",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7400,6 +7601,7 @@
     {
       "collectionGroup": "nftStats",
       "fieldPath": "avgPricePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7422,6 +7624,7 @@
     {
       "collectionGroup": "nftStats",
       "fieldPath": "ceilPricePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7444,6 +7647,7 @@
     {
       "collectionGroup": "nftStats",
       "fieldPath": "discordFollowersPercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7466,6 +7670,7 @@
     {
       "collectionGroup": "nftStats",
       "fieldPath": "floorPricePercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7488,6 +7693,7 @@
     {
       "collectionGroup": "nftStats",
       "fieldPath": "twitterFollowersPercentChange",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7510,6 +7716,7 @@
     {
       "collectionGroup": "orderItems",
       "fieldPath": "endTimeMs",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7536,6 +7743,7 @@
     {
       "collectionGroup": "orderItems",
       "fieldPath": "startPriceEth",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7562,6 +7770,7 @@
     {
       "collectionGroup": "orderItems",
       "fieldPath": "startTimeMs",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7588,6 +7797,7 @@
     {
       "collectionGroup": "referrals",
       "fieldPath": "metadata.chainId",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7610,6 +7820,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "averagePrice",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7636,6 +7847,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "discordMembers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7662,6 +7874,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "oneDay.averagePrice",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7688,6 +7901,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "oneDay.discordMembers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7714,6 +7928,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "oneDay.twitterFollowers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7740,6 +7955,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "oneDay.volume",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7766,6 +7982,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "sevenDay.averagePrice",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7792,6 +8009,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "sevenDay.discordMembers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7818,6 +8036,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "sevenDay.twitterFollowers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7844,6 +8063,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "sevenDay.volume",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7870,6 +8090,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "thirtyDay.averagePrice",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7896,6 +8117,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "thirtyDay.discordMembers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7922,6 +8144,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "thirtyDay.twitterFollowers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7948,6 +8171,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "thirtyDay.volume",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -7974,6 +8198,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "total.volume",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -8000,6 +8225,7 @@
     {
       "collectionGroup": "stats",
       "fieldPath": "twitterFollowers",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",
@@ -8026,6 +8252,7 @@
     {
       "collectionGroup": "userAllTimeRewards",
       "fieldPath": "chainId",
+      "ttl": false,
       "indexes": [
         {
           "order": "ASCENDING",

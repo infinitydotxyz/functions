@@ -1,6 +1,6 @@
 import { RewardEvent } from '@infinityxyz/lib/types/core';
 
-import { FirestoreBatchEventProcessor } from '@/firestore/firestore-batch-event-processor';
+import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, Query, QuerySnap } from '@/firestore/types';
 import { RewardsEventHandler } from '@/lib/rewards/rewards-event-handler';
 
@@ -11,6 +11,10 @@ export class RewardsEventProcessor extends FirestoreBatchEventProcessor<RewardEv
 
   protected _getUnProcessedEvents(ref: CollRef<RewardEvent> | CollGroupRef<RewardEvent>): Query<RewardEvent> {
     return ref.where('isAggregated', '==', false).where('isMerged', '==', true);
+  }
+
+  protected _applyUpdatedAtLessThanFilter(query: Query<RewardEvent>, timestamp: number): Query<RewardEvent> {
+    return query.where('updatedAt', '<', timestamp);
   }
 
   protected async _processEvents(snap: QuerySnap<RewardEvent>, txn: FirebaseFirestore.Transaction): Promise<void> {

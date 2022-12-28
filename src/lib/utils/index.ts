@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
 import { formatEther } from 'ethers/lib/utils';
 
 import {
@@ -191,4 +191,8 @@ export function nFormatter(num: number | undefined | null, digits = 2) {
       return num >= item.value;
     });
   return item ? (num / item.value).toFixed(digits).replace(regex, '$1') + item.symbol : num.toFixed(digits + 1);
+}
+
+export function bn(value: BigNumberish): BigNumber {
+  return BigNumber.from(value);
 }

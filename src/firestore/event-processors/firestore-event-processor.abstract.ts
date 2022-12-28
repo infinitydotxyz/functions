@@ -1,76 +1,13 @@
 import { firestore, pubsub } from 'firebase-functions';
 
-import { paginatedTransaction } from './paginated-transaction';
-import { streamQueryWithRef } from './stream-query';
-import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from './types';
-
-export interface EventProcessorConfig {
-  /**
-   * a path to the collection of events to process
-   * uses the same syntax as defining a function listener
-   */
-  docBuilderCollectionPath: string;
-
-  /**
-   * size of the batch of events that will be processed
-   * - firestore supports a max of 500 writes per transaction
-   * so this should be set according to the number of writes
-   * you are expecting to perform
-   *
-   * the processor also requires 1 write per page
-   */
-  batchSize: number;
-
-  /**
-   * max number of pages to process
-   * - set it to something reasonable to avoid a bug causing
-   * an expensive infinite loop of reads and writes, and increase
-   * it as more scalability is required
-   */
-  maxPages: number;
-
-  /**
-   * ms to wait between triggering event processing
-   */
-  minTriggerInterval: number;
-
-  /**
-   * an optional id to support multiple triggers for the same collection
-   */
-  id?: string;
-}
+import { paginatedTransaction } from '../paginated-transaction';
+import { streamQueryWithRef } from '../stream-query';
+import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '../types';
+import { BackupOptions, EventProcessorConfig, TriggerDoc } from './types';
 
 /**
- * Backup options provides
- */
-export interface BackupOptions {
-  /**
-   * a schedule to query for unprocessed events and trigger processing
-   * - Both Unix Crontab and App Engine syntax are supported
-   * https://firebase.google.com/docs/functions/schedule-functions
-   */
-  schedule: string;
-
-  /**
-   * time to stale applied to unprocessed events query to determine if
-   * they were missed during processing
-   */
-  tts: number;
-}
-
-export interface TriggerDoc {
-  id: string;
-  requiresProcessing: boolean;
-  lastProcessedAt: number;
-  updatedAt: number;
-}
-
-/**
- * FirestoreBatchEventProcessor provides the boilerplate code for implementing
+ * FirestoreEventProcessor provides the boilerplate code for implementing
  * a scalable, transaction based, event-driven architecture for an event stream
- * where each event requires one-time processing and the aggregated data should
- * be reset if re-processing all events is required
- *
  *
  * given a path to a collection of events, the processor will create the following
  * ...
@@ -79,7 +16,7 @@ export interface TriggerDoc {
  *   {_<collectionName>} // contains triggers for processing events collection
  *      _trigger:<collectionName>
  */
-export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number }> {
+export abstract class FirestoreEventProcessor<T> {
   readonly collectionName: string;
   protected readonly _docBuilderCollectionParentPath: string;
 
@@ -95,13 +32,17 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
     return [this._docBuilderCollectionParentPath, this.triggerCollectionId, this._triggerDocId].join('/');
   }
 
+  db: FirebaseFirestore.Firestore;
+
   constructor(
     protected _config: EventProcessorConfig,
     protected _backupOptions: BackupOptions,
-    protected _getDb: () => FirebaseFirestore.Firestore
+    protected _getDb: () => FirebaseFirestore.Firestore,
+    protected _debug: boolean = false
   ) {
     this.collectionName = this.getCollectionName();
     this._docBuilderCollectionParentPath = this.getCollectionParentPath();
+    this.db = this._getDb();
   }
 
   /**
@@ -117,6 +58,13 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
   protected abstract _getUnProcessedEvents(ref: CollRef<T> | CollGroupRef<T>): Query<T>;
 
   /**
+   * _applyUpdatedAtLessThanFilter takes a query of events and applies a
+   * where clause to filter out events that have been updated after the
+   * provided timestamp
+   */
+  protected abstract _applyUpdatedAtLessThanFilter(query: Query<T>, timestamp: number): Query<T>;
+
+  /**
    * _processEvents takes a page of events and a transaction and is expected
    * to process the events such that the events are included in any aggregated
    * views and events are marked as processed according to the _getUnProcessedEvents
@@ -126,7 +74,23 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
     events: QuerySnap<T>,
     txn: FirebaseFirestore.Transaction,
     eventsRef: CollRef<T>
-  ): Promise<void>;
+  ): Promise<void> | void;
+
+  protected abstract _getEventsForProcessing(ref: CollRef<T>):
+    | Promise<{
+        query: Query<T>;
+        applyStartAfter?: (
+          query: FirebaseFirestore.Query<T>,
+          lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
+        ) => FirebaseFirestore.Query<T> | undefined;
+      }>
+    | {
+        query: Query<T>;
+        applyStartAfter?: (
+          query: FirebaseFirestore.Query<T>,
+          lastPageSnap?: FirebaseFirestore.QuerySnapshot<T>
+        ) => FirebaseFirestore.Query<T> | undefined;
+      };
 
   /**
    * getFunctions returns cloud functions that should be registered with firebase
@@ -143,17 +107,20 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
   /**
    * _onEvent is called when an event changes in the collection
    * and updates the trigger document to initiate processing
+   * if the event has not been processed
    */
-  protected _onEvent(document: (path: string) => firestore.DocumentBuilder) {
+  protected _onEvent(document: (path: string) => firestore.DocumentBuilder<string>) {
     return document(`${this._config.docBuilderCollectionPath}/{eventDoc}`).onWrite(async (change) => {
       const ref = change.after.ref as FirebaseFirestore.DocumentReference<T>;
       const data = change.after.data() as T | undefined;
-      if (!data) {
-        return;
+      let triggered = false;
+      if (data && !this._isEventProcessed(data)) {
+        const res = await this._initiateProcessing(ref, false);
+        triggered = res.triggered;
       }
-      const isProcessed = this._isEventProcessed(data);
-      if (!isProcessed) {
-        await this._initiateProcessing(ref);
+
+      if (this._debug) {
+        console.log(`Event change detected for ${change.after.ref.path}. Triggered processing: ${triggered}`);
       }
     });
   }
@@ -166,17 +133,51 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
     return schedule(this._backupOptions.schedule).onRun(async () => {
       const db = this._getDb();
 
+      const debugData = {
+        numItemsTriggered: 0,
+        numItemsNotTriggered: 0,
+        numDuplicatedFound: 0,
+        firstItemTriggered: '',
+        numItemsFailed: 0
+      };
+
       const eventsRef = db.collectionGroup(this.collectionName) as CollGroupRef<T>;
 
       const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
       const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
-      const staleUnProcessedEvents = unProcessedEvents.where('updatedAt', '<', staleIfUpdatedBefore).limit(1);
+      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore);
 
-      const snapshot = await staleUnProcessedEvents.get();
-      const item = snapshot.docs.find((item) => !!item);
+      let query = staleUnProcessedEvents;
+      if (!this._config.isCollectionGroup) {
+        query = query.limit(1);
+      }
 
-      if (item) {
-        await this._initiateProcessing(item.ref);
+      const stream = streamQueryWithRef(query);
+
+      const handledTriggers = new Set<string>();
+      for await (const item of stream) {
+        try {
+          const parentPath = item.ref.parent.parent?.path;
+          if (parentPath && !handledTriggers.has(parentPath)) {
+            const { triggered } = await this._initiateProcessing(item.ref, false); // TODO optimize this
+            if (triggered) {
+              debugData.numItemsTriggered += 1;
+            } else {
+              debugData.numItemsNotTriggered += 1;
+            }
+          } else {
+            debugData.numDuplicatedFound += 1;
+          }
+        } catch (err) {
+          debugData.numItemsFailed += 1;
+          // ignore
+        }
+      }
+      if (this._debug) {
+        console.log(
+          `Scheduled backup completed for: ${this.collectionName}. Is collection group: ${this._config.isCollectionGroup}`,
+          `Triggered: ${debugData.numItemsTriggered}, Not triggered: ${debugData.numItemsNotTriggered}, Duplicates: ${debugData.numDuplicatedFound}, Failed: ${debugData.numItemsFailed}`
+        );
       }
     });
   }
@@ -188,6 +189,12 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
   protected _scheduleBackupTrigger(schedule: (schedule: string) => pubsub.ScheduleBuilder) {
     return schedule(this._backupOptions.schedule).onRun(async () => {
       const db = this._getDb();
+
+      const debugData = {
+        numItemsTriggered: 0,
+        numItemsNotTriggered: 0,
+        numItemsFailed: 0
+      };
 
       const triggersRequiringProcessing = db
         .collectionGroup(this.triggerCollectionId)
@@ -204,9 +211,25 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
       const stream = streamQueryWithRef(staleTriggersRequiringProcessing);
 
       for await (const item of stream) {
-        if (item.data) {
-          await this._triggerProcessing(item.ref, item.data);
+        try {
+          if (item.data) {
+            const { triggered } = await this._triggerProcessing(item.ref, true, item.data);
+            if (triggered) {
+              debugData.numItemsTriggered += 1;
+            } else {
+              debugData.numItemsNotTriggered += 1;
+            }
+          }
+        } catch (err) {
+          debugData.numItemsFailed += 1;
         }
+      }
+
+      if (this._debug) {
+        console.log(
+          `Scheduled backup trigger completed for: ${this.triggerCollectionId}`,
+          `Triggered: ${debugData.numItemsTriggered}, Not triggered: ${debugData.numItemsNotTriggered}, Failed: ${debugData.numItemsFailed}`
+        );
       }
     });
   }
@@ -219,13 +242,19 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
    * - make sure you are familiar with the constraints of this helper before
    * implementing the `_processEvents` method
    */
-  protected _onProcessTrigger(document: (path: string) => firestore.DocumentBuilder) {
+  protected _onProcessTrigger(document: (path: string) => firestore.DocumentBuilder<string>) {
     return document(this.docBuilderTriggerDocPath).onWrite(async (change) => {
       const ref = change.after.ref as FirebaseFirestore.DocumentReference<TriggerDoc>;
       const data = change.after.data() as TriggerDoc | undefined;
       if (!data) {
         return;
       }
+
+      const debugData = {
+        pagesProcessed: 0,
+        documentsProcessed: 0,
+        markedAsProcessed: false
+      };
 
       if (data.requiresProcessing) {
         let wasMarked = false;
@@ -251,28 +280,35 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
         if (!eventsRef) {
           throw new Error(`Failed to process events. Events ref not found`);
         }
-        const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
-
-        /**
-         * prevents processing events that were updated after the trigger was marked
-         */
-        const unProcessedEventsBeforeNow = unProcessedEvents.where('updatedAt', '<', Date.now());
+        const eventsForProcessing = await this._getEventsForProcessing(eventsRef);
 
         const res = await paginatedTransaction(
-          unProcessedEventsBeforeNow,
-          ref.firestore,
+          eventsForProcessing.query,
+          this.db,
           { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
           async ({ data, txn, hasNextPage }) => {
             await this._processEvents(data, txn, eventsRef);
             if (!hasNextPage) {
               await markAsProcessed(ref, txn);
             }
-          }
+          },
+          eventsForProcessing.applyStartAfter
         );
 
         if (res.queryEmpty) {
           await markAsProcessed(ref);
         }
+
+        debugData.markedAsProcessed = wasMarked;
+        debugData.pagesProcessed = res.pagesProcessed;
+        debugData.documentsProcessed = res.documentsProcessed;
+      }
+
+      if (this._debug) {
+        console.log(
+          `Trigger processed for: ${ref.path}. Required Processing: ${data.requiresProcessing}`,
+          `Processed: ${debugData.pagesProcessed} pages, ${debugData.documentsProcessed} documents, Marked as processed: ${debugData.markedAsProcessed}`
+        );
       }
     });
   }
@@ -281,7 +317,7 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
    * _initiateProcessing updates the trigger document to initiate
    * processing of events in the collection
    */
-  protected async _initiateProcessing(docRef: DocRef<T>) {
+  protected async _initiateProcessing(docRef: DocRef<T>, isBackup: boolean): Promise<{ triggered: boolean }> {
     const collRef = docRef.parent.parent?.collection(`_${this.collectionName}`);
     if (!collRef) {
       throw new Error('failed to get collection ref');
@@ -290,10 +326,14 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
     const triggerRef = collRef.doc(this._triggerDocId) as DocRef<TriggerDoc>;
     const triggerDoc = await triggerRef.get();
     const data = triggerDoc.data();
-    await this._triggerProcessing(triggerRef, data);
+    return await this._triggerProcessing(triggerRef, isBackup, data);
   }
 
-  protected async _triggerProcessing(triggerRef: DocRef<TriggerDoc>, trigger?: TriggerDoc) {
+  protected async _triggerProcessing(
+    triggerRef: DocRef<TriggerDoc>,
+    isBackup: boolean,
+    trigger?: TriggerDoc
+  ): Promise<{ triggered: boolean }> {
     if (!trigger) {
       const defaultTrigger: TriggerDoc = {
         id: this._triggerDocId,
@@ -302,13 +342,18 @@ export abstract class FirestoreBatchEventProcessor<T extends { updatedAt: number
         updatedAt: Date.now()
       };
       await triggerRef.set(defaultTrigger, { merge: true });
-      return;
+      return { triggered: true };
     }
 
     const exceedsMinTriggerInterval = trigger.updatedAt < Date.now() - this._config.minTriggerInterval;
-    if (exceedsMinTriggerInterval && !trigger.requiresProcessing) {
+    if (exceedsMinTriggerInterval && isBackup && trigger.requiresProcessing) {
       await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
+      return { triggered: true };
+    } else if (exceedsMinTriggerInterval && !isBackup && !trigger.requiresProcessing) {
+      await triggerRef.set({ updatedAt: Date.now(), requiresProcessing: true }, { merge: true });
+      return { triggered: true };
     }
+    return { triggered: false };
   }
 
   protected getCollectionName() {

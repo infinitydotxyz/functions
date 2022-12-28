@@ -3,8 +3,7 @@ import { ServiceAccount } from 'firebase-admin';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-// TODO adi change in release
-import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
+import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {

@@ -20,6 +20,13 @@ export async function syncOrderEvents(
   const pollInterval = options?.pollInterval ?? 15 * 1000;
 
   const syncs = await Reservoir.OrderEvents.SyncMetadata.getSyncMetadata(db);
+  console.log(
+    JSON.stringify(
+      syncs.map((item) => item.data),
+      null,
+      2
+    )
+  );
   await Promise.all(
     syncs.map(async (syncMetadata) => {
       try {

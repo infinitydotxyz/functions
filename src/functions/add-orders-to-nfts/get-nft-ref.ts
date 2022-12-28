@@ -1,6 +1,7 @@
 import { FirestoreOrderItem, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { getDb } from '../../firestore';
+
+import { getDb } from '@/firestore/db';
 
 export function getNftRef(
   orderItem: Omit<FirestoreOrderItem, 'attributes'>

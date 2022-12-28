@@ -1,5 +1,6 @@
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../firestore';
+
+import { getDb } from '@/firestore/db';
 
 export async function enqueueOrder(id: string) {
   const db = getDb();

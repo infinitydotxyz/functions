@@ -1,8 +1,11 @@
 import * as functions from 'firebase-functions';
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
+
+import { ONE_MIN, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { config } from '@/config/index';
+import { getDb } from '@/firestore/db';
+
 import { ReferralsEventProcessor } from './referrals-event-processor';
-import { REGION } from '../../utils/constants';
 
 /**
  * user
@@ -28,7 +31,7 @@ const referralsEventProcessor = new ReferralsEventProcessor(
 );
 
 const fns = referralsEventProcessor.getFunctions();
-const settings = functions.region(REGION).runWith({
+const settings = functions.region(config.firebase.region).runWith({
   timeoutSeconds: 540
 });
 

@@ -1,0 +1,157 @@
+import { sleep } from '@infinityxyz/lib/utils';
+
+import { config } from '@/config/index';
+import { DocRef } from '@/firestore/types';
+import { bn } from '@/lib/utils';
+
+import { Reservoir } from '../..';
+import { ReservoirOrderEvent, SyncMetadata } from './types';
+import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
+
+/**
+ * Efficiently sync a large number of events from the Reservoir API
+ *
+ * - Maintains the sync state in a firestore document
+ *   - This allows us to resume syncing from the last known state
+ *   - It is also safe to re-process events - duplicates will be skipped
+ * - Pulls events from the Reservoir API
+ * - Saves events to the reservoir order events collection in firestore
+ * and does a minimal amount of transformation in order to maximize
+ * throughput
+ */
+export async function* sync(
+  db: FirebaseFirestore.Firestore,
+  initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
+  pageSize = 300,
+  startTimestamp?: number
+) {
+  if (initialSync?.data?.metadata?.isPaused) {
+    throw new Error('Sync paused');
+  }
+
+  let hasNextPage = true;
+  let continuation = initialSync.data.data.continuation;
+  let pageNumber = 0;
+  const client = Reservoir.Api.getClient(initialSync.data.metadata.chainId, config.reservoir.apiKey);
+  const expectedOrderSide = initialSync.data.metadata.type;
+  const method =
+    expectedOrderSide === 'bid' ? Reservoir.Api.Events.BidEvents.getEvents : Reservoir.Api.Events.AskEvents.getEvents;
+
+  const minTimestampSeconds = initialSync.data.data.minTimestampMs
+    ? Math.floor(initialSync.data.data.minTimestampMs / 1000)
+    : 0;
+  const minTimestamp = startTimestamp ?? minTimestampSeconds;
+  const contract = initialSync.data.metadata.collection ? { contract: initialSync.data.metadata.collection } : {};
+  while (true) {
+    try {
+      const page = await method(client, {
+        continuation: continuation || undefined,
+        limit: pageSize,
+        sortDirection: 'asc',
+        ...contract,
+        startTimestamp: minTimestamp
+      });
+      const numItems = (page.data?.events ?? []).length;
+      const events = page.data.events;
+
+      const { numEventsSaved } = await db.runTransaction(async (txn) => {
+        const snap = await txn.get(initialSync.ref);
+        const currentSync = snap.data() as SyncMetadata;
+        let numEventsSaved = 0;
+
+        if (currentSync.data.continuation !== continuation) {
+          throw new Error('Continuation changed');
+        } else if (currentSync.metadata.isPaused) {
+          throw new Error('Sync paused');
+        }
+
+        const eventsWithRefs = events.map((item) => {
+          const event = item.event;
+          const id = event.id;
+          const order = 'bid' in item ? item.bid : item.order;
+          const orderId = order.id;
+
+          const eventRef = getReservoirOrderEventRef(db, orderId, id);
+          return {
+            ...item,
+            isSellOrder: !('bid' in item),
+            order,
+            eventRef,
+            hasNextPage
+          };
+        });
+
+        const eventSnaps =
+          eventsWithRefs.length > 0 ? await txn.getAll(...eventsWithRefs.map((item) => item.eventRef)) : [];
+
+        for (let i = 0; i < eventsWithRefs.length; i += 1) {
+          const item = eventsWithRefs[i];
+          const snap = eventSnaps[i];
+
+          if (!item || !snap) {
+            throw new Error('Event or snap');
+          } else if (!bn(item.event.id.toString()).eq(snap.ref.id)) {
+            throw new Error('Event id mismatch');
+          }
+
+          /**
+           * only save events once
+           */
+          if (!snap.exists) {
+            const data: ReservoirOrderEvent = {
+              metadata: {
+                id: getReservoirOrderEventId(item.event.id),
+                isSellOrder: item.isSellOrder,
+                updatedAt: Date.now(),
+                migrationId: 1,
+                processed: false,
+                orderId: item.order.id,
+                status: item.order.status,
+                chainId: currentSync.metadata.chainId
+              },
+              data: {
+                event: item.event,
+                order: item.order
+              }
+            };
+            txn.create(item.eventRef, data);
+            numEventsSaved += 1;
+          }
+        }
+
+        hasNextPage = page.data.continuation !== continuation && numItems < pageSize && !!page.data.continuation;
+        if (page.data.continuation) {
+          continuation = page.data.continuation;
+        }
+        pageNumber += 1;
+
+        /**
+         * update sync metadata
+         */
+        const update: Partial<SyncMetadata> = {
+          data: {
+            eventsProcessed: currentSync.data.eventsProcessed + numEventsSaved,
+            minTimestampMs: currentSync.data.minTimestampMs ?? 0,
+            continuation
+          }
+        };
+        txn.set(initialSync.ref, update, { merge: true });
+
+        return {
+          numEventsSaved
+        };
+      });
+
+      yield {
+        continuation,
+        pageNumber,
+        pageSize,
+        numEventsSaved,
+        numEventsFound: numItems
+      };
+    } catch (err) {
+      console.error(err);
+      await sleep(30_000);
+    }
+  }
+}

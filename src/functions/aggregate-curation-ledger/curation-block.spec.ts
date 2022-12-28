@@ -1,25 +1,28 @@
+import { parseEther } from 'ethers/lib/utils';
+
 import {
+  InfinityNftSale,
   ChainId,
   CollectionDisplayData,
   Erc20TokenMetadata,
-  InfinityNftSale,
   SaleSource,
   StakeDuration,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
 import {
-  CurationLedgerEvent,
-  CurationLedgerSale,
   CurationBlockRewards,
   CurationBlockUsers,
+  CurationLedgerEvent,
+  CurationLedgerSale,
   CurationLedgerVotesAddedWithStake,
   CurationLedgerVotesRemovedWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { FeesGeneratedDto, TradingFeeSplit } from '@infinityxyz/lib/types/dto';
 import { ONE_HOUR } from '@infinityxyz/lib/utils';
-import { parseEther } from 'ethers/lib/utils';
-import { TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '../../rewards/config';
-import { formatEth } from '../../utils';
+
+import { TRADING_FEE_SPLIT_PHASE_1_TO_4 } from '@/lib/rewards/config';
+import { formatEth } from '@/lib/utils';
+
 import { CurationBlock } from './curation-block';
 
 const USDC_PER_WETH_PRICE = 2000;

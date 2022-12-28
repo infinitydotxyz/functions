@@ -9,9 +9,11 @@ import {
   CurationPeriodDoc,
   CurrentCurationSnippetDoc
 } from '@infinityxyz/lib/types/core/curation-ledger';
-import { firestoreConstants, ONE_YEAR, round } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
+import { ONE_YEAR, firestoreConstants, round } from '@infinityxyz/lib/utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { CurationBlock } from './curation-block';
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationPeriodAggregator } from './curation-period-aggregator';
@@ -173,7 +175,7 @@ export async function saveCurrentCurationSnippet(
 
   const curationSnippetUsersRef = curationSnippetRef.collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL);
   const usersUpdatedAt = Date.now();
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for (const [address, user] of Object.entries(users)) {
     if (address) {
       user.metadata.updatedAt = usersUpdatedAt;

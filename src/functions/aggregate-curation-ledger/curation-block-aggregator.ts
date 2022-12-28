@@ -6,20 +6,22 @@ import {
   StatsPeriod
 } from '@infinityxyz/lib/types/core';
 import {
-  CurationBlockRewardsDoc,
   CurationBlockRewards,
-  CurationBlockUsers,
+  CurationBlockRewardsDoc,
   CurationBlockUser,
+  CurationBlockUsers,
   CurationLedgerEventsWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
+import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { streamQuery, streamQueryWithRef } from '@/firestore/stream-query';
+import { getTokenPrice } from '@/lib/utils/token-price';
+
 import { getStatsDocInfo } from '../aggregate-sales-stats/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQuery, streamQueryWithRef } from '../../firestore/stream-query';
 import { CurationBlock } from './curation-block';
 import { CurationMetadata } from './types';
-import { getTokenPrice } from '../../token-price';
-import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 
 const ONE_HOUR = 60 * 60 * 1000;
 export class CurationBlockAggregator {
@@ -99,7 +101,7 @@ export class CurationBlockAggregator {
     const docId = `${curationBlockRewardsDoc.metadata.timestamp}`;
     const blockRewardsRef = this._blockRewards.doc(docId);
 
-    const batch = new FirestoreBatchHandler();
+    const batch = new BatchHandler();
     await batch.addAsync(blockRewardsRef, curationBlockRewardsDoc, { merge: false });
     const blockUsersRef = blockRewardsRef.collection(firestoreConstants.CURATION_BLOCK_USER_REWARDS_COLL);
     for (const [userAddress, user] of Object.entries(users)) {

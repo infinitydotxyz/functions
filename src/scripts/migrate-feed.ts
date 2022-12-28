@@ -1,8 +1,11 @@
+import PQueue from 'p-queue';
+
 import { BaseCollection, DiscordAnnouncementEvent, EventType, TwitterTweetEvent } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import PQueue from 'p-queue';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+
 import { streamQueryWithRef } from '../firestore/stream-query';
 
 async function main() {
@@ -25,7 +28,7 @@ async function main() {
 
   const queue = new PQueue({ concurrency: 100 });
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for await (const item of tweetsStream) {
     queue
       .add(async () => {
@@ -64,7 +67,7 @@ async function lowercaseFeedTweetUsernames() {
 
   const tweetsStream = streamQueryWithRef(tweetsQuery);
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for await (const item of tweetsStream) {
     const username = item.data?.username?.toLowerCase();
     if (username) {
@@ -83,7 +86,7 @@ async function lowercaseCollectionTwitterUsernames() {
 
   const collectionsStream = streamQueryWithRef(collections);
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for await (const item of collectionsStream) {
     const username = item.data?.metadata?.links?.twitter?.toLowerCase();
     if (username) {
@@ -104,7 +107,7 @@ async function lowercaseCollectionTwitterUsernames() {
 async function migrateTweet(
   tweet: TwitterTweetEvent,
   ref: FirebaseFirestore.DocumentReference<TwitterTweetEvent>,
-  batch: FirestoreBatchHandler
+  batch: BatchHandler
 ) {
   const collRef = ref.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
   const username = tweet.username?.toLowerCase();
@@ -145,7 +148,7 @@ async function migrateTweet(
 async function migrateDiscordAnnouncement(
   announcement: DiscordAnnouncementEvent,
   ref: FirebaseFirestore.DocumentReference<DiscordAnnouncementEvent>,
-  batch: FirestoreBatchHandler
+  batch: BatchHandler
 ) {
   const collRef = ref.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
   const guildId = announcement.guildId;

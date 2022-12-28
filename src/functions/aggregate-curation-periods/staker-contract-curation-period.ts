@@ -8,7 +8,9 @@ import {
   StakerContractPeriodUserDoc
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+
 import { StakerContractCurationPeriodUsers } from './staker-contract-curation-period-users';
 
 export class StakerContractCurationPeriod {
@@ -43,7 +45,7 @@ export class StakerContractCurationPeriod {
       stats: this._getInitialPeriodStats()
     };
 
-    const batch = new FirestoreBatchHandler();
+    const batch = new BatchHandler();
     for await (const { curationPeriod, ref } of periodsStream) {
       this._users.update(curationPeriod.users ?? {});
       const stakerStats = this._getUpdatedStakerPeriodStats(stakerContractPeriod.stats, curationPeriod.stats);

@@ -1,14 +1,15 @@
 import {
   RageQuitEvent,
-  StakerEvents,
   StakerEventType,
+  StakerEvents,
   TokensStakedEvent,
   TokensUnStakedEvent
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { removeUserCollectionVotes } from './remove-collection-votes';
-import { UserProfileDto, UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 import { EventType, UserRageQuitEvent, UserStakedEvent, UserUnStakedEvent } from '@infinityxyz/lib/types/core/feed';
+import { UserProfileDto, UserStakeDto } from '@infinityxyz/lib/types/dto/user';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+
+import { removeUserCollectionVotes } from './remove-collection-votes';
 
 export async function handleStakerEvent(
   event: StakerEvents,

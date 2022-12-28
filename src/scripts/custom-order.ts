@@ -1,6 +1,9 @@
-import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
 import { ethers } from 'ethers';
-import { GWEI } from '../utils/constants';
+
+import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
+
+import { GWEI } from '@/lib/utils/constants';
+
 import { postOrder } from './orders/post-order';
 import { signOrder } from './orders/sign-order';
 

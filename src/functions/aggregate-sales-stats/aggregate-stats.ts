@@ -15,8 +15,10 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { NftImageDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft-image.dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { SalesIntervalDoc, BaseStats, CurrentStats } from './types';
+
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
+import { BaseStats, CurrentStats, SalesIntervalDoc } from './types';
 import { calcPercentChange, combineCurrentStats, getStatsDocInfo } from './utils';
 
 export async function aggregateHourlyStats(

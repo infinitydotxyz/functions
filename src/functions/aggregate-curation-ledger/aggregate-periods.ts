@@ -7,8 +7,10 @@ import {
   CurationPeriodUser
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { CurationPeriodAggregator } from './curation-period-aggregator';
 import { CurationMetadata } from './types';
 
@@ -55,7 +57,7 @@ export async function aggregateBlocks(
     );
     const rewards = aggregator.getPeriodRewards(periodBlocks, collection);
     const { users, ...curationPeriodDocData } = rewards;
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     const curationPeriodDocId = `${curationPeriodRange.startTimestamp}`;
     const curationPeriodDocRef = stakerContractCurationMetadataRef
       .collection(firestoreConstants.CURATION_PERIOD_REWARDS_COLL)

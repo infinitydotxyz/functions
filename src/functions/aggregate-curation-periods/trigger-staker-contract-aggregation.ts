@@ -1,6 +1,8 @@
 import { ChainId, StakerContractPeriodDoc } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+
 import { CurationPeriodAggregator } from '../aggregate-curation-ledger/curation-period-aggregator';
 import { unAggregatedStakingContractPeriods } from './un-aggregated-staking-contract-periods';
 
@@ -30,7 +32,7 @@ export async function triggerStakerContractPeriodAggregation(db: FirebaseFiresto
     return { update, ref: stakingContractPeriodRef };
   };
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for await (const contract of unAggregatedStakingContractPeriods(db)) {
     const { update, ref } = triggerAggregation(contract);
     batchHandler.add(ref, update, { merge: true });

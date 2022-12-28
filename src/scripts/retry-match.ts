@@ -1,6 +1,7 @@
-import { FirestoreOrderMatches, FirestoreOrderMatchStatus } from '@infinityxyz/lib/types/core';
+import { FirestoreOrderMatchStatus, FirestoreOrderMatches } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../firestore';
+
+import { getDb } from '@/firestore/db';
 
 export async function retryMatch(matchId: string) {
   const db = getDb();

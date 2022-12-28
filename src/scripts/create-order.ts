@@ -1,8 +1,10 @@
-import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
 import { Wallet } from 'ethers/lib/ethers';
-import { signOrder } from './orders/sign-order';
-import { postOrder } from './orders/post-order';
 import { parseEther } from 'ethers/lib/utils';
+
+import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
+
+import { postOrder } from './orders/post-order';
+import { signOrder } from './orders/sign-order';
 
 const signerPrivateKey = process.env.CREATE_ORDER_PRIVATE_KEY;
 if (!signerPrivateKey) {

@@ -5,14 +5,17 @@ import {
   RaffleState,
   RaffleTicketTotalsDoc,
   TransactionFeePhaseRewardsDoc,
-  UserRaffle
+  UserRaffle,
+  UserRewardsEventDoc
 } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { getProvider } from '../../utils/ethersUtils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { CollGroupRef } from '@/firestore/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.DocumentReference<UserRaffle>) {
   const raffleEntrants = raffleRef.collection(
@@ -30,7 +33,7 @@ export async function updateRaffleTicketTotals(raffleRef: FirebaseFirestore.Docu
     .collection(firestoreConstants.RAFFLE_TOTALS_COLL)
     .doc(firestoreConstants.RAFFLE_TICKET_TOTALS_DOC) as FirebaseFirestore.DocumentReference<RaffleTicketTotalsDoc>;
 
-  const batch = new FirestoreBatchHandler();
+  const batch = new BatchHandler();
   if (raffle.state === RaffleState.Locked) {
     // finalize the raffle
     await ensureEntrantsAreReadyToBeFinalized(
@@ -148,7 +151,7 @@ async function ensureEntrantsAreReadyToBeFinalized(
       .collectionGroup(firestoreConstants.USER_TXN_FEE_REWARDS_LEDGER_COLL)
       .where('phaseId', '==', phaseId)
       .where('chainId', '==', chainId)
-      .where('isAggregated', '==', false);
+      .where('isAggregated', '==', false) as CollGroupRef<UserRewardsEventDoc>;
     const phaseTxnFeeDocs = db
       .collectionGroup(firestoreConstants.USER_REWARD_PHASES_COLL)
       .where('isCopiedToRaffles', '==', false)

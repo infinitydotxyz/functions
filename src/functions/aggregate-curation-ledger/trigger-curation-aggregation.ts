@@ -1,6 +1,8 @@
-import { CurationLedgerEvents, Collection, ChainId } from '@infinityxyz/lib/types/core';
-import { getTokenByStaker, ONE_MIN } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
+import { ChainId, Collection, CurationLedgerEvents } from '@infinityxyz/lib/types/core';
+import { ONE_MIN, getTokenByStaker } from '@infinityxyz/lib/utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+
 import { CurationMetadata } from './types';
 
 /**
@@ -8,7 +10,7 @@ import { CurationMetadata } from './types';
  */
 export async function triggerCurationAggregation(
   curationLedgerEventRef: FirebaseFirestore.DocumentReference<CurationLedgerEvents>,
-  batchHandler?: FirestoreBatchHandler
+  batchHandler?: BatchHandler
 ) {
   const stakerContractMetadataRef = curationLedgerEventRef.parent
     .parent as FirebaseFirestore.DocumentReference<CurationMetadata>;

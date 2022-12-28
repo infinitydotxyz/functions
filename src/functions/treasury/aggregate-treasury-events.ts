@@ -1,7 +1,8 @@
 import { ChainId, TreasuryDoc } from '@infinityxyz/lib/types/core';
 import { formatEth } from '@infinityxyz/lib/utils';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
-import { TreasuryBalanceAddedEvent } from '../../rewards/trading-fee-program-handlers/treasury-handler';
+
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+import { TreasuryBalanceAddedEvent } from '@/lib/rewards/trading-fee-program-handlers/treasury-handler';
 
 export async function aggregatedTreasuryEvents(
   ledgerRef: FirebaseFirestore.CollectionReference<TreasuryBalanceAddedEvent>

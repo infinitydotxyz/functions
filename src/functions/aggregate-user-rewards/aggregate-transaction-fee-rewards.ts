@@ -2,10 +2,12 @@ import {
   AllTimeTransactionFeeRewardsDoc,
   ChainId,
   TransactionFeePhaseRewardsDoc,
-  TransactionFeeRewardDoc
+  UserRewardsEventDoc
 } from '@infinityxyz/lib/types/core';
 import { calculateStatsBigInt, firestoreConstants } from '@infinityxyz/lib/utils';
-import { paginatedTransaction } from '../../firestore/paginated-transaction';
+
+import { paginatedTransaction } from '@/firestore/paginated-transaction';
+
 import { calculateStats } from '../aggregate-sales-stats/utils';
 
 const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string): AllTimeTransactionFeeRewardsDoc => {
@@ -13,6 +15,7 @@ const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string):
     chainId,
     userAddress,
     rewards: 0,
+    listingRewards: 0,
     volumeEth: 0,
     volumeUSDC: 0,
     volumeWei: '0',
@@ -20,17 +23,16 @@ const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string):
     updatedAt: Date.now(),
     userSells: 0,
     userBuys: 0,
+    userListings: 0,
     protocolFeesWei: '0',
     protocolFeesEth: 0,
-    protocolFeesUSDC: 0,
-    userListings: 0,
-    listingRewards: 0
+    protocolFeesUSDC: 0
   };
   return doc;
 };
 
 export async function aggregateTransactionFeeRewards(
-  ledgerRef: FirebaseFirestore.CollectionReference<TransactionFeeRewardDoc>,
+  ledgerRef: FirebaseFirestore.CollectionReference<UserRewardsEventDoc>,
   chainId: ChainId,
   userAddress: string
 ) {
@@ -59,7 +61,7 @@ export async function aggregateTransactionFeeRewards(
         string,
         {
           ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
-          rewards: TransactionFeeRewardDoc[];
+          rewards: UserRewardsEventDoc[];
           phaseName: string;
           phaseId: string;
           phaseIndex: number;
@@ -79,7 +81,7 @@ export async function aggregateTransactionFeeRewards(
           ref: userTransactionFeeRewardsRef
             .collection(firestoreConstants.USER_REWARD_PHASES_COLL)
             .doc(event.phaseId) as FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>,
-          rewards: [] as TransactionFeeRewardDoc[]
+          rewards: [] as UserRewardsEventDoc[]
         };
 
         phase.rewards.push(event);
@@ -91,7 +93,7 @@ export async function aggregateTransactionFeeRewards(
         phaseName: string;
         phaseIndex: number;
         ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
-        rewards: TransactionFeeRewardDoc[];
+        rewards: UserRewardsEventDoc[];
         data?: TransactionFeePhaseRewardsDoc;
       }[] = [...phaseRefsMap.entries()].map(([, { ref, rewards, phaseId, phaseName, phaseIndex }]) => ({
         phaseId,
@@ -107,7 +109,7 @@ export async function aggregateTransactionFeeRewards(
         phaseName: string;
         phaseIndex: number;
         ref: FirebaseFirestore.DocumentReference<TransactionFeePhaseRewardsDoc>;
-        rewards: TransactionFeeRewardDoc[];
+        rewards: UserRewardsEventDoc[];
         data: TransactionFeePhaseRewardsDoc;
       }[] = phaseDocs.map((doc, index) => {
         const phase = doc.data();
@@ -120,17 +122,17 @@ export async function aggregateTransactionFeeRewards(
           userAddress,
           chainId,
           rewards: 0,
+          listingRewards: 0,
           volumeEth: 0,
           volumeWei: '0',
           volumeUSDC: 0,
           updatedAt: Date.now(),
+          userListings: 0,
           userSells: 0,
           userBuys: 0,
           protocolFeesWei: '0',
           protocolFeesEth: 0,
           protocolFeesUSDC: 0,
-          userListings: 0,
-          listingRewards: 0,
           config: item.rewards?.[0]?.config,
           isCopiedToRaffles: false
         };
@@ -142,17 +144,29 @@ export async function aggregateTransactionFeeRewards(
       });
 
       for (const { ref, rewards: rewardEvents, data } of phasesWithData) {
-        const rewardsToAdd = calculateStats(rewardEvents, (item) => item.reward).sum;
-        const volumeToAdd = calculateStats(rewardEvents, (item) => item.volumeEth).sum;
-        const volumeWeiToAdd = calculateStatsBigInt(rewardEvents, (item) => BigInt(item.volumeWei)).sum;
-        const volumeUSDCToAdd = calculateStats(rewardEvents, (item) => item.volumeUSDC).sum;
-        const protocolFeeWeiToAdd = calculateStatsBigInt(rewardEvents, (item) => BigInt(item.protocolFeesWei)).sum;
-        const protocolFeeEthToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesEth).sum;
-        const protocolFeeUSDCToAdd = calculateStats(rewardEvents, (item) => item.protocolFeesUSDC).sum;
+        const rewardsToAdd = calculateStats(rewardEvents, (item) => ('sale' in item ? item.reward : 0)).sum;
+        const listingRewardsToAdd = calculateStats(rewardEvents, (item) =>
+          'listing' in item ? item.listingReward : 0
+        ).sum;
+        const volumeToAdd = calculateStats(rewardEvents, (item) => ('sale' in item ? item.volumeEth : 0)).sum;
+        const volumeWeiToAdd = calculateStatsBigInt(rewardEvents, (item) =>
+          'sale' in item ? BigInt(item.volumeWei) : BigInt(0)
+        ).sum;
+        const volumeUSDCToAdd = calculateStats(rewardEvents, (item) => ('sale' in item ? item.volumeUSDC : 0)).sum;
+        const protocolFeeWeiToAdd = calculateStatsBigInt(rewardEvents, (item) =>
+          'sale' in item ? BigInt(item.protocolFeesWei) : BigInt(0)
+        ).sum;
+        const protocolFeeEthToAdd = calculateStats(rewardEvents, (item) =>
+          'sale' in item ? item.protocolFeesEth : 0
+        ).sum;
+        const protocolFeeUSDCToAdd = calculateStats(rewardEvents, (item) =>
+          'sale' in item ? item.protocolFeesUSDC : 0
+        ).sum;
 
-        const { sells: sellsToAdd, buys: buysToAdd } = countBuysAndSells(rewardEvents);
+        const { sells: sellsToAdd, buys: buysToAdd, listings: listingsToAdd } = countEvents(rewardEvents);
 
         const rewards = (data?.rewards ?? 0) + rewardsToAdd;
+        const listingRewards = (data?.listingRewards ?? 0) + listingRewardsToAdd;
         const volumeEth = (data?.volumeEth ?? 0) + volumeToAdd;
         const volumeWei = (BigInt(data?.volumeWei ?? '0') + BigInt(volumeWeiToAdd)).toString();
         const volumeUSDC = (data?.volumeUSDC ?? 0) + volumeUSDCToAdd;
@@ -161,11 +175,14 @@ export async function aggregateTransactionFeeRewards(
         const protocolFeesUSDC = (data?.protocolFeesUSDC ?? 0) + protocolFeeUSDCToAdd;
         const userSells = (data?.userSells ?? 0) + sellsToAdd;
         const userBuys = (data?.userBuys ?? 0) + buysToAdd;
+        const userListings = (data?.userListings || 0) + listingsToAdd;
 
         allTimeRewards.rewards += rewardsToAdd;
+        allTimeRewards.listingRewards = (allTimeRewards?.listingRewards ?? 0) + listingsToAdd;
         allTimeRewards.volumeEth += volumeToAdd;
         allTimeRewards.userSells += sellsToAdd;
         allTimeRewards.userBuys += buysToAdd;
+        allTimeRewards.userListings = (allTimeRewards?.userListings ?? 0) + listingsToAdd;
         allTimeRewards.volumeWei = (BigInt(allTimeRewards.volumeWei) + BigInt(volumeWeiToAdd)).toString();
         allTimeRewards.volumeUSDC += volumeUSDCToAdd;
         allTimeRewards.protocolFeesEth += protocolFeeEthToAdd;
@@ -186,6 +203,8 @@ export async function aggregateTransactionFeeRewards(
           protocolFeesUSDC,
           userSells,
           userBuys,
+          listingRewards,
+          userListings,
           updatedAt: Date.now(),
           isCopiedToRaffles: false
         };
@@ -193,7 +212,7 @@ export async function aggregateTransactionFeeRewards(
       }
 
       for (const doc of unaggregatedSalesSnap.docs) {
-        const update: Partial<TransactionFeeRewardDoc> = {
+        const update: Partial<UserRewardsEventDoc> = {
           isAggregated: true
         };
         txn.set(doc.ref, update, { merge: true });
@@ -204,23 +223,33 @@ export async function aggregateTransactionFeeRewards(
   );
 }
 
-function countBuysAndSells(events: TransactionFeeRewardDoc[]) {
-  const { sells, buys } = events.reduce(
+function countEvents(events: UserRewardsEventDoc[]) {
+  const { sells, buys, listings } = events.reduce(
     (acc, event) => {
+      if ('listing' in event) {
+        return {
+          sells: acc.sells,
+          buys: acc.buys,
+          listings: acc.listings + 1
+        };
+      }
+
       const isSeller = event.userAddress === event.sale.seller;
       if (isSeller) {
         return {
           sells: acc.sells + 1,
-          buys: acc.buys
+          buys: acc.buys,
+          listings: acc.listings
         };
       }
       return {
         sells: acc.sells,
-        buys: acc.buys + 1
+        buys: acc.buys + 1,
+        listings: acc.listings
       };
     },
-    { sells: 0, buys: 0 }
+    { sells: 0, buys: 0, listings: 0 }
   );
 
-  return { sells, buys };
+  return { sells, buys, listings };
 }

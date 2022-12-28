@@ -1,3 +1,5 @@
+import * as functions from 'firebase-functions';
+
 import {
   EntrantLedgerItem,
   PreMergeEntrantOrderLedgerItem,
@@ -6,20 +8,21 @@ import {
   TransactionFeePhaseRewardsDoc,
   UserRaffle
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
-import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { RaffleLedgerSale } from '../../rewards/trading-fee-program-handlers/raffle-handler';
-import { REGION } from '../../utils/constants';
+import { ONE_MIN, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { config } from '@/config/index';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { RaffleLedgerSale } from '@/lib/rewards/trading-fee-program-handlers/raffle-handler';
+
+import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';
+import { aggregateEntrantsLedger } from './aggregate-entrants-ledger';
+import { aggregateRaffleRewardsLedger } from './aggregate-rewards-ledger';
 import { saveTxnFees } from './save-txn-fees';
 import { RaffleRewardsLedgerTriggerDoc } from './types';
 import { updateLedgerTriggerToAggregate } from './update-ledger-trigger-to-aggregate';
 import { updateRaffleTicketTotals } from './update-raffle-ticket-totals';
-import { addOrdersToRaffleLedgers } from './add-orders-to-raffle-ledgers';
-import { aggregateRaffleRewardsLedger } from './aggregate-rewards-ledger';
-import { aggregateEntrantsLedger } from './aggregate-entrants-ledger';
 
 /**
  * users
@@ -48,7 +51,7 @@ import { aggregateEntrantsLedger } from './aggregate-entrants-ledger';
  * mark the trigger to aggregate the rewards
  */
 export const triggerRaffleRewardsAggregation = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .firestore.document(
     `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_REWARDS_LEDGER_COLL}/{eventId}`
   )
@@ -63,7 +66,7 @@ export const triggerRaffleRewardsAggregation = functions
   });
 
 export const aggregateRewardsLedger = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -91,7 +94,7 @@ export const aggregateRewardsLedger = functions
  * query for missed rewards and mark the trigger to aggregate the rewards
  */
 export const triggerRaffleRewardsAggregationBackup = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -110,7 +113,7 @@ export const triggerRaffleRewardsAggregationBackup = functions
     const stream = streamQueryWithRef(unaggregatedRewardsLedgers, (_, ref) => [ref], { pageSize: 300 });
 
     const paths = new Set<string>();
-    const batch = new FirestoreBatchHandler();
+    const batch = new BatchHandler();
     for await (const { ref } of stream) {
       const raffleRef = ref.parent.parent as FirebaseFirestore.DocumentReference<UserRaffle>;
       if (!raffleRef) {
@@ -125,7 +128,7 @@ export const triggerRaffleRewardsAggregationBackup = functions
   });
 
 export const copyTxnFeeRewardsToRaffleEntrants = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .firestore.document(
     `${firestoreConstants.USERS_COLL}/{user}/${firestoreConstants.USER_REWARDS_COLL}/{chainId}/${firestoreConstants.USER_REWARD_PHASES_COLL}/{phase}`
   )
@@ -145,7 +148,7 @@ export const copyTxnFeeRewardsToRaffleEntrants = functions
   });
 
 export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -159,7 +162,7 @@ export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
       .where('updatedAt', '<', Date.now() - maxAge) as FirebaseFirestore.Query<TransactionFeePhaseRewardsDoc>;
     const phaseStream = streamQueryWithRef(phaseUserTxnFeeRewardsQuery, (_, ref) => [ref], { pageSize: 300 });
 
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
 
     // trigger function to copy docs to raffle entrants
     for await (const { ref } of phaseStream) {
@@ -170,7 +173,7 @@ export const copyTxnFeeRewardsToRaffleEntrantsBackup = functions
   });
 
 export const onEntrantLedgerEvent = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .firestore.document(
     `${firestoreConstants.RAFFLES_COLL}/{stakingContract}/${firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL}/{raffleId}/${firestoreConstants.RAFFLE_ENTRANTS_COLL}/{entrantId}/${firestoreConstants.RAFFLE_ENTRANTS_LEDGER_COLL}/{eventId}`
   )
@@ -182,7 +185,7 @@ export const onEntrantLedgerEvent = functions
   });
 
 export const onEntrantLedgerEventBackup = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({ timeoutSeconds: 540 })
   .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
@@ -195,7 +198,7 @@ export const onEntrantLedgerEventBackup = functions
 
     const stream = streamQueryWithRef(unaggregatedLedgerEvents, (_, ref) => [ref], { pageSize: 300 });
 
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     const paths = new Set<string>();
     for await (const { ref } of stream) {
       const entrantRef = ref.parent.parent;
@@ -208,7 +211,7 @@ export const onEntrantLedgerEventBackup = functions
   });
 
 export const onEntrantWrite = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -232,7 +235,7 @@ export const onEntrantWrite = functions
   });
 
 export const updateTicketTotals = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -253,7 +256,7 @@ export const updateTicketTotals = functions
   });
 
 export const updateTicketTotalsBackup = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -268,7 +271,7 @@ export const updateTicketTotalsBackup = functions
 
     const stream = streamQueryWithRef(unaggregatedTriggers, (_, ref) => [ref], { pageSize: 300 });
 
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     const paths = new Set<string>();
     for await (const { ref } of stream) {
       if (!paths.has(ref.path)) {
@@ -281,7 +284,7 @@ export const updateTicketTotalsBackup = functions
   });
 
 export const applyOrdersToRaffleLedgers = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -304,7 +307,7 @@ export const applyOrdersToRaffleLedgers = functions
   });
 
 export const applyOrdersToRaffleLedgersBackup = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -317,7 +320,7 @@ export const applyOrdersToRaffleLedgersBackup = functions
       .where('isAggregated', '==', false)
       .where('updatedAt', '<', Date.now() - maxAge);
     const stream = streamQueryWithRef(unaggregatedOrders, (_, ref) => [ref], { pageSize: 300 });
-    const batchHandler = new FirestoreBatchHandler();
+    const batchHandler = new BatchHandler();
     for await (const { ref } of stream) {
       await batchHandler.addAsync(ref, { updatedAt: Date.now() }, { merge: true });
     }

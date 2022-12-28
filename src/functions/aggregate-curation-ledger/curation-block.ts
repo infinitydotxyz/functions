@@ -1,23 +1,26 @@
+import { formatEther } from 'ethers/lib/utils';
+
+import { CollectionDisplayData, Erc20TokenMetadata, StakeDuration } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import {
-  CurationLedgerSale,
-  CurationBlockRewardsDoc,
-  CurationLedgerEvent,
   CurationBlockRewards,
-  CurationLedgerVotesAddedWithStake,
-  CurationLedgerVotesRemovedWithStake,
-  CurationLedgerEventsWithStake,
-  CurationLedgerEventStake,
+  CurationBlockRewardsDoc,
   CurationBlockUser,
-  CurationBlockUsers
+  CurationBlockUsers,
+  CurationLedgerEvent,
+  CurationLedgerEventStake,
+  CurationLedgerEventsWithStake,
+  CurationLedgerSale,
+  CurationLedgerVotesAddedWithStake,
+  CurationLedgerVotesRemovedWithStake
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { formatEther } from 'ethers/lib/utils';
+
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth, round } from '@/lib/utils';
+
 import { calcPercentChange, calculateStats, calculateStatsBigInt } from '../aggregate-sales-stats/utils';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { calculateCollectionAprByMultiplier, calculateCuratorApr, formatEth, round } from '../../utils';
 import { CurationBlockAggregator } from './curation-block-aggregator';
-import { CollectionDisplayData, Erc20TokenMetadata, StakeDuration } from '@infinityxyz/lib/types/core';
 
 interface BlockMetadata {
   /**

@@ -1,5 +1,6 @@
-import { getDb } from '../firestore';
-import { sleep } from '../utils';
+import { sleep } from '@/lib/utils';
+
+import { getDb } from './db';
 
 const MAX_BATCH_SIZE = 300;
 
@@ -8,7 +9,7 @@ interface Batch {
   size: number;
 }
 
-export default class FirestoreBatchHandler {
+export class BatchHandler {
   private currentBatch: Batch;
 
   private db: FirebaseFirestore.Firestore;

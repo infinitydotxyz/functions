@@ -1,14 +1,17 @@
-import { firestoreConstants, ONE_MIN } from '@infinityxyz/lib/utils';
 import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { TreasuryBalanceAddedEvent } from '../../rewards/trading-fee-program-handlers/treasury-handler';
-import { REGION } from '../../utils/constants';
+
+import { ONE_MIN, firestoreConstants } from '@infinityxyz/lib/utils';
+
+import { config } from '@/config/index';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { TreasuryBalanceAddedEvent } from '@/lib/rewards/trading-fee-program-handlers/treasury-handler';
+
 import { aggregatedTreasuryEvents } from './aggregate-treasury-events';
 
 export const onTreasuryLedgerEvent = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540,
     maxInstances: 1 // run 1 instance to support batch aggregation on any event change
@@ -22,7 +25,7 @@ export const onTreasuryLedgerEvent = functions
   });
 
 export const triggerTreasuryLedgerAggregation = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .pubsub.schedule('every 10 minutes')
   .onRun(async () => {
     const db = getDb();
@@ -37,7 +40,7 @@ export const triggerTreasuryLedgerAggregation = functions
     const stream = streamQueryWithRef(query, (_, ref) => [ref], { pageSize: 300 });
 
     const paths = new Set<string>();
-    const batch = new FirestoreBatchHandler();
+    const batch = new BatchHandler();
     for await (const { ref } of stream) {
       if (!paths.has(ref.parent.path)) {
         paths.add(ref.parent.path);

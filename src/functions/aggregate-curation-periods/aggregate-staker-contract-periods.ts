@@ -6,7 +6,10 @@ import {
   StakerContractPeriodMetadata
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { streamQuery, streamQueryWithRef } from '../../firestore/stream-query';
+
+import { streamQuery, streamQueryWithRef } from '@/firestore/stream-query';
+import { Firestore } from '@/firestore/types';
+
 import { StakerContractCurationPeriod } from './staker-contract-curation-period';
 
 export async function aggregateStakerContractPeriods(
@@ -25,7 +28,7 @@ export async function aggregateStakerContractPeriods(
 }
 
 export async function* collectionCurationPeriods(
-  db: FirebaseFirestore.Firestore,
+  db: Firestore,
   stakerContractAddress: string,
   stakerContractChainId: ChainId,
   timestamp: number

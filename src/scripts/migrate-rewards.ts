@@ -1,13 +1,16 @@
+import PQueue from 'p-queue';
+
 import { EventType, SaleSource } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import PQueue from 'p-queue';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+
 import { streamQueryWithRef } from '../firestore/stream-query';
 
 const usersQueue = new PQueue({ concurrency: 1000 });
 
-const batch = new FirestoreBatchHandler();
+const batch = new BatchHandler();
 async function migrateRewards() {
   const db = getDb();
 
@@ -92,7 +95,7 @@ async function deleteRaffleOrdersLedger(db: FirebaseFirestore.Firestore) {
   const raffleOrdersLedger = db.collectionGroup(firestoreConstants.USER_RAFFLE_ORDERS_LEDGER_COLL);
   const stream = streamQueryWithRef(raffleOrdersLedger, (_, ref) => [ref], { pageSize: 300 });
 
-  const batch = new FirestoreBatchHandler();
+  const batch = new BatchHandler();
   for await (const { ref } of stream) {
     await batch.deleteAsync(ref as FirebaseFirestore.DocumentReference<any>);
   }
@@ -150,7 +153,7 @@ async function deleteInfinitySales(db: FirebaseFirestore.Firestore) {
   const infinitySales = sales.where('source', '==', SaleSource.Infinity);
   const stream = streamQueryWithRef(infinitySales, (_, ref) => [ref], { pageSize: 300 });
 
-  const batch = new FirestoreBatchHandler();
+  const batch = new BatchHandler();
   for await (const { ref } of stream) {
     await batch.deleteAsync(ref as FirebaseFirestore.DocumentReference<any>);
   }
@@ -165,7 +168,7 @@ async function removeInfinitySalesFromFeed(db: FirebaseFirestore.Firestore) {
 
   const stream = streamQueryWithRef(infinitySales, (_, ref) => [ref], { pageSize: 300 });
 
-  const batch = new FirestoreBatchHandler();
+  const batch = new BatchHandler();
   for await (const { ref } of stream) {
     await batch.deleteAsync(ref as FirebaseFirestore.DocumentReference<any>);
   }
@@ -192,7 +195,7 @@ async function removeEventsFromFeed(db: FirebaseFirestore.Firestore) {
   }
 }
 
-async function recursivelyDelete(ref: FirebaseFirestore.CollectionReference<any>, batch: FirestoreBatchHandler) {
+async function recursivelyDelete(ref: FirebaseFirestore.CollectionReference<any>, batch: BatchHandler) {
   const queue = new PQueue({
     concurrency: 1000
   });

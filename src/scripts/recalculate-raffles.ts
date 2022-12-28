@@ -1,6 +1,8 @@
 import { EntrantLedgerItem, RaffleEntrant } from '@infinityxyz/lib/types/core';
-import { getDb } from '../firestore';
-import FirestoreBatchHandler from '../firestore/batch-handler';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+
 import { streamQueryWithRef } from '../firestore/stream-query';
 
 async function recalculateRaffles() {
@@ -8,7 +10,7 @@ async function recalculateRaffles() {
   const raffleEntrants = db.collectionGroup('raffleEntrants') as FirebaseFirestore.CollectionGroup<RaffleEntrant>;
   const raffleEntrantsStream = streamQueryWithRef(raffleEntrants, (_, ref) => [ref], { pageSize: 300 });
 
-  const batch = new FirestoreBatchHandler();
+  const batch = new BatchHandler();
   for await (const raffleEntrant of raffleEntrantsStream) {
     raffleEntrant.data.numTickets = 0;
     raffleEntrant.data.data = {

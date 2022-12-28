@@ -1,6 +1,7 @@
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { SalesIntervalDoc } from './types';
 
 export async function retriggerAggregation() {
@@ -12,7 +13,7 @@ export async function retriggerAggregation() {
   const collectionGroups = [collectionAggregatedSales, nftAggregatedSales, sourceAggregatedSales];
   const tenMin = 60 * 1000 * 10;
   const retriggerIfUpdatedBefore = Date.now() - tenMin;
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
 
   const updatePaths = new Set<string>();
   const trigger = <T extends { updatedAt: number; hasUnaggregatedSales: boolean }>(

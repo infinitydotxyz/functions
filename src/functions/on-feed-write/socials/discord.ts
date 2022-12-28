@@ -1,6 +1,8 @@
+import { APIEmbed, WebhookClient } from 'discord.js';
+
 import { EventType, FeedEvent, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core';
-import {WebhookClient, APIEmbed} from 'discord.js';
-import { DISCORD_WEBHOOK_URL } from '../../../utils/constants';
+
+import { DISCORD_WEBHOOK_URL } from '@/lib/utils/constants';
 
 const BASE_URL = 'https://infinity.xyz';
 
@@ -28,22 +30,19 @@ function embedSale(event: NftSaleEvent): APIEmbed {
       },
       {
         name: 'Buyer',
-        value: `[${event.buyerDisplayName || event.buyer}](${BASE_URL}/profile/${
-          event.buyer
-        })`
+        value: `[${event.buyerDisplayName || event.buyer}](${BASE_URL}/profile/${event.buyer})`
       },
       {
         name: 'Seller',
-        value: `[${event.sellerDisplayName || event.seller}](${BASE_URL}/profile/${
-          event.seller
-        })`
-      },
+        value: `[${event.sellerDisplayName || event.seller}](${BASE_URL}/profile/${event.seller})`
+      }
     ]
   };
 }
 
 function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
-  const price = event.startPriceEth === event.endPriceEth ? event.endPriceEth : `${event.startPriceEth} - ${event.endPriceEth}`;
+  const price =
+    event.startPriceEth === event.endPriceEth ? event.endPriceEth : `${event.startPriceEth} - ${event.endPriceEth}`;
   const type = event.type === EventType.NftOffer ? 'Offer' : 'Listing';
 
   const embed: APIEmbed = {
@@ -59,7 +58,9 @@ function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
       },
       {
         name: 'Asset',
-        value: `[${event.nftName}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}/asset/${event.chainId}/${event.collectionAddress}/${event.tokenId})`
+        value: `[${event.nftName}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}/asset/${
+          event.chainId
+        }/${event.collectionAddress}/${event.tokenId})`
       },
       {
         name: `${type} Price`,
@@ -68,17 +69,15 @@ function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
       {
         name: `${type} By`,
         value: `[${event.makerUsername || event.makerAddress}](${BASE_URL}/profile/${event.makerAddress})`
-      },
+      }
     ]
   };
 
   if (event.takerAddress) {
-    embed.fields?.push(
-      {
-        name: 'Accepted By',
-        value: `[${event.takerUsername || event.takerAddress}](${BASE_URL}/profile/${event.takerAddress})`
-      },
-    );
+    embed.fields?.push({
+      name: 'Accepted By',
+      value: `[${event.takerUsername || event.takerAddress}](${BASE_URL}/profile/${event.takerAddress})`
+    });
   }
 
   return embed;
@@ -96,7 +95,9 @@ function buildEmbed(event: FeedEvent) {
       embed = embedOfferOrListing(event);
       break;
     default:
-      throw new Error(`Feed event of type ${event.type} is not yet supported or implemented by the notifyDiscordWebhook function!`);
+      throw new Error(
+        `Feed event of type ${event.type} is not yet supported or implemented by the notifyDiscordWebhook function!`
+      );
   }
 
   return embed;
@@ -113,11 +114,9 @@ export function notifyDiscordWebhook(event: FeedEvent) {
   embed.footer = {
     text: event.type.split('_').pop() || '',
     icon_url: 'https://pbs.twimg.com/profile_images/1488261914731814915/nyEgvjn2_400x400.png'
-  }
+  };
 
   return webhook.send({
-    embeds: [
-      embed
-    ]
+    embeds: [embed]
   });
 }

@@ -1,7 +1,9 @@
 import { NftSale } from '@infinityxyz/lib/types/core/NftSale';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
-import { streamQuery } from '../../firestore/stream-query';
+
+import { getDb } from '@/firestore/db';
+import { streamQuery } from '@/firestore/stream-query';
+
 import { SalesRequestOptions } from './types';
 
 export async function getSales(options: SalesRequestOptions) {

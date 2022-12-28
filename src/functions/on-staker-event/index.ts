@@ -1,14 +1,17 @@
+import * as functions from 'firebase-functions';
+
 import { StakerEvents } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import * as functions from 'firebase-functions';
-import { getDb } from '../../firestore';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { REGION } from '../../utils/constants';
+
+import { config } from '@/config/index';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { handleStakerEvent } from './handle-staker-event';
 
 export const onStakerEvent = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({
     timeoutSeconds: 540
   })
@@ -26,7 +29,7 @@ export const onStakerEvent = functions
   });
 
 export const triggerStakerEvents = functions
-  .region(REGION)
+  .region(config.firebase.region)
   .runWith({ timeoutSeconds: 540 })
   .pubsub.schedule('every 5 minutes')
   .onRun(async () => {
@@ -39,7 +42,7 @@ export const triggerStakerEvents = functions
       .where('processed', '==', false) as FirebaseFirestore.Query<StakerEvents>;
     const stream = streamQueryWithRef(unProcessedStakingEvents, (item, ref) => [ref], { pageSize: 300 });
     let numTriggered = 0;
-    const batch = new FirestoreBatchHandler();
+    const batch = new BatchHandler();
     for await (const item of stream) {
       const trigger: Partial<StakerEvents> = {
         updatedAt: Date.now()

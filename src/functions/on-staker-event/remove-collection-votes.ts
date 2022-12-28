@@ -1,13 +1,13 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { RageQuitEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
 import {
   CurationLedgerEvent,
   CurationLedgerVotesRemovedWithStake,
   CurationVotesRemoved
 } from '@infinityxyz/lib/types/core/curation-ledger';
-import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
+import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 export async function removeUserCollectionVotes(
   user: string,

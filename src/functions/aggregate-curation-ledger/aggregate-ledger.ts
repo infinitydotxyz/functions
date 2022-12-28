@@ -1,10 +1,12 @@
 import { Erc20TokenMetadata } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
-import { CurationLedgerEventsWithStake, CurationLedgerEventType } from '@infinityxyz/lib/types/core/curation-ledger';
+import { CurationLedgerEventType, CurationLedgerEventsWithStake } from '@infinityxyz/lib/types/core/curation-ledger';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import FirestoreBatchHandler from '../../firestore/batch-handler';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { getCollectionDisplayData } from '../../utils';
+
+import { BatchHandler } from '@/firestore/batch-handler';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { getCollectionDisplayData } from '@/lib/utils';
+
 import { CurationBlockAggregator } from './curation-block-aggregator';
 import { CurationMetadata } from './types';
 
@@ -59,7 +61,7 @@ export async function aggregateLedger(
   );
   await curationAggregator.aggregate(collection);
 
-  const batchHandler = new FirestoreBatchHandler();
+  const batchHandler = new BatchHandler();
   for (const event of eventsWithRefs) {
     const updatedEvent: Partial<CurationLedgerEventType> = {
       isAggregated: true,

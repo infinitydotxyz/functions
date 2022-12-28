@@ -6,9 +6,10 @@ import {
   SaleSource
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getDb } from '../../firestore';
-import { streamQueryWithRef } from '../../firestore/stream-query';
-import { RewardsEventHandler } from '../../rewards/rewards-event-handler';
+
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+
 import { AggregationInterval, SalesIntervalDoc } from './types';
 import { getIntervalAggregationId } from './utils';
 
@@ -20,7 +21,6 @@ export async function saveSalesForAggregation() {
   const unaggregatedSalesStream = streamQueryWithRef(unaggregatedSales, (item, ref) => [ref], {
     pageSize: 300
   });
-  const rewardsEventHandler = new RewardsEventHandler(db);
 
   const saveSale = async (ref: FirebaseFirestore.DocumentReference<NftSale>) => {
     try {
@@ -36,27 +36,17 @@ export async function saveSalesForAggregation() {
           updatedAt: Date.now()
         };
         if (saleWithDocId.source === SaleSource.Infinity) {
-          // const tokenPrice = await getTokenPairPrice(WETH_MAINNET, USDC_MAINNET);
-          // const asset = {
-          //   collection: sale.collectionAddress,
-          //   tokenId: sale.tokenId,
-          //   chainId: sale.chainId as ChainId
-          // };
-          // const referral = await getSaleReferral(db, sale.buyer, asset);
           const saleEvent: PreMergedRewardSaleEvent = {
             ...saleWithDocId,
             discriminator: RewardEventVariant.Sale,
             chainId: saleWithDocId.chainId as ChainId,
             isMerged: false
-            // ethPrice: tokenPrice.token1PerToken0,
-            // referral: referral ?? undefined
           };
           const rewardsLedgerRef = db
             .collection(firestoreConstants.REWARDS_COLL)
             .doc(saleWithDocId.chainId)
             .collection('rewardsLedger');
           tx.set(rewardsLedgerRef.doc(), saleEvent);
-          // await rewardsEventHandler.onEvents(saleEvent.chainId, [saleEvent], tx, db);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
         saveSaleToNftSales(saleWithDocId, tx);

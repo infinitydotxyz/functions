@@ -15,7 +15,7 @@ export const syncOrderStatusEvents = functions
   .onRun(async () => {
     const db = getDb();
     const stopIn = ONE_MIN * 8.75;
-    await syncOrderEvents(db, stopIn, { pollInterval: 30_000, delay: 10_000 });
+    await syncOrderEvents(db, stopIn, { pollInterval: 10_000, delay: 0 });
   });
 
 const reservoirOrderEventProcessor = new ReservoirOrderStatusEventProcessor(

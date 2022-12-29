@@ -1,7 +1,7 @@
 import { storage } from 'firebase-admin';
 import { PassThrough } from 'stream';
 
-import { ChainId, ChainOBOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { ChainId, ChainOBOrder, OrderSource, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { streamQueryWithRef } from '@/firestore/stream-query';
@@ -32,9 +32,18 @@ export async function takeSnapshot(db: Firestore, chainId: ChainId, fileName: st
     let numOrders = 0;
     const stream = streamQueryWithRef(activeOrdersQuery);
     for await (const item of stream) {
-      const orderData: { id: string; order: ChainOBOrder } = {
+      const orderData: {
+        id: string;
+        order: ChainOBOrder;
+        source: OrderSource;
+        sourceOrder: unknown;
+        gasUsage: string;
+      } = {
         id: item.data.metadata.id,
-        order: item.data.rawOrder.infinityOrder
+        order: item.data.rawOrder.infinityOrder,
+        source: item.data.order.sourceMarketplace,
+        sourceOrder: item.data.rawOrder.rawOrder,
+        gasUsage: item.data.rawOrder.gasUsage
       };
 
       const stringified = JSON.stringify(orderData);

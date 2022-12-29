@@ -14,6 +14,7 @@ export * from './raffle';
 export * from './referrals';
 export * from './reservoir';
 export * from './rewards';
+export * from './tokens';
 export * from './treasury';
 export * from './twitter';
 export * from './on-feed-write';

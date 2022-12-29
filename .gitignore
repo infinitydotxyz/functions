@@ -13,3 +13,6 @@ src/creds/**/*
 firebase-debug.log
 
 wallets/**
+
+.DS_STORE
+

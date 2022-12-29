@@ -26,7 +26,8 @@ const transferProcessor = new TokenTransfersProcessor(
 const processor = transferProcessor.getFunctions();
 
 const settings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 540
+  timeoutSeconds: 540,
+  maxInstances: 10_000
 });
 
 const documentBuilder = settings.firestore.document;

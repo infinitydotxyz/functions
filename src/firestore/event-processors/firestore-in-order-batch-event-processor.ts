@@ -32,8 +32,9 @@ export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEv
        */
       const orderByRes = this._applyOrderBy(ref, OrderDirection.Descending);
       let startAfterQuery = orderByRes.query;
-      startAfterQuery = startAfterQuery.startAfter(orderByRes.getStartAfterField(firstDocData, firstDoc.ref));
-      const startAfterSnap = await startAfterQuery.limit(1).get();
+      const firstUnprocessedEventStartAfter = orderByRes.getStartAfterField(firstDocData, firstDoc.ref);
+      const q = startAfterQuery.startAfter(...firstUnprocessedEventStartAfter);
+      const startAfterSnap = await q.limit(1).get();
       const firstStartAfterDoc = startAfterSnap.docs[0];
       const firstStartAfterDocData = firstStartAfterDoc?.data?.() as T | undefined;
 
@@ -59,16 +60,17 @@ export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEv
        */
       if (!lastPageSnap && firstStartAfterItem) {
         if (pageNumber !== 1) {
-          console.error(`Expected page number to be 1!`);
+          console.error(`No Snap. Expected page number to be 1! Found ${pageNumber}!`);
         }
-        return query.startAfter(firstStartAfterItem.ref);
+        const startAfter = getStartAfterField(firstStartAfterItem.data, firstStartAfterItem.ref);
+        return query.startAfter(...startAfter);
       } else if (!lastPageSnap && !firstStartAfterItem) {
         /**
          * if we are about to get the first page and
          * we did not find a document before the first unprocessed event
          */
         if (pageNumber !== 1) {
-          console.error(`Expected page number to be 1!`);
+          console.error(`No snap or first start after item. Expected page number to be 1! Found ${pageNumber}!`);
         }
         return query;
       } else if (lastPageSnap) {
@@ -76,7 +78,7 @@ export abstract class FirestoreInOrderBatchEventProcessor<T> extends FirestoreEv
         const lastItemData = lastItem?.data?.();
         if (lastItem && lastItemData) {
           const startAfter = getStartAfterField(lastItemData, lastItem?.ref);
-          return query.startAfter(startAfter);
+          return query.startAfter(...startAfter);
         }
 
         return undefined;

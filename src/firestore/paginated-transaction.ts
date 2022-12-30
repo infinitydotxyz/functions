@@ -49,10 +49,11 @@ export async function paginatedTransaction<T>(
           return { queryEmpty: true };
         }
       }
-      pageQuery = query.limit(options.pageSize);
+      pageQuery = pageQuery.limit(options.pageSize);
       let items: FirebaseFirestore.QuerySnapshot<T>;
       try {
         items = await txn.get(pageQuery);
+        lastPageSnap = items;
       } catch (err) {
         if (err instanceof Error) {
           return err;

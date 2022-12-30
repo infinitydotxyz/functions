@@ -68,12 +68,30 @@ import { config } from '../config';
 
 async function orderEventProcessor(id: string) {
   class Dev extends OrderEventProcessor {
-    async process(
-      eventsSnap: QuerySnap<OrderEvents>,
-      txn: FirebaseFirestore.Transaction,
-      eventsRef: CollRef<OrderEvents>
-    ) {
-      await this._processEvents(eventsSnap, txn, eventsRef);
+    async process(eventsRef: CollRef<OrderEvents>) {
+      const eventsForProcessing = await this._getEventsForProcessing(eventsRef);
+
+      const res = await paginatedTransaction(
+        eventsForProcessing.query,
+        this.db,
+        { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
+        async ({ data, txn, hasNextPage }) => {
+          console.log(`Processing ${data.docs.length} events`);
+
+          const firstItem = data.docs[0].ref.id;
+          const lastItem = data.docs[data.docs.length - 1].ref.id;
+          console.log(firstItem, lastItem);
+
+          await this._processEvents(data, txn, eventsRef);
+          if (!hasNextPage) {
+            console.log(`NO MORE PAGES!`);
+            // await markAsProcessed(ref, txn);
+          }
+        },
+        eventsForProcessing.applyStartAfter
+      );
+
+      // await this._processEvents(eventsSnap, txn, eventsRef);
     }
 
     async backup() {
@@ -165,28 +183,20 @@ async function orderEventProcessor(id: string) {
   // await processor.backup();
   const start = Date.now();
   const eventsRef = db.collection('ordersV2').doc(id).collection('orderEvents') as CollRef<OrderEvents>;
-  const query = eventsRef
-    .where('metadata.processed', '==', false)
-    .where('metadata.updatedAt', '<', start)
-    .limit(100) as Query<OrderEvents>;
 
-  await db.runTransaction(async (txn) => {
-    const snap = await txn.get(query);
-
-    await processor.process(snap, txn, eventsRef);
-  });
+  await processor.process(eventsRef);
 
   console.log('Done');
 }
 
 async function main() {
-  await orderEventProcessor('0x2382a4bae36552c3b3b4aeff49d03613f942d28e272cddd385b5a61968b40d13');
+  // await orderEventProcessor('0x2382a4bae36552c3b3b4aeff49d03613f942d28e272cddd385b5a61968b40d13');
   // const id = '0x0282ca845b57722c7f9d65d6652f2e573a215c5cfcefa14d07226a74352a69ad';
   // const db = getDb();
   // await getDb().collection('ordersV2').doc(id).delete();
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
-  // await triggerOrderEvents();
+  await triggerOrderEvents();
 }
 
 async function triggerOrderEvents() {

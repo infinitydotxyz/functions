@@ -1,3 +1,4 @@
+import { FieldPath } from 'firebase-admin/firestore';
 import PQueue from 'p-queue';
 
 import {
@@ -30,11 +31,26 @@ export class RewardsEventMerger extends FirestoreBatchEventProcessor<PreMergedRe
     return ref.where('isMerged', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter(
+  protected _applyUpdatedAtLessThanAndOrderByFilter(
     query: Query<PreMergedRewardEvent>,
     timestamp: number
-  ): Query<PreMergedRewardEvent> {
-    return query.where('updatedAt', '<', timestamp);
+  ): {
+    query: Query<PreMergedRewardEvent>;
+    getStartAfterField: (
+      item: PreMergedRewardEvent,
+      ref: DocRef<PreMergedRewardEvent>
+    ) => (string | number | DocRef<PreMergedRewardEvent>)[];
+  } {
+    const q = query
+      .where('updatedAt', '<', timestamp)
+      .orderBy('updatedAt', 'asc')
+      .orderBy(FieldPath.documentId(), 'asc');
+
+    const getStartAfterField = (item: PreMergedRewardEvent, ref: DocRef<PreMergedRewardEvent>) => {
+      return [item.updatedAt, ref.id];
+    };
+
+    return { query: q, getStartAfterField };
   }
 
   protected async _processEvents(

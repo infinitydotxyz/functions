@@ -1,3 +1,5 @@
+import { FieldPath } from 'firebase-admin/firestore';
+
 import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
@@ -12,8 +14,19 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
   protected _applyOrderBy<Events extends { data: { blockTimestamp: number } } = NftTransferEvent>(
     query: CollRef<Events> | Query<Events>,
     direction: OrderDirection
-  ): Query<Events> {
-    return query.orderBy('data.blockTimestamp', direction);
+  ): {
+    query: Query<Events>;
+    getStartAfterField: (
+      item: Events,
+      ref: FirebaseFirestore.DocumentReference<Events>
+    ) => (string | number | FirebaseFirestore.DocumentReference<Events>)[];
+  } {
+    const q = query.orderBy('data.blockTimestamp', direction).orderBy(FieldPath.documentId(), direction);
+
+    return {
+      query: q,
+      getStartAfterField: (item, ref) => [item.data.blockTimestamp, ref.id]
+    };
   }
 
   protected _applyOrderByLessThan<Events extends { data: { blockTimestamp: number } } = NftTransferEvent>(
@@ -34,11 +47,26 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
     return ref.where('metadata.processed', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter<Event extends { metadata: { timestamp: number } } = NftTransferEvent>(
-    query: Query<Event>,
+  protected _applyUpdatedAtLessThanAndOrderByFilter(
+    query: Query<NftTransferEvent>,
     timestamp: number
-  ): Query<Event> {
-    return query.where('metadata.timestamp', '<', timestamp);
+  ): {
+    query: Query<NftTransferEvent>;
+    getStartAfterField: (
+      item: NftTransferEvent,
+      ref: DocRef<NftTransferEvent>
+    ) => (string | number | DocRef<NftTransferEvent>)[];
+  } {
+    const q = query
+      .where('metadata.timestamp', '<', timestamp)
+      .orderBy('metadata.timestamp', 'asc')
+      .orderBy(FieldPath.documentId(), 'asc');
+
+    const getStartAfterField = (item: NftTransferEvent, ref: DocRef<NftTransferEvent>) => {
+      return [item.metadata.timestamp, ref.id];
+    };
+
+    return { query: q, getStartAfterField };
   }
 
   protected async _processEvents(

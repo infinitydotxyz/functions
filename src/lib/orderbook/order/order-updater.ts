@@ -55,8 +55,10 @@ export class OrderUpdater {
   }
 
   setStatus(status: OrderStatus) {
-    this._rawOrder.order.status = status;
-    this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
+    if (this._rawOrder.order.status === 'active' || this._rawOrder.order.status === 'inactive' || status === 'filled') {
+      this._rawOrder.order.status = status;
+      this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
+    }
   }
 
   setGasUsage(gasUsage: number) {

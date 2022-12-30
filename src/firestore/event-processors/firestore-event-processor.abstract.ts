@@ -1,4 +1,5 @@
 import { firestore, pubsub } from 'firebase-functions';
+import PQueue from 'p-queue';
 
 import { paginatedTransaction } from '../paginated-transaction';
 import { streamQueryWithRef } from '../stream-query';
@@ -58,11 +59,21 @@ export abstract class FirestoreEventProcessor<T> {
   protected abstract _getUnProcessedEvents(ref: CollRef<T> | CollGroupRef<T>): Query<T>;
 
   /**
-   * _applyUpdatedAtLessThanFilter takes a query of events and applies a
+   * _applyUpdatedAtLessThanAndOrderByFilter takes a query of events and applies a
    * where clause to filter out events that have been updated after the
-   * provided timestamp
+   * provided timestamp. It should additionally apply an orderBy clause
+   * on the timestamp and secondary order by clause on a unique id
    */
-  protected abstract _applyUpdatedAtLessThanFilter(query: Query<T>, timestamp: number): Query<T>;
+  protected abstract _applyUpdatedAtLessThanAndOrderByFilter(
+    query: Query<T>,
+    timestamp: number
+  ): {
+    query: Query<T>;
+    getStartAfterField: (
+      item: T,
+      ref: FirebaseFirestore.DocumentReference<T>
+    ) => (string | number | FirebaseFirestore.DocumentReference<T>)[];
+  };
 
   /**
    * _processEvents takes a page of events and a transaction and is expected
@@ -145,34 +156,51 @@ export abstract class FirestoreEventProcessor<T> {
 
       const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
       const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
-      const staleUnProcessedEvents = this._applyUpdatedAtLessThanFilter(unProcessedEvents, staleIfUpdatedBefore);
+      const { query: staleUnProcessedEvents, getStartAfterField } = this._applyUpdatedAtLessThanAndOrderByFilter(
+        unProcessedEvents,
+        staleIfUpdatedBefore
+      );
 
       let query = staleUnProcessedEvents;
       if (!this._config.isCollectionGroup) {
         query = query.limit(1);
       }
 
-      const stream = streamQueryWithRef(query);
+      const stream = streamQueryWithRef(query, getStartAfterField);
+
+      const queue = new PQueue({
+        concurrency: 20
+      });
 
       const handledTriggers = new Set<string>();
       for await (const item of stream) {
         try {
           const parentPath = item.ref.parent.parent?.path;
           if (parentPath && !handledTriggers.has(parentPath)) {
-            const { triggered } = await this._initiateProcessing(item.ref, false); // TODO optimize this
-            if (triggered) {
-              debugData.numItemsTriggered += 1;
-            } else {
-              debugData.numItemsNotTriggered += 1;
-            }
+            handledTriggers.add(parentPath);
+            queue
+              .add(async () => {
+                const { triggered } = await this._initiateProcessing(item.ref, false);
+                if (triggered) {
+                  debugData.numItemsTriggered += 1;
+                } else {
+                  debugData.numItemsNotTriggered += 1;
+                }
+              })
+              .catch((err) => {
+                console.error(`Failed to trigger processing for ${item.ref.path}`, err);
+                debugData.numItemsFailed += 1;
+              });
           } else {
             debugData.numDuplicatedFound += 1;
           }
         } catch (err) {
           debugData.numItemsFailed += 1;
-          // ignore
         }
       }
+
+      await queue.onIdle();
+
       if (this._debug) {
         console.log(
           `Scheduled backup completed for: ${this.collectionName}. Is collection group: ${this._config.isCollectionGroup}`,

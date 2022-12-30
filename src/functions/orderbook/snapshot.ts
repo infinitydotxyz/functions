@@ -15,6 +15,14 @@ export interface SnapshotMetadata {
   timestamp: number;
 }
 
+export interface OrderbookSnapshotOrder {
+  id: string;
+  order: ChainOBOrder;
+  source: OrderSource;
+  sourceOrder: unknown;
+  gasUsage: string;
+}
+
 export async function takeSnapshot(db: Firestore, chainId: ChainId, fileName: string) {
   const bucketName = 'orderbook-snapshots';
   const file = storage().bucket(bucketName).file(fileName);
@@ -32,13 +40,7 @@ export async function takeSnapshot(db: Firestore, chainId: ChainId, fileName: st
     let numOrders = 0;
     const stream = streamQueryWithRef(activeOrdersQuery);
     for await (const item of stream) {
-      const orderData: {
-        id: string;
-        order: ChainOBOrder;
-        source: OrderSource;
-        sourceOrder: unknown;
-        gasUsage: string;
-      } = {
+      const orderData: OrderbookSnapshotOrder = {
         id: item.data.metadata.id,
         order: item.data.rawOrder.infinityOrder,
         source: item.data.order.sourceMarketplace,

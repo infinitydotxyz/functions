@@ -287,7 +287,8 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         order: order.rawOrder.infinityOrder,
         isMostRecent: true,
         source: order.metadata.source,
-        sourceOrder: order.rawOrder.rawOrder
+        sourceOrder: order.rawOrder.rawOrder,
+        gasUsage: order.rawOrder.gasUsage
       };
       await saveOrderStatusEvent(statusChanged);
     }

@@ -59,7 +59,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       .orderBy('metadata.updatedAt', 'asc')
       .orderBy('metadata.id', 'asc');
 
-    const getStartAfterField = (item: Event, ref: DocRef<Event>) => {
+    const getStartAfterField = (item: Event) => {
       return [item.metadata.updatedAt, item.metadata.id];
     };
 

@@ -41,7 +41,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
 
     return {
       query: q,
-      getStartAfterField: (item, ref) => [item.metadata.timestamp, item.metadata.id]
+      getStartAfterField: (item) => [item.metadata.timestamp, item.metadata.id]
     };
   }
 
@@ -79,7 +79,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
 
     return {
       query: q,
-      getStartAfterField: (item, ref) => [item.metadata.updatedAt, item.metadata.orderId]
+      getStartAfterField: (item) => [item.metadata.updatedAt, item.metadata.orderId]
     };
   }
 

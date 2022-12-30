@@ -1,24 +1,19 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
-// import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoir-order-event-processor';
-import { syncOrderEvents } from 'functions/reservoir/sync-order-events';
 import PQueue from 'p-queue';
 
-import { ChainId, OrderDirection, OrderEvents, OrderStatusEvent, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
-import { ONE_MIN, sleep } from '@infinityxyz/lib/utils';
+import { OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
-import { TriggerDoc } from '@/firestore/event-processors/types';
 import { paginatedTransaction } from '@/firestore/paginated-transaction';
 import { streamQueryWithRef } from '@/firestore/stream-query';
-import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
+import { CollGroupRef, CollRef } from '@/firestore/types';
 import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
-import { ReservoirOrderBuilder } from '@/lib/orderbook/order/order-builder/reservoir-order-builder';
-import * as Reservoir from '@/lib/reservoir';
-import { SyncMetadata } from '@/lib/reservoir/order-events';
-import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
+
+import { config } from '../config';
 
 // async function reservoirOrderProcessor(id: string) {
 //   class Dev extends ReservoirOrderStatusEventProcessor {
@@ -196,66 +191,140 @@ async function main() {
   // await orderEventProcessor(id);
 }
 
-async function triggerOrderEvents(id: string) {
+// function triggerOrderEvents() {
+//   const db = getDb();
+
+//   // const statusEvents = await db.collectionGroup('orderStatusChanges');
+//   // const statusStream = streamQueryWithRef(statusEvents);
+//   // for await (const item of statusStream) {
+//   //   await batchHandler.deleteAsync(item.ref);
+//   // }
+
+//   // const orderEvents = (await db.collectionGroup('orderEvents')) as CollGroupRef<OrderEvents>;
+
+//   // const orderEventsStream = streamQueryWithRef(orderEvents);
+//   // for await (const item of orderEventsStream) {
+//   //   const update: Pick<OrderEvents, 'metadata'> = {
+//   //     metadata: {
+//   //       ...item.data.metadata,
+//   //       processed: false,
+//   //       updatedAt: Date.now()
+//   //     }
+//   //   };
+
+//   //   await batchHandler.addAsync(item.ref, update, { merge: true });
+//   // }
+
+//   // await batchHandler.flush();
+
+//   // for await (const { data, ref } of ordersStream) {
+//   //   console.log(`Checking ${ref.id}`);
+//   //   const endTime = data.order?.endTimeMs;
+//   //   if (endTime && endTime < Date.now() && data.order?.status === 'active') {
+//   //     console.log(`Found expired order with status active: ${ref.id}`);
+//   //   }
+//   // }
+
+//   // // for await (const item of query) {
+//   // const item = await db.collection('ordersV2').doc(id).get();
+//   // pQueue
+//   //   .add(async () => {
+//   //     const batchHandler = new BatchHandler();
+
+//   //     console.log(`Processing: ${item.ref.id}`);
+
+//   //     await batchHandler.deleteAsync(item.ref);
+//   //     const orderEvents = item.ref.collection('orderEvents') as CollRef<OrderEvents>;
+//   //     const stream = streamQueryWithRef(orderEvents);
+//   //     for await (const item of stream) {
+//   //       await batchHandler.deleteAsync(item.ref);
+//   //     }
+
+//   //     const orderStatusEvents = item.ref.collection('orderStatusChanges') as CollRef<OrderStatusEvent>;
+//   //     const statusStream = streamQueryWithRef(orderStatusEvents);
+//   //     for await (const item of statusStream) {
+//   //       await batchHandler.deleteAsync(item.ref);
+//   //     }
+
+//   //     const reservoirOrderEvents = item.ref.collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
+
+//   //     const orderEventQuery = reservoirOrderEvents
+//   //       .where('metadata.processed', '==', true)
+//   //       .orderBy('metadata.updatedAt', 'asc');
+
+//   //     const orderEventStream = streamQueryWithRef(orderEventQuery);
+//   //     for await (const orderEvent of orderEventStream) {
+//   //       const update: Pick<ReservoirOrderEvent, 'metadata'> = {
+//   //         metadata: {
+//   //           ...orderEvent.data.metadata,
+//   //           processed: false,
+//   //           updatedAt: Date.now()
+//   //         }
+//   //       };
+//   //       // await batchHandler.addAsync(orderEvent.ref, update, { merge: true });
+//   //       await batchHandler.deleteAsync(orderEvent.ref);
+//   //     }
+
+//   //     await batchHandler.flush();
+//   //   })
+//   //   .catch((err) => {
+//   //     console.error(err);
+//   //   });
+//   // // }
+
+//   // console.log('Waiting for queue to finish');
+//   // await pQueue.onIdle();
+//   // console.log(`Done`);
+// }
+
+async function deleteInvalidOrders(validCollections: Set<string>) {
   const db = getDb();
-  // const orders = db.collection('ordersV2');
+  const ordersStream = streamQueryWithRef(db.collection('ordersV2') as CollRef<RawFirestoreOrder>);
 
-  // const query = streamQueryWithRef(orders);
+  const queue = new PQueue({ concurrency: 10 });
 
-  const pQueue = new PQueue({
-    concurrency: 10
-  });
+  for await (const { data, ref } of ordersStream) {
+    if ('rawOrder' in data && data.rawOrder) {
+      if ('rawOrder' in data.rawOrder) {
+        const nfts = data.rawOrder.infinityOrder.nfts;
+        if (data.metadata.source !== 'infinity' && !nfts.find((item) => validCollections.has(item.collection))) {
+          const isSellOrder = data.rawOrder.isSellOrder;
+          // Delete
+          queue
+            .add(async () => {
+              const batch = new BatchHandler();
+              const provider = getProvider(data.metadata.chainId);
+              const gasSimulator = new GasSimulator(provider!, config.orderbook.gasSimulationAccount);
+              console.log(`Found invalid order: ${ref.id}`);
+              const baseOrder = new BaseOrder(
+                data.metadata.id,
+                data.metadata.chainId,
+                isSellOrder,
+                db,
+                provider!,
+                gasSimulator
+              );
+              const order = await baseOrder.load();
 
-  // for await (const item of query) {
-  const item = await db.collection('ordersV2').doc(id).get();
-  pQueue
-    .add(async () => {
-      const batchHandler = new BatchHandler();
+              const refs = baseOrder.getDisplayRefs(order.displayOrder);
+              for (const displayRef of refs) {
+                if (displayRef) {
+                  await batch.deleteAsync(displayRef);
+                }
+              }
+              await db.recursiveDelete(ref);
 
-      console.log(`Processing: ${item.ref.id}`);
-
-      await batchHandler.deleteAsync(item.ref);
-      const orderEvents = item.ref.collection('orderEvents') as CollRef<OrderEvents>;
-      const stream = streamQueryWithRef(orderEvents);
-      for await (const item of stream) {
-        await batchHandler.deleteAsync(item.ref);
+              await batch.flush();
+            })
+            .catch((err) => {
+              console.error(`Failed to delete ${ref.id}`, err);
+            });
+        }
       }
+    }
+  }
 
-      const orderStatusEvents = item.ref.collection('orderStatusChanges') as CollRef<OrderStatusEvent>;
-      const statusStream = streamQueryWithRef(orderStatusEvents);
-      for await (const item of statusStream) {
-        await batchHandler.deleteAsync(item.ref);
-      }
-
-      const reservoirOrderEvents = item.ref.collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
-
-      const orderEventQuery = reservoirOrderEvents
-        .where('metadata.processed', '==', true)
-        .orderBy('metadata.updatedAt', 'asc');
-
-      const orderEventStream = streamQueryWithRef(orderEventQuery);
-      for await (const orderEvent of orderEventStream) {
-        const update: Pick<ReservoirOrderEvent, 'metadata'> = {
-          metadata: {
-            ...orderEvent.data.metadata,
-            processed: false,
-            updatedAt: Date.now()
-          }
-        };
-        // await batchHandler.addAsync(orderEvent.ref, update, { merge: true });
-        await batchHandler.deleteAsync(orderEvent.ref);
-      }
-
-      await batchHandler.flush();
-    })
-    .catch((err) => {
-      console.error(err);
-    });
-  // }
-
-  console.log('Waiting for queue to finish');
-  await pQueue.onIdle();
-  console.log(`Done`);
+  await queue.onIdle();
 }
 
 void main();

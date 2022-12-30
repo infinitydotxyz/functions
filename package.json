@@ -47,7 +47,7 @@
     "@georgeroman/evm-tx-simulator": "^0.0.9",
     "@infinityxyz/lib": "^1.276.0",
     "@reservoir0x/reservoir-kit-client": "^0.1.17",
-    "@reservoir0x/sdk": "^0.0.275",
+    "@reservoir0x/sdk": "^0.0.280",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

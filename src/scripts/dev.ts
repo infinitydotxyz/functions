@@ -20,8 +20,6 @@ import { SyncMetadata } from '@/lib/reservoir/order-events';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
-import { config } from '../config';
-
 // async function reservoirOrderProcessor(id: string) {
 //   class Dev extends ReservoirOrderStatusEventProcessor {
 //     async process(
@@ -196,48 +194,64 @@ async function main() {
   // await getDb().collection('ordersV2').doc(id).delete();
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
-  await triggerOrderEvents();
 }
 
-async function triggerOrderEvents() {
+async function triggerOrderEvents(id: string) {
   const db = getDb();
-  const orders = db.collection('ordersV2');
+  // const orders = db.collection('ordersV2');
 
-  const query = streamQueryWithRef(orders);
+  // const query = streamQueryWithRef(orders);
 
   const pQueue = new PQueue({
     concurrency: 10
   });
 
-  for await (const item of query) {
-    pQueue
-      .add(async () => {
-        console.log(`Processing: ${item.ref.id}`);
-        const batchHandler = new BatchHandler();
-        const orderEvents = item.ref.collection('orderEvents') as CollRef<OrderEvents>;
+  // for await (const item of query) {
+  const item = await db.collection('ordersV2').doc(id).get();
+  pQueue
+    .add(async () => {
+      const batchHandler = new BatchHandler();
 
-        const orderEventQuery = orderEvents
-          .where('metadata.processed', '==', true)
-          .orderBy('metadata.updatedAt', 'asc');
+      console.log(`Processing: ${item.ref.id}`);
 
-        const orderEventStream = streamQueryWithRef(orderEventQuery);
-        for await (const orderEvent of orderEventStream) {
-          const update: Pick<OrderEvents, 'metadata'> = {
-            metadata: {
-              ...orderEvent.data.metadata,
-              processed: false,
-              updatedAt: Date.now()
-            }
-          };
-          await batchHandler.addAsync(orderEvent.ref, update, { merge: true });
-        }
+      await batchHandler.deleteAsync(item.ref);
+      const orderEvents = item.ref.collection('orderEvents') as CollRef<OrderEvents>;
+      const stream = streamQueryWithRef(orderEvents);
+      for await (const item of stream) {
+        await batchHandler.deleteAsync(item.ref);
+      }
 
-        await batchHandler.flush();
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  }
+      const orderStatusEvents = item.ref.collection('orderStatusChanges') as CollRef<OrderStatusEvent>;
+      const statusStream = streamQueryWithRef(orderStatusEvents);
+      for await (const item of statusStream) {
+        await batchHandler.deleteAsync(item.ref);
+      }
+
+      const reservoirOrderEvents = item.ref.collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
+
+      const orderEventQuery = reservoirOrderEvents
+        .where('metadata.processed', '==', true)
+        .orderBy('metadata.updatedAt', 'asc');
+
+      const orderEventStream = streamQueryWithRef(orderEventQuery);
+      for await (const orderEvent of orderEventStream) {
+        const update: Pick<ReservoirOrderEvent, 'metadata'> = {
+          metadata: {
+            ...orderEvent.data.metadata,
+            processed: false,
+            updatedAt: Date.now()
+          }
+        };
+        // await batchHandler.addAsync(orderEvent.ref, update, { merge: true });
+        await batchHandler.deleteAsync(orderEvent.ref);
+      }
+
+      await batchHandler.flush();
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+  // }
 
   console.log('Waiting for queue to finish');
   await pQueue.onIdle();

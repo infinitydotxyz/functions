@@ -272,10 +272,14 @@ export class BaseOrder {
        * TODO how do we handle the maker as the match executor?
        */
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
-      const status =
-        initialStatus === 'active'
-          ? 'active'
-          : await this.getOrderStatus(txn, rawOrder.source === 'infinity' ? rawOrder.infinityOrder : undefined);
+
+      let status = initialStatus;
+      if (!status && rawOrder.source === 'infinity') {
+        status = await this.getOrderStatus(txn, rawOrder.infinityOrder);
+      } else if (!status) {
+        status = await this.getOrderStatus(txn);
+      }
+
       const rawFirestoreOrder = this._getRawFirestoreOrder(rawOrder, displayData, status);
       const displayOrder = this._getDisplayOrder(rawFirestoreOrder, displayData);
       return {
@@ -588,7 +592,7 @@ export class BaseOrder {
 
     const data = result.docs?.[0]?.data?.() ?? {};
 
-    const status = data?.data?.status ?? 'inactive';
+    const status = data?.data?.status;
 
     if (!status && !!chainOBOrder) {
       const orderHelper = new ChainOBOrderHelper(this._chainId, chainOBOrder);
@@ -610,6 +614,6 @@ export class BaseOrder {
       return 'inactive';
     }
 
-    return status;
+    return status ?? 'inactive';
   }
 }

@@ -1,10 +1,10 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
-import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoir-order-event-processor';
+// import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoir-order-event-processor';
 import { syncOrderEvents } from 'functions/reservoir/sync-order-events';
 import PQueue from 'p-queue';
 
-import { ChainId, OrderDirection, OrderEvents } from '@infinityxyz/lib/types/core';
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { ChainId, OrderDirection, OrderEvents, OrderStatusEvent, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { ONE_MIN, sleep } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
@@ -12,54 +12,59 @@ import { TriggerDoc } from '@/firestore/event-processors/types';
 import { paginatedTransaction } from '@/firestore/paginated-transaction';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
+import { GasSimulator } from '@/lib/orderbook/order';
+import { BaseOrder } from '@/lib/orderbook/order/base-order';
+import { ReservoirOrderBuilder } from '@/lib/orderbook/order/order-builder/reservoir-order-builder';
 import * as Reservoir from '@/lib/reservoir';
 import { SyncMetadata } from '@/lib/reservoir/order-events';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
-async function reservoirOrderProcessor(id: string) {
-  class Dev extends ReservoirOrderStatusEventProcessor {
-    async process(
-      eventsSnap: QuerySnap<ReservoirOrderEvent>,
-      txn: FirebaseFirestore.Transaction,
-      eventsRef: CollRef<ReservoirOrderEvent>
-    ) {
-      await this._processEvents(eventsSnap, txn, eventsRef);
-    }
-  }
+import { config } from '../config';
 
-  const processor = new Dev(
-    {
-      docBuilderCollectionPath: `ordersV2/{orderId}/reservoirOrderEvents`,
-      batchSize: 100,
-      maxPages: 3,
-      minTriggerInterval: ONE_MIN,
-      id: 'merger'
-    },
-    {
-      schedule: 'every 5 minutes',
-      tts: ONE_MIN
-    },
-    getDb
-  );
+// async function reservoirOrderProcessor(id: string) {
+//   class Dev extends ReservoirOrderStatusEventProcessor {
+//     async process(
+//       eventsSnap: QuerySnap<ReservoirOrderEvent>,
+//       txn: FirebaseFirestore.Transaction,
+//       eventsRef: CollRef<ReservoirOrderEvent>
+//     ) {
+//       await this._processEvents(eventsSnap, txn, eventsRef);
+//     }
+//   }
 
-  const db = getDb();
-  const start = Date.now();
-  const eventsRef = db
-    .collection('ordersV2')
-    .doc(id)
-    .collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
-  const query = eventsRef
-    .where('metadata.processed', '==', false)
-    .where('metadata.updatedAt', '<', start)
-    .limit(100) as Query<ReservoirOrderEvent>;
+//   const processor = new Dev(
+//     {
+//       docBuilderCollectionPath: `ordersV2/{orderId}/reservoirOrderEvents`,
+//       batchSize: 100,
+//       maxPages: 3,
+//       minTriggerInterval: ONE_MIN,
+//       id: 'merger'
+//     },
+//     {
+//       schedule: 'every 5 minutes',
+//       tts: ONE_MIN
+//     },
+//     getDb
+//   );
 
-  const snap = await query.get();
+//   const db = getDb();
+//   const start = Date.now();
+//   const eventsRef = db
+//     .collection('ordersV2')
+//     .doc(id)
+//     .collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
+//   const query = eventsRef
+//     .where('metadata.processed', '==', false)
+//     .where('metadata.updatedAt', '<', start)
+//     .limit(100) as Query<ReservoirOrderEvent>;
 
-  await db.runTransaction(async (txn) => {
-    await processor.process(snap, txn, eventsRef);
-  });
-}
+//   const snap = await query.get();
+
+//   await db.runTransaction(async (txn) => {
+//     await processor.process(snap, txn, eventsRef);
+//   });
+// }
 
 async function orderEventProcessor(id: string) {
   class Dev extends OrderEventProcessor {
@@ -69,6 +74,74 @@ async function orderEventProcessor(id: string) {
       eventsRef: CollRef<OrderEvents>
     ) {
       await this._processEvents(eventsSnap, txn, eventsRef);
+    }
+
+    async backup() {
+      const db = this._getDb();
+
+      const debugData = {
+        numItemsTriggered: 0,
+        numItemsNotTriggered: 0,
+        numDuplicatedFound: 0,
+        firstItemTriggered: '',
+        numItemsFailed: 0
+      };
+
+      const eventsRef = db.collectionGroup(this.collectionName) as CollGroupRef<any>;
+
+      const unProcessedEvents = this._getUnProcessedEvents(eventsRef);
+      const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
+      const { query: staleUnProcessedEvents, getStartAfterField } = this._applyUpdatedAtLessThanAndOrderByFilter(
+        unProcessedEvents,
+        staleIfUpdatedBefore
+      );
+
+      let query = staleUnProcessedEvents;
+      if (!this._config.isCollectionGroup) {
+        query = query.limit(1);
+      }
+
+      const stream = streamQueryWithRef(query, getStartAfterField);
+
+      const queue = new PQueue();
+
+      const handledTriggers = new Set<string>();
+      for await (const item of stream) {
+        try {
+          const parentPath = item.ref.parent.parent?.path;
+          if (parentPath && !handledTriggers.has(parentPath)) {
+            handledTriggers.add(parentPath);
+            queue
+              .add(async () => {
+                const { triggered } = await this._initiateProcessing(item.ref, false);
+                if (triggered) {
+                  debugData.numItemsTriggered += 1;
+                } else {
+                  debugData.numItemsNotTriggered += 1;
+                }
+              })
+              .catch((err) => {
+                console.error(`Failed to trigger processing for ${item.ref.path}`, err);
+                debugData.numItemsFailed += 1;
+              });
+          } else {
+            debugData.numDuplicatedFound += 1;
+          }
+        } catch (err) {
+          debugData.numItemsFailed += 1;
+        }
+      }
+      console.log('Waiting for queue to finish');
+      await queue.onIdle();
+
+      console.log('Queue finished');
+
+      // if (this._debug) {
+      console.log(
+        `Scheduled backup completed for: ${this.collectionName}. Is collection group: ${this._config.isCollectionGroup}`,
+        `Triggered: ${debugData.numItemsTriggered}, Not triggered: ${debugData.numItemsNotTriggered}, Duplicates: ${debugData.numDuplicatedFound}, Failed: ${debugData.numItemsFailed}`
+      );
+      // }
     }
   }
 
@@ -88,6 +161,8 @@ async function orderEventProcessor(id: string) {
   );
 
   const db = getDb();
+
+  // await processor.backup();
   const start = Date.now();
   const eventsRef = db.collection('ordersV2').doc(id).collection('orderEvents') as CollRef<OrderEvents>;
   const query = eventsRef
@@ -100,31 +175,18 @@ async function orderEventProcessor(id: string) {
 
     await processor.process(snap, txn, eventsRef);
   });
+
+  console.log('Done');
 }
 
 async function main() {
-  const db = getDb();
-  await Reservoir.OrderEvents.addSyncs(
-    db,
-    ChainId.Mainnet,
-    ['collection-ask'],
-    '0x3bf2922f4520a8ba0c2efc3d2a1539678dad5e9d',
-    1671555997414
-  );
-
-  // const stopIn = ONE_MIN * 8.75;
-  // await syncOrderEvents(db, stopIn, { pollInterval: 1000 * 10, delay: 5000 });
-  // const id = '0x00080fc79268b013aa60d58c90aa611736698cb51c02c78a2c2ce6ee2f5ec090';
+  await orderEventProcessor('0x2382a4bae36552c3b3b4aeff49d03613f942d28e272cddd385b5a61968b40d13');
+  // const id = '0x0282ca845b57722c7f9d65d6652f2e573a215c5cfcefa14d07226a74352a69ad';
   // const db = getDb();
-  // await Reservoir.OrderEvents.addSyncs(
-  //   db,
-  //   ChainId.Mainnet,
-  //   ['collection-ask'],
-  //   '0xea67b4dd7bacae340bc4e43652044b5cded1963c'
-  // );
   // await getDb().collection('ordersV2').doc(id).delete();
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
+  // await triggerOrderEvents();
 }
 
 async function triggerOrderEvents() {

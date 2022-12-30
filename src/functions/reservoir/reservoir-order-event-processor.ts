@@ -17,7 +17,7 @@ import {
 
 import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
-import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
+import { CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
 import { ErrorCode, OrderError } from '@/lib/orderbook/errors';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
@@ -45,11 +45,25 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     return ref.where('metadata.processed', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter<Event extends { metadata: { updatedAt: number } } = ReservoirOrderEvent>(
-    query: FirebaseFirestore.Query<Event>,
+  protected _applyUpdatedAtLessThanAndOrderByFilter<
+    Event extends { metadata: { updatedAt: number; id: string } } = ReservoirOrderEvent
+  >(
+    query: Query<Event>,
     timestamp: number
-  ): FirebaseFirestore.Query<Event> {
-    return query.where('metadata.updatedAt', '<', timestamp);
+  ): {
+    query: Query<Event>;
+    getStartAfterField: (item: Event, ref: DocRef<Event>) => (string | number | DocRef<Event>)[];
+  } {
+    const q = query
+      .where('metadata.updatedAt', '<', timestamp)
+      .orderBy('metadata.updatedAt', 'asc')
+      .orderBy('metadata.id', 'asc');
+
+    const getStartAfterField = (item: Event, ref: DocRef<Event>) => {
+      return [item.metadata.updatedAt, item.metadata.id];
+    };
+
+    return { query: q, getStartAfterField };
   }
 
   protected async _processEvents(

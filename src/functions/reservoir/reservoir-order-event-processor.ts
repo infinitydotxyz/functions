@@ -99,24 +99,26 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       try {
         const transformedEvent = await this._transformEvent({ data, metadata }, txn);
 
-        const transformedEventRef = orderRef
-          .collection('orderEvents')
-          .doc(transformedEvent.metadata.id) as DocRef<OrderEvents>;
-        const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
-          metadata: {
-            ...event.data.metadata,
-            processed: true,
-            updatedAt: Date.now()
-          }
-        };
+        if (transformedEvent.metadata.eventKind !== OrderEventKind.PriceUpdate) {
+          const transformedEventRef = orderRef
+            .collection('orderEvents')
+            .doc(transformedEvent.metadata.id) as DocRef<OrderEvents>;
+          const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
+            metadata: {
+              ...event.data.metadata,
+              processed: true,
+              updatedAt: Date.now()
+            }
+          };
 
-        const result = {
-          transformedEvent,
-          transformedEventRef,
-          reservoirEventUpdate: reservoirEventUpdate,
-          reservoirEventRef: event.ref
-        };
-        successful.push(result);
+          const result = {
+            transformedEvent,
+            transformedEventRef,
+            reservoirEventUpdate: reservoirEventUpdate,
+            reservoirEventRef: event.ref
+          };
+          successful.push(result);
+        }
       } catch (err) {
         let error;
         if (err instanceof OrderError) {

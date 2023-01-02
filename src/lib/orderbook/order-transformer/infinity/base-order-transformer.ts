@@ -1,7 +1,6 @@
-import { ThreadMemberFlagsBitField } from 'discord.js';
 import { constants, ethers } from 'ethers';
 
-import { ChainId, StakeDuration } from '@infinityxyz/lib/types/core';
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { getOBComplicationAddress } from '@infinityxyz/lib/utils';
 import { Infinity } from '@reservoir0x/sdk';
 

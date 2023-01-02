@@ -1,6 +1,4 @@
-import { OrderKind } from '../reservoir/api/orders/types';
 import * as Transformers from './order-transformer';
-import * as Sdk from '@reservoir0x/sdk'
 
 const infinityConfig = {
   'single-token': {
@@ -15,7 +13,8 @@ const infinityConfig = {
     enabled: true,
     transformer: Transformers.Infinity.Complex
   }
-} satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
+};
+// satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
 
 const seaportConfig = {
   'single-token': {
@@ -31,7 +30,8 @@ const seaportConfig = {
   'token-list': {
     enabled: false
   }
-} satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
+};
+// satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
 
 export const config = {
   infinity: {
@@ -124,4 +124,5 @@ export const config = {
     source: 'forward',
     enabled: false
   }
-} satisfies Record<OrderKind, unknown>; 
+};
+// satisfies Record<OrderKind, unknown>;

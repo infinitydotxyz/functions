@@ -11,6 +11,7 @@ export enum ErrorCode {
   GasUsage = 10,
   NotSigned = 11,
   Signer = 12,
+  NumCollections = 13,
 
   InfinityComplication = 50,
 

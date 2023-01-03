@@ -29,6 +29,7 @@ import { GWEI } from '@/lib/utils/constants';
 import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
 import { Orderbook } from '../..';
+import { ErrorCode, OrderError } from '../errors';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
@@ -524,6 +525,17 @@ export class BaseOrder {
       )
     ].filter((item) => item !== null && item !== 'unknown') as string[];
 
+    if (numCollections !== 1) {
+      throw new OrderError(
+        'Order contains more than one collection',
+        ErrorCode.NumCollections,
+        numCollections.toString(),
+        rawOrder.source,
+        'unsupported'
+      );
+    }
+    const collection = items[0].address;
+
     const order: RawFirestoreOrder = {
       metadata: {
         id: this._id,
@@ -535,6 +547,7 @@ export class BaseOrder {
       },
       rawOrder,
       order: {
+        collection: collection, // TODO update this if multi-collection orders are supported
         isSellOrder: this._isSellOrder,
         startTime: orderHelper.startTime,
         endTime: orderHelper.endTime,

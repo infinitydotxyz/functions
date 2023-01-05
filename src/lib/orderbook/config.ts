@@ -2,16 +2,19 @@ import * as Transformers from './order-transformer';
 
 const infinityConfig = {
   'single-token': {
-    enabled: false
+    enabled: true,
+    transformer: Transformers.Infinity.SingleToken
   },
   'contract-wide': {
-    enabled: false
+    enabled: true,
+    transformer: Transformers.Infinity.ContractWide
   },
   complex: {
-    enabled: false
+    enabled: true,
+    transformer: Transformers.Infinity.Complex
   }
 };
-// } satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
+// satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
 
 const seaportConfig = {
   'single-token': {
@@ -28,7 +31,7 @@ const seaportConfig = {
     enabled: false
   }
 };
-// } satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
+// satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
 
 export const config = {
   infinity: {
@@ -122,4 +125,4 @@ export const config = {
     enabled: false
   }
 };
-// } satisfies Record<OrderKind, unknown>; // TODO uncomment once ts 4.9 is supported by vscode and dependencies
+// satisfies Record<OrderKind, unknown>;

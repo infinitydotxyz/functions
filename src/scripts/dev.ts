@@ -195,12 +195,23 @@ async function main() {
 async function triggerOrderEvents() {
   const db = getDb();
 
-  const batchHandler = new BatchHandler();
-  const statusEvents = db.collectionGroup('orderStatusChanges');
-  const statusStream = streamQueryWithRef(statusEvents);
-  for await (const item of statusStream) {
-    await batchHandler.deleteAsync(item.ref);
+  const orders = db.collection('ordersV2') as CollRef<RawFirestoreOrder>;
+
+  const ordersStream = streamQueryWithRef(orders);
+
+  const batch = new BatchHandler();
+  for await (const item of ordersStream) {
+    await batch.deleteAsync(item.ref);
   }
+
+  await batch.flush();
+
+  // const batchHandler = new BatchHandler();
+  // const statusEvents = db.collectionGroup('orderStatusChanges');
+  // const statusStream = streamQueryWithRef(statusEvents);
+  // for await (const item of statusStream) {
+  //   await batchHandler.deleteAsync(item.ref);
+  // }
 
   const orderEvents = db.collectionGroup('orderEvents') as CollGroupRef<OrderEvents>;
 
@@ -213,11 +224,10 @@ async function triggerOrderEvents() {
         updatedAt: Date.now()
       }
     };
-
-    await batchHandler.addAsync(item.ref, update, { merge: true });
+    await batch.addAsync(item.ref, update, { merge: true });
   }
 
-  await batchHandler.flush();
+  await batch.flush();
 
   // for await (const { data, ref } of ordersStream) {
   //   console.log(`Checking ${ref.id}`);

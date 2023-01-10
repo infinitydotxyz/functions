@@ -37,7 +37,8 @@
     "reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/reservoir.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
     "snapshot": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/snapshot.ts",
-    "start-reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-reservoir.ts"
+    "start-reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-reservoir.ts",
+    "backfill-v1-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-v1-orders.ts"
   },
   "engines": {
     "node": "16"

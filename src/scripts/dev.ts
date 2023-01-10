@@ -189,7 +189,8 @@ async function main() {
   // await getDb().collection('ordersV2').doc(id).delete();
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
-  await triggerOrderEvents();
+  // await triggerOrderEvents();
+  await Promise.resolve();
 
   process.exit(1);
 }

@@ -190,6 +190,8 @@ async function main() {
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
   await triggerOrderEvents();
+
+  process.exit(1);
 }
 
 async function triggerOrderEvents() {
@@ -201,10 +203,13 @@ async function triggerOrderEvents() {
 
   const batch = new BatchHandler();
   for await (const item of ordersStream) {
+    console.log(item.ref.path);
     await batch.deleteAsync(item.ref);
   }
 
   await batch.flush();
+
+  console.log('deleted');
 
   // const batchHandler = new BatchHandler();
   // const statusEvents = db.collectionGroup('orderStatusChanges');
@@ -217,6 +222,7 @@ async function triggerOrderEvents() {
 
   const orderEventsStream = streamQueryWithRef(orderEvents);
   for await (const item of orderEventsStream) {
+    console.log(item.ref.path);
     const update: Pick<OrderEvents, 'metadata'> = {
       metadata: {
         ...item.data.metadata,
@@ -228,6 +234,7 @@ async function triggerOrderEvents() {
   }
 
   await batch.flush();
+  console.log('complete');
 
   // for await (const { data, ref } of ordersStream) {
   //   console.log(`Checking ${ref.id}`);

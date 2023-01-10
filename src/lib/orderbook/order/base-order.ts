@@ -258,7 +258,8 @@ export class BaseOrder {
           source: rawOrder.error.source as string as OrderSource,
           updatedAt: Date.now(),
           createdAt: 0,
-          hasError: true
+          hasError: true,
+          processed: false
         },
         error: rawOrder.error
       };
@@ -307,7 +308,8 @@ export class BaseOrder {
         source: rawOrder.metadata.source,
         updatedAt: rawOrder.metadata.updatedAt,
         createdAt: rawOrder.metadata.createdAt,
-        hasError: false
+        hasError: false,
+        processed: false
       },
       order: rawOrder.order,
       displayOrder: displayData
@@ -543,7 +545,8 @@ export class BaseOrder {
         source: rawOrder.source,
         updatedAt: rawOrder.updatedAt,
         createdAt: rawOrder.createdAt,
-        hasError: false
+        hasError: false,
+        processed: false
       },
       rawOrder,
       order: {

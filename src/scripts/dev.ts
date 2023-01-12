@@ -1,7 +1,7 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
 import PQueue from 'p-queue';
 
-import { OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -190,7 +190,22 @@ async function main() {
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
   // await triggerOrderEvents();
-  await Promise.resolve();
+  // await Promise.resolve();
+
+  const db = getDb();
+  const orderEvents = db.collectionGroup('reservoirOrderEvents');
+  const goerliEvents = orderEvents.where('metadata.chainId', '==', ChainId.Goerli);
+  const stream = streamQueryWithRef(goerliEvents);
+  const batch = new BatchHandler();
+  for await (const item of stream) {
+    const metadata = {
+      ...item.data.metadata,
+      processed: false
+    };
+    await batch.addAsync(item.ref, { metadata: metadata }, { merge: true });
+  }
+
+  await batch.flush();
 
   process.exit(1);
 }
@@ -314,14 +329,14 @@ async function deleteInvalidOrders(validCollections: Set<string>) {
             .add(async () => {
               const batch = new BatchHandler();
               const provider = getProvider(data.metadata.chainId);
-              const gasSimulator = new GasSimulator(provider!, config.orderbook.gasSimulationAccount);
+              const gasSimulator = new GasSimulator(provider, config.orderbook.gasSimulationAccount);
               console.log(`Found invalid order: ${ref.id}`);
               const baseOrder = new BaseOrder(
                 data.metadata.id,
                 data.metadata.chainId,
                 isSellOrder,
                 db,
-                provider!,
+                provider,
                 gasSimulator
               );
               const order = await baseOrder.load();

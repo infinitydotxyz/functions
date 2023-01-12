@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import { ServiceAccount } from 'firebase-admin';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
@@ -16,6 +17,9 @@ const getEnvVariable = (key: string, required = true): string => {
   return '';
 };
 
+const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
+const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
+
 export const config = {
   firebase: {
     serviceAccount: serviceAccount as ServiceAccount,
@@ -28,6 +32,10 @@ export const config = {
       [ChainId.Goerli]: getEnvVariable('RESERVOIR_BASE_URL_GOERLI', false) || 'https://api-goerli.reservoir.tools/',
       [ChainId.Polygon]: getEnvVariable('RESERVOIR_BASE_URL_POLYGON', false) || 'https://api-polygon.reservoir.tools/'
     }
+  },
+  providers: {
+    [ChainId.Mainnet]: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetProviderUrl, 1) : null,
+    [ChainId.Goerli]: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null
   },
   orderbook: {
     gasSimulationAccount: trimLowerCase('0x74265Fc35f4df36d36b4fF18362F14f50790204F')

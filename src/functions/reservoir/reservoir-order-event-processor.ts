@@ -17,7 +17,7 @@ import {
 
 import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
-import { CollRef, DocRef, QuerySnap } from '@/firestore/types';
+import { CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
 import { ErrorCode, OrderError } from '@/lib/orderbook/errors';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
@@ -45,11 +45,25 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     return ref.where('metadata.processed', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter<Event extends { metadata: { updatedAt: number } } = ReservoirOrderEvent>(
-    query: FirebaseFirestore.Query<Event>,
+  protected _applyUpdatedAtLessThanAndOrderByFilter<
+    Event extends { metadata: { updatedAt: number; id: string } } = ReservoirOrderEvent
+  >(
+    query: Query<Event>,
     timestamp: number
-  ): FirebaseFirestore.Query<Event> {
-    return query.where('metadata.updatedAt', '<', timestamp);
+  ): {
+    query: Query<Event>;
+    getStartAfterField: (item: Event, ref: DocRef<Event>) => (string | number | DocRef<Event>)[];
+  } {
+    const q = query
+      .where('metadata.updatedAt', '<', timestamp)
+      .orderBy('metadata.updatedAt', 'asc')
+      .orderBy('metadata.id', 'asc');
+
+    const getStartAfterField = (item: Event) => {
+      return [item.metadata.updatedAt, item.metadata.id];
+    };
+
+    return { query: q, getStartAfterField };
   }
 
   protected async _processEvents(
@@ -85,24 +99,26 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       try {
         const transformedEvent = await this._transformEvent({ data, metadata }, txn);
 
-        const transformedEventRef = orderRef
-          .collection('orderEvents')
-          .doc(transformedEvent.metadata.id) as DocRef<OrderEvents>;
-        const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
-          metadata: {
-            ...event.data.metadata,
-            processed: true,
-            updatedAt: Date.now()
-          }
-        };
+        if (transformedEvent.metadata.eventKind !== OrderEventKind.PriceUpdate) {
+          const transformedEventRef = orderRef
+            .collection('orderEvents')
+            .doc(transformedEvent.metadata.id) as DocRef<OrderEvents>;
+          const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
+            metadata: {
+              ...event.data.metadata,
+              processed: true,
+              updatedAt: Date.now()
+            }
+          };
 
-        const result = {
-          transformedEvent,
-          transformedEventRef,
-          reservoirEventUpdate: reservoirEventUpdate,
-          reservoirEventRef: event.ref
-        };
-        successful.push(result);
+          const result = {
+            transformedEvent,
+            transformedEventRef,
+            reservoirEventUpdate: reservoirEventUpdate,
+            reservoirEventRef: event.ref
+          };
+          successful.push(result);
+        }
       } catch (err) {
         let error;
         if (err instanceof OrderError) {

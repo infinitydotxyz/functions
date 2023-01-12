@@ -9,6 +9,11 @@ export enum ErrorCode {
   DuplicateToken = 8,
   OrderTokenQuantity = 9,
   GasUsage = 10,
+  NotSigned = 11,
+  Signer = 12,
+  NumCollections = 13,
+
+  InfinityComplication = 50,
 
   SeaportOrderType = 100,
   SeaportConduitKey = 101,

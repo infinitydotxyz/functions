@@ -1,3 +1,5 @@
+import { FieldPath } from 'firebase-admin/firestore';
+
 import { ChainId, MergedReferralSaleEvent, ReferralSaleEvent, ReferralTotals } from '@infinityxyz/lib/types/core';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
@@ -18,11 +20,26 @@ export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<Referr
     return ref.where('isAggregated', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter(
+  protected _applyUpdatedAtLessThanAndOrderByFilter(
     query: Query<ReferralSaleEvent>,
     timestamp: number
-  ): Query<ReferralSaleEvent> {
-    return query.where('updatedAt', '<', timestamp);
+  ): {
+    query: Query<ReferralSaleEvent>;
+    getStartAfterField: (
+      item: ReferralSaleEvent,
+      ref: DocRef<ReferralSaleEvent>
+    ) => (string | number | DocRef<ReferralSaleEvent>)[];
+  } {
+    const q = query
+      .where('updatedAt', '<', timestamp)
+      .orderBy('updatedAt', 'asc')
+      .orderBy(FieldPath.documentId(), 'asc');
+
+    const getStartAfterField = (item: ReferralSaleEvent, ref: DocRef<ReferralSaleEvent>) => {
+      return [item.updatedAt, ref.id];
+    };
+
+    return { query: q, getStartAfterField };
   }
 
   protected async _processEvents(

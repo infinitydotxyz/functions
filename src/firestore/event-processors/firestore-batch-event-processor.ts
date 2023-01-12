@@ -13,8 +13,11 @@ export abstract class FirestoreBatchEventProcessor<T> extends FirestoreEventProc
     /**
      * prevents processing events that were updated after the trigger was marked
      */
-    const unProcessedEventsBeforeNow = this._applyUpdatedAtLessThanFilter(unProcessedEvents, Date.now());
+    const { query: unProcessedEventsBeforeNow, getStartAfterField } = this._applyUpdatedAtLessThanAndOrderByFilter(
+      unProcessedEvents,
+      Date.now()
+    );
 
-    return { query: unProcessedEventsBeforeNow };
+    return { query: unProcessedEventsBeforeNow, getStartAfterField };
   }
 }

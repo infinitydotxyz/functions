@@ -29,6 +29,7 @@ import { GWEI } from '@/lib/utils/constants';
 import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
 import { Orderbook } from '../..';
+import { ErrorCode, OrderError } from '../errors';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
@@ -257,7 +258,8 @@ export class BaseOrder {
           source: rawOrder.error.source as string as OrderSource,
           updatedAt: Date.now(),
           createdAt: 0,
-          hasError: true
+          hasError: true,
+          processed: false
         },
         error: rawOrder.error
       };
@@ -272,10 +274,14 @@ export class BaseOrder {
        * TODO how do we handle the maker as the match executor?
        */
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
-      const status =
-        initialStatus === 'active'
-          ? 'active'
-          : await this.getOrderStatus(txn, rawOrder.source === 'infinity' ? rawOrder.infinityOrder : undefined);
+
+      let status = initialStatus;
+      if (!status && rawOrder.source === 'infinity') {
+        status = await this.getOrderStatus(txn, rawOrder.infinityOrder);
+      } else if (!status) {
+        status = await this.getOrderStatus(txn);
+      }
+
       const rawFirestoreOrder = this._getRawFirestoreOrder(rawOrder, displayData, status);
       const displayOrder = this._getDisplayOrder(rawFirestoreOrder, displayData);
       return {
@@ -302,7 +308,8 @@ export class BaseOrder {
         source: rawOrder.metadata.source,
         updatedAt: rawOrder.metadata.updatedAt,
         createdAt: rawOrder.metadata.createdAt,
-        hasError: false
+        hasError: false,
+        processed: false
       },
       order: rawOrder.order,
       displayOrder: displayData
@@ -520,6 +527,17 @@ export class BaseOrder {
       )
     ].filter((item) => item !== null && item !== 'unknown') as string[];
 
+    if (numCollections !== 1) {
+      throw new OrderError(
+        'Order contains more than one collection',
+        ErrorCode.NumCollections,
+        numCollections.toString(),
+        rawOrder.source,
+        'unsupported'
+      );
+    }
+    const collection = items[0].address;
+
     const order: RawFirestoreOrder = {
       metadata: {
         id: this._id,
@@ -527,10 +545,12 @@ export class BaseOrder {
         source: rawOrder.source,
         updatedAt: rawOrder.updatedAt,
         createdAt: rawOrder.createdAt,
-        hasError: false
+        hasError: false,
+        processed: false
       },
       rawOrder,
       order: {
+        collection: collection, // TODO update this if multi-collection orders are supported
         isSellOrder: this._isSellOrder,
         startTime: orderHelper.startTime,
         endTime: orderHelper.endTime,
@@ -588,7 +608,7 @@ export class BaseOrder {
 
     const data = result.docs?.[0]?.data?.() ?? {};
 
-    const status = data?.data?.status ?? 'inactive';
+    const status = data?.data?.status;
 
     if (!status && !!chainOBOrder) {
       const orderHelper = new ChainOBOrderHelper(this._chainId, chainOBOrder);
@@ -610,6 +630,6 @@ export class BaseOrder {
       return 'inactive';
     }
 
-    return status;
+    return status ?? 'inactive';
   }
 }

@@ -1,11 +1,11 @@
-import { BigNumberish, ethers } from 'ethers';
+import { BigNumberish, constants, ethers } from 'ethers';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
 
 import { Reservoir } from '../..';
 import { ErrorCode } from '../errors/error-code';
-import { OrderCurrencyError, OrderError, OrderSideError } from '../errors/order.error';
+import { OrderCurrencyError, OrderDynamicError, OrderError, OrderSideError } from '../errors/order.error';
 import { TransformationResult } from './types';
 
 export abstract class OrderTransformer<SourceOrder = never> {
@@ -79,6 +79,27 @@ export abstract class OrderTransformer<SourceOrder = never> {
       if (!supportedCurrencies.includes(this.currency)) {
         throw new OrderCurrencyError(this.source, this.currency);
       }
+    }
+
+    if (this.maker === constants.AddressZero) {
+      throw new OrderError('invalid signer', ErrorCode.Signer, this.maker, this.source, 'unsupported');
+    }
+
+    /**
+     * only static orders are supported
+     */
+    if (this.startPrice.toString() !== this.endPrice.toString()) {
+      throw new OrderDynamicError(this.source);
+    }
+
+    if (this.numItems !== 1) {
+      throw new OrderError(
+        'only single item orders are supported',
+        ErrorCode.OrderTokenQuantity,
+        this.numItems?.toString?.(),
+        this.source,
+        'unsupported'
+      );
     }
   }
 

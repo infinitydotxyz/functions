@@ -27,11 +27,22 @@ import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
-  protected _applyOrderBy<Events extends { metadata: { timestamp: number } } = OrderEvents>(
+  protected _applyOrderBy<Events extends { metadata: { timestamp: number; id: string } } = OrderEvents>(
     query: CollRef<Events> | Query<Events>,
     direction: OrderDirection = OrderDirection.Ascending
-  ): Query<Events> {
-    return query.orderBy('metadata.timestamp', direction);
+  ): {
+    query: Query<Events>;
+    getStartAfterField: (
+      item: Events,
+      ref: FirebaseFirestore.DocumentReference<Events>
+    ) => (string | number | FirebaseFirestore.DocumentReference<Events>)[];
+  } {
+    const q = query.orderBy('metadata.timestamp', direction).orderBy('metadata.id', direction);
+
+    return {
+      query: q,
+      getStartAfterField: (item) => [item.metadata.timestamp, item.metadata.id]
+    };
   }
 
   protected _applyOrderByLessThan<Events extends { metadata: { timestamp: number } } = OrderEvents>(
@@ -51,11 +62,25 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     return ref.where('metadata.processed', '==', false);
   }
 
-  protected _applyUpdatedAtLessThanFilter<Event extends { metadata: { updatedAt: number } } = OrderEvents>(
-    query: Query<Event>,
+  protected _applyUpdatedAtLessThanAndOrderByFilter(
+    query: Query<OrderEvents>,
     timestamp: number
-  ): Query<Event> {
-    return query.where('metadata.updatedAt', '<', timestamp);
+  ): {
+    query: Query<OrderEvents>;
+    getStartAfterField: (
+      item: OrderEvents,
+      ref: FirebaseFirestore.DocumentReference<OrderEvents>
+    ) => (string | number | FirebaseFirestore.DocumentReference<OrderEvents>)[];
+  } {
+    const q = query
+      .where('metadata.updatedAt', '<', timestamp)
+      .orderBy('metadata.updatedAt', 'asc')
+      .orderBy('metadata.id', 'asc');
+
+    return {
+      query: q,
+      getStartAfterField: (item) => [item.metadata.updatedAt, item.metadata.orderId]
+    };
   }
 
   protected async _processEvents(
@@ -194,14 +219,14 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     const finalStatus = orderUpdater.rawOrder.order.status;
 
     //save order
-    let rawOrder = orderUpdater.rawOrder;
+    let order = orderUpdater.rawOrder;
     let displayOrder = orderUpdater.displayOrder;
     const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
     const db = this._getDb();
     const baseOrder = new BaseOrder(
-      rawOrder.metadata.id,
-      rawOrder.metadata.chainId,
-      rawOrder.order.isSellOrder,
+      order.metadata.id,
+      order.metadata.chainId,
+      order.order.isSellOrder,
       db,
       provider,
       gasSimulator
@@ -210,11 +235,11 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     const statusChanged = initialStatus !== finalStatus;
     const updateGasUsage = statusChanged && finalStatus === 'active';
     if (updateGasUsage) {
-      const gasUsage = await baseOrder.getGasUsage(rawOrder);
+      const gasUsage = await baseOrder.getGasUsage(order);
 
       orderUpdater.setGasUsage(gasUsage);
 
-      rawOrder = orderUpdater.rawOrder;
+      order = orderUpdater.rawOrder;
       displayOrder = orderUpdater.displayOrder;
     }
 
@@ -255,17 +280,20 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     if (orderCreatedEvent != null || statusChanged) {
       const statusChanged: OrderStatusEvent = {
         id: nanoid(),
-        orderId: rawOrder.metadata.id,
-        chainId: rawOrder.metadata.chainId,
-        status: rawOrder.order.status,
+        orderId: order.metadata.id,
+        chainId: order.metadata.chainId,
+        status: order.order.status,
         timestamp: Date.now(),
-        order: rawOrder.rawOrder.infinityOrder,
-        isMostRecent: true
+        order: order.rawOrder.infinityOrder,
+        isMostRecent: true,
+        source: order.metadata.source,
+        sourceOrder: order.rawOrder.rawOrder,
+        gasUsage: order.rawOrder.gasUsage
       };
       await saveOrderStatusEvent(statusChanged);
     }
 
-    await baseOrder.save(rawOrder, displayOrder, txn);
+    await baseOrder.save(order, displayOrder, txn);
 
     for (const save of saves) {
       save();

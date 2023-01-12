@@ -1,7 +1,9 @@
+import { FieldPath } from 'firebase-admin/firestore';
+
 import { RewardEvent } from '@infinityxyz/lib/types/core';
 
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
-import { CollGroupRef, CollRef, Query, QuerySnap } from '@/firestore/types';
+import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { RewardsEventHandler } from '@/lib/rewards/rewards-event-handler';
 
 export class RewardsEventProcessor extends FirestoreBatchEventProcessor<RewardEvent> {
@@ -13,8 +15,23 @@ export class RewardsEventProcessor extends FirestoreBatchEventProcessor<RewardEv
     return ref.where('isAggregated', '==', false).where('isMerged', '==', true);
   }
 
-  protected _applyUpdatedAtLessThanFilter(query: Query<RewardEvent>, timestamp: number): Query<RewardEvent> {
-    return query.where('updatedAt', '<', timestamp);
+  protected _applyUpdatedAtLessThanAndOrderByFilter(
+    query: Query<RewardEvent>,
+    timestamp: number
+  ): {
+    query: Query<RewardEvent>;
+    getStartAfterField: (item: RewardEvent, ref: DocRef<RewardEvent>) => (string | number | DocRef<RewardEvent>)[];
+  } {
+    const q = query
+      .where('updatedAt', '<', timestamp)
+      .orderBy('updatedAt', 'asc')
+      .orderBy(FieldPath.documentId(), 'asc');
+
+    const getStartAfterField = (item: RewardEvent, ref: DocRef<RewardEvent>) => {
+      return [item.updatedAt, ref.id];
+    };
+
+    return { query: q, getStartAfterField };
   }
 
   protected async _processEvents(snap: QuerySnap<RewardEvent>, txn: FirebaseFirestore.Transaction): Promise<void> {

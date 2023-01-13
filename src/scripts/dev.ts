@@ -190,22 +190,7 @@ async function main() {
   // await reservoirOrderProcessor(id);
   // await orderEventProcessor(id);
   // await triggerOrderEvents();
-  // await Promise.resolve();
-
-  const db = getDb();
-  const orderEvents = db.collectionGroup('reservoirOrderEvents');
-  const goerliEvents = orderEvents.where('metadata.chainId', '==', ChainId.Goerli);
-  const stream = streamQueryWithRef(goerliEvents);
-  const batch = new BatchHandler();
-  for await (const item of stream) {
-    const metadata = {
-      ...item.data.metadata,
-      processed: false
-    };
-    await batch.addAsync(item.ref, { metadata: metadata }, { merge: true });
-  }
-
-  await batch.flush();
+  await Promise.resolve();
 
   process.exit(1);
 }

@@ -57,8 +57,9 @@ export const takeOrderbookSnapshots = functions
     const fileName = (chainId: ChainId) => {
       return `chain:${chainId}:date:${date}`;
     };
-    const mainnet = takeSnapshot(db, ChainId.Mainnet, fileName(ChainId.Mainnet));
-    const goerli = takeSnapshot(db, ChainId.Goerli, fileName(ChainId.Goerli));
+    const bucketName = config.firebase.snapshotBucket;
+    const mainnet = takeSnapshot(db, ChainId.Mainnet, bucketName, fileName(ChainId.Mainnet));
+    const goerli = takeSnapshot(db, ChainId.Goerli, bucketName, fileName(ChainId.Goerli));
     const start = Date.now();
     await Promise.allSettled([mainnet, goerli]);
 

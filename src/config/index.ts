@@ -23,7 +23,8 @@ const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
 export const config = {
   firebase: {
     serviceAccount: serviceAccount as ServiceAccount,
-    region: 'us-east1'
+    region: 'us-east1',
+    snapshotBucket: serviceAccount.project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
   },
   reservoir: {
     apiKey: getEnvVariable('RESERVOIR_API_KEY', false),

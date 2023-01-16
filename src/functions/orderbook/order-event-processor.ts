@@ -1,7 +1,6 @@
 import { ethers } from 'ethers';
 import { nanoid } from 'nanoid';
 
-import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
 import {
   ChainId,
   FirestoreDisplayOrder,
@@ -10,17 +9,15 @@ import {
   OrderEventKind,
   OrderEventMetadata,
   OrderEvents,
-  OrderSaleEvent,
   OrderStatusEvent,
   RawFirestoreOrder
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getExchangeAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, DocSnap, Firestore, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook } from '@/lib/index';
-import { InfinityLogDecoder } from '@/lib/orderbook/log-decoders';
 import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';

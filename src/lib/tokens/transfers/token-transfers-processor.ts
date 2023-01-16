@@ -1,8 +1,9 @@
 import { FieldPath } from 'firebase-admin/firestore';
 
-import { OrderDirection } from '@infinityxyz/lib/types/core';
-import { NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { EtherscanLinkType, EventType, OrderDirection, TokenStandard } from '@infinityxyz/lib/types/core';
+import { NftTransferEvent as FeedNftTransferEvent } from '@infinityxyz/lib/types/core';
+import { CollectionDto, NftDto, UserDisplayDataDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants, getEtherscanLink } from '@infinityxyz/lib/utils';
 
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
@@ -87,6 +88,19 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
 
     const mostRecentValidTransfer = validTransfers[validTransfers.length - 1];
 
+    const collectionRef = eventsRef.firestore
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(
+        `${mostRecentValidTransfer.data.metadata.chainId}:${mostRecentValidTransfer.data.metadata.address}`
+      ) as DocRef<CollectionDto>;
+    const tokenRef = collectionRef
+      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+      .doc(mostRecentValidTransfer.data.metadata.tokenId) as DocRef<NftDto>;
+
+    const [collectionSnap, tokenSnap] = await eventsRef.firestore.getAll(collectionRef, tokenRef);
+    const token = tokenSnap.data() ?? ({} as Partial<NftDto>);
+    const collection = collectionSnap.data() ?? ({} as Partial<CollectionDto>);
+
     if (mostRecentValidTransfer) {
       const ownerAddress = mostRecentValidTransfer.data.data.to;
 
@@ -101,16 +115,23 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         owner: ownerAddress
       };
 
-      const tokenRef = eventsRef.firestore
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${mostRecentValidTransfer.data.metadata.chainId}:${mostRecentValidTransfer.data.metadata.address}`)
-        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-        .doc(mostRecentValidTransfer.data.metadata.tokenId) as DocRef<NftDto>;
-
       txn.set(tokenRef, tokenUpdate, { merge: true });
     }
 
     for (const item of items) {
+      const fromRef = eventsRef.firestore
+        .collection(firestoreConstants.USERS_COLL)
+        .doc(item.data.data.from) as DocRef<UserProfileDto>;
+      const toRef = eventsRef.firestore
+        .collection(firestoreConstants.USERS_COLL)
+        .doc(item.data.data.to) as DocRef<UserProfileDto>;
+      const [from, to] = await Promise.all([getUserDisplayData(fromRef), getUserDisplayData(toRef)]);
+      const feedEvent = this._getFeedTransferEvent(item.data, from, to, token, collection);
+
+      const feedEventRef = eventsRef.firestore
+        .collection(firestoreConstants.FEED_COLL)
+        .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
+
       const metadataUpdate: NftTransferEvent['metadata'] = {
         ...item.data.metadata,
         processed: true,
@@ -124,6 +145,46 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         },
         { merge: true }
       );
+
+      txn.set(feedEventRef, feedEvent, { merge: true });
     }
+  }
+
+  protected _getFeedTransferEvent(
+    event: NftTransferEvent,
+    from: UserDisplayDataDto,
+    to: UserDisplayDataDto,
+    token: Partial<NftDto>,
+    collection: Partial<CollectionDto>
+  ): FeedNftTransferEvent {
+    const feedEvent: FeedNftTransferEvent = {
+      type: EventType.NftTransfer,
+      from: event.data.from,
+      to: event.data.to,
+      fromDisplayName: from.displayName,
+      toDisplayName: to.displayName,
+      tokenStandard: TokenStandard.ERC721,
+      txHash: event.data.transactionHash,
+      quantity: 1,
+      externalUrl: getEtherscanLink({
+        type: EtherscanLinkType.Transaction,
+        transactionHash: event.data.transactionHash
+      }),
+      likes: 0,
+      comments: 0,
+      timestamp: 0,
+      chainId: event.metadata.chainId,
+      collectionAddress: event.metadata.address,
+      collectionName: collection.metadata?.name ?? '',
+      collectionSlug: collection.slug ?? '',
+      collectionProfileImage: collection.metadata?.profileImage ?? collection.metadata?.bannerImage ?? '',
+      hasBlueCheck: token.hasBlueCheck ?? false,
+      internalUrl: '',
+      tokenId: event.metadata.tokenId,
+      image: token.image?.url ?? token.image?.originalUrl ?? token.alchemyCachedImage ?? '',
+      nftName: token.metadata?.name ?? '',
+      nftSlug: token.slug ?? ''
+    };
+    return feedEvent;
   }
 }

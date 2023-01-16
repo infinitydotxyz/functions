@@ -1,5 +1,3 @@
-import { providers } from 'ethers/lib/ethers';
-
 import {
   DisplayOrder,
   FirestoreDisplayOrder,
@@ -8,21 +6,12 @@ import {
   RawFirestoreOrderWithoutError
 } from '@infinityxyz/lib/types/core';
 
-import { Firestore } from '@/firestore/types';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
-
-import { GasSimulator } from './gas-simulator/gas-simulator';
 
 export class OrderUpdater {
   protected _rawOrder: RawFirestoreOrderWithoutError;
   protected _displayOrder: DisplayOrder;
-  constructor(
-    protected _db: Firestore,
-    protected _provider: providers.StaticJsonRpcProvider,
-    protected _gasSimulator: GasSimulator,
-    rawOrder: RawFirestoreOrder,
-    displayOrder: FirestoreDisplayOrder
-  ) {
+  constructor(rawOrder: RawFirestoreOrder, displayOrder: FirestoreDisplayOrder) {
     if (rawOrder.metadata.hasError || 'error' in rawOrder) {
       throw new Error('cannot create order with error');
     }

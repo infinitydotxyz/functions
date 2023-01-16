@@ -6,8 +6,10 @@ import { CollectionDto, NftDto, UserDisplayDataDto, UserProfileDto } from '@infi
 import { firestoreConstants, getEtherscanLink } from '@infinityxyz/lib/utils';
 
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
+import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { getUserDisplayData } from '@/lib/utils';
+import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
 import { NftTransferEvent } from './types';
 
@@ -86,52 +88,95 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
       return item.data.data.removed === false;
     });
 
+    const removedTransfers = items.filter((item) => {
+      return item.data.data.removed === true;
+    });
+
     const mostRecentValidTransfer = validTransfers[validTransfers.length - 1];
 
-    const collectionRef = eventsRef.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(
-        `${mostRecentValidTransfer.data.metadata.chainId}:${mostRecentValidTransfer.data.metadata.address}`
-      ) as DocRef<CollectionDto>;
-    const tokenRef = collectionRef
-      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-      .doc(mostRecentValidTransfer.data.metadata.tokenId) as DocRef<NftDto>;
-
-    const [collectionSnap, tokenSnap] = await eventsRef.firestore.getAll(collectionRef, tokenRef);
-    const token = tokenSnap.data() ?? ({} as Partial<NftDto>);
-    const collection = collectionSnap.data() ?? ({} as Partial<CollectionDto>);
-
     if (mostRecentValidTransfer) {
+      /**
+       * update the owner of the token
+       */
       const ownerAddress = mostRecentValidTransfer.data.data.to;
-
       const ownerRef = eventsRef.firestore
         .collection(firestoreConstants.USERS_COLL)
         .doc(ownerAddress) as DocRef<UserProfileDto>;
-
       const user = await getUserDisplayData(ownerRef);
+
+      const collectionRef = eventsRef.firestore
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(
+          `${mostRecentValidTransfer?.data?.metadata?.chainId}:${mostRecentValidTransfer?.data?.metadata?.address}`
+        ) as DocRef<CollectionDto>;
+      const tokenRef = collectionRef
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(mostRecentValidTransfer?.data?.metadata?.tokenId) as DocRef<NftDto>;
+
+      const [collectionSnap, tokenSnap] = await eventsRef.firestore.getAll(collectionRef, tokenRef);
+      const token = tokenSnap.data() ?? ({} as Partial<NftDto>);
+      const collection = collectionSnap.data() ?? ({} as Partial<CollectionDto>);
 
       const tokenUpdate: Partial<NftDto> = {
         ownerData: user,
         owner: ownerAddress
       };
-
       txn.set(tokenRef, tokenUpdate, { merge: true });
+      for (const item of validTransfers) {
+        const fromRef = eventsRef.firestore
+          .collection(firestoreConstants.USERS_COLL)
+          .doc(item.data.data.from) as DocRef<UserProfileDto>;
+        const toRef = eventsRef.firestore
+          .collection(firestoreConstants.USERS_COLL)
+          .doc(item.data.data.to) as DocRef<UserProfileDto>;
+        const [from, to] = await Promise.all([getUserDisplayData(fromRef), getUserDisplayData(toRef)]);
+        const feedEvent = this._getFeedTransferEvent(item.data, from, to, token, collection);
+
+        const feedEventRef = eventsRef.firestore
+          .collection(firestoreConstants.FEED_COLL)
+          .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
+
+        const metadataUpdate: NftTransferEvent['metadata'] = {
+          ...item.data.metadata,
+          processed: true,
+          timestamp: Date.now()
+        };
+
+        txn.set(
+          item.ref,
+          {
+            metadata: metadataUpdate as any
+          },
+          { merge: true }
+        );
+
+        txn.set(feedEventRef, feedEvent, { merge: true });
+      }
+    } else if (removedTransfers.length > 0) {
+      const firstRemovedEvent = removedTransfers[0];
+      if (firstRemovedEvent) {
+        const address = firstRemovedEvent.data.metadata.address;
+        const tokenId = firstRemovedEvent.data.metadata.tokenId;
+        const chainId = firstRemovedEvent.data.metadata.chainId;
+        const collectionRef = eventsRef.firestore
+          .collection(firestoreConstants.COLLECTIONS_COLL)
+          .doc(`${chainId}:${address}`) as DocRef<CollectionDto>;
+        const tokenRef = collectionRef
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(tokenId) as DocRef<NftDto>;
+        const owner = await getErc721Owner({ address, tokenId, chainId });
+        const ownerData = await getUserDisplayData(
+          eventsRef.firestore.collection(firestoreConstants.USERS_COLL).doc(owner) as DocRef<UserProfileDto>
+        );
+        const tokenUpdate: Partial<NftDto> = {
+          ownerData: ownerData,
+          owner
+        };
+        txn.set(tokenRef, tokenUpdate, { merge: true });
+      }
     }
 
-    for (const item of items) {
-      const fromRef = eventsRef.firestore
-        .collection(firestoreConstants.USERS_COLL)
-        .doc(item.data.data.from) as DocRef<UserProfileDto>;
-      const toRef = eventsRef.firestore
-        .collection(firestoreConstants.USERS_COLL)
-        .doc(item.data.data.to) as DocRef<UserProfileDto>;
-      const [from, to] = await Promise.all([getUserDisplayData(fromRef), getUserDisplayData(toRef)]);
-      const feedEvent = this._getFeedTransferEvent(item.data, from, to, token, collection);
-
-      const feedEventRef = eventsRef.firestore
-        .collection(firestoreConstants.FEED_COLL)
-        .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
-
+    for (const item of removedTransfers) {
       const metadataUpdate: NftTransferEvent['metadata'] = {
         ...item.data.metadata,
         processed: true,
@@ -146,7 +191,11 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         { merge: true }
       );
 
-      txn.set(feedEventRef, feedEvent, { merge: true });
+      const feedEventRef = eventsRef.firestore
+        .collection(firestoreConstants.FEED_COLL)
+        .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
+
+      txn.delete(feedEventRef);
     }
   }
 

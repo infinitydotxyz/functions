@@ -280,8 +280,8 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         });
     }
 
-    await batchHandler.flush();
     await queue.onIdle();
+    await batchHandler.flush();
     if (error) {
       throw error;
     }

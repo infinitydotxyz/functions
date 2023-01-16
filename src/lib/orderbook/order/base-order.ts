@@ -597,7 +597,7 @@ export class BaseOrder {
 
   public async getOrderStatus(txn?: FirebaseFirestore.Transaction, chainOBOrder?: ChainOBOrder): Promise<OrderStatus> {
     const orderEvents = this.rawRef.collection('orderEvents') as CollRef<OrderEvents>;
-    const query = orderEvents.orderBy('metadata.timestamp', 'desc').limit(1);
+    const query = orderEvents.where('data.status', '>=', '').orderBy('metadata.timestamp', 'desc').limit(1);
 
     let result;
     if (txn) {

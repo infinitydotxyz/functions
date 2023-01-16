@@ -1,10 +1,22 @@
 import { FieldPath } from 'firebase-admin/firestore';
+import PQueue from 'p-queue';
 
-import { EtherscanLinkType, EventType, OrderDirection, TokenStandard } from '@infinityxyz/lib/types/core';
+import {
+  EtherscanLinkType,
+  EventType,
+  FirestoreDisplayOrder,
+  OrderDirection,
+  OrderEventKind,
+  OrderEvents,
+  OrderTokenOwnerUpdate,
+  TokenStandard,
+  UserDisplayData
+} from '@infinityxyz/lib/types/core';
 import { NftTransferEvent as FeedNftTransferEvent } from '@infinityxyz/lib/types/core';
 import { CollectionDto, NftDto, UserDisplayDataDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getEtherscanLink } from '@infinityxyz/lib/utils';
 
+import { BatchHandler } from '@/firestore/batch-handler';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
@@ -104,14 +116,13 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         .doc(ownerAddress) as DocRef<UserProfileDto>;
       const user = await getUserDisplayData(ownerRef);
 
+      const chainId = mostRecentValidTransfer?.data?.metadata?.chainId;
+      const tokenId = mostRecentValidTransfer?.data?.metadata?.tokenId;
+      const address = mostRecentValidTransfer?.data?.metadata?.address;
       const collectionRef = eventsRef.firestore
         .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(
-          `${mostRecentValidTransfer?.data?.metadata?.chainId}:${mostRecentValidTransfer?.data?.metadata?.address}`
-        ) as DocRef<CollectionDto>;
-      const tokenRef = collectionRef
-        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-        .doc(mostRecentValidTransfer?.data?.metadata?.tokenId) as DocRef<NftDto>;
+        .doc(`${chainId}:${address}`) as DocRef<CollectionDto>;
+      const tokenRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(tokenId) as DocRef<NftDto>;
 
       const [collectionSnap, tokenSnap] = await eventsRef.firestore.getAll(collectionRef, tokenRef);
       const token = tokenSnap.data() ?? ({} as Partial<NftDto>);
@@ -121,6 +132,11 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         ownerData: user,
         owner: ownerAddress
       };
+
+      await this._updateOrderOwners(mostRecentValidTransfer.data, tokenRef, user, {
+        address,
+        tokenId
+      });
       txn.set(tokenRef, tokenUpdate, { merge: true });
       for (const item of validTransfers) {
         const fromRef = eventsRef.firestore
@@ -168,6 +184,12 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         const ownerData = await getUserDisplayData(
           eventsRef.firestore.collection(firestoreConstants.USERS_COLL).doc(owner) as DocRef<UserProfileDto>
         );
+
+        await this._updateOrderOwners(firstRemovedEvent.data, tokenRef, ownerData, {
+          address,
+          tokenId
+        });
+
         const tokenUpdate: Partial<NftDto> = {
           ownerData: ownerData,
           owner
@@ -196,6 +218,72 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
 
       txn.delete(feedEventRef);
+    }
+  }
+
+  protected async _updateOrderOwners(
+    event: NftTransferEvent,
+    tokenRef: DocRef<NftDto>,
+    owner: UserDisplayData,
+    token: { address: string; tokenId: string }
+  ) {
+    const validOrders = tokenRef
+      .collection('tokenV2Orders')
+      .where('order.isValid', '==', true) as CollRef<FirestoreDisplayOrder>;
+
+    const stream = streamQueryWithRef(validOrders);
+
+    const queue = new PQueue({ concurrency: 25 });
+
+    const batchHandler = new BatchHandler();
+    let error: Error | undefined;
+    for await (const { ref } of stream) {
+      queue
+        .add(async () => {
+          const id = ref.id;
+          const orderEvents = tokenRef.firestore
+            .collection('ordersV2')
+            .doc(id)
+            .collection(firestoreConstants.ORDER_EVENTS_COLL) as CollRef<OrderEvents>;
+          const mostRecentEventsSnaps = await orderEvents
+            .orderBy('metadata.timestamp', 'desc')
+            .startAfter(event.metadata.timestamp)
+            .limit(1)
+            .get();
+
+          const mostRecentEventSnap = mostRecentEventsSnaps?.docs?.[0];
+          const mostRecentEvent = mostRecentEventSnap?.data?.();
+          if (mostRecentEvent) {
+            const eventRef = orderEvents.doc();
+            const orderEvent: OrderTokenOwnerUpdate = {
+              metadata: {
+                ...mostRecentEvent.metadata,
+                id: eventRef.id,
+                eventSource: 'infinity-orderbook',
+                eventKind: OrderEventKind.TokenOwnerUpdate,
+                processed: false,
+                updatedAt: Date.now()
+              },
+              data: {
+                status: mostRecentEvent.data.status,
+                owner,
+                token
+              }
+            };
+
+            await batchHandler.addAsync(eventRef, orderEvent, { merge: true });
+          }
+        })
+        .catch((err) => {
+          error = err;
+          console.error(`Failed to update order owners ${err}`);
+        });
+    }
+
+    await batchHandler.flush();
+    await queue.onIdle();
+    if (error) {
+      throw error;
     }
   }
 

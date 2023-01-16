@@ -10,6 +10,7 @@ import {
   OrderEventMetadata,
   OrderEvents,
   OrderStatusEvent,
+  OrderTokenOwnerUpdate,
   RawFirestoreOrder
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
@@ -168,6 +169,11 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
           orderUpdater.setStatus(event.data.status);
           break;
         case OrderEventKind.TokenOwnerUpdate:
+          orderUpdater.setStatus(event.data.status);
+          orderUpdater.setTokenOwner(
+            (event as OrderTokenOwnerUpdate).data.owner,
+            (event as OrderTokenOwnerUpdate).data.token
+          );
           break;
         default:
           throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);

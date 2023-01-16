@@ -167,33 +167,9 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         case OrderEventKind.PriceUpdate: // TODO handle this differently to support dynamic orders
         case OrderEventKind.Cancelled:
         case OrderEventKind.Expired:
+        case OrderEventKind.Sale:
           orderUpdater.setStatus(event.data.status);
           break;
-        case OrderEventKind.Sale: {
-          const isNative = orderUpdater.rawOrder.metadata.source === 'infinity';
-
-          if (isNative) {
-            orderUpdater.setStatus(event.data.status);
-          } else {
-            const saleEvent = event as OrderSaleEvent;
-
-            const orderHashes = await this._getSaleOrderHashes(
-              saleEvent.data.txHash,
-              saleEvent.metadata.chainId,
-              provider
-            );
-
-            if (orderHashes.size > 0) {
-              // TODO improve this to make sure the txn included this order
-              orderUpdater.setStatus(event.data.status);
-            } else {
-              orderUpdater.setStatus('expired');
-            }
-          }
-
-          break;
-        }
-
         default:
           throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);
       }
@@ -333,7 +309,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     }
 
     try {
-      const orderUpdater = new OrderUpdater(db, provider, gasSimulator, rawOrder, displayOrder);
+      const orderUpdater = new OrderUpdater(rawOrder, displayOrder);
       return orderUpdater;
     } catch (err) {
       // throws if there is an error in the raw order or display order, in this case we should make sure the order is
@@ -362,33 +338,5 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       displayOrder: result.displayOrder,
       baseOrder
     };
-  }
-
-  protected async _getSaleOrderHashes(
-    txHash: string,
-    chainId: ChainId,
-    provider: ethers.providers.StaticJsonRpcProvider
-  ) {
-    const receipt = await provider.getTransactionReceipt(txHash);
-    const logs = receipt.logs;
-    const contract = new ethers.Contract(getExchangeAddress(chainId), InfinityExchangeABI, provider);
-    const logDecoder = new InfinityLogDecoder(contract, chainId);
-
-    const orderHashes = new Set();
-
-    for (const log of logs) {
-      const matchOrderEvent = logDecoder.decodeMatchOrderEvent(log);
-      const takeOrderEvent = logDecoder.decodeTakeOrderEvent(log);
-      if (matchOrderEvent?.buyOrderHash) {
-        orderHashes.add(matchOrderEvent.buyOrderHash);
-      }
-      if (matchOrderEvent?.sellOrderHash) {
-        orderHashes.add(matchOrderEvent.sellOrderHash);
-      }
-      if (takeOrderEvent?.orderHash) {
-        orderHashes.add(takeOrderEvent.orderHash);
-      }
-    }
-    return orderHashes;
   }
 }

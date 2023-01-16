@@ -1,5 +1,6 @@
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatEther } from 'ethers/lib/utils';
+import QuickLRU from 'quick-lru';
 
 import {
   ChainId,
@@ -140,18 +141,46 @@ export async function getNftDisplayData(
   };
 }
 
+const userCache = new QuickLRU<
+  string,
+  Promise<Pick<UserDisplayData, 'address' | 'displayName' | 'username' | 'profileImage' | 'bannerImage'>>
+>({ maxSize: 100 });
 export async function getUserDisplayData(
   ref: FirebaseFirestore.DocumentReference<UserProfileDto>
-): Promise<UserDisplayData> {
-  const snap = await ref.get();
-  const data = (snap.data() ?? {}) as Partial<UserDisplayData>;
-  return {
-    address: data.address || ref.id,
-    displayName: data.displayName ?? '',
-    username: data.username ?? '',
-    profileImage: data.profileImage ?? '',
-    bannerImage: data.bannerImage ?? ''
-  };
+): Promise<Pick<UserDisplayData, 'address' | 'displayName' | 'username' | 'profileImage' | 'bannerImage'>> {
+  const cachedValue = userCache.get(ref.path);
+  if (cachedValue) {
+    try {
+      return await cachedValue;
+    } catch (err) {
+      userCache.delete(ref.path);
+    }
+  }
+
+  const promise = new Promise<
+    Pick<UserDisplayData, 'address' | 'displayName' | 'username' | 'profileImage' | 'bannerImage'>
+  >((resolve, reject) => {
+    ref
+      .get()
+      .then((snap) => {
+        const data = snap.data();
+        const user: Pick<UserDisplayData, 'address' | 'displayName' | 'username' | 'profileImage' | 'bannerImage'> = {
+          address: data?.address || ref.id,
+          displayName: data?.displayName ?? '',
+          username: data?.username ?? '',
+          profileImage: data?.profileImage ?? '',
+          bannerImage: data?.bannerImage ?? ''
+        };
+        resolve(user);
+      })
+      .catch((err) => {
+        userCache.delete(ref.path);
+        reject(err);
+      });
+  });
+
+  userCache.set(ref.path, promise);
+  return await promise;
 }
 
 export function partitionArray<T>(array: T[], size: number): T[][] {

@@ -23,8 +23,7 @@ export interface OrderbookSnapshotOrder {
   gasUsage: string;
 }
 
-export async function takeSnapshot(db: Firestore, chainId: ChainId, fileName: string) {
-  const bucketName = 'orderbook-snapshots';
+export async function takeSnapshot(db: Firestore, chainId: ChainId, bucketName: string, fileName: string) {
   const file = storage().bucket(bucketName).file(fileName);
 
   const startTimestamp = Date.now();

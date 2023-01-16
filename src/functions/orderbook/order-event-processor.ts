@@ -1,26 +1,31 @@
 import { ethers } from 'ethers';
 import { nanoid } from 'nanoid';
 
-import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
 import {
+  InfinityLinkType,
   ChainId,
+  EventType,
   FirestoreDisplayOrder,
+  FirestoreDisplayOrderWithoutError,
+  NftListingEvent,
+  NftOfferEvent,
+  OrderBookEvent,
   OrderCreatedEvent,
   OrderDirection,
   OrderEventKind,
   OrderEventMetadata,
   OrderEvents,
-  OrderSaleEvent,
   OrderStatusEvent,
-  RawFirestoreOrder
+  OrderTokenOwnerUpdate,
+  RawFirestoreOrder,
+  RawFirestoreOrderWithoutError
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getExchangeAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getInfinityLink } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, DocSnap, Firestore, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook } from '@/lib/index';
-import { InfinityLogDecoder } from '@/lib/orderbook/log-decoders';
 import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
@@ -167,33 +172,16 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         case OrderEventKind.PriceUpdate: // TODO handle this differently to support dynamic orders
         case OrderEventKind.Cancelled:
         case OrderEventKind.Expired:
+        case OrderEventKind.Sale:
           orderUpdater.setStatus(event.data.status);
           break;
-        case OrderEventKind.Sale: {
-          const isNative = orderUpdater.rawOrder.metadata.source === 'infinity';
-
-          if (isNative) {
-            orderUpdater.setStatus(event.data.status);
-          } else {
-            const saleEvent = event as OrderSaleEvent;
-
-            const orderHashes = await this._getSaleOrderHashes(
-              saleEvent.data.txHash,
-              saleEvent.metadata.chainId,
-              provider
-            );
-
-            if (orderHashes.size > 0) {
-              // TODO improve this to make sure the txn included this order
-              orderUpdater.setStatus(event.data.status);
-            } else {
-              orderUpdater.setStatus('expired');
-            }
-          }
-
+        case OrderEventKind.TokenOwnerUpdate:
+          orderUpdater.setStatus(event.data.status);
+          orderUpdater.setTokenOwner(
+            (event as OrderTokenOwnerUpdate).data.owner,
+            (event as OrderTokenOwnerUpdate).data.token
+          );
           break;
-        }
-
         default:
           throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);
       }
@@ -277,6 +265,11 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       });
     };
 
+    if (orderCreatedEvent != null) {
+      const saveToFeed = this._writeOrderToFeed(orderCreatedEvent.data, order, displayOrder, txn, db);
+      saves.push(saveToFeed);
+    }
+
     if (orderCreatedEvent != null || statusChanged) {
       const statusChanged: OrderStatusEvent = {
         id: nanoid(),
@@ -298,6 +291,75 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     for (const save of saves) {
       save();
     }
+  }
+
+  protected _writeOrderToFeed(
+    orderCreatedEvent: OrderCreatedEvent,
+    order: RawFirestoreOrderWithoutError,
+    displayOrder: FirestoreDisplayOrderWithoutError,
+    txn: FirebaseFirestore.Transaction,
+    db: FirebaseFirestore.Firestore
+  ) {
+    const collection =
+      displayOrder.displayOrder?.kind === 'single-collection'
+        ? displayOrder.displayOrder.item
+        : displayOrder.displayOrder.items[0]; //TODO support multiple collections
+
+    const token = collection.kind === 'single-token' ? collection.token : undefined; // TODO support token lists
+    const eventRef = db.collection(firestoreConstants.FEED_COLL).doc(orderCreatedEvent.metadata.id);
+    const base: Omit<OrderBookEvent, 'isSellOrder' | 'type'> = {
+      orderId: order.metadata.id,
+      orderItemId: '',
+      paymentToken: order.order.currency,
+      quantity: order.order.numItems,
+      startPriceEth: order.order.startPriceEth,
+      endPriceEth: order.order.endPriceEth,
+      startTimeMs: order.order.startTimeMs,
+      endTimeMs: order.order.endTimeMs,
+      makerAddress: order.order.maker,
+      takerAddress: order.order.taker,
+      makerUsername: displayOrder.displayOrder?.maker?.username ?? '',
+      takerUsername: displayOrder.displayOrder?.taker?.username ?? '',
+      chainId: order.metadata.chainId,
+      timestamp: order.metadata.createdAt,
+      likes: 0,
+      comments: 0,
+      collectionAddress: collection.address,
+      collectionName: collection.name,
+      collectionSlug: collection.slug,
+      collectionProfileImage: collection.profileImage,
+      hasBlueCheck: collection.hasBlueCheck,
+      internalUrl: getInfinityLink({
+        type: InfinityLinkType.Collection,
+        addressOrSlug: collection.slug ?? collection.address,
+        chainId: collection.chainId
+      }),
+      tokenId: token?.tokenId ?? '',
+      image: token?.image ?? '',
+      nftName: token?.name ?? '',
+      nftSlug: token?.name ?? '',
+      usersInvolved: [...order.order.owners, order.order.maker]
+    };
+
+    let event: NftListingEvent | NftOfferEvent;
+    if (order.order.isSellOrder) {
+      event = {
+        ...base,
+        type: EventType.NftListing,
+        isSellOrder: true
+      };
+    } else {
+      event = {
+        ...base,
+        type: EventType.NftOffer,
+        isSellOrder: false
+      };
+    }
+
+    const save = () => {
+      txn.create(eventRef, event);
+    };
+    return save;
   }
 
   protected async _getOrder(
@@ -333,7 +395,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     }
 
     try {
-      const orderUpdater = new OrderUpdater(db, provider, gasSimulator, rawOrder, displayOrder);
+      const orderUpdater = new OrderUpdater(rawOrder, displayOrder);
       return orderUpdater;
     } catch (err) {
       // throws if there is an error in the raw order or display order, in this case we should make sure the order is
@@ -362,33 +424,5 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       displayOrder: result.displayOrder,
       baseOrder
     };
-  }
-
-  protected async _getSaleOrderHashes(
-    txHash: string,
-    chainId: ChainId,
-    provider: ethers.providers.StaticJsonRpcProvider
-  ) {
-    const receipt = await provider.getTransactionReceipt(txHash);
-    const logs = receipt.logs;
-    const contract = new ethers.Contract(getExchangeAddress(chainId), InfinityExchangeABI, provider);
-    const logDecoder = new InfinityLogDecoder(contract, chainId);
-
-    const orderHashes = new Set();
-
-    for (const log of logs) {
-      const matchOrderEvent = logDecoder.decodeMatchOrderEvent(log);
-      const takeOrderEvent = logDecoder.decodeTakeOrderEvent(log);
-      if (matchOrderEvent?.buyOrderHash) {
-        orderHashes.add(matchOrderEvent.buyOrderHash);
-      }
-      if (matchOrderEvent?.sellOrderHash) {
-        orderHashes.add(matchOrderEvent.sellOrderHash);
-      }
-      if (takeOrderEvent?.orderHash) {
-        orderHashes.add(takeOrderEvent.orderHash);
-      }
-    }
-    return orderHashes;
   }
 }

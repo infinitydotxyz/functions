@@ -1,7 +1,7 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
 import PQueue from 'p-queue';
 
-import { OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -314,14 +314,14 @@ async function deleteInvalidOrders(validCollections: Set<string>) {
             .add(async () => {
               const batch = new BatchHandler();
               const provider = getProvider(data.metadata.chainId);
-              const gasSimulator = new GasSimulator(provider!, config.orderbook.gasSimulationAccount);
+              const gasSimulator = new GasSimulator(provider, config.orderbook.gasSimulationAccount);
               console.log(`Found invalid order: ${ref.id}`);
               const baseOrder = new BaseOrder(
                 data.metadata.id,
                 data.metadata.chainId,
                 isSellOrder,
                 db,
-                provider!,
+                provider,
                 gasSimulator
               );
               const order = await baseOrder.load();

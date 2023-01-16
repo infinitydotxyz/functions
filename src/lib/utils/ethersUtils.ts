@@ -3,17 +3,19 @@ import { ethers } from 'ethers';
 import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-const ethProvider = new ethers.providers.StaticJsonRpcProvider(process.env.ALCHEMY_JSON_RPC_ETH_MAINNET);
+import { config } from '@/config/index';
 
 export function getProvider(chainId: string) {
-  if (chainId === '1') {
-    return ethProvider;
+  const provider = config.providers[chainId as keyof typeof config.providers];
+  if (provider == null) {
+    throw new Error(`No provider for chainId ${chainId}`);
   }
-  return undefined;
+  return provider;
 }
 
 export async function getErc721Owner(token: { address: string; tokenId: string; chainId: string }): Promise<string> {
-  const contract = new ethers.Contract(token.address, ERC721ABI, getProvider(token.chainId));
+  const provider = getProvider(token.chainId);
+  const contract = new ethers.Contract(token.address, ERC721ABI, provider);
   const owner = trimLowerCase(await contract.ownerOf(token.tokenId));
   return owner;
 }

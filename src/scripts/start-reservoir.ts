@@ -5,7 +5,7 @@ import { getDb } from '@/firestore/db';
 import { Reservoir } from '../lib';
 
 export async function main() {
-  await Reservoir.OrderEvents.addSyncs(getDb(), ChainId.Mainnet, ['ask'], undefined, Date.now());
+  await Reservoir.OrderEvents.addSyncs(getDb(), ChainId.Goerli, ['ask'], undefined, Date.now());
 }
 
 void main();

@@ -1,28 +1,18 @@
-import { providers } from 'ethers/lib/ethers';
-
 import {
   DisplayOrder,
   FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
   RawFirestoreOrder,
-  RawFirestoreOrderWithoutError
+  RawFirestoreOrderWithoutError,
+  UserDisplayData
 } from '@infinityxyz/lib/types/core';
 
-import { Firestore } from '@/firestore/types';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
-
-import { GasSimulator } from './gas-simulator/gas-simulator';
 
 export class OrderUpdater {
   protected _rawOrder: RawFirestoreOrderWithoutError;
   protected _displayOrder: DisplayOrder;
-  constructor(
-    protected _db: Firestore,
-    protected _provider: providers.StaticJsonRpcProvider,
-    protected _gasSimulator: GasSimulator,
-    rawOrder: RawFirestoreOrder,
-    displayOrder: FirestoreDisplayOrder
-  ) {
+  constructor(rawOrder: RawFirestoreOrder, displayOrder: FirestoreDisplayOrder) {
     if (rawOrder.metadata.hasError || 'error' in rawOrder) {
       throw new Error('cannot create order with error');
     }
@@ -60,6 +50,36 @@ export class OrderUpdater {
       this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
       this._rawOrder.metadata.processed = false;
     }
+  }
+
+  setTokenOwner(owner: UserDisplayData, token: { address: string; tokenId: string }) {
+    const items = 'items' in this._displayOrder ? this._displayOrder.items : [this._displayOrder.item];
+    const owners: string[] = [];
+
+    for (const item of items) {
+      if (item.address === token.address) {
+        switch (item.kind) {
+          case 'collection-wide':
+            break;
+          case 'single-token':
+            if (item.token.tokenId === token.tokenId) {
+              item.token.owner = owner;
+            }
+            owners.push(item.token.owner.address);
+            break;
+          case 'token-list':
+            for (const token of item.tokens) {
+              if (token.tokenId === token.tokenId) {
+                token.owner = owner;
+              }
+              owners.push(token.owner.address);
+              break;
+            }
+        }
+      }
+    }
+
+    this._rawOrder.order.owners = [...new Set(owners)];
   }
 
   setGasUsage(gasUsage: number) {

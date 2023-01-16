@@ -51,7 +51,7 @@ async function main() {
   console.log(`Creating ${order.isSellOrder ? 'sell' : 'buy'} order for ${wallet.address}`);
 
   const isProd = true;
-  const baseUrl = isProd ? 'https://sv.infinity.xyz/' : `http://localhost:9090`;
+  const baseUrl = isProd ? 'https://sv.flow.so/' : `http://localhost:9090`;
 
   const signedOffer = await signOrder(wallet, order, baseUrl);
   await postOrder(wallet, signedOffer, baseUrl);

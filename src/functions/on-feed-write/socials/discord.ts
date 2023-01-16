@@ -4,7 +4,7 @@ import { EventType, FeedEvent, NftListingEvent, NftOfferEvent, NftSaleEvent } fr
 
 import { DISCORD_WEBHOOK_URL } from '@/lib/utils/constants';
 
-const BASE_URL = 'https://infinity.xyz';
+const BASE_URL = 'https://flow.so';
 
 const webhook = new WebhookClient({ url: DISCORD_WEBHOOK_URL });
 

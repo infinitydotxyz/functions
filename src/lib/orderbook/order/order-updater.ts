@@ -3,7 +3,8 @@ import {
   FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
   RawFirestoreOrder,
-  RawFirestoreOrderWithoutError
+  RawFirestoreOrderWithoutError,
+  UserDisplayData
 } from '@infinityxyz/lib/types/core';
 
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
@@ -49,6 +50,11 @@ export class OrderUpdater {
       this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
       this._rawOrder.metadata.processed = false;
     }
+  }
+
+  setOwner(displayData: UserDisplayData) {
+    this._rawOrder.order.owners = [displayData.address];
+    this._displayOrder;
   }
 
   setGasUsage(gasUsage: number) {

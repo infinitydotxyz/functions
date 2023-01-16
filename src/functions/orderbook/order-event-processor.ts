@@ -156,8 +156,8 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       const { data: event, ref } = item;
 
       switch (event.metadata.eventKind) {
-        case OrderEventKind.Created:
         case OrderEventKind.BalanceChange:
+        case OrderEventKind.Created:
         case OrderEventKind.ApprovalChange:
         case OrderEventKind.Bootstrap:
         case OrderEventKind.Revalidation:
@@ -166,6 +166,8 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         case OrderEventKind.Expired:
         case OrderEventKind.Sale:
           orderUpdater.setStatus(event.data.status);
+          break;
+        case OrderEventKind.TokenOwnerUpdate:
           break;
         default:
           throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);

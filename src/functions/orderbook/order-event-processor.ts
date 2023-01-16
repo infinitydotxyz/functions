@@ -2,8 +2,14 @@ import { ethers } from 'ethers';
 import { nanoid } from 'nanoid';
 
 import {
+  InfinityLinkType,
   ChainId,
+  EventType,
   FirestoreDisplayOrder,
+  FirestoreDisplayOrderWithoutError,
+  NftListingEvent,
+  NftOfferEvent,
+  OrderBookEvent,
   OrderCreatedEvent,
   OrderDirection,
   OrderEventKind,
@@ -11,9 +17,10 @@ import {
   OrderEvents,
   OrderStatusEvent,
   OrderTokenOwnerUpdate,
-  RawFirestoreOrder
+  RawFirestoreOrder,
+  RawFirestoreOrderWithoutError
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getInfinityLink } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
@@ -157,8 +164,8 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       const { data: event, ref } = item;
 
       switch (event.metadata.eventKind) {
-        case OrderEventKind.BalanceChange:
         case OrderEventKind.Created:
+        case OrderEventKind.BalanceChange:
         case OrderEventKind.ApprovalChange:
         case OrderEventKind.Bootstrap:
         case OrderEventKind.Revalidation:
@@ -258,6 +265,11 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       });
     };
 
+    if (orderCreatedEvent != null) {
+      const saveToFeed = this._writeOrderToFeed(orderCreatedEvent.data, order, displayOrder, txn, db);
+      saves.push(saveToFeed);
+    }
+
     if (orderCreatedEvent != null || statusChanged) {
       const statusChanged: OrderStatusEvent = {
         id: nanoid(),
@@ -279,6 +291,75 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     for (const save of saves) {
       save();
     }
+  }
+
+  protected _writeOrderToFeed(
+    orderCreatedEvent: OrderCreatedEvent,
+    order: RawFirestoreOrderWithoutError,
+    displayOrder: FirestoreDisplayOrderWithoutError,
+    txn: FirebaseFirestore.Transaction,
+    db: FirebaseFirestore.Firestore
+  ) {
+    const collection =
+      displayOrder.displayOrder?.kind === 'single-collection'
+        ? displayOrder.displayOrder.item
+        : displayOrder.displayOrder.items[0]; //TODO support multiple collections
+
+    const token = collection.kind === 'single-token' ? collection.token : undefined; // TODO support token lists
+    const eventRef = db.collection(firestoreConstants.FEED_COLL).doc(orderCreatedEvent.metadata.id);
+    const base: Omit<OrderBookEvent, 'isSellOrder' | 'type'> = {
+      orderId: order.metadata.id,
+      orderItemId: '',
+      paymentToken: order.order.currency,
+      quantity: order.order.numItems,
+      startPriceEth: order.order.startPriceEth,
+      endPriceEth: order.order.endPriceEth,
+      startTimeMs: order.order.startTimeMs,
+      endTimeMs: order.order.endTimeMs,
+      makerAddress: order.order.maker,
+      takerAddress: order.order.taker,
+      makerUsername: displayOrder.displayOrder?.maker?.username ?? '',
+      takerUsername: displayOrder.displayOrder?.taker?.username ?? '',
+      chainId: order.metadata.chainId,
+      timestamp: order.metadata.createdAt,
+      likes: 0,
+      comments: 0,
+      collectionAddress: collection.address,
+      collectionName: collection.name,
+      collectionSlug: collection.slug,
+      collectionProfileImage: collection.profileImage,
+      hasBlueCheck: collection.hasBlueCheck,
+      internalUrl: getInfinityLink({
+        type: InfinityLinkType.Collection,
+        addressOrSlug: collection.slug ?? collection.address,
+        chainId: collection.chainId
+      }),
+      tokenId: token?.tokenId ?? '',
+      image: token?.image ?? '',
+      nftName: token?.name ?? '',
+      nftSlug: token?.name ?? '',
+      usersInvolved: [...order.order.owners, order.order.maker]
+    };
+
+    let event: NftListingEvent | NftOfferEvent;
+    if (order.order.isSellOrder) {
+      event = {
+        ...base,
+        type: EventType.NftListing,
+        isSellOrder: true
+      };
+    } else {
+      event = {
+        ...base,
+        type: EventType.NftOffer,
+        isSellOrder: false
+      };
+    }
+
+    const save = () => {
+      txn.create(eventRef, event);
+    };
+    return save;
   }
 
   protected async _getOrder(

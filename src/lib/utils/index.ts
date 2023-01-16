@@ -1,6 +1,5 @@
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatEther } from 'ethers/lib/utils';
-import { user } from 'firebase-functions/v1/auth';
 import QuickLRU from 'quick-lru';
 
 import {

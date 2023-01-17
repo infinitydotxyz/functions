@@ -71,6 +71,14 @@ export async function* sync(
           throw new Error('Sync paused');
         }
 
+        if (page.data.continuation === continuation) {
+          /**
+           * continuation did not change
+           * skip attempting to read events from firestore
+           */
+          return { numEventsSaved: 0 };
+        }
+
         const eventsWithRefs = events.map((item) => {
           const event = item.event;
           const id = event.id;

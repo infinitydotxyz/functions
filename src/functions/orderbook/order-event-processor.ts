@@ -266,7 +266,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     };
 
     if (orderCreatedEvent != null) {
-      const saveToFeed = this._writeOrderToFeed(orderCreatedEvent.data, order, displayOrder, txn, db);
+      const saveToFeed = await this._writeOrderToFeed(orderCreatedEvent.data, order, displayOrder, txn, db);
       saves.push(saveToFeed);
     }
 
@@ -293,7 +293,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     }
   }
 
-  protected _writeOrderToFeed(
+  protected async _writeOrderToFeed(
     orderCreatedEvent: OrderCreatedEvent,
     order: RawFirestoreOrderWithoutError,
     displayOrder: FirestoreDisplayOrderWithoutError,
@@ -356,8 +356,14 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       };
     }
 
+    const snap = await txn.get(eventRef);
+
     const save = () => {
-      txn.create(eventRef, event);
+      if (!snap.exists) {
+        txn.create(eventRef, event);
+      } else {
+        console.warn(`Event: ${eventRef.path} already exists, skipping...`);
+      }
     };
     return save;
   }

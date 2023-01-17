@@ -5,6 +5,7 @@ import { DocRef } from '@/firestore/types';
 import { bn } from '@/lib/utils';
 
 import { Reservoir } from '../..';
+import { AskV2Order, BidV1Order, ReservoirEventMetadata } from '../api/events/types';
 import { ReservoirOrderEvent, SyncMetadata } from './types';
 import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
 
@@ -52,7 +53,12 @@ export async function* sync(
         startTimestamp: minTimestamp
       });
       const numItems = (page.data?.events ?? []).length;
-      const events = page.data.events;
+      const events = (page.data.events as { event: ReservoirEventMetadata }[]).filter((item) => {
+        return item.event.kind !== 'reprice';
+      }) as
+        | { bid: BidV1Order; event: ReservoirEventMetadata }[]
+        | { order: AskV2Order; event: ReservoirEventMetadata }[];
+      const numItemsAfterFiltering = events.length;
 
       const { numEventsSaved } = await db.runTransaction(async (txn) => {
         const snap = await txn.get(initialSync.ref);
@@ -147,7 +153,8 @@ export async function* sync(
         pageNumber,
         pageSize,
         numEventsSaved,
-        numEventsFound: numItems
+        numEventsFound: numItems,
+        numEventsFiltered: numItems - numItemsAfterFiltering
       };
     } catch (err) {
       console.error(err);

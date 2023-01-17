@@ -11,7 +11,7 @@ export interface AskOrderOptions {
   source?: string;
   native?: boolean;
   includePrivate: boolean;
-  includeMetadata: boolean;
+  includeCriteriaMetadata: boolean;
   includeRawData: boolean;
   normalizeRoyalties: boolean;
   sortBy?: 'createdAt' | 'price';
@@ -19,18 +19,29 @@ export interface AskOrderOptions {
   limit: number;
 }
 
-export async function getOrders(client: ReservoirClient, _options: Partial<AskOrderOptions>) {
+export async function getOrders(
+  client: ReservoirClient,
+  _options: Partial<AskOrderOptions>
+): Promise<{
+  data: {
+    orders: AskOrder[];
+    continuation: string | undefined;
+  };
+  statusCode: number;
+}> {
+  const contracts = _options.contracts?.length ? { contracts: (_options.contracts ?? []).join(',') } : {};
   const options: AskOrderOptions = {
-    includePrivate: true,
-    includeMetadata: false,
+    includePrivate: false,
+    includeCriteriaMetadata: false,
     includeRawData: true,
     normalizeRoyalties: false,
     limit: 100,
-    ..._options
+    ..._options,
+    ...(contracts as any)
   };
 
   const response = await client(
-    '/orders/asks/v3',
+    '/orders/asks/v4',
     'get'
   )({
     query: {

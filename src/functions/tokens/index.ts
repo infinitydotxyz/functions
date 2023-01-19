@@ -16,8 +16,8 @@ const transferProcessor = new TokenTransfersProcessor(
     isCollectionGroup: true
   },
   {
-    schedule: 'every 2 minutes',
-    tts: ONE_MIN
+    schedule: 'every 5 minutes',
+    tts: 5 * ONE_MIN
   },
   getDb,
   true
@@ -26,12 +26,11 @@ const transferProcessor = new TokenTransfersProcessor(
 const processor = transferProcessor.getFunctions();
 
 const documentSettings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 60,
-  maxInstances: 10_000
+  timeoutSeconds: 60
 });
 
 const scheduleSettings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 110,
+  timeoutSeconds: 5 * 60 - 5,
   maxInstances: 1
 });
 
@@ -40,5 +39,11 @@ const scheduleBuilder = scheduleSettings.pubsub.schedule;
 
 export const onProcessTransferEvent = processor.onEvent(documentBuilder);
 export const onProcessTransferEventBackup = processor.scheduledBackupEvents(scheduleBuilder);
-export const onProcessTransferEventProcess = processor.process(documentBuilder);
+export const onProcessTransferEventProcess = processor.process(
+  functions.region(config.firebase.region).runWith({
+    timeoutSeconds: 60,
+    maxInstances: 5000,
+    minInstances: 2
+  }).firestore.document
+);
 export const onProcessTransferEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);

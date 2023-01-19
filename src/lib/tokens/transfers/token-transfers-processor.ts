@@ -1,9 +1,8 @@
 import { FieldPath } from 'firebase-admin/firestore';
 
-import { EtherscanLinkType, EventType, OrderDirection, TokenStandard } from '@infinityxyz/lib/types/core';
-import { NftTransferEvent as FeedNftTransferEvent } from '@infinityxyz/lib/types/core';
-import { CollectionDto, NftDto, UserDisplayDataDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, getEtherscanLink } from '@infinityxyz/lib/utils';
+import { OrderDirection } from '@infinityxyz/lib/types/core';
+import { CollectionDto, NftDto } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
@@ -134,10 +133,6 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
       .doc(`${chainId}:${address}`) as DocRef<CollectionDto>;
     const tokenRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(tokenId) as DocRef<NftDto>;
 
-    const [collectionSnap, tokenSnap] = await eventsRef.firestore.getAll(collectionRef, tokenRef);
-    const token = tokenSnap.data() ?? ({} as Partial<NftDto>);
-    const collection = collectionSnap.data() ?? ({} as Partial<CollectionDto>);
-
     const tokenUpdate: Partial<NftDto> = {
       ownerData: {
         address: ownerAddress,
@@ -151,30 +146,6 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
 
     txn.set(tokenRef, tokenUpdate, { merge: true });
     for (const item of validTransfers) {
-      const feedEvent = this._getFeedTransferEvent(
-        item.data,
-        {
-          address: item.data.data.from,
-          username: '',
-          profileImage: '',
-          bannerImage: '',
-          displayName: ''
-        },
-        {
-          address: item.data.data.to,
-          username: '',
-          profileImage: '',
-          bannerImage: '',
-          displayName: ''
-        },
-        token,
-        collection
-      );
-
-      const feedEventRef = eventsRef.firestore
-        .collection(firestoreConstants.FEED_COLL)
-        .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
-
       const metadataUpdate: NftTransferEvent['metadata'] = {
         ...item.data.metadata,
         processed: true,
@@ -188,8 +159,6 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         },
         { merge: true }
       );
-
-      txn.set(feedEventRef, feedEvent, { merge: true });
     }
 
     for (const item of removedTransfers) {
@@ -206,12 +175,6 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         },
         { merge: true }
       );
-
-      const feedEventRef = eventsRef.firestore
-        .collection(firestoreConstants.FEED_COLL)
-        .doc(`${item.data.data.transactionHash}:${item.data.data.transactionIndex}`) as DocRef<FeedNftTransferEvent>;
-
-      txn.delete(feedEventRef);
     }
   }
 
@@ -239,43 +202,5 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
 
       return 0;
     });
-  }
-
-  protected _getFeedTransferEvent(
-    event: NftTransferEvent,
-    from: UserDisplayDataDto,
-    to: UserDisplayDataDto,
-    token: Partial<NftDto>,
-    collection: Partial<CollectionDto>
-  ): FeedNftTransferEvent {
-    const feedEvent: FeedNftTransferEvent = {
-      type: EventType.NftTransfer,
-      from: event.data.from,
-      to: event.data.to,
-      fromDisplayName: from.displayName,
-      toDisplayName: to.displayName,
-      tokenStandard: TokenStandard.ERC721,
-      txHash: event.data.transactionHash,
-      quantity: 1,
-      externalUrl: getEtherscanLink({
-        type: EtherscanLinkType.Transaction,
-        transactionHash: event.data.transactionHash
-      }),
-      likes: 0,
-      comments: 0,
-      timestamp: 0,
-      chainId: event.metadata.chainId,
-      collectionAddress: event.metadata.address,
-      collectionName: collection.metadata?.name ?? '',
-      collectionSlug: collection.slug ?? '',
-      collectionProfileImage: collection.metadata?.profileImage ?? collection.metadata?.bannerImage ?? '',
-      hasBlueCheck: token.hasBlueCheck ?? false,
-      internalUrl: '',
-      tokenId: event.metadata.tokenId,
-      image: token.image?.url ?? token.image?.originalUrl ?? token.alchemyCachedImage ?? '',
-      nftName: token.metadata?.name ?? '',
-      nftSlug: token.slug ?? ''
-    };
-    return feedEvent;
   }
 }

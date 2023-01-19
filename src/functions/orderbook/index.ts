@@ -23,8 +23,8 @@ const orderEventProcessor = new OrderEventProcessor(
     isCollectionGroup: true
   },
   {
-    schedule: 'every 2 minutes',
-    tts: ONE_MIN
+    schedule: 'every 5 minutes',
+    tts: 5 * ONE_MIN
   },
   getDb,
   true
@@ -34,11 +34,11 @@ const processor = orderEventProcessor.getFunctions();
 
 const documentSettings = functions.region(config.firebase.region).runWith({
   timeoutSeconds: 60,
-  maxInstances: 10_000
+  maxInstances: 5_000
 });
 
 const scheduleSettings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 110,
+  timeoutSeconds: 5 * 60 - 5,
   maxInstances: 1
 });
 
@@ -47,7 +47,13 @@ const scheduleBuilder = scheduleSettings.pubsub.schedule;
 
 export const onProcessOrderEvent = processor.onEvent(documentBuilder);
 export const onProcessOrderEventBackup = processor.scheduledBackupEvents(scheduleBuilder);
-export const onProcessOrderEventProcess = processor.process(documentBuilder);
+export const onProcessOrderEventProcess = processor.process(
+  functions.region(config.firebase.region).runWith({
+    timeoutSeconds: 60,
+    maxInstances: 5_000,
+    minInstances: 1
+  }).firestore.document
+);
 export const onProcessOrderEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);
 
 /**
@@ -89,8 +95,8 @@ const tokenOrdersProcessor = new TokenOrdersProcessor(
     isCollectionGroup: true
   },
   {
-    schedule: 'every 2 minutes',
-    tts: ONE_MIN
+    schedule: 'every 5 minutes',
+    tts: 5 * ONE_MIN
   },
   getDb,
   true
@@ -100,5 +106,11 @@ const tokenOrdersProcessorFunctions = tokenOrdersProcessor.getFunctions();
 
 export const onProcessTokenOrders = tokenOrdersProcessorFunctions.onEvent(documentBuilder);
 export const onProcessTokenOrdersBackup = tokenOrdersProcessorFunctions.scheduledBackupEvents(scheduleBuilder);
-export const onProcessTokenOrdersProcess = tokenOrdersProcessorFunctions.process(documentBuilder);
+export const onProcessTokenOrdersProcess = tokenOrdersProcessorFunctions.process(
+  functions.region(config.firebase.region).runWith({
+    timeoutSeconds: 60,
+    maxInstances: 5_000,
+    minInstances: 1
+  }).firestore.document
+);
 export const onProcessTokenOrdersProcessBackup = tokenOrdersProcessorFunctions.scheduledBackupTrigger(scheduleBuilder);

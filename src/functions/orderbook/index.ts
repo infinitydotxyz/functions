@@ -32,12 +32,18 @@ const orderEventProcessor = new OrderEventProcessor(
 
 const processor = orderEventProcessor.getFunctions();
 
-const settings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 540
+const documentSettings = functions.region(config.firebase.region).runWith({
+  timeoutSeconds: 60,
+  maxInstances: 10_000
 });
 
-const documentBuilder = settings.firestore.document;
-const scheduleBuilder = settings.pubsub.schedule;
+const scheduleSettings = functions.region(config.firebase.region).runWith({
+  timeoutSeconds: 110,
+  maxInstances: 1
+});
+
+const documentBuilder = documentSettings.firestore.document;
+const scheduleBuilder = scheduleSettings.pubsub.schedule;
 
 export const onProcessOrderEvent = processor.onEvent(documentBuilder);
 export const onProcessOrderEventBackup = processor.scheduledBackupEvents(scheduleBuilder);
@@ -91,6 +97,7 @@ const tokenOrdersProcessor = new TokenOrdersProcessor(
 );
 
 const tokenOrdersProcessorFunctions = tokenOrdersProcessor.getFunctions();
+
 export const onProcessTokenOrders = tokenOrdersProcessorFunctions.onEvent(documentBuilder);
 export const onProcessTokenOrdersBackup = tokenOrdersProcessorFunctions.scheduledBackupEvents(scheduleBuilder);
 export const onProcessTokenOrdersProcess = tokenOrdersProcessorFunctions.process(documentBuilder);

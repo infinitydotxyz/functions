@@ -1,7 +1,7 @@
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
 import PQueue from 'p-queue';
 
-import { ChainId, OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -11,6 +11,8 @@ import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef } from '@/firestore/types';
 import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
+import { TokenTransfersProcessor } from '@/lib/tokens/transfers/token-transfers-processor';
+import { NftTransferEvent } from '@/lib/tokens/transfers/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { config } from '../config';
@@ -58,6 +60,63 @@ import { config } from '../config';
 //     await processor.process(snap, txn, eventsRef);
 //   });
 // }
+
+async function tokenTransferProcessor() {
+  // /collections/1:0xf7af6dd6c36fc42eb802b33d48ea3d395803c8ea/nfts/5102/nftTransferEvents/16423839:0xd37ddfd2b099b5c4d4617966b7765266bf2e0f8c8d00410e76495dbaa99c0e70:140
+  class Dev extends TokenTransfersProcessor {
+    async process(eventsRef: CollRef<NftTransferEvent>) {
+      const eventsForProcessing = await this._getEventsForProcessing(eventsRef);
+
+      const res = await paginatedTransaction(
+        eventsForProcessing.query,
+        this.db,
+        { pageSize: this._config.batchSize, maxPages: this._config.maxPages },
+        async ({ data, txn, hasNextPage }) => {
+          console.log(`Processing ${data.docs.length} events`);
+
+          const firstItem = data.docs[0].ref.id;
+          const lastItem = data.docs[data.docs.length - 1].ref.id;
+          console.log(firstItem, lastItem);
+
+          await this._processEvents(data, txn, eventsRef);
+          if (!hasNextPage) {
+            console.log(`NO MORE PAGES!`);
+            // await markAsProcessed(ref, txn);
+          }
+        },
+        eventsForProcessing.applyStartAfter
+      );
+
+      console.log(res);
+    }
+  }
+
+  const processor = new Dev(
+    {
+      docBuilderCollectionPath: `collections/{collection}/nfts/{tokenId}/nftTransferEvents`,
+      batchSize: 100,
+      maxPages: 3,
+      minTriggerInterval: ONE_MIN,
+      id: 'processor'
+    },
+    {
+      schedule: 'every 5 minutes',
+      tts: ONE_MIN
+    },
+    getDb
+  );
+
+  const db = getDb();
+
+  // await processor.backup();
+  const start = Date.now();
+
+  const eventsRef = db.collection(
+    'collections/1:0xf7af6dd6c36fc42eb802b33d48ea3d395803c8ea/nfts/5102/nftTransferEvents'
+  ) as CollRef<NftTransferEvent>;
+
+  await processor.process(eventsRef);
+}
 
 async function orderEventProcessor(id: string) {
   class Dev extends OrderEventProcessor {
@@ -191,7 +250,7 @@ async function main() {
   // await orderEventProcessor(id);
   // await triggerOrderEvents();
   await Promise.resolve();
-
+  await tokenTransferProcessor();
   process.exit(1);
 }
 

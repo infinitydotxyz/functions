@@ -1,3 +1,4 @@
+import { FieldPath } from 'firebase-admin/firestore';
 import { firestore, pubsub } from 'firebase-functions';
 import PQueue from 'p-queue';
 
@@ -235,18 +236,20 @@ export abstract class FirestoreEventProcessor<T> {
         .where('requiresProcessing', '==', true) as CollGroupRef<TriggerDoc>;
 
       const staleIfUpdatedBefore = Date.now() - this._backupOptions.tts;
-      const staleTriggersRequiringProcessing = triggersRequiringProcessing.where(
-        'updatedAt',
-        '<',
-        staleIfUpdatedBefore
-      );
+      const staleTriggersRequiringProcessing = triggersRequiringProcessing
+        .where('updatedAt', '<', staleIfUpdatedBefore)
+        .orderBy('updatedAt', 'asc')
+        .orderBy(FieldPath.documentId(), 'asc');
 
-      const stream = streamQueryWithRef(staleTriggersRequiringProcessing);
+      const stream = streamQueryWithRef(staleTriggersRequiringProcessing, (item, ref) => [item.updatedAt, ref]);
 
       for await (const item of stream) {
         try {
           if (item.data) {
             const { triggered } = await this._triggerProcessing(item.ref, true, item.data);
+            if (this._debug) {
+              console.log(`Triggered: ${triggered} backup processing for ${item.ref.path}`);
+            }
             if (triggered) {
               debugData.numItemsTriggered += 1;
             } else {

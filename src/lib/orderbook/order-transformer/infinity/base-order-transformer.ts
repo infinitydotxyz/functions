@@ -88,7 +88,7 @@ export abstract class InfinityOrderTransformer extends OrderTransformer<Infinity
     ) {
       throw new OrderError(
         'invalid complication',
-        ErrorCode.InfinityComplication,
+        ErrorCode.InfinityComplication, // todo: joe change this to FlowComplication
         this._order.complication,
         'infinity',
         'unsupported'

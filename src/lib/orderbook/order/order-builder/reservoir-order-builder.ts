@@ -2,6 +2,7 @@ import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from 
 
 import { config } from '@/config/index';
 import { Orderbook, Reservoir } from '@/lib/index';
+import { AskOrder } from '@/lib/reservoir/api/orders/types';
 
 import { ErrorCode, NotFoundError, OrderError, UnexpectedOrderError } from '../../errors';
 import { TransformationResult } from '../../order-transformer/types';
@@ -10,7 +11,8 @@ import { OrderBuilder } from './order-builder.abstract';
 export class ReservoirOrderBuilder extends OrderBuilder {
   public async buildOrder(
     orderId: string,
-    isSellOrder: boolean
+    isSellOrder: boolean,
+    reservoirOrder?: AskOrder
   ): Promise<{ order: RawOrder; initialStatus: 'active' | 'inactive' }> {
     const baseOrder: Omit<BaseRawOrder, 'createdAt' | 'infinityOrderId'> = {
       id: orderId,
@@ -23,7 +25,9 @@ export class ReservoirOrderBuilder extends OrderBuilder {
       /**
        * get the raw order from reservoir
        */
-      const reservoirOrder = await this._getReservoirOrder(orderId, isSellOrder);
+      if (!reservoirOrder) {
+        reservoirOrder = await this._getReservoirOrder(orderId, isSellOrder);
+      }
 
       /**
        * transform the order have a corresponding infinity order

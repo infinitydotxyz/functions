@@ -65,7 +65,7 @@ export async function signOrder(
   };
 
   const domain = {
-    name: 'InfinityComplication',
+    name: 'InfinityComplication', // todo: joe change this to FlowComplication
     version: '1',
     chainId: chainId,
     verifyingContract: complicationAddress

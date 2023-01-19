@@ -38,7 +38,8 @@
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
     "snapshot": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/snapshot.ts",
     "start-reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-reservoir.ts",
-    "backfill-v1-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-v1-orders.ts"
+    "backfill-v1-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-v1-orders.ts",
+    "backfill-reservoir-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders.ts"
   },
   "engines": {
     "node": "16"
@@ -47,7 +48,7 @@
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
     "@infinityxyz/lib": "^1.284.0",
-    "@reservoir0x/reservoir-kit-client": "^0.1.17",
+    "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "^0.0.280",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",

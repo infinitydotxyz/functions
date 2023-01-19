@@ -39,7 +39,7 @@ const processor = reservoirOrderEventProcessor.getFunctions();
 
 const documentSettings = functions.region(config.firebase.region).runWith({
   timeoutSeconds: 60,
-  maxInstances: 10_000
+  maxInstances: 500
 });
 
 const scheduleSettings = functions.region(config.firebase.region).runWith({

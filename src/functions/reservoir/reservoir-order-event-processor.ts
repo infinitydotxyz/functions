@@ -93,6 +93,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     }
 
     const successful = [];
+    const skipped = [];
     const failed = [];
     for (const event of events) {
       const { data, metadata } = event.data;
@@ -118,6 +119,20 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
             reservoirEventRef: event.ref
           };
           successful.push(result);
+        } else {
+          const reservoirEventUpdate: Pick<ReservoirOrderEvent, 'metadata'> = {
+            metadata: {
+              ...event.data.metadata,
+              processed: true,
+              updatedAt: Date.now()
+            }
+          };
+
+          const result = {
+            reservoirEventUpdate: reservoirEventUpdate,
+            reservoirEventRef: event.ref
+          };
+          skipped.push(result);
         }
       } catch (err) {
         let error;
@@ -186,6 +201,16 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
          */
         txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
         handledEvents.add(result.reservoirEventRef.path);
+      }
+    }
+
+    for (const item of skipped) {
+      if (!handledEvents.has(item.reservoirEventRef.path)) {
+        /**
+         * update any skipped reservoir events as processed
+         */
+        txn.set(item.reservoirEventRef, item.reservoirEventUpdate, { merge: true });
+        handledEvents.add(item.reservoirEventRef.path);
       }
     }
 

@@ -1,21 +1,14 @@
 import { constants, ethers } from 'ethers';
 
-
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { getOBComplicationAddress } from '@infinityxyz/lib/utils';
 import { Infinity } from '@reservoir0x/sdk';
 
-
-
 import { Reservoir } from '@/lib/index';
-
-
 
 import { ErrorCode, OrderError } from '../../errors';
 import { OrderTransformer } from '../order-transformer.abstract';
 import { TransformationResult } from '../types';
-
 
 export abstract class InfinityOrderTransformer extends OrderTransformer<Infinity.Order> {
   protected _order: Infinity.Order;

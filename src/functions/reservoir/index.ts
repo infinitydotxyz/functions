@@ -10,11 +10,11 @@ import { syncOrderEvents } from './sync-order-events';
 
 export const syncOrderStatusEvents = functions
   .region(config.firebase.region)
-  .runWith({ timeoutSeconds: 540, maxInstances: 1 })
+  .runWith({ timeoutSeconds: 530, maxInstances: 1 })
   .pubsub.schedule('every 9 minutes')
   .onRun(async () => {
     const db = getDb();
-    const stopIn = ONE_MIN * 8.75;
+    const stopIn = 530 * 1000;
     await syncOrderEvents(db, stopIn, { pollInterval: 10_000, delay: 0 });
   });
 
@@ -37,12 +37,18 @@ const reservoirOrderEventProcessor = new ReservoirOrderStatusEventProcessor(
 
 const processor = reservoirOrderEventProcessor.getFunctions();
 
-const settings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 540
+const documentSettings = functions.region(config.firebase.region).runWith({
+  timeoutSeconds: 60,
+  maxInstances: 10_000
 });
 
-const documentBuilder = settings.firestore.document;
-const scheduleBuilder = settings.pubsub.schedule;
+const scheduleSettings = functions.region(config.firebase.region).runWith({
+  timeoutSeconds: 110,
+  maxInstances: 1
+});
+
+const documentBuilder = documentSettings.firestore.document;
+const scheduleBuilder = scheduleSettings.pubsub.schedule;
 
 export const onProcessReservoirOrderStatusEvent = processor.onEvent(documentBuilder);
 export const onProcessReservoirOrderStatusEventBackup = processor.scheduledBackupEvents(scheduleBuilder);

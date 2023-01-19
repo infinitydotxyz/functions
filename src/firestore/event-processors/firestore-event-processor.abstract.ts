@@ -169,15 +169,18 @@ export abstract class FirestoreEventProcessor<T> {
       const stream = streamQueryWithRef(query, getStartAfterField);
 
       const queue = new PQueue({
-        concurrency: 20
+        concurrency: 100
       });
 
+      let count = 0;
       const handledTriggers = new Set<string>();
       for await (const item of stream) {
+        count += 1;
         try {
           const parentPath = item.ref.parent.parent?.path;
           if (parentPath && !handledTriggers.has(parentPath)) {
             handledTriggers.add(parentPath);
+
             queue
               .add(async () => {
                 const { triggered } = await this._initiateProcessing(item.ref, false);
@@ -186,6 +189,7 @@ export abstract class FirestoreEventProcessor<T> {
                 } else {
                   debugData.numItemsNotTriggered += 1;
                 }
+                console.log(`Triggered: ${triggered} backup processing for ${item.ref.path}`);
               })
               .catch((err) => {
                 console.error(`Failed to trigger processing for ${item.ref.path}`, err);
@@ -199,6 +203,7 @@ export abstract class FirestoreEventProcessor<T> {
         }
       }
 
+      console.log(`Found ${count} items to process`);
       await queue.onIdle();
 
       if (this._debug) {

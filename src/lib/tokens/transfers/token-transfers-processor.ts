@@ -114,51 +114,49 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
       this._sortTransfers(mostRecentTransfers);
 
       mostRecentValidTransfer = mostRecentTransfers?.[0];
-
-      if (!mostRecentValidTransfer || !mostRecentValidTransfer.data) {
-        throw new Error('No valid transfer found');
-      }
     }
 
-    /**
-     * update the owner of the token
-     */
-    const ownerAddress = mostRecentValidTransfer.data.data.to;
+    if (mostRecentValidTransfer) {
+      /**
+       * update the owner of the token
+       */
+      const ownerAddress = mostRecentValidTransfer.data.data.to;
 
-    const chainId = mostRecentValidTransfer.data.metadata.chainId;
-    const tokenId = mostRecentValidTransfer.data.metadata.tokenId;
-    const address = mostRecentValidTransfer.data.metadata.address;
-    const collectionRef = eventsRef.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(`${chainId}:${address}`) as DocRef<CollectionDto>;
-    const tokenRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(tokenId) as DocRef<NftDto>;
+      const chainId = mostRecentValidTransfer.data.metadata.chainId;
+      const tokenId = mostRecentValidTransfer.data.metadata.tokenId;
+      const address = mostRecentValidTransfer.data.metadata.address;
+      const collectionRef = eventsRef.firestore
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${chainId}:${address}`) as DocRef<CollectionDto>;
+      const tokenRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(tokenId) as DocRef<NftDto>;
 
-    const tokenUpdate: Partial<NftDto> = {
-      ownerData: {
-        address: ownerAddress,
-        username: '',
-        profileImage: '',
-        bannerImage: '',
-        displayName: ''
-      },
-      owner: ownerAddress
-    };
-
-    txn.set(tokenRef, tokenUpdate, { merge: true });
-    for (const item of validTransfers) {
-      const metadataUpdate: NftTransferEvent['metadata'] = {
-        ...item.data.metadata,
-        processed: true,
-        timestamp: Date.now()
+      const tokenUpdate: Partial<NftDto> = {
+        ownerData: {
+          address: ownerAddress,
+          username: '',
+          profileImage: '',
+          bannerImage: '',
+          displayName: ''
+        },
+        owner: ownerAddress
       };
 
-      txn.set(
-        item.ref,
-        {
-          metadata: metadataUpdate as any
-        },
-        { merge: true }
-      );
+      txn.set(tokenRef, tokenUpdate, { merge: true });
+      for (const item of validTransfers) {
+        const metadataUpdate: NftTransferEvent['metadata'] = {
+          ...item.data.metadata,
+          processed: true,
+          timestamp: Date.now()
+        };
+
+        txn.set(
+          item.ref,
+          {
+            metadata: metadataUpdate as any
+          },
+          { merge: true }
+        );
+      }
     }
 
     for (const item of removedTransfers) {

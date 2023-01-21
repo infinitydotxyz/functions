@@ -10,7 +10,7 @@ const webhook = new WebhookClient({ url: DISCORD_WEBHOOK_URL });
 
 function embedSale(event: NftSaleEvent): APIEmbed {
   return {
-    title: `${event.nftName} sold for ${event.price} ETH`,
+    title: `${event.tokenId} sold for ${event.price} ETH`,
     url: event.externalUrl,
     image: {
       url: event.image || event.collectionProfileImage
@@ -21,8 +21,9 @@ function embedSale(event: NftSaleEvent): APIEmbed {
         value: `[${event.collectionName}](${BASE_URL}/collection/${event.collectionSlug})`
       },
       {
+        // todo: add link to asset as the below link is not valid anymore
         name: 'Asset',
-        value: `[${event.nftName}](${BASE_URL}/asset/${event.chainId}/${event.collectionAddress}/${event.tokenId})`
+        value: `[${event.tokenId}](${BASE_URL}/asset/${event.chainId}/${event.collectionAddress}/${event.tokenId})`
       },
       {
         name: 'Value',
@@ -41,12 +42,11 @@ function embedSale(event: NftSaleEvent): APIEmbed {
 }
 
 function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
-  const price =
-    event.startPriceEth === event.endPriceEth ? event.endPriceEth : `${event.startPriceEth} - ${event.endPriceEth}`;
+  const price = event.startPriceEth;
   const type = event.type === EventType.NftOffer ? 'Offer' : 'Listing';
 
   const embed: APIEmbed = {
-    title: `${type} on ${event.nftName} for ${price} ETH`,
+    title: `${type} on ${event.tokenId} for ${price} ETH`,
     url: event.internalUrl,
     image: {
       url: event.image || event.collectionProfileImage
@@ -57,28 +57,29 @@ function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
         value: `[${event.collectionName}](${BASE_URL}/collection/${event.collectionSlug})`
       },
       {
+        // todo: add link to asset as the below link is not valid anymore
         name: 'Asset',
-        value: `[${event.nftName}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}/asset/${
+        value: `[${event.tokenId}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}/asset/${
           event.chainId
         }/${event.collectionAddress}/${event.tokenId})`
       },
       {
         name: `${type} Price`,
         value: `${price} ETH`
-      },
-      {
-        name: `${type} By`,
-        value: `[${event.makerUsername || event.makerAddress}](${BASE_URL}/profile/${event.makerAddress})`
       }
+      // {
+      //   name: `${type} By`,
+      //   value: `[${event.makerUsername || event.makerAddress}](${BASE_URL}/profile/${event.makerAddress})`
+      // }
     ]
   };
 
-  if (event.takerAddress) {
-    embed.fields?.push({
-      name: 'Accepted By',
-      value: `[${event.takerUsername || event.takerAddress}](${BASE_URL}/profile/${event.takerAddress})`
-    });
-  }
+  // if (event.takerAddress) {
+  //   embed.fields?.push({
+  //     name: 'Accepted By',
+  //     value: `[${event.takerUsername || event.takerAddress}](${BASE_URL}/profile/${event.takerAddress})`
+  //   });
+  // }
 
   return embed;
 }
@@ -111,10 +112,10 @@ export function notifyDiscordWebhook(event: FeedEvent) {
 
   embed.color = 16777215; // white
   embed.timestamp = new Date(event.timestamp).toISOString();
-  embed.footer = {
-    text: event.type.split('_').pop() || '',
-    icon_url: 'https://pbs.twimg.com/profile_images/1488261914731814915/nyEgvjn2_400x400.png'
-  };
+  // embed.footer = {
+  //   text: event.type.split('_').pop() || '',
+  //   icon_url: 'https://pbs.twimg.com/profile_images/1488261914731814915/nyEgvjn2_400x400.png'
+  // };
 
   return webhook.send({
     embeds: [embed]

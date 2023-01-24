@@ -1,8 +1,10 @@
+import { ethers } from 'ethers';
 import { OrderEventProcessor } from 'functions/orderbook/order-event-processor';
 import PQueue from 'p-queue';
 
-import { OrderEvents, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { OrderEvents, RawFirestoreOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { Seaport } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
@@ -250,8 +252,7 @@ async function main() {
   // await orderEventProcessor(id);
   // await triggerOrderEvents();
   await Promise.resolve();
-  await tokenTransferProcessor();
-  process.exit(1);
+  // await tokenTransferProcessor();
 }
 
 async function triggerOrderEvents() {

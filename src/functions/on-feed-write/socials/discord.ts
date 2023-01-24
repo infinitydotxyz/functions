@@ -21,9 +21,8 @@ function embedSale(event: NftSaleEvent): APIEmbed {
         value: `[${event.collectionName}](${BASE_URL}/collection/${event.collectionSlug})`
       },
       {
-        // todo: add link to asset as the below link is not valid anymore
         name: 'Asset',
-        value: `[${event.tokenId}](${BASE_URL}/asset/${event.chainId}/${event.collectionAddress}/${event.tokenId})`
+        value: `[${event.tokenId}](${BASE_URL}?collectionAddress=${event.collectionAddress}&tokenId=${event.tokenId})`
       },
       {
         name: 'Value',
@@ -59,9 +58,9 @@ function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
       {
         // todo: add link to asset as the below link is not valid anymore
         name: 'Asset',
-        value: `[${event.tokenId}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}/asset/${
-          event.chainId
-        }/${event.collectionAddress}/${event.tokenId})`
+        value: `[${event.tokenId}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}?collectionAddress=${
+          event.collectionAddress
+        }&tokenId=${event.tokenId})`
       },
       {
         name: `${type} Price`,

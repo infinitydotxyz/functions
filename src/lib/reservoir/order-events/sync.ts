@@ -166,7 +166,7 @@ export async function* sync(
       };
     } catch (err) {
       console.error(err);
-      await sleep(30_000);
+      await sleep(10_000);
     }
   }
 }

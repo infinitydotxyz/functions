@@ -3,6 +3,8 @@ import QuickLRU from 'quick-lru';
 
 import { ONE_HOUR } from '@infinityxyz/lib/utils';
 
+import { config } from '@/config/index';
+
 const INDEXER_URL = `https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com/collection`;
 
 export enum ResponseType {
@@ -36,6 +38,9 @@ export async function enqueueCollection(collection: {
   indexInitiator?: string;
   reset?: boolean;
 }): Promise<void> {
+  if (config.isDev) {
+    return;
+  }
   try {
     if (!collection.reset && (cache.get(`${collection.chainId}:${collection.address}`) ?? 0) < Date.now() - ONE_HOUR) {
       return;

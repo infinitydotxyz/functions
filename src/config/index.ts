@@ -21,6 +21,7 @@ const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false)
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
 
 export const config = {
+  isDev: serviceAccount.project_id === 'nftc-dev',
   firebase: {
     serviceAccount: serviceAccount as ServiceAccount,
     region: 'us-east1',

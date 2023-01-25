@@ -3,6 +3,8 @@ import { ethers } from 'ethers';
 import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
 import { getExchangeAddress, getTxnCurrencyAddress } from '@infinityxyz/lib/utils';
 
+import { getProvider } from '@/lib/utils/ethersUtils';
+
 import { fundTestWallets } from './orders/fund-test-wallets';
 import { getFundingWallet } from './orders/get-funding-wallet';
 import { loadWallets } from './orders/load-wallets';
@@ -18,32 +20,10 @@ const GOERLI_DOODLES = {
 };
 const baseUrl = 'http://localhost:9090';
 
-const getProviderUrl = (chainId: ChainId) => {
-  let url = '';
-  switch (chainId) {
-    case ChainId.Goerli:
-      url = process.env['PROVIDER_URL_GOERLI'] ?? '';
-      break;
-    case ChainId.Mainnet:
-      url = process.env['PROVIDER_URL_MAINNET'] ?? '';
-      break;
-    default:
-      throw new Error(`Unsupported chainId: ${chainId}`);
-  }
-
-  if (!url) {
-    throw new Error(`No provider url found for chainId: ${chainId}`);
-  }
-
-  return url;
-};
-
 export async function createOrders(oneToOne = false, numWallets: number) {
   const coll = GOERLI_DOODLES;
   const chainId = coll.chainId;
-  const providerUrl = getProviderUrl(coll.chainId);
-
-  const provider = new ethers.providers.JsonRpcProvider(providerUrl);
+  const provider = getProvider(chainId);
   const signer = getFundingWallet(provider);
   const weth = getTxnCurrencyAddress(chainId);
   const exchange = getExchangeAddress(chainId);
@@ -132,12 +112,7 @@ export async function createOrders(oneToOne = false, numWallets: number) {
 
 async function createMultipleOneToManyOrders() {
   const chainId = ChainId.Goerli;
-  const providerUrl = process.env.PROVIDER_URL_GOERLI;
-
-  if (!providerUrl) {
-    throw new Error('PROVIDER_URL_GOERLI is required');
-  }
-  const provider = new ethers.providers.JsonRpcProvider(providerUrl);
+  const provider = getProvider(chainId);
   const signer = getFundingWallet(provider);
   const weth = getTxnCurrencyAddress(chainId);
   const exchange = getExchangeAddress(chainId);

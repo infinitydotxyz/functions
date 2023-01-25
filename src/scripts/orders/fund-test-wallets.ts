@@ -11,7 +11,7 @@ export async function fundTestWallets(
     amountEth: BigNumberish;
     wethAddress: string;
   },
-  provider: ethers.providers.JsonRpcProvider
+  provider: ethers.providers.StaticJsonRpcProvider
 ): Promise<{ testWallets: WalletWithBalances[]; fundingWallet: WalletWithBalances }> {
   const amount = ethers.utils.parseEther(fund.amountEth.toString());
   const fundingWalletEthBalance = await fundingWallet.getBalance();

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-export function getFundingWallet(provider: ethers.providers.JsonRpcProvider): ethers.Wallet {
+export function getFundingWallet(provider: ethers.providers.StaticJsonRpcProvider): ethers.Wallet {
   const key = 'FUNDING_WALLET_PRIVATE_KEY';
   const signerPrivateKey = process.env[key];
   if (!signerPrivateKey) {

@@ -82,7 +82,7 @@ export async function* sync(
 
           const tokensRefs = [...tokensRefsMaps.values()];
           if (tokensRefs.length === 0) {
-            const tokensSnap = await txn.getAll();
+            const tokensSnap = await txn.getAll(...tokensRefs);
             const tokensMap = new Map<string, Partial<NftDto>>();
             tokensSnap.forEach((snap) => {
               tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);

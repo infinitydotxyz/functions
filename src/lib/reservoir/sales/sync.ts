@@ -81,7 +81,7 @@ export async function* sync(
           });
 
           const tokensRefs = [...tokensRefsMaps.values()];
-          if (tokensRefs.length === 0) {
+          if (tokensRefs.length > 0) {
             const tokensSnap = await txn.getAll(...tokensRefs);
             const tokensMap = new Map<string, Partial<NftDto>>();
             tokensSnap.forEach((snap) => {

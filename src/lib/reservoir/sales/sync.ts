@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { NftDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
+import { ONE_MIN, firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
@@ -31,9 +31,11 @@ export async function* sync(
     const currentBlock = await provider.getBlock('latest');
     const prevEndTimestamp = currentBlockRange.endTimestamp;
     const newEndTimestamp = currentBlock.timestamp * 1000 + 1000;
+    const newStartTimestamp =
+      prevEndTimestamp > newEndTimestamp - ONE_MIN ? newEndTimestamp - ONE_MIN : prevEndTimestamp;
     return {
       continuation: undefined,
-      startTimestamp: prevEndTimestamp,
+      startTimestamp: newStartTimestamp,
       endTimestamp: newEndTimestamp
     };
   };

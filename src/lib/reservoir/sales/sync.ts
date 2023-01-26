@@ -80,28 +80,31 @@ export async function* sync(
             }
           });
 
-          const tokensSnap = await txn.getAll(...tokensRefsMaps.values());
-          const tokensMap = new Map<string, Partial<NftDto>>();
-          tokensSnap.forEach((snap) => {
-            tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);
-          });
+          const tokensRefs = [...tokensRefsMaps.values()];
+          if (tokensRefs.length === 0) {
+            const tokensSnap = await txn.getAll();
+            const tokensMap = new Map<string, Partial<NftDto>>();
+            tokensSnap.forEach((snap) => {
+              tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);
+            });
 
-          const data = page.data.map((item) => {
-            const ref = db
-              .collection(firestoreConstants.COLLECTIONS_COLL)
-              .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
-              .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-              .doc(item.token_id ?? '') as DocRef<NftDto>;
-            const token = tokensMap.get(ref.path);
-            return {
-              ...item,
-              collection_name: token?.collectionName ?? item.collection_name,
-              token_image:
-                token?.image?.url || token?.image?.originalUrl || token?.alchemyCachedImage || item.token_image
-            };
-          });
+            const data = page.data.map((item) => {
+              const ref = db
+                .collection(firestoreConstants.COLLECTIONS_COLL)
+                .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
+                .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+                .doc(item.token_id ?? '') as DocRef<NftDto>;
+              const token = tokensMap.get(ref.path);
+              return {
+                ...item,
+                collection_name: token?.collectionName ?? item.collection_name,
+                token_image:
+                  token?.image?.url || token?.image?.originalUrl || token?.alchemyCachedImage || item.token_image
+              };
+            });
 
-          await batchSaveToPostgres(data as FlattenedPostgresNFTSale[]);
+            await batchSaveToPostgres(data as FlattenedPostgresNFTSale[]);
+          }
         }
 
         const hasNextPage =

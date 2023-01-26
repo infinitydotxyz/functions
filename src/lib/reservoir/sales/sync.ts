@@ -99,7 +99,7 @@ export async function* sync(
                 ...item,
                 collection_name: token?.collectionName ?? item.collection_name,
                 token_image:
-                  token?.image?.url || token?.image?.originalUrl || token?.alchemyCachedImage || item.token_image
+                  token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
               };
             });
 

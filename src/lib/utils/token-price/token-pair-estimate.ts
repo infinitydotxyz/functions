@@ -19,7 +19,7 @@ export class TokenPairEstimate extends AbstractTokenPair {
     protected _db: FirebaseFirestore.Firestore,
     token0: Token,
     token1: Token,
-    protected _provider: ethers.providers.JsonRpcProvider,
+    protected _provider: ethers.providers.StaticJsonRpcProvider,
     public readonly EST_DOLLARS_PER_TOKEN: number
   ) {
     super(token0, token1);

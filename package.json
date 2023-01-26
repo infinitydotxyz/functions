@@ -39,7 +39,8 @@
     "snapshot": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/snapshot.ts",
     "start-reservoir": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-reservoir.ts",
     "backfill-v1-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-v1-orders.ts",
-    "backfill-reservoir-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders.ts"
+    "backfill-reservoir-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders.ts",
+    "start-sales-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-sales-sync.ts"
   },
   "engines": {
     "node": "16"
@@ -47,9 +48,9 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.284.0",
+    "@infinityxyz/lib": "^1.288.0",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
-    "@reservoir0x/sdk": "^0.0.280",
+    "@reservoir0x/sdk": "^0.0.302",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",
@@ -63,6 +64,7 @@
     "module-alias": "^2.2.2",
     "nanoid": "^3.3.4",
     "p-queue": "^6.6.2",
+    "pg-promise": "^11.0.2",
     "phin": "^3.6.1",
     "quick-lru": "^5.1.1"
   },

@@ -34,9 +34,20 @@ export async function* sync(
   let continuation = initialSync.data.data.continuation;
   let pageNumber = 0;
   const client = Reservoir.Api.getClient(initialSync.data.metadata.chainId, config.reservoir.apiKey);
-  const expectedOrderSide = initialSync.data.metadata.type;
-  const method =
-    expectedOrderSide === 'bid' ? Reservoir.Api.Events.BidEvents.getEvents : Reservoir.Api.Events.AskEvents.getEvents;
+  // const type = initialSync.data.metadata.type;
+
+  let method;
+
+  switch (initialSync.data.metadata.type) {
+    case 'ask':
+    case 'collection-ask':
+      method = Reservoir.Api.Events.AskEvents.getEvents;
+      break;
+    case 'bid':
+    case 'collection-bid':
+      method = Reservoir.Api.Events.BidEvents.getEvents;
+      break;
+  }
 
   const minTimestampSeconds = initialSync.data.data.minTimestampMs
     ? Math.floor(initialSync.data.data.minTimestampMs / 1000)
@@ -166,7 +177,7 @@ export async function* sync(
       };
     } catch (err) {
       console.error(err);
-      await sleep(30_000);
+      await sleep(10_000);
     }
   }
 }

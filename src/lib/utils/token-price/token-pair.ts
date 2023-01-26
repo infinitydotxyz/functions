@@ -15,7 +15,7 @@ export class TokenPair extends AbstractTokenPair {
   protected _poolContract: ethers.Contract;
   protected _poolAddress: string;
 
-  constructor(token0: Token, token1: Token, protected _provider: ethers.providers.JsonRpcProvider) {
+  constructor(token0: Token, token1: Token, protected _provider: ethers.providers.StaticJsonRpcProvider) {
     super(token0, token1);
     this._poolAddress = this._poolContractAddress;
     this._poolContract = new ethers.Contract(this._poolAddress, IUniswapV3PoolABI, this._provider);

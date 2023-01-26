@@ -129,7 +129,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
     if (!transformationResult.isNative) {
       try {
         gasUsage = await this._gasSimulator.simulate(
-          transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
+          await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
         );
       } catch (err) {
         throw new OrderError(

@@ -23,12 +23,12 @@ export class SingleTokenOrderTransformer extends SeaportOrderTransformer {
       isNative: false,
       sourceOrder: this._order,
       infinityOrder: this.getInfinityOrder(),
-      getSourceTxn: (timestamp: number, from: string) => {
+      getSourceTxn: async (timestamp: number, from: string) => {
         const seaport = new Seaport.Exchange(this.chainId);
         const priceAtTime = this._order.getMatchingPrice(timestamp);
         const builder = new Seaport.Builders.SingleToken(this.chainId);
         const matchParams = builder.buildMatching(this._order, { amount: priceAtTime });
-        const data = seaport.fillOrderTx(from, this._order, matchParams);
+        const data = await seaport.fillOrderTx(from, this._order, matchParams);
         return data;
       }
     });

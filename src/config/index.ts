@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
 import { ServiceAccount } from 'firebase-admin';
+import pgPromise from 'pg-promise';
+import pg from 'pg-promise/typescript/pg-subset';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
@@ -19,11 +21,48 @@ const getEnvVariable = (key: string, required = true): string => {
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
 
+let _pg: { pgDB: pgPromise.IDatabase<any, pg.IClient>; pgp: pgPromise.IMain<any, pg.IClient> };
+const getPG = () => {
+  if (!_pg) {
+    const user = getEnvVariable('DB_USER');
+    const password = getEnvVariable('DB_PASS');
+    const database = getEnvVariable('DB_NAME');
+    const instanceSocket = getEnvVariable('INSTANCE_UNIX_SOCKET', false);
+
+    const url = instanceSocket
+      ? { host: instanceSocket }
+      : {
+          port: Number(getEnvVariable('DB_PORT')),
+          host: getEnvVariable('DB_HOST')
+        };
+
+    const pgConnection = {
+      ...url,
+      database,
+      user,
+      password,
+      max: 20,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 2000
+    };
+
+    const pgp = pgPromise({
+      capSQL: true
+    });
+    _pg = { pgDB: pgp(pgConnection), pgp };
+  }
+  return _pg;
+};
+
 export const config = {
+  isDev: serviceAccount.project_id === 'nftc-dev',
   firebase: {
     serviceAccount: serviceAccount as ServiceAccount,
     region: 'us-east1',
     snapshotBucket: serviceAccount.project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+  },
+  pg: {
+    getPG
   },
   reservoir: {
     apiKey: getEnvVariable('RESERVOIR_API_KEY', false),

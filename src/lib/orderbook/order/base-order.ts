@@ -199,7 +199,7 @@ export class BaseOrder {
       const transformationResult = await transformer.transform();
       if (!transformationResult.isNative) {
         const gasUsageString = await this._gasSimulator.simulate(
-          transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
+          await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
         );
         return parseInt(gasUsageString, 10);
       }

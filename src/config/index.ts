@@ -39,7 +39,6 @@ const getPG = () => {
 
     const pgConnection = {
       ...url,
-      // port: Number(process.env.PG_PORT),
       database,
       user,
       password,

@@ -108,7 +108,7 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
     const pgSale: Partial<FlattenedPostgresNFTSale> = {
       txhash: sale.txHash,
       log_index: sale.logIndex,
-      bundle_index: 0,
+      bundle_index: sale.batchIndex,
       block_number: sale.block,
       marketplace: sale.orderKind,
       marketplace_address: getMarketplaceAddress(sale.orderKind as OrderSource),
@@ -119,7 +119,7 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
       collection_name: sale.token?.collection?.name,
       token_id: sale.token?.tokenId,
       token_image: sale.token?.image,
-      sale_timestamp: sale?.timestamp,
+      sale_timestamp: (sale.timestamp ?? 0) * 1000,
       sale_price: sale?.price?.netAmount?.raw,
       sale_price_eth: parseFloat(formatUnits(sale?.price?.netAmount?.raw ?? '0', sale?.price?.currency?.decimals)),
       sale_currency_address: sale?.price?.currency?.contract ?? ethers.constants.AddressZero,

@@ -28,9 +28,9 @@ export async function* sync(
     currentBlockRange: SyncMetadata['data']['blockRange']
   ): Promise<SyncMetadata['data']['blockRange']> => {
     const provider = getProvider(chainId);
-    const currentSafeBlock = await provider.getBlock('safe');
+    const currentBlock = await provider.getBlock('latest');
     const prevEndTimestamp = currentBlockRange.endTimestamp;
-    const newEndTimestamp = currentSafeBlock.timestamp * 1000 + 1000;
+    const newEndTimestamp = currentBlock.timestamp * 1000 + 1000;
     return {
       continuation: undefined,
       startTimestamp: prevEndTimestamp,

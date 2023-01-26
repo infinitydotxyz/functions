@@ -48,7 +48,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.286.0",
+    "@infinityxyz/lib": "^1.288.0",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "^0.0.302",
     "@uniswap/sdk-core": "^3.0.1",

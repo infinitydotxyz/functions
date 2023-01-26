@@ -43,7 +43,7 @@ export async function* sync(
     const table = 'eth_nft_sales';
 
     const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
-    const query = pgp.helpers.insert(data, columnSet) + ' ON CONFLICT DO UPDATE';
+    const query = pgp.helpers.insert(data, columnSet) + ' ON CONFLICT DO NOTHING';
     await pgDB.none(query);
   };
 

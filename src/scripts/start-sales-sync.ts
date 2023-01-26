@@ -8,6 +8,9 @@ async function main() {
   const startBlockNum = 16485264;
 
   const chainId = ChainId.Mainnet;
+  const db = getDb();
+  await db.doc('/_sync/_reservoirSales/_reservoirSalesSyncMetadata/1:sales').delete();
+
   await Reservoir.Sales.addSyncs(getDb(), chainId, ['sales'], startBlockNum);
 
   console.log(`Successfully initiated sales syncing for chain ${chainId}.`);

@@ -39,6 +39,10 @@ export const config = {
     enabled: true,
     kinds: infinityConfig
   },
+  flow: {
+    source: 'flow',
+    enabled: false
+  },
   seaport: {
     source: 'seaport',
     enabled: true,

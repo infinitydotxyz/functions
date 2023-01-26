@@ -31,7 +31,7 @@ export type Response<
 export type ReservoirClient = <P extends Paths, M extends Methods<P>>(
   endpoint: P,
   method: M
-) => (params: Parameters<P, M>) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M> }>;
+) => (params: Parameters<P, M>) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: string }>;
 
 export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => {
   const baseUrl = config.reservoir.baseUrls[chainId];
@@ -43,13 +43,15 @@ export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => 
   return <P extends Paths, M extends Methods<P>>(
     endpoint: P,
     method: M
-  ): ((params: Parameters<P, M>) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M> }>) => {
+  ): ((
+    params: Parameters<P, M>
+  ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: ChainId }>) => {
     const _url = normalize(join(baseUrl, endpoint));
     const url = new URL(_url);
 
     const execute: (
       params: Parameters<P, M>
-    ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M> }> = async (params) => {
+    ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: ChainId }> = async (params) => {
       const response = await got(url.toString(), {
         method: method as Method,
         headers: {
@@ -65,10 +67,10 @@ export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => 
 
       if (response.body) {
         const body = JSON.parse(response.body.toString());
-        return { data: body, statusCode };
+        return { data: body, statusCode, chainId };
       }
 
-      return { data: null as any, statusCode };
+      return { data: null as any, statusCode, chainId };
     };
 
     return execute;

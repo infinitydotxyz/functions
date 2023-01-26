@@ -18,12 +18,12 @@ export interface NonNativeTransformationResult<T> {
   getSourceTxn: (
     timestamp: number,
     from: string
-  ) => {
+  ) => Promise<{
     data: string;
     to: string;
     from: string;
     value?: BigNumberish;
-  };
+  }>;
 }
 
 export type TransformationResult<T> = NativeTransformationResult | NonNativeTransformationResult<T>;

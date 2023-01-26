@@ -22,7 +22,7 @@ export class SingleTokenOrderTransformer extends SeaportOrderTransformer {
     return Promise.resolve({
       isNative: false,
       sourceOrder: this._order,
-      infinityOrder: this.getInfinityOrder(),
+      flowOrder: this.getFlowOrder(),
       getSourceTxn: async (timestamp: number, from: string) => {
         const seaport = new Seaport.Exchange(this.chainId);
         const priceAtTime = this._order.getMatchingPrice(timestamp);

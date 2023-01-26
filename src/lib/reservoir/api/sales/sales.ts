@@ -1,5 +1,5 @@
 import { constants, ethers } from 'ethers';
-import { formatEther, formatUnits } from 'ethers/lib/utils';
+import { formatUnits } from 'ethers/lib/utils';
 
 import { OrderSource } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
@@ -60,6 +60,9 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
 
       case 'looks-rare':
         return Sdk.LooksRare.Addresses.Exchange[chainIdInt];
+
+      case 'manifold':
+        return Sdk.Manifold.Addresses.Exchange[chainIdInt];
 
       case 'mint':
         return constants.AddressZero;

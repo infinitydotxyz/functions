@@ -23,7 +23,7 @@ export async function syncSaleEvents(
   await Promise.all(
     syncs.map(async (syncMetadata) => {
       try {
-        const syncIterator = Reservoir.Sales.sync(db, syncMetadata, 300);
+        const syncIterator = Reservoir.Sales.sync(db, syncMetadata, 1000);
         for await (const pageDetails of syncIterator) {
           console.log(
             `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Saved ${pageDetails.numEventsSaved} Page ${pageDetails.pageNumber}`

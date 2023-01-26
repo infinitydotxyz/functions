@@ -100,6 +100,10 @@ export const config = {
     source: 'zora-v3',
     enabled: false
   },
+  manifold: {
+    source: 'manifold',
+    enabled: false
+  },
   mint: {
     source: 'mint',
     enabled: false

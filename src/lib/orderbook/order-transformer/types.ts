@@ -1,11 +1,11 @@
 import { BigNumberish } from 'ethers';
 
-import { Infinity } from '@reservoir0x/sdk';
+import { Flow } from '@reservoir0x/sdk';
 
 export interface NativeTransformationResult {
   isNative: true;
 
-  order: Infinity.Order;
+  order: Flow.Order;
 }
 
 export interface NonNativeTransformationResult<T> {
@@ -13,7 +13,7 @@ export interface NonNativeTransformationResult<T> {
 
   sourceOrder: T;
 
-  infinityOrder: Infinity.Order;
+  flowOrder: Flow.Order;
 
   getSourceTxn: (
     timestamp: number,

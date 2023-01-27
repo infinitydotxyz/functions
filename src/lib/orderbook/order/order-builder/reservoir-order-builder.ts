@@ -30,7 +30,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
       }
 
       /**
-       * transform the order have a corresponding infinity order
+       * transform the order have a corresponding flow order
        */
       const factory = new Orderbook.Transformers.OrderTransformerFactory();
       const transformer = factory.create(this._chainId, reservoirOrder);
@@ -48,24 +48,24 @@ export class ReservoirOrderBuilder extends OrderBuilder {
         initialStatus = 'inactive';
       }
 
-      const infinityOrder = result.isNative ? result.order : result.infinityOrder;
+      const flowOrder = result.isNative ? result.order : result.flowOrder;
       const sourceOrder = result.isNative ? result.order : result.sourceOrder;
 
-      const isDynamic = infinityOrder.startPrice !== infinityOrder.endPrice;
+      const isDynamic = flowOrder.startPrice !== flowOrder.endPrice;
 
       let chainOBOrder;
       if (result.isNative) {
-        chainOBOrder = infinityOrder.getSignedOrder();
+        chainOBOrder = flowOrder.getSignedOrder();
       } else {
         chainOBOrder = {
-          ...infinityOrder.getInternalOrder(infinityOrder.params),
+          ...flowOrder.getInternalOrder(flowOrder.params),
           sig: ''
         };
       }
 
       const order: RawOrderWithoutError = {
         ...baseOrder,
-        infinityOrderId: infinityOrder.hash(),
+        infinityOrderId: flowOrder.hash(),
         source: reservoirOrder.kind,
         rawOrder: sourceOrder.params,
         infinityOrder: chainOBOrder,

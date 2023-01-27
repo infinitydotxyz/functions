@@ -1,7 +1,7 @@
 import { ErrorCode, OrderError } from '../../errors';
-import { InfinityOrderTransformer } from './base-order-transformer';
+import { FlowOrderTransformer } from './base-order-transformer';
 
-export class ComplexOrderTransformer extends InfinityOrderTransformer {
+export class ComplexOrderTransformer extends FlowOrderTransformer {
   protected _checkOrderKindValid(): void {
     throw new OrderError(
       'complex orders are not yet supported',

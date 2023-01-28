@@ -37,7 +37,7 @@ export abstract class OrderTransformer<SourceOrder = never> {
 
   abstract get currency(): string;
 
-  abstract get nfts(): Sdk.Infinity.Types.OrderNFTs[];
+  abstract get nfts(): Sdk.Flow.Types.OrderNFTs[];
 
   abstract get numItems(): number;
 
@@ -53,7 +53,7 @@ export abstract class OrderTransformer<SourceOrder = never> {
   }
 
   protected _baseCheck() {
-    if (this.source !== 'infinity') {
+    if (this.source !== 'flow') {
       /**
        * only sell orders are supported
        */
@@ -108,10 +108,10 @@ export abstract class OrderTransformer<SourceOrder = never> {
     this._checkValid();
   }
 
-  public getInfinityOrder(): Sdk.Infinity.Order {
+  public getFlowOrder(): Sdk.Flow.Order {
     this.checkValid();
 
-    const order = new Sdk.Infinity.Order(this.chainId, {
+    const order = new Sdk.Flow.Order(this.chainId, {
       signer: ethers.constants.AddressZero, // TODO must be updated
       nonce: '0', // TODO must be updated
       maxGasPrice: '0', // TODO must be updated
@@ -126,8 +126,9 @@ export abstract class OrderTransformer<SourceOrder = never> {
       currency: Sdk.Common.Addresses.Weth[this.chainId],
       numItems: this.numItems,
       nfts: this.nfts,
-      complication: Sdk.Infinity.Addresses.Complication[this.chainId],
-      extraParams: ethers.constants.HashZero
+      complication: Sdk.Flow.Addresses.Complication[this.chainId],
+      extraParams: ethers.constants.HashZero,
+      trustedExecution: '0'
     });
 
     return order;

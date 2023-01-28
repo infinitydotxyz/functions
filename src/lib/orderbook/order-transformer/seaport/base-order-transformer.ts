@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Infinity, Seaport } from '@reservoir0x/sdk';
+import { Flow, Seaport } from '@reservoir0x/sdk';
 
 import { Reservoir } from '@/lib/index';
 import { bn } from '@/lib/utils';
@@ -177,11 +177,11 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
       }
     }
 
-    const orderItems: Infinity.Types.OrderNFTs[] = Object.entries(nfts).map(([key, value]) => {
+    const orderItems: Flow.Types.OrderNFTs[] = Object.entries(nfts).map(([key, value]) => {
       const collection = key;
       const nft = {
         collection,
-        tokens: [] as Infinity.Types.OrderNFTs['tokens']
+        tokens: [] as Flow.Types.OrderNFTs['tokens']
       };
 
       for (const [tokenId, quantity] of Object.entries(value)) {

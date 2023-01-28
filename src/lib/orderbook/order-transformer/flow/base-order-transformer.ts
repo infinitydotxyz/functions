@@ -2,7 +2,7 @@ import { constants, ethers } from 'ethers';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { getOBComplicationAddress } from '@infinityxyz/lib/utils';
-import { Infinity } from '@reservoir0x/sdk';
+import { Flow } from '@reservoir0x/sdk';
 
 import { Reservoir } from '@/lib/index';
 
@@ -10,15 +10,15 @@ import { ErrorCode, OrderError } from '../../errors';
 import { OrderTransformer } from '../order-transformer.abstract';
 import { TransformationResult } from '../types';
 
-export abstract class InfinityOrderTransformer extends OrderTransformer<Infinity.Order> {
-  protected _order: Infinity.Order;
+export abstract class FlowOrderTransformer extends OrderTransformer<Flow.Order> {
+  protected _order: Flow.Order;
 
   /**
    * perform order kind specific checks on the order
    */
   protected abstract _checkOrderKindValid(): void;
 
-  readonly source: 'infinity';
+  readonly source: 'flow';
 
   constructor(
     chainId: ChainId,
@@ -26,7 +26,7 @@ export abstract class InfinityOrderTransformer extends OrderTransformer<Infinity
     provider: ethers.providers.StaticJsonRpcProvider
   ) {
     super(chainId, reservoirOrder, provider);
-    this._order = new Infinity.Order(this.chainId, this._reservoirOrder.rawData as Infinity.Types.SignedOrder);
+    this._order = new Flow.Order(this.chainId, this._reservoirOrder.rawData as Flow.Types.SignedOrder);
   }
 
   public get kind() {
@@ -88,9 +88,9 @@ export abstract class InfinityOrderTransformer extends OrderTransformer<Infinity
     ) {
       throw new OrderError(
         'invalid complication',
-        ErrorCode.InfinityComplication, // todo: joe change this to FlowComplication
+        ErrorCode.FlowComplication,
         this._order.complication,
-        'infinity',
+        'flow',
         'unsupported'
       );
     }
@@ -98,14 +98,14 @@ export abstract class InfinityOrderTransformer extends OrderTransformer<Infinity
     this._checkOrderKindValid();
   }
 
-  public transform(): Promise<TransformationResult<Infinity.Order>> {
+  public transform(): Promise<TransformationResult<Flow.Order>> {
     return Promise.resolve({
       isNative: true,
       order: this._order
     });
   }
 
-  public getInfinityOrder(): Infinity.Order {
+  public getFlowOrder(): Flow.Order {
     this.checkValid();
     return this._order;
   }

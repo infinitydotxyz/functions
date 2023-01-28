@@ -12,10 +12,7 @@ export interface SyncMetadata {
   };
   data: {
     eventsProcessed: number;
-    blockRange: {
-      startTimestamp: number;
-      endTimestamp: number;
-      continuation?: string;
-    };
+    lastItemProcessed: string;
+    endTimestamp: number;
   };
 }

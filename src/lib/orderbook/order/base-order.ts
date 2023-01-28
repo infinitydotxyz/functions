@@ -346,7 +346,7 @@ export class BaseOrder {
       refs.push(takerRef);
     }
 
-    const docs = await this._db.getAll(...refs);
+    const docs = refs.length > 0 ? await this._db.getAll(...refs) : [];
 
     const makerSnap = docs.pop() as DocSnap<Partial<UserProfileDto>>;
     const takerSnap = includeTaker ? (docs.pop() as DocSnap<Partial<UserProfileDto>>) : undefined;

@@ -1,7 +1,7 @@
 import { ErrorCode, OrderError } from '../../errors';
-import { InfinityOrderTransformer } from './base-order-transformer';
+import { FlowOrderTransformer } from './base-order-transformer';
 
-export class ContractWideOrderTransformer extends InfinityOrderTransformer {
+export class ContractWideOrderTransformer extends FlowOrderTransformer {
   protected _checkOrderKindValid(): void {
     let numTokens = 0;
     let numCollections = 0;

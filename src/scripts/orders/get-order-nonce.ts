@@ -2,17 +2,13 @@ import { ethers } from 'ethers';
 import { join } from 'path';
 import phin from 'phin';
 
-import { getAuthHeaders } from './get-auth-headers';
-
 export async function getOrderNonce(wallet: ethers.Wallet, baseUrl: string): Promise<number> {
-  const headers = await getAuthHeaders(wallet);
   const endpoint = `/orders/${wallet.address}/nonce`;
   const url = new URL(join(baseUrl, endpoint)).toString();
 
   const response = await phin({
     url,
-    method: 'GET',
-    headers
+    method: 'GET'
   });
 
   if (response.statusCode === 200) {

@@ -4,10 +4,7 @@ import phin from 'phin';
 
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
 
-import { getAuthHeaders } from './get-auth-headers';
-
 export async function postOrder(signer: ethers.Wallet, order: SignedOBOrderDto, baseUrl: string) {
-  const authHeaders = await getAuthHeaders(signer);
   const endpoint = `/orders`;
   const url = new URL(join(baseUrl, endpoint)).toString();
 
@@ -16,8 +13,7 @@ export async function postOrder(signer: ethers.Wallet, order: SignedOBOrderDto, 
     method: 'POST',
     data: {
       orders: [order]
-    },
-    headers: authHeaders
+    }
   });
 
   if (response.statusCode === 201) {

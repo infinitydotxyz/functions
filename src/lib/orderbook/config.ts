@@ -1,17 +1,17 @@
 import * as Transformers from './order-transformer';
 
-const infinityConfig = {
+const flowConfig = {
   'single-token': {
     enabled: true,
-    transformer: Transformers.Infinity.SingleToken
+    transformer: Transformers.Flow.SingleToken
   },
   'contract-wide': {
     enabled: true,
-    transformer: Transformers.Infinity.ContractWide
+    transformer: Transformers.Flow.ContractWide
   },
   complex: {
     enabled: true,
-    transformer: Transformers.Infinity.Complex
+    transformer: Transformers.Flow.Complex
   }
 };
 // satisfies Record<Sdk.Infinity.Types.OrderKind, unknown>;
@@ -36,12 +36,12 @@ const seaportConfig = {
 export const config = {
   infinity: {
     source: 'infinity',
-    enabled: true,
-    kinds: infinityConfig
+    enabled: false
   },
   flow: {
     source: 'flow',
-    enabled: false
+    enabled: true,
+    kinds: flowConfig
   },
   seaport: {
     source: 'seaport',

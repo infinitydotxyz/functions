@@ -20,10 +20,9 @@ export const addSyncs: SyncUpdater = async (db, chainId, types: SyncMetadataType
 
   const provider = getProvider(chainId);
   const startBlock = await provider.getBlock(startAtBlock ?? 'finalized');
-  const endBlock = await provider.getBlock('safe');
 
   return db.runTransaction(async (txn) => {
-    const snaps = await txn.getAll(...syncs.map((item) => item.ref));
+    const snaps = syncs.length > 0 ? await txn.getAll(...syncs.map((item) => item.ref)) : [];
     for (let i = 0; i < syncs.length; i++) {
       const sync = syncs[i];
       const snap = snaps[i];
@@ -40,10 +39,8 @@ export const addSyncs: SyncUpdater = async (db, chainId, types: SyncMetadataType
           },
           data: {
             eventsProcessed: 0,
-            blockRange: {
-              startTimestamp: startBlock.timestamp * 1000,
-              endTimestamp: endBlock.timestamp * 1000 + 1000
-            }
+            endTimestamp: startBlock.timestamp * 1000,
+            lastItemProcessed: ''
           }
         };
         txn.set(sync.ref, data);

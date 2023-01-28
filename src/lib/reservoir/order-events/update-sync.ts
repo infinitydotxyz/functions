@@ -38,7 +38,7 @@ export const addSyncs: SyncUpdater = (
   });
 
   return db.runTransaction(async (txn) => {
-    const snaps = await txn.getAll(...syncs.map((item) => item.ref));
+    const snaps = syncs.length > 0 ? await txn.getAll(...syncs.map((item) => item.ref)) : [];
     for (let i = 0; i < syncs.length; i++) {
       const sync = syncs[i];
       const snap = snaps[i];
@@ -88,7 +88,7 @@ const updateIsPaused = (
     };
   });
   return db.runTransaction(async (txn) => {
-    const snaps = await txn.getAll(...syncs.map((item) => item.ref));
+    const snaps = syncs.length > 0 ? await txn.getAll(...syncs.map((item) => item.ref)) : [];
     for (let i = 0; i < syncs.length; i++) {
       const sync = syncs[i];
       const snap = snaps[i];

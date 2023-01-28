@@ -5,7 +5,7 @@ import { OrderSource } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
 
 import { ReservoirClient } from '../get-client';
-import { FlattenedPostgresNFTSale } from './types';
+import { FlattenedPostgresNFTSaleWithId } from './types';
 
 export interface SaleOptions {
   contract?: string[];
@@ -108,7 +108,8 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
   };
 
   const sales = (response.data.sales ?? []).map((sale) => {
-    const pgSale: Partial<FlattenedPostgresNFTSale> = {
+    const pgSale: Partial<FlattenedPostgresNFTSaleWithId> = {
+      id: sale.id,
       txhash: sale.txHash,
       log_index: sale.logIndex,
       bundle_index: sale.batchIndex,

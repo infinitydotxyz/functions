@@ -31,13 +31,10 @@ export async function* sync(
   }
 
   let hasNextPage = true;
-  let continuation = initialSync.data.data.continuation;
   let pageNumber = 0;
   const client = Reservoir.Api.getClient(initialSync.data.metadata.chainId, config.reservoir.apiKey);
-  // const type = initialSync.data.metadata.type;
 
-  let method;
-
+  let method: typeof Reservoir.Api.Events.AskEvents.getEvents | typeof Reservoir.Api.Events.BidEvents.getEvents;
   switch (initialSync.data.metadata.type) {
     case 'ask':
     case 'collection-ask':
@@ -56,116 +53,119 @@ export async function* sync(
   const contract = initialSync.data.metadata.collection ? { contract: initialSync.data.metadata.collection } : {};
   while (true) {
     try {
-      const page = await method(client, {
-        continuation: continuation || undefined,
-        limit: pageSize,
-        sortDirection: 'asc',
-        ...contract,
-        startTimestamp: minTimestamp
-      });
-      const numItems = (page.data?.events ?? []).length;
-      const events = (page.data.events as { event: ReservoirEventMetadata }[]).filter((item) => {
-        return item.event.kind !== 'reprice';
-      }) as
-        | { bid: BidV1Order; event: ReservoirEventMetadata }[]
-        | { order: AskV2Order; event: ReservoirEventMetadata }[];
-      const numItemsAfterFiltering = events.length;
+      const { numEventsSaved, continuation, numItems, numItemsAfterFiltering } = await db.runTransaction(
+        async (txn) => {
+          const snap = await txn.get(initialSync.ref);
+          const currentSync = snap.data() as SyncMetadata;
 
-      const { numEventsSaved } = await db.runTransaction(async (txn) => {
-        const snap = await txn.get(initialSync.ref);
-        const currentSync = snap.data() as SyncMetadata;
-        let numEventsSaved = 0;
-
-        if (currentSync.data.continuation !== continuation) {
-          throw new Error('Continuation changed');
-        } else if (currentSync.metadata.isPaused) {
-          throw new Error('Sync paused');
-        }
-
-        if (page.data.continuation === continuation) {
-          /**
-           * continuation did not change
-           * skip attempting to read events from firestore
-           */
-          return { numEventsSaved: 0 };
-        }
-
-        const eventsWithRefs = events.map((item) => {
-          const event = item.event;
-          const id = event.id;
-          const order = 'bid' in item ? item.bid : item.order;
-          const orderId = order.id;
-
-          const eventRef = getReservoirOrderEventRef(db, orderId, id);
-          return {
-            ...item,
-            isSellOrder: !('bid' in item),
-            order,
-            eventRef,
-            hasNextPage
-          };
-        });
-
-        const eventSnaps =
-          eventsWithRefs.length > 0 ? await txn.getAll(...eventsWithRefs.map((item) => item.eventRef)) : [];
-
-        for (let i = 0; i < eventsWithRefs.length; i += 1) {
-          const item = eventsWithRefs[i];
-          const snap = eventSnaps[i];
-
-          if (!item || !snap) {
-            throw new Error('Event or snap');
-          } else if (!bn(item.event.id.toString()).eq(snap.ref.id)) {
-            throw new Error('Event id mismatch');
+          if (currentSync.metadata.isPaused) {
+            throw new Error('Sync paused');
           }
 
-          /**
-           * only save events once
-           */
-          if (!snap.exists) {
-            const data: ReservoirOrderEvent = {
-              metadata: {
-                id: getReservoirOrderEventId(item.event.id),
-                isSellOrder: item.isSellOrder,
-                updatedAt: Date.now(),
-                migrationId: 1,
-                processed: false,
-                orderId: item.order.id,
-                status: item.order.status,
-                chainId: currentSync.metadata.chainId
-              },
-              data: {
-                event: item.event,
-                order: item.order
-              }
+          const page = await method(client, {
+            continuation: currentSync.data.continuation,
+            limit: pageSize,
+            sortDirection: 'asc',
+            ...contract,
+            startTimestamp: minTimestamp
+          });
+          const numItems = (page.data?.events ?? []).length;
+          const events = (page.data.events as { event: ReservoirEventMetadata }[]).filter((item) => {
+            return item.event.kind !== 'reprice';
+          }) as
+            | { bid: BidV1Order; event: ReservoirEventMetadata }[]
+            | { order: AskV2Order; event: ReservoirEventMetadata }[];
+          const numItemsAfterFiltering = events.length;
+
+          let numEventsSaved = 0;
+
+          if (page.data.continuation === currentSync.data.continuation) {
+            /**
+             * continuation did not change
+             * skip attempting to read events from firestore
+             */
+            return { numEventsSaved: 0, continuation: page.data.continuation, numItems, numItemsAfterFiltering };
+          }
+
+          const eventsWithRefs = events.map((item) => {
+            const event = item.event;
+            const id = event.id;
+            const order = 'bid' in item ? item.bid : item.order;
+            const orderId = order.id;
+
+            const eventRef = getReservoirOrderEventRef(db, orderId, id);
+            return {
+              ...item,
+              isSellOrder: !('bid' in item),
+              order,
+              eventRef,
+              hasNextPage
             };
-            txn.create(item.eventRef, data);
-            numEventsSaved += 1;
+          });
+
+          const eventSnaps =
+            eventsWithRefs.length > 0 ? await txn.getAll(...eventsWithRefs.map((item) => item.eventRef)) : [];
+
+          for (let i = 0; i < eventsWithRefs.length; i += 1) {
+            const item = eventsWithRefs[i];
+            const snap = eventSnaps[i];
+
+            if (!item || !snap) {
+              throw new Error('Event or snap');
+            } else if (!bn(item.event.id.toString()).eq(snap.ref.id)) {
+              throw new Error('Event id mismatch');
+            }
+
+            /**
+             * only save events once
+             */
+            if (!snap.exists) {
+              const data: ReservoirOrderEvent = {
+                metadata: {
+                  id: getReservoirOrderEventId(item.event.id),
+                  isSellOrder: item.isSellOrder,
+                  updatedAt: Date.now(),
+                  migrationId: 1,
+                  processed: false,
+                  orderId: item.order.id,
+                  status: item.order.status,
+                  chainId: currentSync.metadata.chainId
+                },
+                data: {
+                  event: item.event,
+                  order: item.order
+                }
+              };
+              txn.create(item.eventRef, data);
+              numEventsSaved += 1;
+            }
           }
+
+          hasNextPage = numItems < pageSize || !!page.data.continuation;
+
+          pageNumber += 1;
+
+          const updatedContinuation = page.data.continuation || currentSync.data.continuation;
+          /**
+           * update sync metadata
+           */
+          const update: Partial<SyncMetadata> = {
+            data: {
+              eventsProcessed: currentSync.data.eventsProcessed + numEventsSaved,
+              minTimestampMs: currentSync.data.minTimestampMs ?? 0,
+              continuation: updatedContinuation
+            }
+          };
+          txn.set(initialSync.ref, update, { merge: true });
+
+          return {
+            continuation: updatedContinuation,
+            numEventsSaved,
+            numItems,
+            numItemsAfterFiltering
+          };
         }
-
-        hasNextPage = page.data.continuation !== continuation && numItems < pageSize && !!page.data.continuation;
-        if (page.data.continuation) {
-          continuation = page.data.continuation;
-        }
-        pageNumber += 1;
-
-        /**
-         * update sync metadata
-         */
-        const update: Partial<SyncMetadata> = {
-          data: {
-            eventsProcessed: currentSync.data.eventsProcessed + numEventsSaved,
-            minTimestampMs: currentSync.data.minTimestampMs ?? 0,
-            continuation
-          }
-        };
-        txn.set(initialSync.ref, update, { merge: true });
-
-        return {
-          numEventsSaved
-        };
-      });
+      );
 
       yield {
         continuation,

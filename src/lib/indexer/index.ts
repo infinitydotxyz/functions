@@ -41,11 +41,13 @@ export async function enqueueCollection(collection: {
   if (config.isDev) {
     return;
   }
+  const id = `${collection.chainId}:${collection.address}`;
   try {
-    if (!collection.reset && (cache.get(`${collection.chainId}:${collection.address}`) ?? 0) < Date.now() - ONE_HOUR) {
+    if (!collection.reset && (cache.get(id) ?? 0) < Date.now() - ONE_HOUR) {
+      console.log(`Collection ${id} queued within the past hour. Skipping...`);
       return;
     }
-    cache.set(`${collection.chainId}:${collection.address}`, Date.now());
+    cache.set(id, Date.now());
 
     const res = await axios.post(
       INDEXER_URL,

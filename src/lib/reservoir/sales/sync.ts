@@ -1,6 +1,18 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { BigNumber } from 'ethers';
+
+import {
+  InfinityLinkType,
+  ChainId,
+  EtherscanLinkType,
+  EventType,
+  NftSale,
+  NftSaleEvent,
+  OrderSource,
+  SaleSource,
+  TokenStandard
+} from '@infinityxyz/lib/types/core';
 import { NftDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
+import { firestoreConstants, formatEth, getEtherscanLink, getInfinityLink, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
@@ -77,6 +89,79 @@ export async function* sync(
     await pgDB.none(query);
   };
 
+  const batchSaveToFirestore = async (data: { pgSale: FlattenedPostgresNFTSale; token: Partial<NftDto> }[]) => {
+    const nftSales: NftSale[] = data.map(({ pgSale: item }) => {
+      const base: NftSale = {
+        chainId: initialSync.data.metadata.chainId,
+        txHash: item.txhash,
+        blockNumber: item.block_number,
+        timestamp: item.sale_timestamp,
+        collectionAddress: item.collection_address,
+        tokenId: item.token_id,
+        price: item.sale_price_eth,
+        paymentToken: item.sale_currency_address,
+        buyer: item.buyer,
+        seller: item.seller,
+        quantity: parseInt(item.quantity, 10),
+        source: item.marketplace as OrderSource,
+        isAggregated: false,
+        isDeleted: false,
+        isFeedUpdated: true,
+        tokenStandard: TokenStandard.ERC721
+      };
+
+      if (item.marketplace === 'flow') {
+        const PROTOCOL_FEE_BPS = 250;
+        const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
+        const protocolFeeEth = formatEth(protocolFeeWei.toString());
+        return {
+          ...base,
+          protocolFeeBPS: PROTOCOL_FEE_BPS,
+          protocolFee: protocolFeeEth,
+          protocolFeeWei: protocolFeeWei.toString()
+        };
+      }
+      return base;
+    });
+
+    const feedEvents = data.map(({ pgSale: item, token }) => {
+      const feedEvent: NftSaleEvent = {
+        type: EventType.NftSale,
+        buyer: item.buyer,
+        seller: item.seller,
+        price: item.sale_price_eth,
+        paymentToken: item.sale_currency_address,
+        source: item.marketplace as SaleSource,
+        tokenStandard: TokenStandard.ERC721,
+        txHash: item.txhash,
+        quantity: parseInt(item.quantity, 10),
+        externalUrl: getEtherscanLink(
+          { type: EtherscanLinkType.Transaction, transactionHash: item.txhash },
+          initialSync.data.metadata.chainId
+        ),
+        likes: 0,
+        comments: 0,
+        timestamp: item.sale_timestamp,
+        chainId: initialSync.data.metadata.chainId,
+        collectionAddress: item.collection_address,
+        collectionName: token?.collectionName ?? '',
+        collectionSlug: token?.collectionSlug ?? '',
+        collectionProfileImage: '',
+        hasBlueCheck: token?.hasBlueCheck ?? false,
+        internalUrl: getInfinityLink({
+          type: InfinityLinkType.Collection,
+          addressOrSlug: item.collection_address,
+          chainId: initialSync.data.metadata.chainId
+        }),
+        tokenId: item.token_id,
+        image: item.token_image,
+        nftName: token?.metadata?.name ?? '',
+        nftSlug: token?.slug ?? '',
+        usersInvolved: [item.buyer, item.seller]
+      };
+    });
+  };
+
   while (true) {
     const { lastItemProcessed, numSales } = await db.runTransaction(async (txn) => {
       const snap = await txn.get(initialSync.ref);
@@ -122,13 +207,17 @@ export async function* sync(
                 .doc(item.token_id ?? '') as DocRef<NftDto>;
               const token = tokensMap.get(ref.path);
               return {
-                ...item,
-                collection_name: token?.collectionName ?? item.collection_name,
-                token_image:
-                  token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
+                pgSale: {
+                  ...item,
+                  collection_name: token?.collectionName ?? item.collection_name,
+                  token_image:
+                    token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
+                } as FlattenedPostgresNFTSaleWithId,
+                token: token ?? {}
               };
             });
-            await batchSaveToPostgres(data as FlattenedPostgresNFTSale[]);
+            await batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]);
+            await batchSaveToFirestore(data);
           }
           numSales += page.sales.length;
           if (page.complete) {

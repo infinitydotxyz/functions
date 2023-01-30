@@ -1,6 +1,6 @@
 import { formatEther } from 'ethers/lib/utils';
 
-import { ChainId, NftSale, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, NftSale, OrderSource, SaleSource, StatsPeriod } from '@infinityxyz/lib/types/core';
 
 import { AggregationInterval, CurrentStats } from '../types';
 import { calculateStats, calculateStatsBigInt, getIntervalAggregationId, getStatsDocInfo } from '../utils';
@@ -23,7 +23,7 @@ export type NftSalesByInterval<T extends NftSale> = {
 };
 export type SourceSalesByInterval<T extends NftSale> = {
   salesByInterval: SalesByAggregationInterval<T>;
-  source: SaleSource;
+  source: SaleSource | OrderSource;
 };
 
 export type CollectionSalesByPeriod<T extends NftSale> = {
@@ -41,14 +41,14 @@ export type NftSalesByPeriod<T extends NftSale> = {
 export class Sales<T extends NftSale> {
   public allSales: Iterable<T>;
   public allSalesByPeriod: SalesByPeriod<T>;
-  public salesBySource: Map<SaleSource, T[]>;
+  public salesBySource: Map<SaleSource | OrderSource, T[]>;
   public salesByCollection: Map<string, { sales: T[]; collectionAddress: string; chainId: ChainId }>;
   public salesByNft: Map<string, { sales: T[]; collectionAddress: string; chainId: ChainId; tokenId: string }>;
   public salesByCollectionByPeriod: Map<string, CollectionSalesByPeriod<T>>;
   public salesByNftByPeriod: Map<string, NftSalesByPeriod<T>>;
   public salesByCollectionByInterval: Map<string, CollectionSalesByInterval<T>>;
   public salesByNftByInterval: Map<string, NftSalesByInterval<T>>;
-  public salesBySourceByInterval: Map<SaleSource, SourceSalesByInterval<T>>;
+  public salesBySourceByInterval: Map<SaleSource | OrderSource, SourceSalesByInterval<T>>;
 
   constructor(sales: Iterable<T>) {
     this.allSales = sales;
@@ -99,7 +99,7 @@ export class Sales<T extends NftSale> {
       });
     }
 
-    this.salesBySource = new Map<SaleSource, T[]>();
+    this.salesBySource = new Map<SaleSource | OrderSource, T[]>();
     for (const sale of sales) {
       let sourceSales = this.salesBySource.get(sale.source);
       if (!sourceSales) {
@@ -109,7 +109,7 @@ export class Sales<T extends NftSale> {
       sourceSales.push(sale);
     }
 
-    this.salesBySourceByInterval = new Map<SaleSource, SourceSalesByInterval<T>>();
+    this.salesBySourceByInterval = new Map<SaleSource | OrderSource, SourceSalesByInterval<T>>();
     for (const [source, sourceSales] of this.salesBySource) {
       const sourceSalesByInterval = this.groupSalesByInterval(sourceSales);
       this.salesBySourceByInterval.set(source, { source, salesByInterval: sourceSalesByInterval });

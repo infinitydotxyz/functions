@@ -7,6 +7,7 @@ import { getDb } from '@/firestore/db';
 
 import { ReservoirOrderStatusEventProcessor } from './reservoir-order-event-processor';
 import { syncOrderEvents } from './sync-order-events';
+import { syncSaleEvents } from './sync-sale-events';
 
 // import { syncSaleEvents } from './sync-sale-events';
 
@@ -20,15 +21,15 @@ export const syncOrderStatusEvents = functions
     await syncOrderEvents(db, stopIn, { pollInterval: 10_000, delay: 0 });
   });
 
-// export const syncSaleEventsToPG = functions
-//   .region(config.firebase.region)
-//   .runWith({ timeoutSeconds: 530, maxInstances: 1 })
-//   .pubsub.schedule('every 9 minutes')
-//   .onRun(async () => {
-//     const db = getDb();
-//     const stopIn = 530 * 1000;
-//     await syncSaleEvents(db, stopIn, { pollInterval: 10_000, delay: 0 });
-//   });
+export const syncSaleEventsToPG = functions
+  .region(config.firebase.region)
+  .runWith({ timeoutSeconds: 530, maxInstances: 1 })
+  .pubsub.schedule('every 9 minutes')
+  .onRun(async () => {
+    const db = getDb();
+    const stopIn = 530 * 1000;
+    await syncSaleEvents(db, stopIn, { pollInterval: 10_000, delay: 0 });
+  });
 
 const reservoirOrderEventProcessor = new ReservoirOrderStatusEventProcessor(
   {

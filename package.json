@@ -58,7 +58,7 @@
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",
     "firebase-admin": "^11.4.1",
-    "firebase-functions": "^4.1.0",
+    "firebase-functions": "^4.2.0",
     "got": "^11.8.3",
     "jsbi": "^3.1.4",
     "module-alias": "^2.2.2",

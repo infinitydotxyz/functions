@@ -1,4 +1,3 @@
-import { ethers } from 'ethers';
 import { FieldPath } from 'firebase-admin/firestore';
 
 import { OrderDirection } from '@infinityxyz/lib/types/core';
@@ -7,7 +6,6 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
-import { enqueueCollection } from '@/lib/indexer';
 
 import { NftTransferEvent } from './types';
 
@@ -132,19 +130,6 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
         .collection(firestoreConstants.COLLECTIONS_COLL)
         .doc(`${chainId}:${address}`) as DocRef<CollectionDto>;
       const tokenRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(tokenId) as DocRef<NftDto>;
-
-      if (validTransfers.find((item) => item.data.data.from === ethers.constants.AddressZero)) {
-        await enqueueCollection({
-          chainId,
-          address
-        })
-          .then(() => {
-            console.log(`Enqueued collection for indexing ${chainId}:${address}`);
-          })
-          .catch((err) => {
-            console.warn(`Failed to enqueue collection for indexing: ${err}`);
-          });
-      }
 
       const tokenUpdate: Partial<NftDto> = {
         ownerData: {

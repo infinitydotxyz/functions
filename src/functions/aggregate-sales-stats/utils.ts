@@ -1,9 +1,8 @@
 import { format, parse } from 'date-fns';
 import { formatEther } from 'ethers/lib/utils';
 
-import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
-import { ALL_TIME_STATS_TIMESTAMP, trimLowerCase } from '@infinityxyz/lib/utils';
+import { ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
 
 import { AggregationInterval, CurrentStats } from './types';
 
@@ -15,13 +14,6 @@ export const EXCLUDED_COLLECTIONS = [
   '0xa5d37c0364b9e6d96ee37e03964e7ad2b33a93f4', // Cat girls academia
   '0xff36ca1396d2a9016869274f1017d6c2139f495e' // dementors town wtf
 ];
-
-export function getCollectionDocId(collection: { collectionAddress: string; chainId: string }) {
-  if (!isAddress(collection.collectionAddress)) {
-    throw new Error('Invalid collection address');
-  }
-  return `${collection.chainId}:${trimLowerCase(collection.collectionAddress)}`;
-}
 
 export function getStatsDocInfo(
   timestamp: number,

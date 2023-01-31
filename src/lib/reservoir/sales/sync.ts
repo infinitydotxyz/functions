@@ -12,7 +12,14 @@ import {
   TokenStandard
 } from '@infinityxyz/lib/types/core';
 import { NftDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, formatEth, getEtherscanLink, getInfinityLink, sleep } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  formatEth,
+  getCollectionDocId,
+  getEtherscanLink,
+  getInfinityLink,
+  sleep
+} from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -77,6 +84,14 @@ export async function* sync(
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
   }
+
+  const supportedColls = await db
+    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+    .where('isSupported', '==', true)
+    .select('isSupported')
+    .limit(1000) // future todo: change limit if number of selected colls grow
+    .get();
+  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
   let pageNumber = 0;
   let totalItemsProcessed = 0;
@@ -176,7 +191,15 @@ export async function* sync(
       const saleDocRef = salesCollectionRef.doc(id);
       const feedDocRef = feedCollectionRef.doc(id);
       await batchHandler.addAsync(saleDocRef, sale, { merge: true });
-      await batchHandler.addAsync(feedDocRef, sale.feedEvent, { merge: true });
+
+      // only save to feed if coll is supported
+      const collId = getCollectionDocId({
+        collectionAddress: sale.feedEvent.collectionAddress,
+        chainId: sale.feedEvent.chainId
+      });
+      if (supportedCollsSet.has(collId)) {
+        await batchHandler.addAsync(feedDocRef, sale.feedEvent, { merge: true });
+      }
     }
 
     await batchHandler.flush();

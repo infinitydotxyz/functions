@@ -1,4 +1,4 @@
-import { ChainId, SupportedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 
 
@@ -35,6 +35,13 @@ export async function* sync(
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
   }
+
+  const supportedColls = await db.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+  .where('isSupported', '==', true)
+  .select('isSupported')
+  .limit(1000) // future todo: change limit if number of selected colls grow 
+  .get();
+  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
   let hasNextPage = true;
   let pageNumber = 0;
@@ -81,7 +88,7 @@ export async function* sync(
               | { event: ReservoirEventMetadata; order: AskV2Order }
               | { event: ReservoirEventMetadata; bid: BidV1Order }
             )[]
-          ).filter(async (item) => {
+          ).filter((item) => {
             const isReprice = item.event.kind === 'reprice';
             const isBid = 'bid' in item;
             const collAddress = isBid ? item.bid.contract : item.order.contract;
@@ -91,8 +98,7 @@ export async function* sync(
               collectionAddress: collAddress,
               chainId: currentSync.metadata.chainId ?? ChainId.Mainnet
             });
-            const supColl = await db.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).doc(collectionDocId).get();
-            const isSupportedCollection = supColl.exists && (supColl.data() as SupportedCollection)?.isSupported;
+            const isSupportedCollection = supportedCollsSet.has(collectionDocId);
 
             return isReprice || !isSupportedCollection;
           }) as

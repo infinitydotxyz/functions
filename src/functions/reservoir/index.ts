@@ -9,8 +9,6 @@ import { ReservoirOrderStatusEventProcessor } from './reservoir-order-event-proc
 import { syncOrderEvents } from './sync-order-events';
 import { syncSaleEvents } from './sync-sale-events';
 
-// import { syncSaleEvents } from './sync-sale-events';
-
 export const syncOrderStatusEvents = functions
   .region(config.firebase.region)
   .runWith({ timeoutSeconds: 530, maxInstances: 1 })

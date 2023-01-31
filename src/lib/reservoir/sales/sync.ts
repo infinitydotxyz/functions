@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
 import {
   InfinityLinkType,
@@ -90,7 +91,7 @@ export async function* sync(
     await pgDB.none(query);
   };
 
-  const batchSaveToFirestore = async (data: { pgSale: FlattenedPostgresNFTSale; token: Partial<NftDto> }[]) => {
+  const batchSaveToFirestore = async (data: { pgSale: FlattenedPostgresNFTSaleWithId; token: Partial<NftDto> }[]) => {
     const nftSales = data.map(({ pgSale: item, token }) => {
       const feedEvent: NftSaleEvent = {
         type: EventType.NftSale,
@@ -146,6 +147,36 @@ export async function* sync(
         tokenStandard: TokenStandard.ERC721
       };
 
+      const nftSaleEventV2: NftSaleEventV2 = {
+        data: {
+          chainId: initialSync.data.metadata.chainId,
+          txHash: item.txhash,
+          blockNumber: item.block_number,
+          collectionAddress: item.collection_address,
+          collectionName: token?.collectionName ?? '',
+          tokenId: item.token_id,
+          tokenImage: item.token_image,
+          saleTimestamp: item.sale_timestamp,
+          salePrice: item.sale_price,
+          salePriceEth: item.sale_price_eth,
+          saleCurrencyAddress: item.sale_currency_address,
+          saleCurrencyDecimals: item.sale_currency_decimals,
+          saleCurrencySymbol: item.sale_currency_symbol,
+          seller: item.seller,
+          buyer: item.buyer,
+          marketplace: item.marketplace as OrderSource,
+          marketplaceAddress: item.marketplace_address,
+          bundleIndex: item.bundle_index,
+          logIndex: item.log_index,
+          quantity: item.quantity
+        },
+        metadata: {
+          timestamp: item.sale_timestamp,
+          updatedAt: Date.now(),
+          processed: false
+        }
+      };
+
       if (item.marketplace === 'flow') {
         const PROTOCOL_FEE_BPS = 250;
         const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
@@ -158,13 +189,15 @@ export async function* sync(
             protocolFeeWei: protocolFeeWei.toString()
           },
           feedEvent,
-          pgSale: item
+          pgSale: item,
+          saleV2: nftSaleEventV2
         };
       }
       return {
         sale: base,
         feedEvent,
-        pgSale: item
+        pgSale: item,
+        saleV2: nftSaleEventV2
       };
     });
 
@@ -175,8 +208,16 @@ export async function* sync(
       const id = `${sale.pgSale.txhash}:${sale.pgSale.log_index}:${sale.pgSale.bundle_index}`;
       const saleDocRef = salesCollectionRef.doc(id);
       const feedDocRef = feedCollectionRef.doc(id);
-      await batchHandler.addAsync(saleDocRef, sale, { merge: true });
+      const saleEventV2Ref = db
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${initialSync.data.metadata.chainId}:${sale.saleV2.data.collectionAddress}`)
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(sale.saleV2.data.tokenId)
+        .collection('nftSaleEvents')
+        .doc(id);
+      await batchHandler.addAsync(saleDocRef, sale.sale, { merge: true });
       await batchHandler.addAsync(feedDocRef, sale.feedEvent, { merge: true });
+      await batchHandler.addAsync(saleEventV2Ref, sale.saleV2, { merge: true });
     }
 
     await batchHandler.flush();

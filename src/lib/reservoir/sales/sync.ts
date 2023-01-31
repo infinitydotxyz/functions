@@ -82,13 +82,18 @@ export async function* sync(
   let pageNumber = 0;
   let totalItemsProcessed = 0;
 
-  const { pgDB, pgp } = config.pg.getPG();
-  const batchSaveToPostgres = async (data: FlattenedPostgresNFTSale[]) => {
-    const table = 'eth_nft_sales';
+  const pg = config.pg.getPG();
 
-    const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
-    const query = pgp.helpers.insert(data, columnSet) + ' ON CONFLICT DO NOTHING';
-    await pgDB.none(query);
+  const batchSaveToPostgres = async (data: FlattenedPostgresNFTSale[]) => {
+    if (pg) {
+      // support development env where we don't have a postgres connection
+      const { pgDB, pgp } = pg;
+      const table = 'eth_nft_sales';
+
+      const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
+      const query = pgp.helpers.insert(data, columnSet) + ' ON CONFLICT DO NOTHING';
+      await pgDB.none(query);
+    }
   };
 
   const batchSaveToFirestore = async (data: { pgSale: FlattenedPostgresNFTSaleWithId; token: Partial<NftDto> }[]) => {

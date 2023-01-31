@@ -48,7 +48,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.301.2",
+    "@infinityxyz/lib": "^1.303.0",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "^0.0.302",
     "@uniswap/sdk-core": "^3.0.1",
@@ -58,7 +58,7 @@
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",
     "firebase-admin": "^11.4.1",
-    "firebase-functions": "^4.1.0",
+    "firebase-functions": "^4.2.0",
     "got": "^11.8.3",
     "jsbi": "^3.1.4",
     "module-alias": "^2.2.2",

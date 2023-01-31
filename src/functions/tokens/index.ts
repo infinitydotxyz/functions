@@ -6,6 +6,8 @@ import { config } from '@/config/index';
 import { getDb } from '@/firestore/db';
 import { TokenTransfersProcessor } from '@/lib/tokens/transfers/token-transfers-processor';
 
+import { NftSalesProcessor } from './nft-sale-processor';
+
 const transferProcessor = new TokenTransfersProcessor(
   {
     docBuilderCollectionPath: `${firestoreConstants.COLLECTIONS_COLL}/{collectionId}/${firestoreConstants.COLLECTION_NFTS_COLL}/{tokenId}/nftTransferEvents`,
@@ -47,3 +49,32 @@ export const onProcessTransferEventProcess = processor.process(
   }).firestore.document
 );
 export const onProcessTransferEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);
+
+const nftSalesProcessor = new NftSalesProcessor(
+  {
+    docBuilderCollectionPath: `${firestoreConstants.COLLECTIONS_COLL}/{collId}/${firestoreConstants.COLLECTION_NFTS_COLL}/{tokenId}/nftSaleEvents`,
+    batchSize: 200,
+    maxPages: 3,
+    minTriggerInterval: ONE_MIN,
+    id: 'processor',
+    isCollectionGroup: true
+  },
+  {
+    schedule: 'every 2 minutes',
+    tts: ONE_MIN
+  },
+  getDb,
+  true
+);
+const nftSalesProcessorFns = nftSalesProcessor.getFunctions();
+
+export const onProcessNftSaleEvent = nftSalesProcessorFns.onEvent(documentBuilder);
+export const onProcessNftSaleEventBackup = nftSalesProcessorFns.scheduledBackupEvents(scheduleBuilder);
+export const onProcessNftSaleEventProcess = nftSalesProcessorFns.process(
+  functions.region(config.firebase.region).runWith({
+    timeoutSeconds: 60,
+    maxInstances: 3000,
+    minInstances: 1
+  }).firestore.document
+);
+export const onProcessNftSaleEventProcessBackup = nftSalesProcessorFns.scheduledBackupTrigger(scheduleBuilder);

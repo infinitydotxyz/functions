@@ -21,13 +21,17 @@ const getEnvVariable = (key: string, required = true): string => {
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
 
+const user = getEnvVariable('DB_USER', false);
+const password = getEnvVariable('DB_PASS', false);
+const database = getEnvVariable('DB_NAME', false);
+const instanceSocket = getEnvVariable('INSTANCE_UNIX_SOCKET', false);
 let _pg: { pgDB: pgPromise.IDatabase<any, pg.IClient>; pgp: pgPromise.IMain<any, pg.IClient> };
 const getPG = () => {
   if (!_pg) {
-    const user = getEnvVariable('DB_USER');
-    const password = getEnvVariable('DB_PASS');
-    const database = getEnvVariable('DB_NAME');
-    const instanceSocket = getEnvVariable('INSTANCE_UNIX_SOCKET', false);
+    if (!user || !password || !database || !instanceSocket) {
+      console.warn('Missing PG DB credentials, skipping DB connection');
+      return;
+    }
 
     const url = instanceSocket
       ? { host: instanceSocket }

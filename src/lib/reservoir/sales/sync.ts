@@ -1,227 +1,385 @@
-// import { NftDto } from '@infinityxyz/lib/types/dto';
-// import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
+import { BigNumber } from 'ethers';
+import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
+import PQueue from 'p-queue';
 
-// import { config } from '@/config/index';
-// import { DocRef } from '@/firestore/types';
+import {
+  InfinityLinkType,
+  ChainId,
+  EtherscanLinkType,
+  EventType,
+  NftSale,
+  NftSaleEvent,
+  OrderSource,
+  SaleSource,
+  TokenStandard
+} from '@infinityxyz/lib/types/core';
+import { NftDto } from '@infinityxyz/lib/types/dto';
+import {
+  firestoreConstants,
+  formatEth,
+  getCollectionDocId,
+  getEtherscanLink,
+  getInfinityLink,
+  sleep
+} from '@infinityxyz/lib/utils';
 
-// import { Reservoir } from '../..';
-// import { FlattenedPostgresNFTSale } from '../api/sales';
-// import { SyncMetadata } from './types';
-// import { FlattenedPostgresNFTSaleWithId } from '../api/sales/types';
-// import { ChainId } from '@infinityxyz/lib/types/core';
+import { config } from '@/config/index';
+import { BatchHandler } from '@/firestore/batch-handler';
+import { DocRef } from '@/firestore/types';
 
-// export async function *getSales(_syncData: {lastIdProcessed: string, endTimestamp: number}, chainId: ChainId ) {
-//   const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
-//   const method = Reservoir.Api.Sales.getSales;
-//   async function *getReservoirPage(stopAtId: string, endTimestampMs: number) {
-//     let continuation: string | undefined;
-//     let attempts = 0;
-//     let firstItem: FlattenedPostgresNFTSaleWithId | undefined;
-//     // eslint-disable-next-line no-constant-condition
-//     while(true) {
-//       const pageSales: FlattenedPostgresNFTSaleWithId[] = []
-//       try{
-//         const page = await method(client, {
-//           continuation,
-//           endTimestamp: Math.floor(endTimestampMs / 1000),
-//           limit: 1000,
-//         });
+import { Reservoir } from '../..';
+import { FlattenedPostgresNFTSale } from '../api/sales';
+import { FlattenedPostgresNFTSaleWithId } from '../api/sales/types';
+import { SyncMetadata } from './types';
 
-//         for(const item of page.data) {
-//           if(!firstItem) {
-//             firstItem = item as FlattenedPostgresNFTSaleWithId;
-//           }
+export async function* getSales(_syncData: { lastIdProcessed: string; startTimestamp: number }, chainId: ChainId) {
+  const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
+  const method = Reservoir.Api.Sales.getSales;
+  let continuation: string | undefined;
+  let attempts = 0;
+  let firstItem: FlattenedPostgresNFTSaleWithId | undefined;
+  // eslint-disable-next-line no-constant-condition
+  const pageSize = 1000;
+  while (true) {
+    const pageSales: FlattenedPostgresNFTSaleWithId[] = [];
+    try {
+      const page = await method(client, {
+        continuation,
+        startTimestamp: Math.floor(_syncData.startTimestamp / 1000),
+        limit: pageSize
+      });
 
-//           if(item.id === stopAtId) {
-//             yield { sales: pageSales, firstItemId: firstItem.id, complete: true };
-//             return;
-//           }
-//           pageSales.push(item as FlattenedPostgresNFTSaleWithId);
-//         }
+      for (const item of page.data) {
+        if (!firstItem) {
+          firstItem = item as FlattenedPostgresNFTSaleWithId;
+        }
 
-//         if(!page.continuation) {
-//           throw new Error('No continuation');
-//         }
-//         continuation = page.continuation;
-//         attempts = 0;
-//         yield { sales: pageSales, complete: false };
-//       } catch(err) {
-//         attempts += 1;
-//         if(attempts > 3) {
-//           throw err
-//         }
-//         console.error(err);
-//         await sleep(3000);
-//       }
-//     }
-//   }
+        if (item.id === _syncData.lastIdProcessed) {
+          console.log(`Hit last processed id ${firstItem?.id ?? ''}`);
+          yield { sales: pageSales, firstItemId: firstItem.id, complete: true };
+          return;
+        }
+        pageSales.push(item as FlattenedPostgresNFTSaleWithId);
+      }
 
-//   const pageIterator = getReservoirPage(_syncData.lastIdProcessed, _syncData.endTimestamp);
-//   for await(const page of pageIterator) {
-//     yield page;
-//   }
-// }
+      if (pageSales.length < pageSize) {
+        console.log(`Page size less than max. id ${firstItem?.id ?? ''}`);
+        yield { sales: pageSales, firstItemId: firstItem?.id ?? '', complete: true };
+        return;
+      } else if (!page.continuation) {
+        console.log(`No continuation. id ${firstItem?.id ?? ''}`);
+        yield { sales: pageSales, complete: true, firstItemId: firstItem?.id ?? '' };
+        return;
+      }
+      continuation = page.continuation;
+      attempts = 0;
+      yield { sales: pageSales, complete: false };
+    } catch (err) {
+      attempts += 1;
+      if (attempts > 3) {
+        throw err;
+      }
+      console.error(err);
+      await sleep(3000);
+    }
+  }
+}
 
-// export async function* sync(
-//   db: FirebaseFirestore.Firestore,
-//   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
-//   pageSize = 1000
-// ) {
-//   if (initialSync?.data?.metadata?.isPaused) {
-//     throw new Error('Sync paused');
-//   }
+export async function* sync(
+  db: FirebaseFirestore.Firestore,
+  initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> }
+) {
+  if (initialSync?.data?.metadata?.isPaused) {
+    throw new Error('Sync paused');
+  }
 
-//   let pageNumber = 0;
+  const supportedColls = await db
+    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+    .where('isSupported', '==', true)
+    .select('isSupported')
+    .limit(1000) // future todo: change limit if number of selected colls grow
+    .get();
+  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
-//   const { pgDB, pgp } = config.pg.getPG();
-//   const batchSaveToPostgres = async (data: FlattenedPostgresNFTSale[]) => {
-//     const table = 'eth_nft_sales';
+  let pageNumber = 0;
+  let totalItemsProcessed = 0;
 
-//     const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
-//     const query = pgp.helpers.insert(data, columnSet) + ' ON CONFLICT DO NOTHING';
-//     await pgDB.none(query);
-//   };
+  const pg = config.pg.getPG();
 
-//   let lastIdProcessed = initialSync.data.data.lastItemProcessed;
-//   const endTimestamp = initialSync.data.data.endTimestamp;
-//   // eslint-disable-next-line no-constant-condition
-//   while(true) {
+  const batchSaveToPostgres = async (data: FlattenedPostgresNFTSale[]) => {
+    if (pg) {
+      // support development env where we don't have a postgres connection
+      const { pgDB, pgp } = pg;
+      const table = 'eth_nft_sales';
 
-//     try {
-//       const { numEventsSaved, continuation } = await db.runTransaction(async (txn) => {
-//         const snap = await txn.get(initialSync.ref);
-//         const currentSync = snap.data() as SyncMetadata;
+      const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
+      const query = pgp.helpers.insert(data, columnSet) + ' ON CONFLICT DO NOTHING';
+      await pgDB.none(query);
+    }
+  };
 
-//     const pageIterator = getSales({ lastIdProcessed, endTimestamp }, initialSync.data.metadata.chainId);
-//     for await(const page of pageIterator) {
+  const batchSaveToFirestore = async (data: { pgSale: FlattenedPostgresNFTSaleWithId; token: Partial<NftDto> }[]) => {
+    const nftSales = data.map(({ pgSale: item, token }) => {
+      const feedEvent: NftSaleEvent = {
+        type: EventType.NftSale,
+        buyer: item.buyer,
+        seller: item.seller,
+        price: item.sale_price_eth,
+        paymentToken: item.sale_currency_address,
+        source: item.marketplace as SaleSource,
+        tokenStandard: TokenStandard.ERC721,
+        txHash: item.txhash,
+        quantity: parseInt(item.quantity, 10),
+        externalUrl: getEtherscanLink(
+          { type: EtherscanLinkType.Transaction, transactionHash: item.txhash },
+          initialSync.data.metadata.chainId
+        ),
+        likes: 0,
+        comments: 0,
+        timestamp: item.sale_timestamp,
+        chainId: initialSync.data.metadata.chainId,
+        collectionAddress: item.collection_address,
+        collectionName: token?.collectionName ?? '',
+        collectionSlug: token?.collectionSlug ?? '',
+        collectionProfileImage: '',
+        hasBlueCheck: token?.hasBlueCheck ?? false,
+        internalUrl: getInfinityLink({
+          type: InfinityLinkType.Collection,
+          addressOrSlug: item.collection_address,
+          chainId: initialSync.data.metadata.chainId
+        }),
+        tokenId: item.token_id,
+        image: item.token_image,
+        nftName: token?.metadata?.name ?? '',
+        nftSlug: token?.slug ?? '',
+        usersInvolved: [item.buyer, item.seller]
+      };
 
-//       if(page.complete) {
-//         lastIdProcessed = page.firstItemId || lastIdProcessed;
-//         // TODO save
-//       }
-//     }
-//   }
+      const base: NftSale = {
+        chainId: initialSync.data.metadata.chainId,
+        txHash: item.txhash,
+        blockNumber: item.block_number,
+        timestamp: item.sale_timestamp,
+        collectionAddress: item.collection_address,
+        tokenId: item.token_id,
+        price: item.sale_price_eth,
+        paymentToken: item.sale_currency_address,
+        buyer: item.buyer,
+        seller: item.seller,
+        quantity: parseInt(item.quantity, 10),
+        source: item.marketplace as OrderSource,
+        isAggregated: false,
+        isDeleted: false,
+        isFeedUpdated: true,
+        tokenStandard: TokenStandard.ERC721
+      };
 
-//   while (true) {
-//     try {
-//       const { numEventsSaved, continuation } = await db.runTransaction(async (txn) => {
-//         const snap = await txn.get(initialSync.ref);
-//         const currentSync = snap.data() as SyncMetadata;
+      const nftSaleEventV2: NftSaleEventV2 = {
+        data: {
+          chainId: initialSync.data.metadata.chainId,
+          txHash: item.txhash,
+          blockNumber: item.block_number,
+          collectionAddress: item.collection_address,
+          collectionName: token?.collectionName ?? '',
+          tokenId: item.token_id,
+          tokenImage: item.token_image,
+          saleTimestamp: item.sale_timestamp,
+          salePrice: item.sale_price,
+          salePriceEth: item.sale_price_eth,
+          saleCurrencyAddress: item.sale_currency_address,
+          saleCurrencyDecimals: item.sale_currency_decimals,
+          saleCurrencySymbol: item.sale_currency_symbol,
+          seller: item.seller,
+          buyer: item.buyer,
+          marketplace: item.marketplace as OrderSource,
+          marketplaceAddress: item.marketplace_address,
+          bundleIndex: item.bundle_index,
+          logIndex: item.log_index,
+          quantity: item.quantity
+        },
+        metadata: {
+          timestamp: item.sale_timestamp,
+          updatedAt: Date.now(),
+          processed: false
+        }
+      };
 
-//         if (currentSync.metadata.isPaused) {
-//           throw new Error('Sync paused');
-//         }
+      if (item.marketplace === 'flow') {
+        const PROTOCOL_FEE_BPS = 250;
+        const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
+        const protocolFeeEth = formatEth(protocolFeeWei.toString());
+        return {
+          sale: {
+            ...base,
+            protocolFeeBPS: PROTOCOL_FEE_BPS,
+            protocolFee: protocolFeeEth,
+            protocolFeeWei: protocolFeeWei.toString()
+          },
+          feedEvent,
+          pgSale: item,
+          saleV2: nftSaleEventV2
+        };
+      }
+      return {
+        sale: base,
+        feedEvent,
+        pgSale: item,
+        saleV2: nftSaleEventV2
+      };
+    });
 
-//         const page = await method(client, {
-//           continuation: currentSync.data.continuation || undefined,
-//           startTimestamp: Math.ceil(currentSync.data.startTimestamp / 1000),
-//           limit: pageSize,
-//           ...collection
-//         });
-//         const numItems = (page.data ?? []).length;
+    const batchHandler = new BatchHandler();
+    const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
+    const feedCollectionRef = db.collection(firestoreConstants.FEED_COLL);
+    for (const sale of nftSales) {
+      const id = `${sale.pgSale.txhash}:${sale.pgSale.log_index}:${sale.pgSale.bundle_index}`;
+      const saleDocRef = salesCollectionRef.doc(id);
+      const feedDocRef = feedCollectionRef.doc(id);
+      await batchHandler.addAsync(saleDocRef, sale, { merge: true });
 
-//         const filteredSales = page.data.reduce((acc, item) => {
-//           if(acc.hitLastItemProcessed) {
-//             return acc;
-//           } else if (item.id === currentSync.data.lastItemProcessed) {
-//             acc.hitLastItemProcessed = true;
-//             return acc;
-//           }
-//             acc.items.push(item as FlattenedPostgresNFTSaleWithId);
-//             return acc;
+      // only save to feed if coll is supported
+      const collId = getCollectionDocId({
+        collectionAddress: sale.feedEvent.collectionAddress,
+        chainId: sale.feedEvent.chainId
+      });
+      if (supportedCollsSet.has(collId)) {
+        await batchHandler.addAsync(feedDocRef, sale.feedEvent, { merge: true });
+      }
+      
+      const saleEventV2Ref = db
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${initialSync.data.metadata.chainId}:${sale.saleV2.data.collectionAddress}`)
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(sale.saleV2.data.tokenId)
+        .collection('nftSaleEvents')
+        .doc(id);
+      await batchHandler.addAsync(saleDocRef, sale.sale, { merge: true });
+      await batchHandler.addAsync(saleEventV2Ref, sale.saleV2, { merge: true });
+    }
 
-//         }, { items: [] as FlattenedPostgresNFTSaleWithId[], hitLastItemProcessed: false }).items;
+    await batchHandler.flush();
+  };
 
-//         if (page.continuation !== currentSync.data.continuation) {
+  while (true) {
+    const { lastItemProcessed, numSales } = await db.runTransaction(async (txn) => {
+      const snap = await txn.get(initialSync.ref);
+      const currentSync = snap.data() as SyncMetadata;
 
-//           const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
-//           filteredSales.forEach((item) => {
-//             if (item.token_id) {
-//               const ref = db
-//                 .collection(firestoreConstants.COLLECTIONS_COLL)
-//                 .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
-//                 .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-//                 .doc(item.token_id) as DocRef<NftDto>;
-//               tokensRefsMaps.set(ref.path, ref);
-//             }
-//           });
+      if (currentSync.metadata.isPaused) {
+        throw new Error('Sync paused');
+      }
 
-//           const tokensRefs = [...tokensRefsMaps.values()];
-//           if (tokensRefs.length > 0) {
-//             const tokensSnap = await txn.getAll(...tokensRefs);
-//             const tokensMap = new Map<string, Partial<NftDto>>();
-//             tokensSnap.forEach((snap) => {
-//               tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);
-//             });
+      const processSales = async () => {
+        let numSales = 0;
+        const iterator = getSales(
+          { lastIdProcessed: currentSync.data.lastItemProcessed, startTimestamp: currentSync.data.endTimestamp },
+          initialSync.data.metadata.chainId
+        );
+        let result: { success: boolean; error: Error | null } = { success: true, error: null };
+        const worker = new PQueue({ concurrency: 5 });
+        for await (const page of iterator) {
+          const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
+          page.sales.forEach((item) => {
+            if (item.token_id) {
+              const ref = db
+                .collection(firestoreConstants.COLLECTIONS_COLL)
+                .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
+                .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+                .doc(item.token_id) as DocRef<NftDto>;
+              tokensRefsMaps.set(ref.path, ref);
+            }
+          });
 
-//             const data = filteredSales.map(({id, ...item}) => {
-//               const ref = db
-//                 .collection(firestoreConstants.COLLECTIONS_COLL)
-//                 .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
-//                 .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-//                 .doc(item.token_id ?? '') as DocRef<NftDto>;
-//               const token = tokensMap.get(ref.path);
-//               return {
-//                 ...item,
-//                 collection_name: token?.collectionName ?? item.collection_name,
-//                 token_image:
-//                   token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
-//               };
-//             });
+          const tokensRefs = [...tokensRefsMaps.values()];
+          if (tokensRefs.length > 0) {
+            const tokensSnap = await initialSync.ref.firestore.getAll(...tokensRefs);
+            const tokensMap = new Map<string, Partial<NftDto>>();
+            tokensSnap.forEach((snap) => {
+              tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);
+            });
 
-//             await batchSaveToPostgres(data as FlattenedPostgresNFTSale[]);
-//           }
-//         }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const data = page.sales.map(({ id, ...item }) => {
+              const ref = db
+                .collection(firestoreConstants.COLLECTIONS_COLL)
+                .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
+                .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+                .doc(item.token_id ?? '') as DocRef<NftDto>;
+              const token = tokensMap.get(ref.path);
+              return {
+                pgSale: {
+                  ...item,
+                  collection_name: token?.collectionName ?? item.collection_name,
+                  token_image:
+                    token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
+                } as FlattenedPostgresNFTSaleWithId,
+                token: token ?? {}
+              };
+            });
+            const firstSaleBlockNumber = data[0].pgSale.block_number;
+            const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
+            console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
+            worker
+              .add(async () => {
+                await Promise.all([
+                  batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
+                  batchSaveToFirestore(data)
+                ]).catch((err) => {
+                  result = {
+                    success: false,
+                    error: err as Error
+                  };
+                });
+              })
+              .catch((err) => {
+                console.error(err);
+                result = {
+                  success: false,
+                  error: err as Error
+                };
+              });
+          }
 
-//         const hasNextPage =
-//           !!page.continuation && page.continuation !== currentSync.data.continuation && numItems === pageSize;
+          numSales += page.sales.length;
+          if (page.complete) {
+            console.log(`Hit end of page, waiting for all events to to saved`);
+            await worker.onIdle();
+            if (!result.success) {
+              throw result.error;
+            }
+            return { lastItemProcessed: page.firstItemId, numSales };
+          }
+        }
 
-//         const update: Partial<SyncMetadata> = {
-//           data: {
-//             eventsProcessed: currentSync.data.eventsProcessed + numItems,
-//             continuation: hasNextPage ? page.continuation : '',
-//             lastItemProcessed: hasNextPage ? currentSync.data.lastItemProcessed : filteredSales?.[0]?.id,
-//             startTimestamp: filteredSales?.[0]?.sale_timestamp || currentSync.data.startTimestamp
-//           }
-//         };
-//         if (hasNextPage) {
+        console.log(`Hit end of page, waiting for all events to to saved`);
+        await worker.onIdle();
+        if (!result.success) {
+          throw result.error;
+        }
 
-//           // blockRange = {
-//           //   ...currentSync.data.blockRange,
-//           //   continuation: page.continuation
-//           // };
-//         } else {
-//           // blockRange = await getNextBlockRange(currentSync.metadata.chainId, currentSync.data.blockRange);
+        throw new Error('Failed to complete sync');
+      };
 
-//         }
-//         pageNumber += 1;
+      const { lastItemProcessed, numSales } = await processSales();
+      if (!lastItemProcessed) {
+        throw new Error('No last item processed');
+      }
+      txn.set(
+        initialSync.ref,
+        {
+          data: {
+            lastItemProcessed,
+            endTimestamp: currentSync.data.endTimestamp,
+            eventsProcessed: currentSync.data.eventsProcessed + numSales
+          }
+        },
+        { merge: true }
+      );
+      return { numSales, lastItemProcessed };
+    });
 
-//         /**
-//          * update sync metadata
-//          */
-//         const update: Partial<SyncMetadata> = {
-//           data: {
-//             eventsProcessed: currentSync.data.eventsProcessed + numItems,
-//             blockRange
-//           }
-//         };
-//         txn.set(initialSync.ref, update, { merge: true });
-
-//         return {
-//           numEventsSaved: numItems,
-//           continuation: blockRange.continuation
-//         };
-//       });
-
-//       yield {
-//         continuation,
-//         pageNumber,
-//         pageSize,
-//         numEventsSaved
-//       };
-//     } catch (err) {
-//       console.error(err);
-//       await sleep(10_000);
-//     }
-//   }
-// }
+    pageNumber += 1;
+    totalItemsProcessed += numSales;
+    yield { numItemsInPage: numSales, pageNumber, totalItemsProcessed, lastItemProcessed };
+  }
+}

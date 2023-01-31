@@ -1,5 +1,6 @@
 import { BigNumber } from 'ethers';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
+import PQueue from 'p-queue';
 
 import {
   InfinityLinkType,
@@ -47,13 +48,19 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
         }
 
         if (item.id === _syncData.lastIdProcessed) {
+          console.log(`Hit last processed id ${firstItem?.id ?? ''}`);
           yield { sales: pageSales, firstItemId: firstItem.id, complete: true };
           return;
         }
         pageSales.push(item as FlattenedPostgresNFTSaleWithId);
       }
 
-      if (!page.continuation) {
+      if (pageSales.length < pageSize) {
+        console.log(`Page size less than max. id ${firstItem?.id ?? ''}`);
+        yield { sales: pageSales, firstItemId: firstItem?.id ?? '', complete: true };
+        return;
+      } else if (!page.continuation) {
+        console.log(`No continuation. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, complete: true, firstItemId: firstItem?.id ?? '' };
         return;
       }
@@ -243,6 +250,8 @@ export async function* sync(
           { lastIdProcessed: currentSync.data.lastItemProcessed, startTimestamp: currentSync.data.endTimestamp },
           initialSync.data.metadata.chainId
         );
+        let result: { success: boolean; error: Error | null } = { success: true, error: null };
+        const worker = new PQueue({ concurrency: 5 });
         for await (const page of iterator) {
           const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
           page.sales.forEach((item) => {
@@ -282,16 +291,45 @@ export async function* sync(
                 token: token ?? {}
               };
             });
-
-            await Promise.all([
-              batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
-              batchSaveToFirestore(data)
-            ]);
+            const firstSaleBlockNumber = data[0].pgSale.block_number;
+            const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
+            console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
+            worker
+              .add(async () => {
+                await Promise.all([
+                  batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
+                  batchSaveToFirestore(data)
+                ]).catch((err) => {
+                  result = {
+                    success: false,
+                    error: err as Error
+                  };
+                });
+              })
+              .catch((err) => {
+                console.error(err);
+                result = {
+                  success: false,
+                  error: err as Error
+                };
+              });
           }
+
           numSales += page.sales.length;
           if (page.complete) {
+            console.log(`Hit end of page, waiting for all events to to saved`);
+            await worker.onIdle();
+            if (!result.success) {
+              throw result.error;
+            }
             return { lastItemProcessed: page.firstItemId, numSales };
           }
+        }
+
+        console.log(`Hit end of page, waiting for all events to to saved`);
+        await worker.onIdle();
+        if (!result.success) {
+          throw result.error;
         }
 
         throw new Error('Failed to complete sync');
@@ -306,8 +344,8 @@ export async function* sync(
         {
           data: {
             lastItemProcessed,
-            endTimestamp: initialSync.data.data.endTimestamp,
-            eventsProcessed: initialSync.data.data.eventsProcessed + numSales
+            endTimestamp: currentSync.data.endTimestamp,
+            eventsProcessed: currentSync.data.eventsProcessed + numSales
           }
         },
         { merge: true }

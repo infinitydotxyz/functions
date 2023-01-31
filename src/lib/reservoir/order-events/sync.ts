@@ -1,19 +1,14 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 
-
-
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
 import { bn } from '@/lib/utils';
-
-
 
 import { Reservoir } from '../..';
 import { AskV2Order, BidV1Order, ReservoirEventMetadata } from '../api/events/types';
 import { ReservoirOrderEvent, SyncMetadata } from './types';
 import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
-
 
 /**
  * Efficiently sync a large number of events from the Reservoir API
@@ -36,11 +31,12 @@ export async function* sync(
     throw new Error('Sync paused');
   }
 
-  const supportedColls = await db.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
-  .where('isSupported', '==', true)
-  .select('isSupported')
-  .limit(1000) // future todo: change limit if number of selected colls grow 
-  .get();
+  const supportedColls = await db
+    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+    .where('isSupported', '==', true)
+    .select('isSupported')
+    .limit(1000) // future todo: change limit if number of selected colls grow
+    .get();
   const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
   let hasNextPage = true;

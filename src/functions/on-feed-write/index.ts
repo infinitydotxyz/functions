@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 
-import { EventType, FeedEvent, SaleSource } from '@infinityxyz/lib/types/core';
+import { EventType, FeedEvent } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 
 import { config } from '@/config/index';
@@ -18,7 +18,7 @@ export const onFeedWrite = functions
       const type: EventType = after.get('type');
 
       if (
-        (type === EventType.NftSale && after.get('source') === SaleSource.Infinity) ||
+        (type === EventType.NftSale && after.get('source') === 'flow') ||
         type === EventType.NftOffer ||
         type === EventType.NftListing
       ) {

@@ -134,12 +134,16 @@ export class TokenTransfersProcessor extends FirestoreInOrderBatchEventProcessor
       const tokenRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(tokenId) as DocRef<NftDto>;
 
       if (validTransfers.find((item) => item.data.data.from === ethers.constants.AddressZero)) {
-        enqueueCollection({
+        await enqueueCollection({
           chainId,
           address
-        }).catch((err) => {
-          console.warn(`Failed to enqueue collection: ${err}`);
-        });
+        })
+          .then(() => {
+            console.log(`Enqueued collection for indexing ${chainId}:${address}`);
+          })
+          .catch((err) => {
+            console.warn(`Failed to enqueue collection for indexing: ${err}`);
+          });
       }
 
       const tokenUpdate: Partial<NftDto> = {

@@ -7,7 +7,7 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 
-import { NftSaleEventV2 } from './types';
+import { NftSaleEventV2 } from '../aggregate-sales-stats/types';
 
 export class NftSalesProcessor extends FirestoreInOrderBatchEventProcessor<NftSaleEventV2> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number } } = NftSaleEventV2>(

@@ -1,4 +1,4 @@
-import { sleep } from '@infinityxyz/lib/utils';
+import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 
 import { Firestore } from '../../firestore/types';
 import * as Reservoir from '../../lib/reservoir';
@@ -19,11 +19,24 @@ export async function syncSaleEvents(
   const stop = start + maxDuration;
   const pollInterval = options?.pollInterval ?? 15 * 1000;
 
+  console.log(`Loading supported collections...`);
+  const supportedColls = await db
+    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+    .where('isSupported', '==', true)
+    .select('isSupported')
+    .limit(1000) // future todo: change limit if number of selected colls grow
+    .get();
+  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
+  console.log(`Loaded ${supportedCollsSet.size} supported collections.`);
+  if (supportedCollsSet.size === 1000) {
+    console.warn(`WARNING: 1000 supported collections loaded. Increase limit`);
+  }
+
   const syncs = await Reservoir.Sales.SyncMetadata.getSyncMetadata(db);
   await Promise.all(
     syncs.map(async (syncMetadata) => {
       try {
-        const syncIterator = Reservoir.Sales.sync(db, syncMetadata);
+        const syncIterator = Reservoir.Sales.sync(db, syncMetadata, supportedCollsSet);
         for await (const pageDetails of syncIterator) {
           console.log(
             `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Saved ${pageDetails.numItemsInPage} Page ${pageDetails.pageNumber}`

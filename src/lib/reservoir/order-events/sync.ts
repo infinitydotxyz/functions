@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
+import { getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
@@ -25,19 +25,12 @@ export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
   pageSize = 300,
+  supportedCollections: Set<string>,
   startTimestamp?: number
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
   }
-
-  const supportedColls = await db
-    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
-    .where('isSupported', '==', true)
-    .select('isSupported')
-    .limit(1000) // future todo: change limit if number of selected colls grow
-    .get();
-  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
   let hasNextPage = true;
   let pageNumber = 0;
@@ -94,7 +87,7 @@ export async function* sync(
               collectionAddress: collAddress,
               chainId: currentSync.metadata.chainId ?? ChainId.Mainnet
             });
-            const isSupportedCollection = supportedCollsSet.has(collectionDocId);
+            const isSupportedCollection = supportedCollections.has(collectionDocId);
 
             return isReprice || !isSupportedCollection;
           }) as
@@ -128,12 +121,8 @@ export async function* sync(
             };
           });
 
-          const eventSnaps =
-            eventsWithRefs.length > 0 ? await txn.getAll(...eventsWithRefs.map((item) => item.eventRef)) : [];
-
           for (let i = 0; i < eventsWithRefs.length; i += 1) {
             const item = eventsWithRefs[i];
-            const snap = eventSnaps[i];
 
             if (!item || !snap) {
               throw new Error('Event or snap');
@@ -161,7 +150,7 @@ export async function* sync(
                   order: item.order
                 }
               };
-              txn.create(item.eventRef, data);
+              txn.set(item.eventRef, data);
               numEventsSaved += 1;
             }
           }

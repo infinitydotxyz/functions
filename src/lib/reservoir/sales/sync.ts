@@ -87,19 +87,12 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
 
 export async function* sync(
   db: FirebaseFirestore.Firestore,
-  initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> }
+  initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
+  supportedCollections: Set<string>
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
   }
-
-  const supportedColls = await db
-    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
-    .where('isSupported', '==', true)
-    .select('isSupported')
-    .limit(1000) // future todo: change limit if number of selected colls grow
-    .get();
-  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
   let pageNumber = 0;
   let totalItemsProcessed = 0;
@@ -235,17 +228,17 @@ export async function* sync(
       const id = `${sale.pgSale.txhash}:${sale.pgSale.log_index}:${sale.pgSale.bundle_index}`;
       const saleDocRef = salesCollectionRef.doc(id);
       const feedDocRef = feedCollectionRef.doc(id);
-      await batchHandler.addAsync(saleDocRef, sale, { merge: true });
+      await batchHandler.addAsync(saleDocRef, sale.sale, { merge: true });
 
       // only save to feed if coll is supported
       const collId = getCollectionDocId({
         collectionAddress: sale.feedEvent.collectionAddress,
         chainId: sale.feedEvent.chainId
       });
-      if (supportedCollsSet.has(collId)) {
+      if (supportedCollections.has(collId)) {
         await batchHandler.addAsync(feedDocRef, sale.feedEvent, { merge: true });
       }
-      
+
       const saleEventV2Ref = db
         .collection(firestoreConstants.COLLECTIONS_COLL)
         .doc(`${initialSync.data.metadata.chainId}:${sale.saleV2.data.collectionAddress}`)
@@ -253,7 +246,6 @@ export async function* sync(
         .doc(sale.saleV2.data.tokenId)
         .collection('nftSaleEvents')
         .doc(id);
-      await batchHandler.addAsync(saleDocRef, sale.sale, { merge: true });
       await batchHandler.addAsync(saleEventV2Ref, sale.saleV2, { merge: true });
     }
 

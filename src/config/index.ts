@@ -59,12 +59,20 @@ const getPG = () => {
   return _pg;
 };
 
+const isDev = serviceAccount.project_id === 'nftc-dev';
+const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false);
+const DEV_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
+const PROD_BASE_URL = 'https://sv.flow.so';
 export const config = {
-  isDev: serviceAccount.project_id === 'nftc-dev',
+  isDev,
+  flow: {
+    baseUrl: isDev ? DEV_BASE_URL : PROD_BASE_URL,
+    apiKey: getEnvVariable('FLOW_API_KEY', false)
+  },
   firebase: {
     serviceAccount: serviceAccount as ServiceAccount,
     region: 'us-east1',
-    snapshotBucket: serviceAccount.project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+    snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
   },
   pg: {
     getPG

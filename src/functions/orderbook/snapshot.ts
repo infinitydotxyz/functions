@@ -1,11 +1,9 @@
-import { storage } from 'firebase-admin';
-import { PassThrough } from 'stream';
+import { join, normalize } from 'path';
+import phin from 'phin';
 
-import { ChainId, ChainOBOrder, OrderSource, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { ChainId, ChainOBOrder, OrderSource } from '@infinityxyz/lib/types/core';
 
-import { streamQueryWithRef } from '@/firestore/stream-query';
-import { Firestore, Query } from '@/firestore/types';
+import { config } from '@/config/index';
 
 export interface SnapshotMetadata {
   bucket: string;
@@ -23,76 +21,29 @@ export interface OrderbookSnapshotOrder {
   gasUsage: string;
 }
 
-export async function takeSnapshot(db: Firestore, chainId: ChainId, bucketName: string, fileName: string) {
-  const file = storage().bucket(bucketName).file(fileName);
+export async function takeSnapshot(chainId: ChainId) {
+  const baseUrl = config.flow.baseUrl;
+  if (!baseUrl) {
+    console.warn('No baseUrl configured, skipping snapshot');
+    return;
+  }
 
-  const startTimestamp = Date.now();
+  const endpoint = new URL(normalize(join(baseUrl, 'v2/bulk/snapshot'))).toString();
 
-  const passthroughStream = new PassThrough();
-
-  const activeOrdersQuery = db
-    .collection(firestoreConstants.ORDERS_V2_COLL)
-    .where('metadata.chainId', '==', chainId)
-    .where('order.status', '==', 'active') as Query<RawFirestoreOrderWithoutError>;
-
-  const streamOrders = async (passThough: PassThrough) => {
-    let numOrders = 0;
-    const stream = streamQueryWithRef(activeOrdersQuery);
-    for await (const item of stream) {
-      const orderData: OrderbookSnapshotOrder = {
-        id: item.data.metadata.id,
-        order: item.data.rawOrder.infinityOrder,
-        source: item.data.order.sourceMarketplace,
-        sourceOrder: item.data.rawOrder.rawOrder,
-        gasUsage: item.data.rawOrder.gasUsage
-      };
-
-      const stringified = JSON.stringify(orderData);
-
-      passThough.write(`${stringified}\n`);
-
-      numOrders += 1;
-
-      if (numOrders % 100 === 0) {
-        console.log(`Handled ${numOrders} orders so far`);
-      }
+  const res = await phin({
+    url: endpoint,
+    method: 'PUT',
+    data: {
+      chainId
+    },
+    headers: {
+      'x-api-key': config.flow.apiKey
     }
-
-    return numOrders;
-  };
-
-  const uploadPromise = new Promise<{ numOrders: number }>((resolve, reject) => {
-    let numOrders = 0;
-    passthroughStream
-      .pipe(file.createWriteStream())
-      .on('finish', () => {
-        resolve({ numOrders });
-      })
-      .on('error', (err) => {
-        reject(err);
-      });
-
-    streamOrders(passthroughStream)
-      .then((result) => {
-        numOrders = result;
-        passthroughStream.end();
-      })
-      .catch((err) => {
-        passthroughStream.destroy(err);
-      });
   });
 
-  const result = await uploadPromise;
-
-  const metadata = {
-    bucket: bucketName,
-    file: fileName,
-    chainId: chainId,
-    numOrders: result.numOrders,
-    timestamp: startTimestamp
-  };
-
-  await db.collection('orderSnapshots').doc(fileName).set(metadata);
-
-  console.log(`Uploaded ${result.numOrders} orders to ${fileName}`);
+  if (res.statusCode && res.statusCode < 300 && res.statusCode >= 200) {
+    console.log('Successfully triggered snapshot');
+    return;
+  }
+  throw new Error(`Failed to take snapshot: ${res.statusCode} ${res.statusMessage}`);
 }

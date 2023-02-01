@@ -7,7 +7,7 @@ import { getDb } from '@/firestore/db';
 import { Reservoir } from '../lib';
 
 async function main() {
-  const startBlockNum = 16528000; // TODO sync from alchemy to here
+  const startBlockNum = 16530500; // TODO sync from alchemy to here
 
   const chainId = ChainId.Mainnet;
   const db = getDb();

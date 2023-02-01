@@ -39,7 +39,7 @@ export async function syncOrderEvents(
         const syncIterator = Reservoir.OrderEvents.sync(
           db,
           syncMetadata,
-          300,
+          450,
           supportedCollsSet,
           options?.startTimestamp
         );

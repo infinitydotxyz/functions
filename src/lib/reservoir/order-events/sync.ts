@@ -121,12 +121,8 @@ export async function* sync(
             };
           });
 
-          const eventSnaps =
-            eventsWithRefs.length > 0 ? await txn.getAll(...eventsWithRefs.map((item) => item.eventRef)) : [];
-
           for (let i = 0; i < eventsWithRefs.length; i += 1) {
             const item = eventsWithRefs[i];
-            const snap = eventSnaps[i];
 
             if (!item || !snap) {
               throw new Error('Event or snap');
@@ -154,7 +150,7 @@ export async function* sync(
                   order: item.order
                 }
               };
-              txn.create(item.eventRef, data);
+              txn.set(item.eventRef, data);
               numEventsSaved += 1;
             }
           }

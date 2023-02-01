@@ -25,19 +25,12 @@ export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
   pageSize = 300,
-  startTimestamp?: number
+  startTimestamp?: number,
+  supportedCollsSet?: Set<string>
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
   }
-
-  const supportedColls = await db
-    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
-    .where('isSupported', '==', true)
-    .select('isSupported')
-    .limit(1000) // future todo: change limit if number of selected colls grow
-    .get();
-  const supportedCollsSet = new Set(supportedColls.docs.map((doc) => doc.id));
 
   let hasNextPage = true;
   let pageNumber = 0;

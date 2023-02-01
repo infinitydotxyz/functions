@@ -89,7 +89,7 @@ export async function* sync(
             });
             const isSupportedCollection = supportedCollections.has(collectionDocId);
 
-            return isReprice || !isSupportedCollection;
+            return !isReprice && isSupportedCollection;
           }) as
             | { bid: BidV1Order; event: ReservoirEventMetadata }[]
             | { order: AskV2Order; event: ReservoirEventMetadata }[];
@@ -123,36 +123,24 @@ export async function* sync(
 
           for (let i = 0; i < eventsWithRefs.length; i += 1) {
             const item = eventsWithRefs[i];
-
-            if (!item || !snap) {
-              throw new Error('Event or snap');
-            } else if (!bn(item.event.id.toString()).eq(snap.ref.id)) {
-              throw new Error('Event id mismatch');
-            }
-
-            /**
-             * only save events once
-             */
-            if (!snap.exists) {
-              const data: ReservoirOrderEvent = {
-                metadata: {
-                  id: getReservoirOrderEventId(item.event.id),
-                  isSellOrder: item.isSellOrder,
-                  updatedAt: Date.now(),
-                  migrationId: 1,
-                  processed: false,
-                  orderId: item.order.id,
-                  status: item.order.status,
-                  chainId: currentSync.metadata.chainId
-                },
-                data: {
-                  event: item.event,
-                  order: item.order
-                }
-              };
-              txn.set(item.eventRef, data);
-              numEventsSaved += 1;
-            }
+            const data: ReservoirOrderEvent = {
+              metadata: {
+                id: getReservoirOrderEventId(item.event.id),
+                isSellOrder: item.isSellOrder,
+                updatedAt: Date.now(),
+                migrationId: 1,
+                processed: false,
+                orderId: item.order.id,
+                status: item.order.status,
+                chainId: currentSync.metadata.chainId
+              },
+              data: {
+                event: item.event,
+                order: item.order
+              }
+            };
+            txn.set(item.eventRef, data);
+            numEventsSaved += 1;
           }
 
           hasNextPage = numItems < pageSize || !!page.data.continuation;

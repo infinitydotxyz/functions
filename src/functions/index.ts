@@ -18,3 +18,4 @@ export * from './reservoir';
 // export * from './treasury';
 // export * from './twitter';
 export * from './on-feed-write';
+export * from './trending-collections';

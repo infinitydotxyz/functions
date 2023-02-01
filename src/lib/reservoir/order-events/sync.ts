@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
+import { getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
@@ -25,8 +25,8 @@ export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
   pageSize = 300,
-  startTimestamp?: number,
-  supportedCollsSet?: Set<string>
+  supportedCollections: Set<string>,
+  startTimestamp?: number
 ) {
   if (initialSync?.data?.metadata?.isPaused) {
     throw new Error('Sync paused');
@@ -87,7 +87,7 @@ export async function* sync(
               collectionAddress: collAddress,
               chainId: currentSync.metadata.chainId ?? ChainId.Mainnet
             });
-            const isSupportedCollection = supportedCollsSet.has(collectionDocId);
+            const isSupportedCollection = supportedCollections.has(collectionDocId);
 
             return isReprice || !isSupportedCollection;
           }) as

@@ -40,8 +40,8 @@ export async function syncOrderEvents(
           db,
           syncMetadata,
           300,
-          options?.startTimestamp,
-          supportedCollsSet
+          supportedCollsSet,
+          options?.startTimestamp
         );
         for await (const pageDetails of syncIterator) {
           console.log(

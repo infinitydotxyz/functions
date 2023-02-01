@@ -228,7 +228,7 @@ export async function* sync(
       const id = `${sale.pgSale.txhash}:${sale.pgSale.log_index}:${sale.pgSale.bundle_index}`;
       const saleDocRef = salesCollectionRef.doc(id);
       const feedDocRef = feedCollectionRef.doc(id);
-      await batchHandler.addAsync(saleDocRef, sale, { merge: true });
+      await batchHandler.addAsync(saleDocRef, sale.sale, { merge: true });
 
       // only save to feed if coll is supported
       const collId = getCollectionDocId({
@@ -246,7 +246,6 @@ export async function* sync(
         .doc(sale.saleV2.data.tokenId)
         .collection('nftSaleEvents')
         .doc(id);
-      await batchHandler.addAsync(saleDocRef, sale.sale, { merge: true });
       await batchHandler.addAsync(saleEventV2Ref, sale.saleV2, { merge: true });
     }
 

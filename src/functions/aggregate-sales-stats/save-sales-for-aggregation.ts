@@ -61,8 +61,6 @@ export async function saveSalesForAggregation() {
           tx.set(flowRewardsLedger.doc(), saleEvent);
         }
         saveSaleToCollectionSales(saleWithDocId, tx);
-        // saveSaleToNftSales(saleWithDocId, tx);
-        // saveSaleToSourceSales(saleWithDocId, tx);
         const saleUpdate: Pick<NftSale, 'isAggregated'> = {
           isAggregated: true
         };
@@ -98,68 +96,3 @@ function saveSaleToCollectionSales(
   };
   tx.set(collectionStatsRef, statsDocUpdate, { merge: true });
 }
-
-// function saveSaleToNftSales(sale: NftSale & { docId: string; updatedAt: number }, tx: FirebaseFirestore.Transaction) {
-//   const db = getDb();
-//   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-//   const nftStatsRef = db
-//     .collection(firestoreConstants.COLLECTIONS_COLL)
-//     .doc(`${sale.chainId}:${sale.collectionAddress}`)
-//     .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-//     .doc(sale.tokenId)
-//     .collection(firestoreConstants.AGGREGATED_NFT_SALES_COLL)
-//     .doc(intervalId);
-//   const salesRef = nftStatsRef.collection(firestoreConstants.INTERVAL_SALES_COLL);
-//   const saleRef = salesRef.doc(sale.docId);
-//   tx.set(saleRef, sale, { merge: false });
-//   const statsDocUpdate: Partial<SalesIntervalDoc> = {
-//     updatedAt: Date.now(),
-//     hasUnaggregatedSales: true
-//   };
-//   tx.set(nftStatsRef, statsDocUpdate, { merge: true });
-// }
-
-// function saveToNftSales(sale: NftSale & { docId: string; updatedAt: number }, tx: FirebaseFirestore.Transaction) {
-//   const db = getDb();
-//   const nftSalesRef = db
-//     .collection(firestoreConstants.COLLECTIONS_COLL)
-//     .doc(`${sale.chainId}:${sale.collectionAddress}`)
-//     .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-//     .doc(sale.tokenId)
-//     .collection('nftSaleEvents')
-//     .doc(`${sale.docId}`);
-
-//   tx.set(
-//     nftSalesRef,
-//     {
-//       data: sale,
-//       metadata: {
-//         timestamp: sale.timestamp,
-//         updatedAt: Date.now(),
-//         processed: false
-//       }
-//     },
-//     { merge: false }
-//   );
-// }
-
-// function saveSaleToSourceSales(
-//   sale: NftSale & { docId: string; updatedAt: number },
-//   tx: FirebaseFirestore.Transaction
-// ) {
-//   const db = getDb();
-//   const intervalId = getIntervalAggregationId(sale.timestamp, AggregationInterval.FiveMinutes);
-//   const sourceStatsRef = db
-//     .collection(firestoreConstants.MARKETPLACE_STATS_COLL)
-//     .doc(sale.source)
-//     .collection(firestoreConstants.AGGREGATED_SOURCE_SALES_COLL)
-//     .doc(intervalId);
-//   const salesRef = sourceStatsRef.collection(firestoreConstants.INTERVAL_SALES_COLL);
-//   const saleRef = salesRef.doc(sale.docId);
-//   tx.set(saleRef, sale, { merge: false });
-//   const statsDocUpdate: Partial<SalesIntervalDoc> = {
-//     updatedAt: Date.now(),
-//     hasUnaggregatedSales: true
-//   };
-//   tx.set(sourceStatsRef, statsDocUpdate, { merge: true });
-// }

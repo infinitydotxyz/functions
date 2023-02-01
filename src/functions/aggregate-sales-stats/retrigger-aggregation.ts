@@ -8,9 +8,7 @@ export async function retriggerAggregation() {
   const db = getDb();
   const intervalSales = db.collectionGroup('intervalSales');
   const collectionAggregatedSales = db.collectionGroup('aggregatedCollectionSales');
-  const nftAggregatedSales = db.collectionGroup('aggregatedNftSales');
-  const sourceAggregatedSales = db.collectionGroup('aggregatedSourceSales');
-  const collectionGroups = [collectionAggregatedSales, nftAggregatedSales, sourceAggregatedSales];
+  const collectionGroups = [collectionAggregatedSales];
   const tenMin = 60 * 1000 * 10;
   const retriggerIfUpdatedBefore = Date.now() - tenMin;
   const batchHandler = new BatchHandler();

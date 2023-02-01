@@ -1,5 +1,3 @@
-import { syncSaleEvents } from 'functions/reservoir/sync-sale-events';
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 
 import { getDb } from '@/firestore/db';
@@ -15,13 +13,6 @@ async function main() {
   await Reservoir.Sales.addSyncs(getDb(), chainId, ['sales'], startBlockNum);
 
   console.log(`Successfully initiated sales syncing for chain ${chainId}.`);
-
-  // await s();
-}
-
-async function s() {
-  const db = getDb();
-  await syncSaleEvents(db, 1000 * 60 * 60 * 24, { pollInterval: 10 * 1000, delay: 1000 });
 }
 
 void main();

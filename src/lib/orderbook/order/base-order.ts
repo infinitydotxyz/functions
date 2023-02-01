@@ -237,6 +237,18 @@ export class BaseOrder {
     }
   }
 
+  public async delete(displayOrder: FirestoreDisplayOrder) {
+    const refs = this.getDisplayRefs(displayOrder);
+    const batch = new BatchHandler();
+    await batch.deleteAsync(this.rawRef);
+    for (const ref of refs) {
+      if (ref) {
+        await batch.deleteAsync(ref);
+      }
+    }
+    await batch.flush();
+  }
+
   protected async _build(
     txn?: FirebaseFirestore.Transaction,
     reservoirOrder?: AskOrder

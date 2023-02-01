@@ -82,6 +82,14 @@ export class OrderUpdater {
     this._rawOrder.order.owners = [...new Set(owners)];
   }
 
+  setComplication(complication: string) {
+    if (this._rawOrder.rawOrder.infinityOrder.sig !== '') {
+      throw new Error('cannot set complication on signed order');
+    }
+    this._rawOrder.order.complication = complication;
+    this._rawOrder.rawOrder.infinityOrder.execParams[0] = complication;
+  }
+
   setGasUsage(gasUsage: number) {
     this._rawOrder.order.gasUsage = gasUsage;
     this._rawOrder.order.gasUsageString = gasUsage.toString();

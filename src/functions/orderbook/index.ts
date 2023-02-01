@@ -64,22 +64,9 @@ export const takeOrderbookSnapshots = functions
   .runWith({ timeoutSeconds: 540, maxInstances: 1 })
   .pubsub.schedule('every 24 hours')
   .onRun(async () => {
-    const db = getDb();
-    const date = new Date().toISOString().split('T')[0];
-    const fileName = (chainId: ChainId) => {
-      return `chain:${chainId}:date:${date}`;
-    };
-    const bucketName = config.firebase.snapshotBucket;
-    const mainnet = takeSnapshot(db, ChainId.Mainnet, bucketName, fileName(ChainId.Mainnet));
-    const goerli = takeSnapshot(db, ChainId.Goerli, bucketName, fileName(ChainId.Goerli));
-    const start = Date.now();
+    const mainnet = takeSnapshot(ChainId.Mainnet);
+    const goerli = takeSnapshot(ChainId.Goerli);
     await Promise.allSettled([mainnet, goerli]);
-
-    const end = Date.now();
-
-    if (end - start > ONE_MIN * 3) {
-      console.error('Snapshots are taking a significant amount of time to complete. Consider alternative triggers');
-    }
   });
 
 /**

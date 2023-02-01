@@ -48,7 +48,7 @@ const getPG = () => {
       password,
       max: 20,
       idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 2000
+      connectionTimeoutMillis: 20000
     };
 
     const pgp = pgPromise({

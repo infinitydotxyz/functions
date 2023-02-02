@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
 
 import { config } from '@/config/index';
-import { aggregateSalesStats } from './save-sales-for-aggregation';
+import { aggregateSalesStats } from './aggregate-sales';
 
 export const saveSalesToBeAggregated = functions
   .region(config.firebase.region)

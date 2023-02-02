@@ -66,7 +66,8 @@ export async function aggregateSalesStats() {
         const dataToStore: Partial<CollectionStats> = {
           floorPrice: saleWithDocId.price < statsData.floorPrice ? saleWithDocId.price : statsData.floorPrice,
           numSales: statsData.numSales + 1,
-          volume: statsData.volume + saleWithDocId.price
+          volume: statsData.volume + saleWithDocId.price,
+          updatedAt: Date.now()
         };
         tx.set(collStatsDoc, dataToStore, { merge: true });
 

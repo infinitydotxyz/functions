@@ -10,6 +10,18 @@ import { syncSaleEvents } from '@/lib/reservoir/sales/sync-sale-events';
 const db = getDb();
 const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
 
+process.on('uncaughtException', (error, origin) => {
+  console.error('Uncaught exception', error, origin);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection', reason);
+});
+
+process.on('exit', (code) => {
+  console.log(`Process exiting... Code: ${code}`);
+});
+
 const processes = {
   syncSalesEvents: {
     enabled: true,

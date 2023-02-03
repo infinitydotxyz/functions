@@ -265,7 +265,7 @@ export async function* sync(
           initialSync.data.metadata.chainId
         );
         let result: { success: boolean; error: Error | null } = { success: true, error: null };
-        const worker = new PQueue({ concurrency: 5 });
+        const worker = new PQueue({ concurrency: 3 });
         for await (const page of iterator) {
           const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
           page.sales.forEach((item) => {

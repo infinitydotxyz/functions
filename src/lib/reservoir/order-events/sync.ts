@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
+import { getCollectionDocId } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';

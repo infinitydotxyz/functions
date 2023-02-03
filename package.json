@@ -26,7 +26,7 @@
     "check-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-sync.ts",
     "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
     "start:dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/app-engine/index.ts",
-    "start": "node -r dotenv/config ./dist/app-engine/bootstrap.js"
+    "start": "node --max-old-space-size=1024 -r dotenv/config ./dist/app-engine/bootstrap.js"
   },
   "engines": {
     "node": "16"

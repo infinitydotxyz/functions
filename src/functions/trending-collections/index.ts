@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
 import phin from 'phin';
 
-import { config, PROD_SERVER_BASE_URL } from '@/config/index';
+import { PROD_SERVER_BASE_URL, config } from '@/config/index';
 
 export const fetchTrendingCollections = functions
   .region(config.firebase.region)

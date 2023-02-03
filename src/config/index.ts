@@ -62,7 +62,7 @@ const getPG = () => {
 };
 
 const isDev = serviceAccount.project_id === 'nftc-dev';
-const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false);
+const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 const DEV_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
 const PROD_BASE_URL = 'https://sv.flow.so';
 export const config = {

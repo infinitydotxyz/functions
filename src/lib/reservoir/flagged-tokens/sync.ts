@@ -68,10 +68,6 @@ export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> }
 ) {
-  if (initialSync?.data?.metadata?.isPaused) {
-    throw new Error('Sync paused');
-  }
-
   let pageNumber = 0;
   let totalItemsProcessed = 0;
 

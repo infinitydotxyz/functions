@@ -31,7 +31,6 @@ export async function syncOrderEvents(
   if (supportedCollsSet.size === 1000) {
     console.warn(`WARNING: 1000 supported collections loaded. Increase limit`);
   }
-
   const syncs = await Reservoir.OrderEvents.SyncMetadata.getSyncMetadata(db);
   await Promise.all(
     syncs.map(async (syncMetadata) => {

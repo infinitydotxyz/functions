@@ -1,7 +1,13 @@
+import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
+
 import { ChainId } from '@infinityxyz/lib/types/core';
 
+import { FlaggedTokenEvent } from '@/lib/reservoir/api/tokens/types';
+
 export enum NftEventKind {
-  Transfer = 'transfer'
+  Transfer = 'transfer',
+  Sale = 'sale',
+  FlagStatus = 'flag-status'
 }
 
 interface NftEvent {
@@ -49,3 +55,15 @@ export interface NftTransferEvent extends OnChainNftEvent {
   metadata: OnChainNftEvent['metadata'] & { kind: NftEventKind.Transfer };
   data: OnChainNftTransferEventData;
 }
+
+export interface NftSaleEvent extends NftEvent {
+  metadata: NftEvent['metadata'] & { kind: NftEventKind.Sale };
+  data: NftSaleEventV2;
+}
+
+export interface NftFlagStatusEvent extends NftEvent {
+  metadata: NftEvent['metadata'] & { kind: NftEventKind.FlagStatus };
+  data: FlaggedTokenEvent;
+}
+
+export type NftEvents = NftTransferEvent | NftSaleEvent | NftFlagStatusEvent;

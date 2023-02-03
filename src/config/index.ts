@@ -1,3 +1,4 @@
+import { config as loadEnv } from 'dotenv';
 import { ethers } from 'ethers';
 import { ServiceAccount } from 'firebase-admin';
 import pgPromise from 'pg-promise';
@@ -19,6 +20,12 @@ const getEnvVariable = (key: string, required = true): string => {
   return '';
 };
 
+const isDev = serviceAccount.project_id === 'nftc-dev';
+const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
+if (!isDeployed && isDev) {
+  loadEnv({ path: '.env.development.local', override: true });
+}
+
 export const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';
 
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
@@ -28,10 +35,13 @@ const user = getEnvVariable('DB_USER', false);
 const password = getEnvVariable('DB_PASS', false);
 const database = getEnvVariable('DB_NAME', false);
 const instanceSocket = getEnvVariable('INSTANCE_UNIX_SOCKET', false);
+const host = getEnvVariable('DB_HOST', false);
+const port = Number(getEnvVariable('DB_PORT', false));
+
 let _pg: { pgDB: pgPromise.IDatabase<any, pg.IClient>; pgp: pgPromise.IMain<any, pg.IClient> };
 const getPG = () => {
   if (!_pg) {
-    if (!user || !password || !database || !instanceSocket) {
+    if (!user || !password || !database) {
       console.warn('Missing PG DB credentials, skipping DB connection');
       return;
     }
@@ -39,9 +49,17 @@ const getPG = () => {
     const url = instanceSocket
       ? { host: instanceSocket }
       : {
-          port: Number(getEnvVariable('DB_PORT')),
-          host: getEnvVariable('DB_HOST')
+          port,
+          host
         };
+
+    if ('host' in url && !url.host) {
+      console.warn('Missing PG DB credentials, skipping DB connection');
+      return;
+    } else if ('port' in url && !url.port) {
+      console.warn('Missing PG DB credentials, skipping DB connection');
+      return;
+    }
 
     const pgConnection = {
       ...url,
@@ -53,6 +71,8 @@ const getPG = () => {
       connectionTimeoutMillis: 20000
     };
 
+    console.log(pgConnection);
+
     const pgp = pgPromise({
       capSQL: true
     });
@@ -61,8 +81,6 @@ const getPG = () => {
   return _pg;
 };
 
-const isDev = serviceAccount.project_id === 'nftc-dev';
-const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 const DEV_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
 const PROD_BASE_URL = 'https://sv.flow.so';
 export const config = {

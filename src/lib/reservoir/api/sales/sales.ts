@@ -108,6 +108,12 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
   };
 
   const sales = (response.data.sales ?? []).map((sale) => {
+    const amount = sale.price?.netAmount ?? sale.price?.amount;
+
+    if (!amount) {
+      console.error(`Failed to find price data for sale ${sale.id}`);
+    }
+
     const pgSale: Partial<FlattenedPostgresNFTSaleWithId> = {
       id: sale.id,
       txhash: sale.txHash,
@@ -124,8 +130,8 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
       token_id: sale.token?.tokenId,
       token_image: sale.token?.image,
       sale_timestamp: (sale.timestamp ?? 0) * 1000,
-      sale_price: sale?.price?.netAmount?.raw,
-      sale_price_eth: parseFloat(formatUnits(sale?.price?.netAmount?.raw ?? '0', sale?.price?.currency?.decimals)),
+      sale_price: amount?.raw,
+      sale_price_eth: parseFloat(formatUnits(amount?.raw ?? '0', sale?.price?.currency?.decimals)),
       sale_currency_address: sale?.price?.currency?.contract ?? ethers.constants.AddressZero,
       sale_currency_decimals: sale?.price?.currency?.decimals,
       sale_currency_symbol: sale?.price?.currency?.symbol

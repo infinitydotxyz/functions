@@ -3,16 +3,11 @@ import { ServiceAccount } from 'firebase-admin';
 import pgPromise from 'pg-promise';
 import pg from 'pg-promise/typescript/pg-subset';
 
-
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-
-
 // TODO adi change in release
 import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
-
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -67,7 +62,7 @@ const getPG = () => {
 };
 
 const isDev = serviceAccount.project_id === 'nftc-dev';
-const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false);
+const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 const DEV_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
 const PROD_BASE_URL = 'https://sv.flow.so';
 export const config = {

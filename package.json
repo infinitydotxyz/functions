@@ -5,13 +5,14 @@
     "lint-check": "eslint \"{src,apps}/**/*.ts\"",
     "lint": "eslint \"{src,apps}/**/*.ts\" --fix",
     "pre:push": "npm run format && npm run lint && npm run build && npm run test",
-    "build": "npm run update:lib && tsc -b ./tsconfig.build.json",
+    "build": "tsc -b ./tsconfig.build.json",
     "serve": "npm run build && firebase emulators:start --only functions --project nftc-dev",
     "shell": "npm run build && firebase functions:shell",
-    "start": "npm run shell",
+    "start:shell": "npm run shell",
     "deploy:dev": "firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "firebase deploy --only functions --project nftc-infinity",
-    "deploy:test": "firebase deploy --only functions --project nftc-test-3",
+    "deploy:app:dev": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-dev",
+    "deploy:app:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -23,7 +24,9 @@
     "backfill-reservoir-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders.ts",
     "start-sales-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-sales-sync.ts",
     "check-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-sync.ts",
-    "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts"
+    "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
+    "start:dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/app-engine/index.ts",
+    "start": "node --max-old-space-size=1024 -r dotenv/config ./dist/app-engine/bootstrap.js"
   },
   "engines": {
     "node": "16"
@@ -31,7 +34,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.305.5",
+    "@infinityxyz/lib": "^1.306.1",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "^0.0.302",
     "@uniswap/sdk-core": "^3.0.1",

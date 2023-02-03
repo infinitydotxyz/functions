@@ -26,6 +26,7 @@ import {
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { DocRef } from '@/firestore/types';
+import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 
 import { Reservoir } from '../..';
 import { FlattenedPostgresNFTSale } from '../api/sales';
@@ -88,12 +89,8 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
 export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
-  supportedCollections: Set<string>
+  supportedCollections: SupportedCollectionsProvider
 ) {
-  if (initialSync?.data?.metadata?.isPaused) {
-    throw new Error('Sync paused');
-  }
-
   let pageNumber = 0;
   let totalItemsProcessed = 0;
 
@@ -258,7 +255,7 @@ export async function* sync(
       const currentSync = snap.data() as SyncMetadata;
 
       if (currentSync.metadata.isPaused) {
-        throw new Error('Sync paused');
+        throw new Error(`Sync paused`);
       }
 
       const processSales = async () => {
@@ -268,7 +265,7 @@ export async function* sync(
           initialSync.data.metadata.chainId
         );
         let result: { success: boolean; error: Error | null } = { success: true, error: null };
-        const worker = new PQueue({ concurrency: 5 });
+        const worker = new PQueue({ concurrency: 3 });
         for await (const page of iterator) {
           const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
           page.sales.forEach((item) => {

@@ -60,7 +60,7 @@ async function runSyncOrderEvents(db: Firestore, supportedCollectionsProvider: S
     try {
       await syncOrderEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 1000 });
     } catch (err) {
-      console.error(`Failed to syn order events`, err);
+      console.error(`Failed to sync order events`, err);
       await sleep(60_000);
     }
   }

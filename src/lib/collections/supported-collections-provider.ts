@@ -1,3 +1,4 @@
+import { SupportedCollection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { Firestore, Query } from '@/firestore/types';
@@ -16,7 +17,7 @@ export class SupportedCollectionsProvider {
   protected get supportedCollectionsQuery() {
     return this._db
       .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
-      .where('isSupported', '==', true) as Query<{ isSupported: boolean }>;
+      .where('isSupported', '==', true) as Query<SupportedCollection>;
   }
 
   protected _init() {

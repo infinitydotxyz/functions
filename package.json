@@ -23,7 +23,8 @@
     "backfill-reservoir-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders.ts",
     "start-sales-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-sales-sync.ts",
     "check-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-sync.ts",
-    "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts"
+    "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
+    "backfill-sales": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-sales.ts"
   },
   "engines": {
     "node": "16"

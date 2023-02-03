@@ -13,7 +13,8 @@ import * as Reservoir from '../../lib/reservoir';
 export async function syncSaleEvents(
   db: Firestore,
   maxDuration: number,
-  options?: { pollInterval?: number; delay?: number }
+  options?: { pollInterval?: number; delay?: number },
+  stopAfterBackfill?: boolean
 ) {
   const start = Date.now();
   const stop = start + maxDuration;
@@ -41,6 +42,12 @@ export async function syncSaleEvents(
           console.log(
             `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Saved ${pageDetails.numItemsInPage} Page ${pageDetails.pageNumber}`
           );
+          if (stopAfterBackfill) {
+            console.log(
+              `Backfill completed for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}`
+            );
+            return;
+          }
           if (Date.now() > stop) {
             return;
           }

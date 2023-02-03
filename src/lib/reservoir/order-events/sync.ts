@@ -3,7 +3,6 @@ import { getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { DocRef } from '@/firestore/types';
-import { bn } from '@/lib/utils';
 
 import { Reservoir } from '../..';
 import { AskV2Order, BidV1Order, ReservoirEventMetadata } from '../api/events/types';

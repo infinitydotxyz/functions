@@ -258,117 +258,129 @@ export async function* sync(
     await batchHandler.flush();
   };
 
-  while (true) {
-    const { lastItemProcessed, numSales } = await db.runTransaction(async (txn) => {
-      const snap = await txn.get(initialSync.ref);
-      const currentSync = snap.data() as SyncMetadata;
+  const processSales = async (currentSync: SyncMetadata) => {
+    let numSales = 0;
+    const iterator = getSales(
+      { lastIdProcessed: currentSync.data.lastItemProcessed, startTimestamp: currentSync.data.endTimestamp },
+      initialSync.data.metadata.chainId
+    );
+    let result: { success: boolean; error: Error | null } = { success: true, error: null };
+    const worker = new PQueue({ concurrency: 5 });
+    for await (const page of iterator) {
+      const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
+      page.sales.forEach((item) => {
+        if (item.token_id) {
+          const ref = db
+            .collection(firestoreConstants.COLLECTIONS_COLL)
+            .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
+            .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+            .doc(item.token_id) as DocRef<NftDto>;
+          tokensRefsMaps.set(ref.path, ref);
+        }
+      });
 
-      if (currentSync.metadata.isPaused) {
-        throw new Error(`Sync paused`);
-      }
+      const tokensRefs = [...tokensRefsMaps.values()];
+      if (tokensRefs.length > 0) {
+        const tokensSnap = await initialSync.ref.firestore.getAll(...tokensRefs);
+        const tokensMap = new Map<string, Partial<NftDto>>();
+        tokensSnap.forEach((snap) => {
+          tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);
+        });
 
-      const processSales = async () => {
-        let numSales = 0;
-        const iterator = getSales(
-          { lastIdProcessed: currentSync.data.lastItemProcessed, startTimestamp: currentSync.data.endTimestamp },
-          initialSync.data.metadata.chainId
-        );
-        let result: { success: boolean; error: Error | null } = { success: true, error: null };
-        const worker = new PQueue({ concurrency: 3 });
-        for await (const page of iterator) {
-          const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
-          page.sales.forEach((item) => {
-            if (item.token_id) {
-              const ref = db
-                .collection(firestoreConstants.COLLECTIONS_COLL)
-                .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
-                .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-                .doc(item.token_id) as DocRef<NftDto>;
-              tokensRefsMaps.set(ref.path, ref);
-            }
-          });
-
-          const tokensRefs = [...tokensRefsMaps.values()];
-          if (tokensRefs.length > 0) {
-            const tokensSnap = await initialSync.ref.firestore.getAll(...tokensRefs);
-            const tokensMap = new Map<string, Partial<NftDto>>();
-            tokensSnap.forEach((snap) => {
-              tokensMap.set(snap.ref.path, (snap.data() ?? {}) as Partial<NftDto>);
-            });
-
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const data = page.sales.map(({ id, ...item }) => {
-              const ref = db
-                .collection(firestoreConstants.COLLECTIONS_COLL)
-                .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
-                .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-                .doc(item.token_id ?? '') as DocRef<NftDto>;
-              const token = tokensMap.get(ref.path);
-              return {
-                pgSale: {
-                  ...item,
-                  collection_name: token?.collectionName ?? item.collection_name,
-                  token_image:
-                    token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
-                } as FlattenedPostgresNFTSaleWithId,
-                token: token ?? {}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const data = page.sales.map(({ id, ...item }) => {
+          const ref = db
+            .collection(firestoreConstants.COLLECTIONS_COLL)
+            .doc(`${currentSync.metadata.chainId}:${item.collection_address}`)
+            .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+            .doc(item.token_id ?? '') as DocRef<NftDto>;
+          const token = tokensMap.get(ref.path);
+          return {
+            pgSale: {
+              ...item,
+              collection_name: token?.collectionName ?? item.collection_name,
+              token_image:
+                token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl
+            } as FlattenedPostgresNFTSaleWithId,
+            token: token ?? {}
+          };
+        });
+        const firstSaleBlockNumber = data[0].pgSale.block_number;
+        const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
+        console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
+        worker
+          .add(async () => {
+            await Promise.all([
+              batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
+              batchSaveToFirestore(data)
+            ]).catch((err) => {
+              result = {
+                success: false,
+                error: err as Error
               };
             });
-            const firstSaleBlockNumber = data[0].pgSale.block_number;
-            const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
-            console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
-            worker
-              .add(async () => {
-                await Promise.all([
-                  batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
-                  batchSaveToFirestore(data)
-                ]).catch((err) => {
-                  result = {
-                    success: false,
-                    error: err as Error
-                  };
-                });
-              })
-              .catch((err) => {
-                console.error(err);
-                result = {
-                  success: false,
-                  error: err as Error
-                };
-              });
-          }
+          })
+          .catch((err) => {
+            console.error(err);
+            result = {
+              success: false,
+              error: err as Error
+            };
+          });
+      }
 
-          numSales += page.sales.length;
-          if (page.complete) {
-            console.log(`Hit end of page, waiting for all events to to saved`);
-            await worker.onIdle();
-            if (!result.success) {
-              throw result.error;
-            }
-            return { lastItemProcessed: page.firstItemId, numSales };
-          }
-        }
-
+      numSales += page.sales.length;
+      if (page.complete) {
         console.log(`Hit end of page, waiting for all events to to saved`);
         await worker.onIdle();
         if (!result.success) {
           throw result.error;
         }
-
-        throw new Error('Failed to complete sync');
-      };
-
-      const { lastItemProcessed, numSales } = await processSales();
-      if (!lastItemProcessed) {
-        throw new Error('No last item processed');
+        return { lastItemProcessed: page.firstItemId, numSales };
       }
+    }
+
+    console.log(`Hit end of page, waiting for all events to to saved`);
+    await worker.onIdle();
+    if (!result.success) {
+      throw result.error;
+    }
+
+    throw new Error('Failed to complete sync');
+  };
+
+  while (true) {
+    const currentSyncSnap = await initialSync.ref.get();
+    const currentSync = currentSyncSnap.data() as SyncMetadata;
+
+    if (currentSync.metadata.isPaused) {
+      throw new Error(`Sync paused`);
+    }
+
+    const { lastItemProcessed, numSales } = await processSales(currentSync);
+    if (!lastItemProcessed) {
+      throw new Error('No last item processed');
+    }
+
+    await db.runTransaction(async (txn) => {
+      const snap = await txn.get(initialSync.ref);
+      const prevSetSync = snap.data() as SyncMetadata;
+
+      if (prevSetSync.data.lastItemProcessed !== currentSync.data.lastItemProcessed) {
+        throw new Error('Sync metadata changed while processing');
+      } else if (prevSetSync.data.endTimestamp !== currentSync.data.endTimestamp) {
+        throw new Error('Sync metadata changed while processing');
+      } else if (prevSetSync.data.eventsProcessed !== currentSync.data.eventsProcessed) {
+        throw new Error('Sync metadata changed while processing');
+      }
+
       txn.set(
         initialSync.ref,
         {
           data: {
             lastItemProcessed,
-            endTimestamp: currentSync.data.endTimestamp,
-            eventsProcessed: currentSync.data.eventsProcessed + numSales
+            endTimestamp: prevSetSync.data.endTimestamp,
+            eventsProcessed: prevSetSync.data.eventsProcessed + numSales
           }
         },
         { merge: true }

@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { constants, ethers } from 'ethers';
 import { nanoid } from 'nanoid';
 
 import {
@@ -17,6 +17,7 @@ import {
   OrderEvents,
   OrderStatusEvent,
   OrderTokenOwnerUpdate,
+  PostgresOrder,
   RawFirestoreOrder,
   RawFirestoreOrderWithoutError
 } from '@infinityxyz/lib/types/core';
@@ -30,6 +31,7 @@ import { GasSimulator } from '@/lib/orderbook/order';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
+import { getMarketplaceAddress } from '@/lib/utils/get-marketplace-address';
 
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number; id: string } } = OrderEvents>(
@@ -229,6 +231,80 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
 
       order = orderUpdater.rawOrder;
       displayOrder = orderUpdater.displayOrder;
+    }
+
+    if (statusChanged || (orderCreatedEvent && !orderCreatedEvent.data.metadata.processed)) {
+      const pg = config.pg.getPG();
+      if (pg) {
+        let tokenId: string;
+        let tokenImage: string;
+        let collectionName: string;
+        let collectionImage: string;
+        if (displayOrder.displayOrder.kind === 'single-collection') {
+          switch (displayOrder.displayOrder.item.kind) {
+            case 'collection-wide': {
+              tokenId = '';
+              tokenImage = displayOrder.displayOrder.item.profileImage;
+              collectionImage = displayOrder.displayOrder.item.profileImage;
+              collectionName = displayOrder.displayOrder.item.name;
+              break;
+            }
+            case 'single-token': {
+              tokenId = displayOrder.displayOrder.item.token.tokenId;
+              tokenImage = displayOrder.displayOrder.item.token.image;
+              collectionImage = displayOrder.displayOrder.item.profileImage;
+              collectionName = displayOrder.displayOrder.item.name;
+              break;
+            }
+            default:
+              // TODO support complex orders
+              throw new Error(`Received unsupported order item kind`);
+          }
+        } else {
+          // TODO support complex orders
+          throw new Error(`Received unsupported order kind`);
+        }
+
+        const pgOrder: PostgresOrder = {
+          id: order.metadata.id,
+          is_sell_order: order.order.isSellOrder,
+          price_eth: order.order.startPriceEth,
+          gas_usage: order.rawOrder.gasUsage,
+          collection_address: order.order.collection,
+          token_id: tokenId,
+          token_image: tokenImage,
+          collection_name: collectionName,
+          collection_image: collectionImage,
+          start_time_millis: order.order.startTimeMs,
+          end_time_millis: order.order.endTimeMs,
+          maker: order.order.maker,
+          marketplace: order.metadata.source,
+          marketplace_address: getMarketplaceAddress(order.metadata.chainId, order.metadata.source),
+          is_private: order.order.taker !== '' && order.order.taker !== constants.AddressZero,
+          is_complex: false, // TODO support complex orders
+          status: order.order.status
+        };
+
+        const { pgDB, pgp } = pg;
+        const table = 'eth_nft_orders';
+
+        const columnSet = new pgp.helpers.ColumnSet(Object.keys(pgOrder), { table });
+        const insert = pgp.helpers.insert(pgOrder, columnSet);
+        // on conflict update order status
+        const query = `${insert} ON CONFLICT id DO UPDATE SET status = EXCLUDED.status`;
+
+        await pgDB.none(query);
+      }
+      /**
+       * start price /end price? dynamic order?
+       * what about collection orders? and more complex order types? Bundles?
+       * isValid - can use a more complex query
+       * complication?
+       * currency?
+       * what's the flow like if the user selects an order?
+       * should we just have single token orders in this table?
+       */
+      // update pg
     }
 
     /**

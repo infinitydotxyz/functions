@@ -26,6 +26,7 @@ export async function* sync(
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
   pageSize = 300,
   supportedCollections: SupportedCollectionsProvider,
+  checkAbort: () => { abort: boolean },
   startTimestamp?: number
 ) {
   let hasNextPage = true;
@@ -54,8 +55,9 @@ export async function* sync(
       const snap = await txn.get(initialSync.ref);
       const currentSync = snap.data() as SyncMetadata;
 
-      if (currentSync.metadata.isPaused) {
-        throw new Error(`Sync paused`);
+      const { abort } = checkAbort();
+      if (abort) {
+        throw new Error(`Abort`);
       }
 
       const page = await method(client, {

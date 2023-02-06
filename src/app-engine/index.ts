@@ -56,23 +56,19 @@ async function main() {
 void main();
 
 async function runSyncOrderEvents(db: Firestore, supportedCollectionsProvider: SupportedCollectionsProvider) {
-  while (true) {
-    try {
-      await syncOrderEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 1000 });
-    } catch (err) {
-      console.error(`Failed to sync order events`, err);
-      await sleep(60_000);
-    }
+  try {
+    await syncOrderEvents(db, supportedCollectionsProvider, null, { pollInterval: 5_000, delay: 1000 });
+  } catch (err) {
+    console.error(`Failed to start order events sync`, err);
+    await sleep(60_000);
   }
 }
 
 async function runSyncSalesEvents(db: Firestore, supportedCollectionsProvider: SupportedCollectionsProvider) {
-  while (true) {
-    try {
-      await syncSaleEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 1000 });
-    } catch (err) {
-      console.error(`Failed to sync sales events`, err);
-      await sleep(60_000);
-    }
+  try {
+    await syncSaleEvents(db, supportedCollectionsProvider, null, { pollInterval: 5_000, delay: 0 });
+  } catch (err) {
+    console.error(`Failed to start sales events sync`, err);
+    await sleep(60_000);
   }
 }

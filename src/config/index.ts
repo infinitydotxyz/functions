@@ -71,8 +71,6 @@ const getPG = () => {
       connectionTimeoutMillis: 20000
     };
 
-    console.log(pgConnection);
-
     const pgp = pgPromise({
       capSQL: true
     });

@@ -3,18 +3,18 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { Firestore } from '../../../firestore/types';
-import { getOrderEventSyncRef, getOrderEventSyncsRef } from './get-sync-metadata';
+import { getSaleEventSyncRef, getSaleEventSyncsRef } from './get-sync-metadata';
 import { SyncMetadata, SyncMetadataType } from './types';
 
 type SyncUpdater = (db: Firestore, chainId: ChainId, types: SyncMetadataType[], startAtBlock?: number) => Promise<void>;
 
 export const addSyncs: SyncUpdater = async (db, chainId, types: SyncMetadataType[], startAtBlock?: number) => {
-  const syncsRef = getOrderEventSyncsRef(db);
+  const syncsRef = getSaleEventSyncsRef(db);
   const syncs = (types ?? []).map((item) => {
     return {
       chainId,
       type: item,
-      ref: getOrderEventSyncRef(syncsRef, chainId, item)
+      ref: getSaleEventSyncRef(syncsRef, chainId, item)
     };
   });
 

@@ -1,6 +1,5 @@
 import { BigNumber } from 'ethers';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
-import PQueue from 'p-queue';
 
 import {
   InfinityLinkType,
@@ -42,8 +41,8 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
   // eslint-disable-next-line no-constant-condition
   const pageSize = 1000;
   while (true) {
-    const pageSales: FlattenedPostgresNFTSaleWithId[] = [];
     try {
+      const pageSales: FlattenedPostgresNFTSaleWithId[] = [];
       const page = await method(client, {
         continuation,
         startTimestamp: Math.floor(_syncData.startTimestamp / 1000),
@@ -89,7 +88,8 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
 export async function* sync(
   db: FirebaseFirestore.Firestore,
   initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
-  supportedCollections: SupportedCollectionsProvider
+  supportedCollections: SupportedCollectionsProvider,
+  checkAbort: () => { abort: boolean }
 ) {
   let pageNumber = 0;
   let totalItemsProcessed = 0;
@@ -264,8 +264,6 @@ export async function* sync(
       { lastIdProcessed: currentSync.data.lastItemProcessed, startTimestamp: currentSync.data.endTimestamp },
       initialSync.data.metadata.chainId
     );
-    let result: { success: boolean; error: Error | null } = { success: true, error: null };
-    const worker = new PQueue({ concurrency: 5 });
     for await (const page of iterator) {
       const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
       page.sales.forEach((item) => {
@@ -308,42 +306,17 @@ export async function* sync(
         const firstSaleBlockNumber = data[0].pgSale.block_number;
         const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
         console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
-        worker
-          .add(async () => {
-            await Promise.all([
-              batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
-              batchSaveToFirestore(data)
-            ]).catch((err) => {
-              result = {
-                success: false,
-                error: err as Error
-              };
-            });
-          })
-          .catch((err) => {
-            console.error(err);
-            result = {
-              success: false,
-              error: err as Error
-            };
-          });
+        await Promise.all([
+          batchSaveToPostgres(data.map((item) => item.pgSale) as FlattenedPostgresNFTSale[]),
+          batchSaveToFirestore(data)
+        ]);
       }
 
       numSales += page.sales.length;
       if (page.complete) {
         console.log(`Hit end of page, waiting for all events to to saved`);
-        await worker.onIdle();
-        if (!result.success) {
-          throw result.error;
-        }
         return { lastItemProcessed: page.firstItemId, numSales };
       }
-    }
-
-    console.log(`Hit end of page, waiting for all events to to saved`);
-    await worker.onIdle();
-    if (!result.success) {
-      throw result.error;
     }
 
     throw new Error('Failed to complete sync');
@@ -353,8 +326,9 @@ export async function* sync(
     const currentSyncSnap = await initialSync.ref.get();
     const currentSync = currentSyncSnap.data() as SyncMetadata;
 
-    if (currentSync.metadata.isPaused) {
-      throw new Error(`Sync paused`);
+    const { abort } = checkAbort();
+    if (abort) {
+      throw new Error(`Abort`);
     }
 
     const { lastItemProcessed, numSales } = await processSales(currentSync);

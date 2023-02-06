@@ -111,7 +111,6 @@ export async function syncSaleEvents(
 
       for (const item of changes) {
         const data = item.doc.data();
-        console.log(item.type);
         switch (item.type) {
           case 'added': {
             startSync({ data, ref: item.doc.ref });

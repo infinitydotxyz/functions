@@ -111,7 +111,6 @@ export async function syncOrderEvents(
       console.log(`Received: ${changes.length} document changes`);
 
       for (const item of changes) {
-        console.log(item.type);
         const data = item.doc.data();
         switch (item.type) {
           case 'added': {

@@ -57,7 +57,7 @@ export const addSyncs: SyncUpdater = (
           data: {
             eventsProcessed: 0,
             minTimestampMs: startAt ?? 0,
-            continuation: ''
+            continuation: undefined as any
           }
         };
         txn.set(sync.ref, data);

@@ -72,4 +72,11 @@ export class SupportedCollectionsProvider {
     }
     return this._supportedCollections.has(id);
   }
+
+  values() {
+    if (!this._initialized) {
+      throw new Error('Must call init() before using');
+    }
+    return this._supportedCollections.values();
+  }
 }

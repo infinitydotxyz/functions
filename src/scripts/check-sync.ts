@@ -36,11 +36,14 @@ async function main() {
       const nextPage = await method(client, {
         ...collection,
         continuation,
-        limit: 1,
+        limit: 300,
         sortDirection: 'asc'
       });
 
-      const nextId = nextPage.data.events[0].event.id;
+      const nextId = nextPage.data.events[nextPage.data.events.length - 1].event.id;
+      const nextTimestamp = new Date(
+        nextPage.data.events[nextPage.data.events.length - 1].event.createdAt ?? 0
+      ).getTime();
 
       const mostRecentPage = await method(client, {
         ...collection,
@@ -49,9 +52,16 @@ async function main() {
       });
 
       const currentId = mostRecentPage.data.events[0].event.id;
+      const currentTimestamp = new Date(mostRecentPage.data.events[0].event.createdAt ?? 0).getTime();
 
       console.log(
         `Sync ${item.ref.id} At: ${nextId} Reservoir at: ${currentId} Difference ${BigInt(currentId) - BigInt(nextId)}`
+      );
+
+      console.log(
+        `Sync ${item.ref.id} At: ${nextTimestamp} Reservoir at: ${currentTimestamp} Difference ${
+          (currentTimestamp ?? 0) - (nextTimestamp ?? 0)
+        }`
       );
     }
   }

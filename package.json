@@ -27,7 +27,8 @@
     "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
     "start:dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/app-engine/index.ts",
     "start": "node --max-old-space-size=2048 -r dotenv/config ./dist/app-engine/bootstrap.js",
-    "backfill-pg-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders-to-pg.ts"
+    "backfill-pg-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders-to-pg.ts",
+    "backfill-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-supported-collections.ts"
   },
   "engines": {
     "node": "16"

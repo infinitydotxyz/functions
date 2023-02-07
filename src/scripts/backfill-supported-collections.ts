@@ -131,10 +131,11 @@ const checkProgress = async (db: Firestore, chainId: ChainId, collection: string
   const method = Reservoir.Api.Events.AskEvents.getEvents;
   const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
   const contract = collection ? { contract: collection } : {};
+  const pageSize = 500;
   const nextPage = await method(client, {
     ...contract,
     continuation,
-    limit: 300,
+    limit: pageSize,
     sortDirection: 'asc'
   });
 
@@ -159,7 +160,7 @@ const checkProgress = async (db: Firestore, chainId: ChainId, collection: string
   const nextTimestampMs = new Date(nextTimestamp).getTime();
   const difference = Math.ceil(Math.abs(currentTimestampMs - nextTimestampMs) / 1000);
   const oneHour = 60 * 60;
-  if (difference < oneHour) {
+  if (nextPage.data.events.length < pageSize || difference < oneHour) {
     console.log(`Sync ${syncRef.id} complete`);
     return true;
   }

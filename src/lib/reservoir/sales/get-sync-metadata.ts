@@ -3,14 +3,14 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { CollRef, DocRef, Firestore } from '../../../firestore/types';
 import { SyncMetadata } from './types';
 
-export const getOrderEventSyncsRef = (db: Firestore) => {
+export const getSaleEventSyncsRef = (db: Firestore) => {
   return db
     .collection('_sync')
     .doc('_reservoirSales')
     .collection('_reservoirSalesSyncMetadata') as CollRef<SyncMetadata>;
 };
 
-export const getOrderEventSyncRef = (
+export const getSaleEventSyncRef = (
   syncsRef: CollRef<SyncMetadata>,
   chainId: ChainId,
   type: SyncMetadata['metadata']['type']
@@ -27,7 +27,7 @@ export async function getSyncMetadata(
     ref: DocRef<SyncMetadata>;
   }[]
 > {
-  const syncsRef = getOrderEventSyncsRef(db);
+  const syncsRef = getSaleEventSyncsRef(db);
 
   let snap;
   if (options?.txn) {
@@ -53,8 +53,8 @@ export async function getChainSyncMetadata(
   type: SyncMetadata['metadata']['type'],
   options?: { txn?: FirebaseFirestore.Transaction }
 ) {
-  const syncsRef = getOrderEventSyncsRef(db);
-  const syncRef = getOrderEventSyncRef(syncsRef, chainId, type);
+  const syncsRef = getSaleEventSyncsRef(db);
+  const syncRef = getSaleEventSyncRef(syncsRef, chainId, type);
 
   let snap;
   if (options?.txn) {

@@ -22,13 +22,13 @@ export interface OrderbookSnapshotOrder {
 }
 
 export async function takeSnapshot(chainId: ChainId) {
-  const baseUrl = config.flow.baseUrl;
+  const baseUrl = config.flow.serverBaseUrl;
   if (!baseUrl) {
     console.warn('No baseUrl configured, skipping snapshot');
     return;
   }
 
-  const endpoint = new URL(normalize(join(baseUrl, 'v2/bulk/snapshot'))).toString();
+  const endpoint = new URL(normalize(join(baseUrl, '/v2/bulk/snapshot'))).toString();
 
   const res = await phin({
     url: endpoint,

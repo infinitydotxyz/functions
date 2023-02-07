@@ -1,15 +1,13 @@
+import { config as loadEnv } from 'dotenv';
 import { ethers } from 'ethers';
 import { ServiceAccount } from 'firebase-admin';
 import pgPromise from 'pg-promise';
 import pg from 'pg-promise/typescript/pg-subset';
 
-
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
-
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -21,7 +19,14 @@ const getEnvVariable = (key: string, required = true): string => {
   return '';
 };
 
-export const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';
+const isDev = serviceAccount.project_id === 'nftc-dev';
+const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
+if (!isDeployed && isDev) {
+  loadEnv({ path: '.env.development.local', override: true });
+}
+
+const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
+const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';
 
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
@@ -30,10 +35,13 @@ const user = getEnvVariable('DB_USER', false);
 const password = getEnvVariable('DB_PASS', false);
 const database = getEnvVariable('DB_NAME', false);
 const instanceSocket = getEnvVariable('INSTANCE_UNIX_SOCKET', false);
+const host = getEnvVariable('DB_HOST', false);
+const port = Number(getEnvVariable('DB_PORT', false));
+
 let _pg: { pgDB: pgPromise.IDatabase<any, pg.IClient>; pgp: pgPromise.IMain<any, pg.IClient> };
 const getPG = () => {
   if (!_pg) {
-    if (!user || !password || !database || !instanceSocket) {
+    if (!user || !password || !database) {
       console.warn('Missing PG DB credentials, skipping DB connection');
       return;
     }
@@ -41,9 +49,17 @@ const getPG = () => {
     const url = instanceSocket
       ? { host: instanceSocket }
       : {
-          port: Number(getEnvVariable('DB_PORT')),
-          host: getEnvVariable('DB_HOST')
+          port,
+          host
         };
+
+    if ('host' in url && !url.host) {
+      console.warn('Missing PG DB credentials, skipping DB connection');
+      return;
+    } else if ('port' in url && !url.port) {
+      console.warn('Missing PG DB credentials, skipping DB connection');
+      return;
+    }
 
     const pgConnection = {
       ...url,
@@ -63,14 +79,10 @@ const getPG = () => {
   return _pg;
 };
 
-const isDev = serviceAccount.project_id === 'nftc-dev';
-const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false);
-const DEV_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
-const PROD_BASE_URL = 'https://sv.flow.so';
 export const config = {
   isDev,
   flow: {
-    baseUrl: isDev ? DEV_BASE_URL : PROD_BASE_URL,
+    serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
   },
   firebase: {

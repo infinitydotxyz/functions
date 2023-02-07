@@ -31,6 +31,8 @@ import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
+import { saveOrderToPG } from './save-order-to-pg';
+
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number; id: string } } = OrderEvents>(
     query: CollRef<Events> | Query<Events>,
@@ -231,6 +233,10 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       displayOrder = orderUpdater.displayOrder;
     }
 
+    if (statusChanged || (orderCreatedEvent && !orderCreatedEvent.data.metadata.processed)) {
+      await saveOrderToPG(order, displayOrder);
+    }
+
     /**
      * saves order status changes and the raw order
      */
@@ -270,7 +276,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       saves.push(saveToFeed);
     }
 
-    if (orderCreatedEvent != null || statusChanged) {
+    if ((orderCreatedEvent != null && orderCreatedEvent.data.metadata.processed === false) || statusChanged) {
       const statusChanged: OrderStatusEvent = {
         id: nanoid(),
         orderId: order.metadata.id,

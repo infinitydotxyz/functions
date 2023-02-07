@@ -1,7 +1,8 @@
 import * as functions from 'firebase-functions';
+import { join, normalize } from 'path';
 import phin from 'phin';
 
-import { PROD_SERVER_BASE_URL, config } from '@/config/index';
+import { config } from '@/config/index';
 
 export const fetchTrendingCollections = functions
   .region(config.firebase.region)
@@ -9,9 +10,10 @@ export const fetchTrendingCollections = functions
   .pubsub.schedule('every 30 minutes')
   .onRun(async () => {
     // call BE API endpoint using phin
+    const url = new URL(normalize(join(config.flow.serverBaseUrl, '/collections/update-trending-colls')));
     try {
       await phin({
-        url: `${PROD_SERVER_BASE_URL}collections/update-trending-colls`,
+        url: url.toString(),
         method: 'PUT'
       });
     } catch (error) {

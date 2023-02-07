@@ -26,7 +26,8 @@ if (!isDeployed && isDev) {
   loadEnv({ path: '.env.development.local', override: true });
 }
 
-export const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';
+const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
+const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';
 
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
@@ -79,12 +80,10 @@ const getPG = () => {
   return _pg;
 };
 
-const DEV_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
-const PROD_BASE_URL = 'https://sv.flow.so';
 export const config = {
   isDev,
   flow: {
-    baseUrl: isDev ? DEV_BASE_URL : PROD_BASE_URL,
+    serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
   },
   firebase: {

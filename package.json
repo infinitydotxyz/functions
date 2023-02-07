@@ -26,7 +26,8 @@
     "check-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-sync.ts",
     "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
     "start:dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/app-engine/index.ts",
-    "start": "node --max-old-space-size=2048 -r dotenv/config ./dist/app-engine/bootstrap.js"
+    "start": "node --max-old-space-size=2048 -r dotenv/config ./dist/app-engine/bootstrap.js",
+    "backfill-pg-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders-to-pg.ts"
   },
   "engines": {
     "node": "16"
@@ -37,6 +38,7 @@
     "@infinityxyz/lib": "^1.310.0",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "^0.0.302",
+    "@types/node": "^18.11.19",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",
     "date-fns": "^2.29.1",

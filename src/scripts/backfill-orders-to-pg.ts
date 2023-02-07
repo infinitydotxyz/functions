@@ -117,7 +117,7 @@ const backfillOrdersToPGV2 = async () => {
   }
 
   const stream = streamQueryPageWithRef(validOrders, undefined, {
-    pageSize: 500,
+    pageSize: 5000,
     transformItem: (item) => {
       if (item) {
         const { data, ref } = item;
@@ -195,7 +195,7 @@ const backfillOrdersToPGV2 = async () => {
           });
 
           await saveOrdersBatchToPG(orders);
-          num += page.length;
+          num += filtered.length;
 
           const rate = num / ((Date.now() - startedAt) / 1000);
           console.log(

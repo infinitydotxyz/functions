@@ -56,7 +56,26 @@ async function main() {
             await sleep(60_000);
           } catch (err) {
             if (err instanceof Error && err.message.includes('Sync already exists')) {
-              console.log(`Syncing already in progress for ${collection}`);
+              try {
+                const syncs = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncsRef(db);
+                const sync = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncRef(
+                  syncs,
+                  chainId as ChainId,
+                  'collection-ask',
+                  collection
+                );
+                const snap = await sync.get();
+                const syncData = snap.data();
+                if (syncData?.metadata.isPaused) {
+                  console.log(`Unpausing sync`);
+                  await Reservoir.OrderEvents.unpauseSyncs(db, chainId as ChainId, ['collection-ask'], collection);
+                  console.log(`Unpaused sync for ${collection}`);
+                } else {
+                  console.log(`Syncing already in progress for ${collection}`);
+                }
+              } catch (err) {
+                console.log(`Failed to unpause sync for ${coll}`);
+              }
             } else {
               throw err;
             }
@@ -139,7 +158,8 @@ const checkProgress = async (db: Firestore, chainId: ChainId, collection: string
   const currentTimestampMs = new Date(currentTimestamp).getTime();
   const nextTimestampMs = new Date(nextTimestamp).getTime();
   const difference = Math.ceil(Math.abs(currentTimestampMs - nextTimestampMs) / 1000);
-  if (difference < 60) {
+  const oneHour = 60 * 60;
+  if (difference < oneHour) {
     console.log(`Sync ${syncRef.id} complete`);
     return true;
   }

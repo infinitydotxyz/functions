@@ -96,20 +96,16 @@ const updateIsPaused = (
       if (!snap.exists) {
         throw new Error(`Sync doesn't exists for chainId: ${chainId} and type: ${sync.type}`);
       } else {
-        const data: SyncMetadata = {
+        const data: Pick<SyncMetadata, 'metadata'> = {
           metadata: {
             chainId: sync.chainId,
             type: sync.type,
             updatedAt: Date.now(),
             isPaused,
             collection
-          },
-          data: {
-            eventsProcessed: 0,
-            continuation: ''
           }
         };
-        txn.set(sync.ref, data);
+        txn.set(sync.ref, data, { merge: true });
       }
     }
   });

@@ -1,16 +1,16 @@
-import { saveOrderToPG } from 'functions/orderbook/save-order-to-pg';
+import { saveOrdersBatchToPG } from 'functions/orderbook/save-order-to-pg';
 import PQueue from 'p-queue';
 
-import { RawFirestoreOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import {
+  FirestoreDisplayOrder,
+  FirestoreDisplayOrderWithoutError,
+  RawFirestoreOrder,
+  RawFirestoreOrderWithoutError
+} from '@infinityxyz/lib/types/core';
 
 import { getDb } from '@/firestore/db';
-import { streamQueryWithRef } from '@/firestore/stream-query';
-import { Query } from '@/firestore/types';
-import { GasSimulator } from '@/lib/orderbook/order';
-import { BaseOrder } from '@/lib/orderbook/order/base-order';
-import { getProvider } from '@/lib/utils/ethersUtils';
-
-import { config } from '../config';
+import { streamQueryPageWithRef } from '@/firestore/stream-query';
+import { DocRef, DocSnap, Query } from '@/firestore/types';
 
 // const backfillOrdersToPG = async () => {
 //   const db = getDb();
@@ -93,44 +93,83 @@ const backfillOrdersToPGV2 = async () => {
 
   const validOrders = db.collection('ordersV2').where('order.isValid', '==', true) as Query<RawFirestoreOrder>;
 
-  const stream = streamQueryWithRef(validOrders, undefined, { pageSize: 500 });
+  const stream = streamQueryPageWithRef(validOrders, undefined, {
+    pageSize: 500,
+    transformItem: (item) => {
+      if (item) {
+        const { data, ref } = item;
+
+        if (data.rawOrder && !('error' in data.rawOrder)) {
+          const displayOrderRef = db
+            .collection('ordersV2ByChain')
+            .doc(data.metadata.chainId)
+            .collection('chainV2Orders')
+            .doc(data.metadata.id) as DocRef<FirestoreDisplayOrder>;
+          return {
+            data: data as RawFirestoreOrderWithoutError,
+            ref,
+            displayOrderRef
+          };
+        }
+      }
+    }
+  });
 
   let num = 0;
   let enqueuedAll = false;
-  for await (const { data } of stream) {
+  const startedAt = Date.now();
+  for await (const page of stream) {
     queue
       .add(async () => {
-        if (data.order) {
-          try {
-            num += 1;
-            if (num % 100 === 0) {
-              console.log(
-                `Processed ${num} events. \t Pending ${queue.pending} \t Remaining ${queue.size}. \t Enqueued all ${enqueuedAll}`
-              );
-            }
-            const provider = getProvider(data.metadata.chainId);
-            const gasSimulator = new GasSimulator(provider, config.orderbook.gasSimulationAccount);
-            const order = new BaseOrder(
-              data.metadata.id,
-              data.metadata.chainId,
-              data.order.isSellOrder,
-              db,
-              provider,
-              gasSimulator
-            );
+        const filtered = page.filter((item) => !!item) as {
+          data: RawFirestoreOrderWithoutError;
+          ref: FirebaseFirestore.DocumentReference<RawFirestoreOrder>;
+          displayOrderRef: DocRef<FirestoreDisplayOrder>;
+        }[];
 
-            const { rawOrder, displayOrder } = await order.load();
+        if (filtered.length > 0) {
+          const displayOrdersSnap = (await db.getAll(
+            ...filtered.map((item) => item.displayOrderRef)
+          )) as DocSnap<FirestoreDisplayOrder>[];
 
-            if (rawOrder.order && !rawOrder.metadata.hasError && !('error' in displayOrder)) {
-              await saveOrderToPG(rawOrder as RawFirestoreOrderWithoutError, displayOrder);
-            }
-          } catch (err) {
-            console.error(err);
-          }
+          const orders = filtered
+            .map((item, index) => {
+              const displayOrderSnap = displayOrdersSnap[index];
+              const { data } = item;
+              if (displayOrderSnap && data) {
+                const displayOrder = displayOrderSnap.data();
+                if (displayOrder && !displayOrder.error && displayOrder.displayOrder) {
+                  return {
+                    order: data,
+                    displayOrder: displayOrder
+                  };
+                }
+              }
+            })
+            .filter((item) => !!item) as {
+            order: RawFirestoreOrderWithoutError;
+            displayOrder: FirestoreDisplayOrderWithoutError;
+          }[];
+
+          await saveOrdersBatchToPG(orders);
+          num += page.length;
+
+          const lastItem = page[page.length - 1];
+          const startAfter = lastItem?.ref.id;
+
+          const rate = num / ((Date.now() - startedAt) / 1000);
+          console.log(
+            `Saved page. Orders backfilled ${num}. \t Pending ${queue.pending} \t Remaining ${
+              queue.size
+            }. \t Enqueued all ${enqueuedAll} \t Rate ${rate.toFixed(2)} orders/sec \n\tStart after ${startAfter}.`
+          );
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+      });
   }
+
   enqueuedAll = true;
   await queue.onIdle();
   console.log(`Complete. Processed ${num} orders`);

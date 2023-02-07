@@ -1,6 +1,5 @@
 import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from '@infinityxyz/lib/types/core';
 
-import { config } from '@/config/index';
 import { Orderbook, Reservoir } from '@/lib/index';
 import { AskOrder } from '@/lib/reservoir/api/orders/types';
 
@@ -95,7 +94,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
 
   protected async _getReservoirOrder(orderId: string, isSellOrder: boolean) {
     try {
-      const client = Reservoir.Api.getClient(this._chainId, config.reservoir.apiKey);
+      const client = Reservoir.Api.getClient(this._chainId, ''); // don't use an api key here
       const OrderSide = isSellOrder ? Reservoir.Api.Orders.AskOrders : Reservoir.Api.Orders.BidOrders;
       const response = await OrderSide.getOrders(client, {
         ids: orderId,

@@ -117,7 +117,7 @@ const backfillOrdersToPGV2 = async () => {
   }
 
   const stream = streamQueryPageWithRef(validOrders, undefined, {
-    pageSize: 500,
+    pageSize: 5000,
     transformItem: (item) => {
       if (item) {
         const { data, ref } = item;

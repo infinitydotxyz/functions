@@ -9,14 +9,11 @@ import {
 import { config } from '@/config/index';
 import { getMarketplaceAddress } from '@/lib/utils/get-marketplace-address';
 
-export const saveOrdersBatchToPG = async (
-  items: { order: RawFirestoreOrderWithoutError; displayOrder: FirestoreDisplayOrderWithoutError }[]
-) => {
+export const saveOrdersBatchToPG = async (pgOrders: PostgresOrder[]) => {
   const pg = config.pg.getPG();
   if (pg) {
     const { pgDB, pgp } = pg;
     const table = 'eth_nft_orders';
-    const pgOrders = items.map((item) => getPGOrder(item.order, item.displayOrder));
     const columnSet = new pgp.helpers.ColumnSet(Object.keys(pgOrders[0]), { table });
     const insert = pgp.helpers.insert(pgOrders, columnSet);
     // on conflict update order status
@@ -26,7 +23,7 @@ export const saveOrdersBatchToPG = async (
   }
 };
 
-const getPGOrder = (
+export const getPGOrder = (
   order: RawFirestoreOrderWithoutError,
   displayOrder: FirestoreDisplayOrderWithoutError
 ): PostgresOrder => {

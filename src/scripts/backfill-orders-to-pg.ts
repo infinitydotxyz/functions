@@ -1,5 +1,7 @@
-import { saveOrdersBatchToPG } from 'functions/orderbook/save-order-to-pg';
+import { readFile, writeFile } from 'fs/promises';
+import { getPGOrder, saveOrdersBatchToPG } from 'functions/orderbook/save-order-to-pg';
 import PQueue from 'p-queue';
+import { resolve } from 'path';
 
 import {
   FirestoreDisplayOrder,
@@ -11,6 +13,9 @@ import {
 import { getDb } from '@/firestore/db';
 import { streamQueryPageWithRef } from '@/firestore/stream-query';
 import { DocRef, DocSnap, Query } from '@/firestore/types';
+import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+
+import { config } from '../config';
 
 // const backfillOrdersToPG = async () => {
 //   const db = getDb();
@@ -89,16 +94,33 @@ import { DocRef, DocSnap, Query } from '@/firestore/types';
 const backfillOrdersToPGV2 = async () => {
   const queue = new PQueue({ concurrency: 50 });
 
+  const checkpointFile = resolve(`sync/backfilled-orders-to-pg-${config.isDev ? 'dev' : 'prod'}.txt`);
+  const checkpoint = await readFile(checkpointFile, 'utf8');
+
+  const saveCheckpoint = async (id: string) => {
+    await writeFile(checkpointFile, id);
+  };
+
   const db = getDb();
 
-  const validOrders = db.collection('ordersV2').where('order.isValid', '==', true) as Query<RawFirestoreOrder>;
+  console.log(`Loading supported collections...`);
+  const supportedCollections = new SupportedCollectionsProvider(db);
+  await supportedCollections.init();
+  console.log(`Loaded ${[...supportedCollections.values()].length} supported collections`);
+
+  let validOrders = db.collection('ordersV2').where('order.isValid', '==', true) as Query<RawFirestoreOrder>;
+
+  if (checkpoint) {
+    console.log(`Continuing from last checkpoint: ${checkpoint}`);
+    const startAfterRef = db.collection('ordersV2').doc(checkpoint);
+    validOrders = validOrders.startAfter(startAfterRef);
+  }
 
   const stream = streamQueryPageWithRef(validOrders, undefined, {
     pageSize: 500,
     transformItem: (item) => {
       if (item) {
         const { data, ref } = item;
-
         if (data.rawOrder && !('error' in data.rawOrder)) {
           const displayOrderRef = db
             .collection('ordersV2ByChain')
@@ -117,45 +139,63 @@ const backfillOrdersToPGV2 = async () => {
 
   let num = 0;
   let enqueuedAll = false;
+  let pageNum = 0;
   const startedAt = Date.now();
   for await (const page of stream) {
+    const thisPageNum = (pageNum += 1);
+    console.log(`Enqueueing page ${thisPageNum} of ${page.length} orders for backfilling`);
     queue
       .add(async () => {
-        const filtered = page.filter((item) => !!item) as {
+        const lastItem = page[page.length - 1];
+        const startAfter = lastItem?.ref.id;
+
+        const filtered = page.filter((item) => {
+          if (!item) {
+            return false;
+          }
+          const id = `${item.data.metadata.chainId}:${item.data.order.collection}`;
+          if (!supportedCollections.has(id)) {
+            return false;
+          }
+          return true;
+        }) as {
           data: RawFirestoreOrderWithoutError;
           ref: FirebaseFirestore.DocumentReference<RawFirestoreOrder>;
           displayOrderRef: DocRef<FirestoreDisplayOrder>;
         }[];
+
+        console.log(`Page ${thisPageNum} has ${filtered.length} supported orders`);
 
         if (filtered.length > 0) {
           const displayOrdersSnap = (await db.getAll(
             ...filtered.map((item) => item.displayOrderRef)
           )) as DocSnap<FirestoreDisplayOrder>[];
 
-          const orders = filtered
-            .map((item, index) => {
-              const displayOrderSnap = displayOrdersSnap[index];
-              const { data } = item;
-              if (displayOrderSnap && data) {
-                const displayOrder = displayOrderSnap.data();
-                if (displayOrder && !displayOrder.error && displayOrder.displayOrder) {
-                  return {
-                    order: data,
-                    displayOrder: displayOrder
-                  };
+          const orders = (
+            filtered
+              .map((item, index) => {
+                const displayOrderSnap = displayOrdersSnap[index];
+                const { data } = item;
+                if (displayOrderSnap && data) {
+                  const displayOrder = displayOrderSnap.data();
+                  if (displayOrder && !displayOrder.error && displayOrder.displayOrder) {
+                    return {
+                      order: data,
+                      displayOrder: displayOrder
+                    };
+                  }
                 }
-              }
-            })
-            .filter((item) => !!item) as {
-            order: RawFirestoreOrderWithoutError;
-            displayOrder: FirestoreDisplayOrderWithoutError;
-          }[];
+              })
+              .filter((item) => !!item) as {
+              order: RawFirestoreOrderWithoutError;
+              displayOrder: FirestoreDisplayOrderWithoutError;
+            }[]
+          ).map((item) => {
+            return getPGOrder(item.order, item.displayOrder);
+          });
 
           await saveOrdersBatchToPG(orders);
           num += page.length;
-
-          const lastItem = page[page.length - 1];
-          const startAfter = lastItem?.ref.id;
 
           const rate = num / ((Date.now() - startedAt) / 1000);
           console.log(
@@ -163,6 +203,10 @@ const backfillOrdersToPGV2 = async () => {
               queue.size
             }. \t Enqueued all ${enqueuedAll} \t Rate ${rate.toFixed(2)} orders/sec \n\tStart after ${startAfter}.`
           );
+        }
+
+        if (startAfter) {
+          await saveCheckpoint(startAfter);
         }
       })
       .catch((err) => {

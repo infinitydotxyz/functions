@@ -195,7 +195,7 @@ const backfillOrdersToPGV2 = async () => {
           });
 
           await saveOrdersBatchToPG(orders);
-          num += page.length;
+          num += orders.length;
 
           const rate = num / ((Date.now() - startedAt) / 1000);
           console.log(

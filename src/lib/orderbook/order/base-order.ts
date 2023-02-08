@@ -181,7 +181,7 @@ export class BaseOrder {
   }
 
   public async getGasUsage(rawOrder: RawFirestoreOrder) {
-    if (rawOrder.metadata.source === 'infinity') {
+    if (rawOrder.metadata.source === 'flow') {
       return rawOrder.order?.gasUsage ?? 0;
     }
     try {
@@ -290,7 +290,7 @@ export class BaseOrder {
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
 
       let status = initialStatus;
-      if (!status && rawOrder.source === 'infinity') {
+      if (!status && rawOrder.source === 'flow') {
         status = await this.getOrderStatus(txn, rawOrder.infinityOrder);
       } else if (!status) {
         status = await this.getOrderStatus(txn);

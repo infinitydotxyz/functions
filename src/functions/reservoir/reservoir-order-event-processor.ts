@@ -349,7 +349,7 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
             id: `${OrderEventKind.Created}:${rawOrder.id}`
           },
           data: {
-            isNative: data.order.source === 'infinity',
+            isNative: data.order.source === 'flow',
             order: rawOrder,
             status
           }

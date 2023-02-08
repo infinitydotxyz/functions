@@ -14,6 +14,7 @@ import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollRef, DocRef } from '@/firestore/types';
+import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -28,10 +29,14 @@ async function main() {
 
   const stream = streamQueryWithRef(ordersCollection.where('order.isValid', '==', true));
 
+  const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
+  await supportedCollectionsProvider.init();
+
   const queue = new PQueue({ concurrency: 50 });
 
   let numUpdated = 0;
   let numDeleted = 0;
+  let numSkipped = 0;
   for await (const { data, ref } of stream) {
     queue
       .add(async () => {
@@ -39,8 +44,12 @@ async function main() {
           const flowComplication = getOBComplicationAddress(data.metadata.chainId);
           const maker = data.order.maker;
           const complication = data.order.complication;
+          const collection = data.order.collection;
+          const id = `${data.metadata.chainId}:${collection}`;
 
-          if (complication !== flowComplication) {
+          const isSupported = supportedCollectionsProvider.has(id);
+
+          if (complication !== flowComplication || !isSupported) {
             const chainDisplayRef = db
               .collection('ordersV2ByChain')
               .doc(data.metadata.chainId)
@@ -62,7 +71,7 @@ async function main() {
               );
               const orderUpdater = new OrderUpdater(data, displayOrder);
 
-              if (maker === constants.AddressZero) {
+              if (maker === constants.AddressZero && isSupported) {
                 numUpdated += 1;
                 console.log(
                   `Updating match exec order: ${data.metadata.id} Chain: ${data.metadata.chainId} Maker: ${maker} Complication: ${complication} => ${flowComplication}`
@@ -92,7 +101,7 @@ async function main() {
               } else {
                 numDeleted += 1;
                 console.log(
-                  `Deleting order: ${data.metadata.id} Chain: ${data.metadata.chainId} Maker: ${maker} Complication: ${complication} Expected: ${flowComplication}`
+                  `Deleting order: ${data.metadata.id} Chain: ${data.metadata.chainId} Is Supported ${isSupported} Maker: ${maker} Complication: ${complication} Expected: ${flowComplication}`
                 );
                 await baseOrder.delete(displayOrder);
 
@@ -102,14 +111,28 @@ async function main() {
                 for await (const { ref } of orderStatusEventsStream) {
                   await batch.deleteAsync(ref);
                 }
-                await batch.flush();
+
                 /**
                  * note - we don't delete order events since those are used by reservoir for bulk order scraping
                  */
+                if (data.metadata.source !== 'infinity' && data.metadata.source !== 'flow') {
+                  const orderEventsRef = ref.collection('orderEvents') as CollRef<OrderEvents>;
+                  const orderEventsStream = streamQueryWithRef(orderEventsRef);
+                  for await (const { ref } of orderEventsStream) {
+                    await batch.deleteAsync(ref);
+                  }
+                  const reservoirOrderEvents = ref.collection('reservoirOrderEvents') as CollRef<OrderEvents>;
+                  const reservoirOrderEventsStream = streamQueryWithRef(reservoirOrderEvents);
+                  for await (const { ref } of reservoirOrderEventsStream) {
+                    await batch.deleteAsync(ref);
+                  }
+                }
+                await batch.flush();
               }
             }
           } else {
             console.log(`Order: ${data.metadata.id} Chain: ${data.metadata.chainId} Already updated ${complication}`);
+            numSkipped += 1;
           }
         }
       })
@@ -120,7 +143,7 @@ async function main() {
 
   console.log(`Waiting for queue to finish...`);
   await queue.onIdle();
-  console.log(`Queue finished. Updated: ${numUpdated} Deleted: ${numDeleted}`);
+  console.log(`Queue finished. Updated: ${numUpdated} Deleted: ${numDeleted} Skipped: ${numSkipped}`);
 }
 
 void main();

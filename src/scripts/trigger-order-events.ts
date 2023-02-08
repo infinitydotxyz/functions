@@ -28,7 +28,7 @@ async function main() {
 
   const stream = streamQueryWithRef(query);
 
-  const batch = new BatchHandler();
+  const batch = new BatchHandler(100);
   let triggered = 0;
 
   const trigger = async (data: ReservoirOrderEvent, ref: DocRef<ReservoirOrderEvent>) => {
@@ -79,8 +79,20 @@ async function main() {
         case 'unsupported order: unsupported order: order currency': {
           break;
         }
+        case 'unsupported order: unsupported order: order side': {
+          if (data.error.value.includes('buy')) {
+            break;
+          } else {
+            console.log(`Unhandled reason: ${data.error.reason} - ${data.error.value} - ${ref.path}`);
+          }
+          break;
+        }
         default: {
-          console.log(`Unhandled reason: ${data.error.reason} - ${data.error.value} - ${ref.path}`);
+          if (data.error.reason.includes('No txHash found for event')) {
+            await trigger(data, ref);
+          } else {
+            console.log(`Unhandled reason: ${data.error.reason} - ${data.error.value} - ${ref.path}`);
+          }
         }
       }
     }

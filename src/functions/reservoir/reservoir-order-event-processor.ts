@@ -247,18 +247,12 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     };
 
     const getTxnData = () => {
-      const txHash = data.event.txHash;
-      const txTimestamp = data.event.txTimestamp;
+      const txHash = data.event.txHash ?? '';
+      const txTimestamp = data.event.txTimestamp ?? Math.floor(new Date(data.event.createdAt ?? 0).getTime() / 1000);
 
-      if (!txHash) {
-        throw new Error(`No txHash found for event: ${JSON.stringify(data)}`);
-      }
-      if (!txTimestamp) {
-        throw new Error(`No txTimestamp found for event: ${JSON.stringify(data)}`);
-      }
       return {
-        txHash,
-        txTimestamp,
+        txHash: txHash,
+        txTimestamp: txTimestamp,
         txTimestampMs: txTimestamp * 1000
       };
     };

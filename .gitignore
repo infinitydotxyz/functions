@@ -21,5 +21,4 @@ wallets/**
 
 .DS_Store
 
-sync/backfilled-orders-to-pg-prod.txt
-sync/backfilled-orders-to-pg-dev.txt
+sync/*

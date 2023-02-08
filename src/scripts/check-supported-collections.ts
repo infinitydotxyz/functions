@@ -10,7 +10,11 @@ async function main() {
   const supportedCollections = db.collection('supportedCollections') as CollRef<SupportedCollection>;
   const collections = db.collection('collections') as CollRef<Collection>;
 
-  const stream = streamQueryWithRef(supportedCollections);
+  const countSnap = await supportedCollections.where('isSupported', '==', true).count().get();
+  const count = countSnap.data().count;
+
+  console.log(`${count} Supported Collections \n\n`);
+  const stream = streamQueryWithRef(supportedCollections.where('isSupported', '==', true));
 
   const supported: { name: string; address: string }[] = [];
   const removed: { name: string; address: string }[] = [];

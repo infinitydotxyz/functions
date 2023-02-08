@@ -28,7 +28,7 @@ async function main() {
 
   const stream = streamQueryWithRef(query);
 
-  const batch = new BatchHandler();
+  const batch = new BatchHandler(100);
   let triggered = 0;
 
   const trigger = async (data: ReservoirOrderEvent, ref: DocRef<ReservoirOrderEvent>) => {

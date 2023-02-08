@@ -40,8 +40,7 @@ export async function syncSaleEvents(
     syncMetadata: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
     checkAbort: () => { abort: boolean }
   ) => {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    while (checkAbort().abort === false) {
       try {
         const syncIterator = Reservoir.Sales.sync(db, syncMetadata, supportedCollections, checkAbort);
         for await (const pageDetails of syncIterator) {
@@ -64,23 +63,22 @@ export async function syncSaleEvents(
           }
         }
       } catch (err) {
-        let log;
         if (err instanceof Error && err.message.includes('Abort')) {
-          log = console.warn;
+          console.warn(
+            `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
+              syncMetadata.data.metadata.collection ?? ''
+            }`,
+            err
+          );
         } else {
-          log = console.error;
+          console.error(
+            `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
+              syncMetadata.data.metadata.collection ?? ''
+            }`,
+            err
+          );
+          await sleep(pollInterval);
         }
-        log(
-          `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
-            syncMetadata.data.metadata.collection ?? ''
-          }`,
-          err
-        );
-      }
-
-      const { abort } = checkAbort();
-      if (abort) {
-        return;
       }
     }
   };
@@ -97,11 +95,17 @@ export async function syncSaleEvents(
       if (!sync?.isRunning) {
         return { abort: true };
       }
-
       return { abort: false };
     };
 
-    syncs.set(item.ref.id, { isRunning: true, promise: runSync(item, checkAbort) });
+    syncs.set(item.ref.id, {
+      isRunning: true,
+      promise: new Promise((resolve, reject) => {
+        process.nextTick(() => {
+          runSync(item, checkAbort).then(resolve).catch(reject);
+        });
+      })
+    });
   };
 
   const cancelSnapshot = syncsQuery.onSnapshot(

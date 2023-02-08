@@ -57,7 +57,7 @@ void main();
 
 async function runSyncOrderEvents(db: Firestore, supportedCollectionsProvider: SupportedCollectionsProvider) {
   try {
-    await syncOrderEvents(db, supportedCollectionsProvider, null, { pollInterval: 5_000, delay: 1000 });
+    await syncOrderEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 1000 });
   } catch (err) {
     console.error(`Failed to start order events sync`, err);
     await sleep(60_000);
@@ -66,7 +66,7 @@ async function runSyncOrderEvents(db: Firestore, supportedCollectionsProvider: S
 
 async function runSyncSalesEvents(db: Firestore, supportedCollectionsProvider: SupportedCollectionsProvider) {
   try {
-    await syncSaleEvents(db, supportedCollectionsProvider, null, { pollInterval: 5_000, delay: 0 });
+    await syncSaleEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 0 });
   } catch (err) {
     console.error(`Failed to start sales events sync`, err);
     await sleep(60_000);

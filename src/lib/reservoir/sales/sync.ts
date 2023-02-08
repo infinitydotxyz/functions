@@ -32,7 +32,11 @@ import { FlattenedPostgresNFTSale } from '../api/sales';
 import { FlattenedPostgresNFTSaleWithId } from '../api/sales/types';
 import { SyncMetadata } from './types';
 
-export async function* getSales(_syncData: { lastIdProcessed: string; startTimestamp: number }, chainId: ChainId) {
+export async function* getSales(
+  _syncData: { lastIdProcessed: string; startTimestamp: number },
+  chainId: ChainId,
+  checkAbort: () => { abort: boolean }
+) {
   const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
   const method = Reservoir.Api.Sales.getSales;
   let continuation: string | undefined;
@@ -61,6 +65,10 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
         }
         pageSales.push(item as FlattenedPostgresNFTSaleWithId);
       }
+      const { abort } = checkAbort();
+      if (abort) {
+        throw new Error('Abort');
+      }
 
       if (pageSales.length < pageSize) {
         console.log(`Page size less than max. id ${firstItem?.id ?? ''}`);
@@ -75,6 +83,9 @@ export async function* getSales(_syncData: { lastIdProcessed: string; startTimes
       attempts = 0;
       yield { sales: pageSales, complete: false };
     } catch (err) {
+      if (err instanceof Error && err.message === 'Abort') {
+        throw err;
+      }
       attempts += 1;
       if (attempts > 3) {
         throw err;
@@ -262,7 +273,8 @@ export async function* sync(
     let numSales = 0;
     const iterator = getSales(
       { lastIdProcessed: currentSync.data.lastItemProcessed, startTimestamp: currentSync.data.endTimestamp },
-      initialSync.data.metadata.chainId
+      initialSync.data.metadata.chainId,
+      checkAbort
     );
     for await (const page of iterator) {
       const tokensRefsMaps = new Map<string, DocRef<NftDto>>();

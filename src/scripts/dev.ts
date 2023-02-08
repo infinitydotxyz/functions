@@ -7,7 +7,7 @@ import { CollRef, Query, QuerySnap } from '@/firestore/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 
 async function main() {
-  const id = '0x00004b1771ca5afbfd802d78d22fb845a0690e49132103f090af6ffb8b26e121';
+  const id = '0x00000f1151942a79ebf12cc6b93305802b4c61f008d1364498cef2015876e47e';
   class Dev extends ReservoirOrderStatusEventProcessor {
     async process(
       eventsSnap: QuerySnap<ReservoirOrderEvent>,

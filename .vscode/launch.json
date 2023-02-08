@@ -3,20 +3,6 @@
   "configurations": [
     {
       "type": "node-terminal",
-      "name": "Run Script: search for matches",
-      "request": "launch",
-      "command": "npm run scan-matches",
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "node-terminal",
-      "name": "Run Script: aggregate stats",
-      "request": "launch",
-      "command": "npm run aggregate",
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "node-terminal",
       "name": "Run Script: dev",
       "request": "launch",
       "command": "npm run dev",

@@ -90,7 +90,8 @@ export const config = {
     snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
   },
   pg: {
-    getPG
+    getPG,
+    vpcConnector: getEnvVariable('VPC_CONNECTOR', false)
   },
   reservoir: {
     apiKey: getEnvVariable('RESERVOIR_API_KEY', false),

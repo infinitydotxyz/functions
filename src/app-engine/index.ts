@@ -1,4 +1,3 @@
-/* eslint-disable no-constant-condition */
 import { sleep } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
@@ -6,6 +5,8 @@ import { Firestore } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { syncOrderEvents } from '@/lib/reservoir/order-events/sync-order-events';
 import { syncSaleEvents } from '@/lib/reservoir/sales/sync-sale-events';
+
+import { config } from '../config';
 
 const db = getDb();
 const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
@@ -24,7 +25,7 @@ process.on('exit', (code) => {
 
 const processes = {
   syncSalesEvents: {
-    enabled: true,
+    enabled: config.syncs.processSales,
     start: () => {
       console.log('Starting sales sync');
       runSyncSalesEvents(db, supportedCollectionsProvider).catch((err) => {
@@ -33,7 +34,7 @@ const processes = {
     }
   },
   syncOrderEvents: {
-    enabled: true,
+    enabled: config.syncs.processOrders,
     start: () => {
       console.log('Starting order sync');
       runSyncOrderEvents(db, supportedCollectionsProvider).catch((err) => {

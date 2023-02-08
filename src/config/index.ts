@@ -107,5 +107,9 @@ export const config = {
   },
   orderbook: {
     gasSimulationAccount: trimLowerCase('0x74265Fc35f4df36d36b4fF18362F14f50790204F')
+  },
+  syncs: {
+    processSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
+    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1
   }
 };

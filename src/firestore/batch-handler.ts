@@ -14,7 +14,7 @@ export class BatchHandler {
 
   private db: FirebaseFirestore.Firestore;
 
-  constructor() {
+  constructor(protected _limit = MAX_BATCH_SIZE) {
     this.db = getDb();
     this.currentBatch = this.newBatch();
   }
@@ -56,7 +56,7 @@ export class BatchHandler {
   }
 
   private checkSize(): void {
-    if (this.currentBatch.size >= MAX_BATCH_SIZE) {
+    if (this.currentBatch.size >= this._limit) {
       this.flush().catch((err) => {
         console.error(err);
       });
@@ -64,7 +64,7 @@ export class BatchHandler {
   }
 
   private async checkSizeAsync(): Promise<void> {
-    if (this.currentBatch.size >= MAX_BATCH_SIZE) {
+    if (this.currentBatch.size >= this._limit) {
       await this.flush();
     }
   }

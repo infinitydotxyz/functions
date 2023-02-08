@@ -97,7 +97,6 @@ export async function syncSaleEvents(
       }
       return { abort: false };
     };
-
     syncs.set(item.ref.id, {
       isRunning: true,
       promise: new Promise((resolve, reject) => {
@@ -112,7 +111,6 @@ export async function syncSaleEvents(
     (snapshot) => {
       const changes = snapshot.docChanges();
       console.log(`Received: ${changes.length} document changes`);
-
       for (const item of changes) {
         const data = item.doc.data();
         switch (item.type) {

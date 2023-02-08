@@ -22,9 +22,8 @@ const getEnvVariable = (key: string, required = true): string => {
 
 const isDev = serviceAccount.project_id === 'nftc-dev';
 const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
-if (!isDeployed && isDev) {
-  loadEnv({ path: '.env.development.local', override: true });
-}
+const env = `.env.${isDev ? 'development' : 'production'}.${isDeployed ? 'deploy' : 'local'}`;
+loadEnv({ path: env, override: true });
 
 const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
 const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';

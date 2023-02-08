@@ -12,7 +12,7 @@
     "deploy:dev": "firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "firebase deploy --only functions --project nftc-infinity --vpc-connector cloud-sql-vpc-connector",
     "deploy:app:dev": "npm run build && gcloud app deploy -q --appyaml=./app.dev.yaml --project=nftc-dev",
-    "deploy:app:prod": "npm run build && gcloud app deploy -q --appyaml=./app.prod.yaml --project=nftc-infinity --vpc-connector cloud-sql-vpc-connector",
+    "deploy:app:prod": "npm run build && gcloud app deploy -q --appyaml=./app.prod.yaml --project=nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",

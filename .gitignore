@@ -20,3 +20,5 @@ firebase-debug.log
 wallets/**
 
 .DS_Store
+
+sync/*

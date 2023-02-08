@@ -10,7 +10,7 @@ import { notifySocials } from './notify-socials';
 export const onFeedWrite = functions
   .region(config.firebase.region)
   .runWith({
-    timeoutSeconds: 540
+    timeoutSeconds: 60
   })
   .firestore.document(`${firestoreConstants.FEED_COLL}/{documentId}`)
   .onWrite(async ({ after }) => {

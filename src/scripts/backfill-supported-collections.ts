@@ -29,7 +29,7 @@ async function main() {
 
   console.log(`Found ${colls.length} supported collections`);
 
-  const queue = new PQueue({ concurrency: 3 });
+  const queue = new PQueue({ concurrency: 2 });
 
   for (const coll of colls) {
     queue

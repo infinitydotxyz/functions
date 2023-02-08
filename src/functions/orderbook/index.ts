@@ -51,7 +51,8 @@ export const onProcessOrderEventProcess = processor.process(
   functions.region(config.firebase.region).runWith({
     timeoutSeconds: 60,
     maxInstances: 5_000,
-    minInstances: 1
+    minInstances: 1,
+    vpcConnector: config.pg.vpcConnector
   }).firestore.document
 );
 export const onProcessOrderEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);

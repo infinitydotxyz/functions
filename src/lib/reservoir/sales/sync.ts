@@ -321,7 +321,7 @@ const processSales = async (
       const firstSaleBlockNumber = data[0].pgSale.block_number;
       const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
       console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
-      await Promise.allSettled([
+      await Promise.all([
         batchSaveToPostgres(data.map((item) => item.pgSale)).then(() => {
           console.log('Saved to postgres');
         }),

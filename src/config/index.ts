@@ -36,8 +36,14 @@ const database = getEnvVariable('DB_NAME', false);
 const instanceSocket = getEnvVariable('INSTANCE_UNIX_SOCKET', false);
 const host = getEnvVariable('DB_HOST', false);
 const port = Number(getEnvVariable('DB_PORT', false));
+let _pg:
+  | {
+      pgDB: pgPromise.IDatabase<any, pg.IClient>;
+      pgp: pgPromise.IMain<any, pg.IClient>;
+      pgConnection: pg.IConnectionParameters<any>;
+    }
+  | undefined;
 
-let _pg: { pgDB: pgPromise.IDatabase<any, pg.IClient>; pgp: pgPromise.IMain<any, pg.IClient> };
 const getPG = () => {
   if (!_pg) {
     if (!user || !password || !database) {
@@ -65,15 +71,16 @@ const getPG = () => {
       database,
       user,
       password,
-      max: 20,
+      max: 50,
       idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 20000
+      connectionTimeoutMillis: 20000,
+      keepAlive: true
     };
 
     const pgp = pgPromise({
       capSQL: true
     });
-    _pg = { pgDB: pgp(pgConnection), pgp };
+    _pg = { pgDB: pgp(pgConnection), pgp, pgConnection };
   }
   return _pg;
 };

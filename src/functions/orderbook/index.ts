@@ -52,7 +52,8 @@ export const onProcessOrderEventProcess = processor.process(
     timeoutSeconds: 60,
     maxInstances: 5_000,
     minInstances: 1,
-    vpcConnector: config.pg.vpcConnector
+    vpcConnector: config.pg.vpcConnector,
+    vpcConnectorEgressSettings: 'PRIVATE_RANGES_ONLY'
   }).firestore.document
 );
 export const onProcessOrderEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);

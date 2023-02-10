@@ -49,6 +49,16 @@ export class OrderEventsQueue extends AbstractProcess<JobData, JobResult> {
     const lockDuration = ONE_MIN;
     const start = Date.now();
 
+    if (job.timestamp < Date.now() - 10 * ONE_MIN) {
+      return {
+        id: job.data.id,
+        timing: {
+          created: job.timestamp,
+          started: start,
+          completed: Date.now()
+        }
+      };
+    }
     try {
       const id = syncRef.path;
       const pollInterval = 10 * 1000;

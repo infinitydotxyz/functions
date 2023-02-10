@@ -52,6 +52,18 @@ export class SalesEventsQueue extends AbstractProcess<JobData, JobResult> {
     const pollInterval = 15 * 1000;
 
     const syncMetadata = job.data.syncMetadata;
+
+    if (job.timestamp < Date.now() - 10 * ONE_MIN) {
+      return {
+        id: job.data.id,
+        timing: {
+          created: job.timestamp,
+          started: start,
+          completed: Date.now()
+        }
+      };
+    }
+
     try {
       await redlock.using([id], lockDuration, async (signal) => {
         this.log(`Acquired lock for ${id}`);

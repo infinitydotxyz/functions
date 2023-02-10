@@ -58,6 +58,8 @@ export async function* sync(
       const { abort } = checkAbort();
       if (abort) {
         throw new Error(`Abort`);
+      } else if (currentSync.metadata.isPaused) {
+        throw new Error(`Paused`);
       }
 
       const page = await method(client, {

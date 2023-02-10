@@ -1,8 +1,8 @@
 .env
 .env.development.local
 .env.development.deploy
-.env.development.local
 .env.production.deploy
+.env.production.local
 
 wallets/**/*
 

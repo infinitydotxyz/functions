@@ -2,6 +2,7 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 
 import { config } from '@/config/index';
 import { DocRef, Firestore } from '@/firestore/types';
+import { logger } from '@/lib/logger';
 
 import { Reservoir } from '../..';
 import { SyncMetadata } from './types';
@@ -46,7 +47,7 @@ export const checkProgress = async (db: Firestore, chainId: ChainId, collection?
   const currentTimestamp = mostRecentPage.data.events[0].event.createdAt;
 
   if (!nextTimestamp || !currentTimestamp) {
-    console.log(`Failed to find timestamps - sync progress will be checked again in 1 minute`);
+    logger.log('check-syncs', `Failed to find timestamps - sync progress will be checked again in 1 minute`);
     return false;
   }
 
@@ -55,7 +56,7 @@ export const checkProgress = async (db: Firestore, chainId: ChainId, collection?
   const difference = Math.ceil(Math.abs(currentTimestampMs - nextTimestampMs) / 1000);
   const oneHour = 60 * 60;
   if (nextPage.data.events.length < pageSize || difference < oneHour) {
-    console.log(`Sync ${syncRef.id} complete`);
+    logger.log('check-syncs', `Sync ${syncRef.id} complete`);
     return true;
   }
 
@@ -64,7 +65,8 @@ export const checkProgress = async (db: Firestore, chainId: ChainId, collection?
   const minutes = Math.floor((difference / 60) % 60);
   const seconds = Math.floor(difference % 60);
 
-  console.log(
+  logger.log(
+    'check-syncs',
     `Sync ${syncRef.id} At ID: ${nextId} Reservoir at ID: ${currentId} Difference ${difference} seconds - ${days}d ${hours}h ${minutes}m ${seconds}s`
   );
 

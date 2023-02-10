@@ -31,10 +31,14 @@ async function main() {
 
   const queue = new PQueue({ concurrency: 3 });
 
+  const ens = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85';
   for (const coll of colls) {
     queue
       .add(async () => {
-        if (!backfilled.has(coll)) {
+        /**
+         * skip ens for now - taking a long time to backfill events
+         */
+        if (!backfilled.has(coll) && !coll.includes(ens)) {
           const [chainId, collection] = coll.split(':');
           if (chainId !== '1') {
             throw new Error('not mainnet');

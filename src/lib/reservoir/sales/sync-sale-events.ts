@@ -74,6 +74,15 @@ export async function syncSaleEvents(
             }`,
             err
           );
+        } else if (err instanceof Error && err.message.includes('Paused')) {
+          logger.warn(
+            'sync-sale-events',
+            `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
+              syncMetadata.data.metadata.collection ?? ''
+            }`,
+            err
+          );
+          return;
         } else {
           logger.error(
             'sync-sale-events',

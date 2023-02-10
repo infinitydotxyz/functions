@@ -65,7 +65,7 @@ export async function syncOrderEvents(
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.message.includes('Sync paused')) {
+        if (err instanceof Error && err.message.includes('Abort')) {
           logger.warn(
             'sync-order-events',
             `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
@@ -73,6 +73,15 @@ export async function syncOrderEvents(
             }`,
             err
           );
+        } else if (err instanceof Error && err.message.includes('Paused')) {
+          logger.warn(
+            'sync-order-events',
+            `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
+              syncMetadata.data.metadata.collection ?? ''
+            }`,
+            err
+          );
+          return;
         } else {
           logger.error(
             'sync-order-events',

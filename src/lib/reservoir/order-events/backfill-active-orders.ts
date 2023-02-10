@@ -6,6 +6,7 @@ import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
+import { logger } from '@/lib/logger';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { Orderbook, Reservoir } from '../..';
@@ -41,14 +42,14 @@ export async function backfillActiveListings(chainId: ChainId, collection: strin
     });
 
     if (result.statusCode !== 200) {
-      console.log('Error fetching orders', result.statusCode, result.data);
+      logger.log('backfill-active-orders', 'Error fetching orders', result.statusCode, result.data);
       await sleep(5000);
       continue;
     }
 
     const numOrders = result.data.orders.length;
     let numOrdersSaved = 0;
-    console.log('Fetched', numOrders, 'orders');
+    logger.log('backfill-active-orders', 'Fetched', numOrders, 'orders');
 
     const items: {
       ref: FirebaseFirestore.DocumentReference<OrderCreatedEvent>;
@@ -80,10 +81,10 @@ export async function backfillActiveListings(chainId: ChainId, collection: strin
 
           const order = new Orderbook.Orders.Order(item.id, chainId, true, db, provider, gasSimulator);
 
-          console.log(`Loading order ${item.id}...`);
+          logger.log('backfill-active-orders', `Loading order ${item.id}...`);
           const { rawOrder } = await order.load(undefined, item);
           if (!rawOrder.rawOrder) {
-            console.log('Error loading order', item.id, JSON.stringify(rawOrder, null, 2));
+            logger.log('backfill-active-orders', 'Error loading order', item.id, JSON.stringify(rawOrder, null, 2));
             return;
           }
 
@@ -112,7 +113,7 @@ export async function backfillActiveListings(chainId: ChainId, collection: strin
           });
         })
         .catch((err) => {
-          console.log('Error processing order', item.id, err);
+          logger.log('backfill-active-orders', 'Error processing order', item.id, err);
         });
     }
 
@@ -133,7 +134,7 @@ export async function backfillActiveListings(chainId: ChainId, collection: strin
         }
 
         if (!docSnap.exists) {
-          console.log(`Saving create order event ${item.ref.path}`);
+          logger.log('backfill-active-orders', `Saving create order event ${item.ref.path}`);
           await batchHandler.addAsync(docSnap.ref, item.event, { merge: false });
           numOrdersSaved += 1;
         }
@@ -141,20 +142,20 @@ export async function backfillActiveListings(chainId: ChainId, collection: strin
     }
     await batchHandler.flush();
 
-    console.log('Saved', numOrdersSaved, 'orders');
+    logger.log('backfill-active-orders', 'Saved', numOrdersSaved, 'orders');
 
     totalOrdersSaved += numOrdersSaved;
     if (numOrders < pageSize) {
-      console.log(`Fetched all orders. Expected:${pageSize} Actual:${numOrders}}`);
+      logger.log('backfill-active-orders', `Fetched all orders. Expected:${pageSize} Actual:${numOrders}}`);
       break;
     } else if (continuation === result.data.continuation) {
-      console.log('Fetched all orders. Continuation did not change');
+      logger.log('backfill-active-orders', 'Fetched all orders. Continuation did not change');
       break;
     } else {
-      console.log('Continuation updated, continuing to next page', result.data.continuation);
+      logger.log('backfill-active-orders', 'Continuation updated, continuing to next page', result.data.continuation);
       continuation = result.data.continuation;
     }
   }
 
-  console.log(`Backfilled ${totalOrdersSaved} orders for collection ${collection}`);
+  logger.log('backfill-active-orders', `Backfilled ${totalOrdersSaved} orders for collection ${collection}`);
 }

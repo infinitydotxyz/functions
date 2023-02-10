@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import { readFile, writeFile } from 'fs/promises';
 import { resolve } from 'path';
 
@@ -30,9 +31,15 @@ async function main() {
 
   const batch = new BatchHandler(100);
   let triggered = 0;
+  let items = 0;
+  const start = Date.now();
+  const count = '0x00b31963b53c3d35fe0590e0f3ea1a69bb18cabfde7a8b12c990487813a84195'.length;
+  const min = BigNumber.from('0x'.padEnd(count, '0'));
+  const max = BigNumber.from('0x'.padEnd(count, 'f'));
 
   const trigger = async (data: ReservoirOrderEvent, ref: DocRef<ReservoirOrderEvent>) => {
     triggered += 1;
+    data.data.order.contract;
     await batch.addAsync(
       ref,
       {
@@ -45,13 +52,18 @@ async function main() {
       },
       { merge: true }
     );
-    console.log(`Triggering event ${ref.path}`);
+
+    const rate = items / ((Date.now() - start) / 1000);
+    const current = BigNumber.from(ref.parent.parent?.id ?? '0x0');
+    const progress = current.sub(min).mul(10000).div(max.sub(min)).toNumber() / 100;
+    console.log(`Triggering event ${ref.path} - Rate ${rate.toFixed(2)} docs/s - Progress ${progress.toFixed(2)}%`);
     if (triggered % 500 === 0) {
       await saveCheckpoint(ref);
     }
   };
 
   for await (const { data, ref } of stream) {
+    items += 1;
     if ('error' in data && data.error && data.error.errorCode !== 1) {
       switch (data.error.reason) {
         case 'Invalid complication address': {

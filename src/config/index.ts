@@ -88,6 +88,7 @@ const getPG = () => {
 
 export const config = {
   isDev,
+  isDeployed,
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
@@ -96,6 +97,9 @@ export const config = {
     serviceAccount: serviceAccount as ServiceAccount,
     region: 'us-east1',
     snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+  },
+  redis: {
+    connectionUrl: getEnvVariable('REDIS_URL', false)
   },
   pg: {
     getPG,

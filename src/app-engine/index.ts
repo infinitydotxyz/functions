@@ -1,75 +1,86 @@
-import { sleep } from '@infinityxyz/lib/utils';
+import cron from 'node-cron';
 
 import { getDb } from '@/firestore/db';
-import { Firestore } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
-import { syncOrderEvents } from '@/lib/reservoir/order-events/sync-order-events';
-import { syncSaleEvents } from '@/lib/reservoir/sales/sync-sale-events';
 
 import { config } from '../config';
-
-const db = getDb();
-const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
-
-process.on('uncaughtException', (error, origin) => {
-  console.error('Uncaught exception', error, origin);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection', reason);
-});
-
-process.on('exit', (code) => {
-  console.log(`Process exiting... Code: ${code}`);
-});
-
-const processes = {
-  syncSalesEvents: {
-    enabled: config.syncs.processSales,
-    start: () => {
-      console.log('Starting sales sync');
-      runSyncSalesEvents(db, supportedCollectionsProvider).catch((err) => {
-        console.error(`Failed to run sync sales events`, err);
-      });
-    }
-  },
-  syncOrderEvents: {
-    enabled: config.syncs.processOrders,
-    start: () => {
-      console.log('Starting order sync');
-      runSyncOrderEvents(db, supportedCollectionsProvider).catch((err) => {
-        console.error(`Failed to run sync order events`, err);
-      });
-    }
-  }
-};
+import { Reservoir } from '../lib';
+import { OrderEventsQueue } from './order-events-queue';
+import { redis } from './redis';
+import { SalesEventsQueue } from './sales-events-queue';
 
 async function main() {
-  await supportedCollectionsProvider.init();
+  const db = getDb();
+  const supportedCollections = new SupportedCollectionsProvider(db);
+  await supportedCollections.init();
 
-  for (const process of Object.values(processes)) {
-    if (process.enabled) {
-      process.start();
-    }
+  const promises = [];
+
+  if (config.syncs.processOrders) {
+    const orderEventsQueue = new OrderEventsQueue(redis, supportedCollections, {
+      enableMetrics: false,
+      concurrency: 30,
+      debug: true,
+      attempts: 1
+    });
+
+    const trigger = async () => {
+      const syncsRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncsRef(db);
+      const syncsQuery = syncsRef.where('metadata.isPaused', '==', false);
+      const syncs = await syncsQuery.get();
+
+      for (const doc of syncs.docs) {
+        const syncMetadata = doc.data();
+        if (syncMetadata) {
+          await orderEventsQueue.add({
+            id: doc.ref.path,
+            syncMetadata: syncMetadata,
+            syncDocPath: doc.ref.path
+          });
+        }
+      }
+    };
+
+    await trigger();
+    cron.schedule('*/5 * * * *', async () => {
+      await trigger();
+    });
+    promises.push(orderEventsQueue.run());
   }
+
+  if (config.syncs.processSales) {
+    const salesQueue = new SalesEventsQueue(redis, supportedCollections, {
+      enableMetrics: false,
+      concurrency: 30,
+      debug: true,
+      attempts: 1
+    });
+
+    const trigger = async () => {
+      const syncsRef = Reservoir.Sales.SyncMetadata.getSaleEventSyncsRef(db);
+      const syncsQuery = syncsRef.where('metadata.isPaused', '==', false);
+      const syncs = await syncsQuery.get();
+
+      for (const doc of syncs.docs) {
+        const syncMetadata = doc.data();
+        if (syncMetadata) {
+          await salesQueue.add({
+            id: doc.ref.path,
+            syncMetadata: syncMetadata,
+            syncDocPath: doc.ref.path
+          });
+        }
+      }
+    };
+
+    await trigger();
+    cron.schedule('*/5 * * * *', async () => {
+      await trigger();
+    });
+    promises.push(salesQueue.run());
+  }
+
+  await Promise.all(promises);
 }
 
 void main();
-
-async function runSyncOrderEvents(db: Firestore, supportedCollectionsProvider: SupportedCollectionsProvider) {
-  try {
-    await syncOrderEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 1000 });
-  } catch (err) {
-    console.error(`Failed to start order events sync`, err);
-    await sleep(60_000);
-  }
-}
-
-async function runSyncSalesEvents(db: Firestore, supportedCollectionsProvider: SupportedCollectionsProvider) {
-  try {
-    await syncSaleEvents(db, supportedCollectionsProvider, null, { pollInterval: 15_000, delay: 0 });
-  } catch (err) {
-    console.error(`Failed to start sales events sync`, err);
-    await sleep(60_000);
-  }
-}

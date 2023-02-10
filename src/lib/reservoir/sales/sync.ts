@@ -26,6 +26,7 @@ import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { DocRef, DocSnap, Firestore } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { logger } from '@/lib/logger';
 
 import { Reservoir } from '../..';
 import { FlattenedPostgresNFTSale } from '../api/sales';
@@ -64,7 +65,7 @@ export async function* getSales(
         }
 
         if (item.id === _syncData.lastIdProcessed) {
-          console.log(`Hit last processed id ${firstItem?.id ?? ''}`);
+          logger.log('sync-sale-events', `Hit last processed id ${firstItem?.id ?? ''}`);
           yield { sales: pageSales, firstItemId: firstItem.id, complete: true };
           return;
         }
@@ -72,11 +73,11 @@ export async function* getSales(
       }
 
       if (pageSales.length < pageSize) {
-        console.log(`Page size less than max. id ${firstItem?.id ?? ''}`);
+        logger.log('sync-sale-events', `Page size less than max. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, firstItemId: firstItem?.id ?? '', complete: true };
         return;
       } else if (!page.continuation) {
-        console.log(`No continuation. id ${firstItem?.id ?? ''}`);
+        logger.log('sync-sale-events', `No continuation. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, complete: true, firstItemId: firstItem?.id ?? '' };
         return;
       }
@@ -91,7 +92,7 @@ export async function* getSales(
       if (attempts > 3) {
         throw err;
       }
-      console.error(err);
+      logger.error('sync-sale-events', `Error: ${err}`);
       await sleep(3000);
     }
   }
@@ -277,7 +278,7 @@ const processSales = async (
     checkAbort
   );
   for await (const page of iterator) {
-    console.log(`Sync - processing page with ${page.sales.length} sales`);
+    logger.log('sync-sale-events', `Sync - processing page with ${page.sales.length} sales`);
     const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
     page.sales.forEach((item) => {
       if (item.token_id) {
@@ -320,23 +321,26 @@ const processSales = async (
       });
       const firstSaleBlockNumber = data[0].pgSale.block_number;
       const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
-      console.log(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
+      logger.log(
+        'sync-sale-events',
+        `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
+      );
       await Promise.all([
         batchSaveToPostgres(data.map((item) => item.pgSale)).then(() => {
-          console.log('Saved to postgres');
+          logger.log('sync-sale-events', 'Saved to postgres');
         }),
         batchSaveToFirestore(db, supportedCollections, data).then(() => {
-          console.log('Saved to firestore');
+          logger.log('sync-sale-events', 'Saved to firestore');
         })
       ]);
     }
 
     numSales += page.sales.length;
     if (page.complete) {
-      console.log(`Hit end of page, waiting for all events to to saved`);
+      logger.log('sync-sale-events', `Hit end of page, waiting for all events to to saved`);
       return { lastItemProcessed: page.firstItemId, numSales };
     }
-    console.log(`Not at end of page, continuing`);
+    logger.log('sync-sale-events', `Not at end of page, continuing`);
   }
 
   throw new Error('Failed to complete sync');

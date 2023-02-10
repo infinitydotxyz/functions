@@ -1,6 +1,7 @@
 import { sleep } from '@infinityxyz/lib/utils';
 
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { logger } from '@/lib/logger';
 
 import * as Reservoir from '..';
 import { DocRef, Firestore } from '../../../firestore/types';
@@ -49,7 +50,8 @@ export async function syncOrderEvents(
           options?.startTimestamp
         );
         for await (const pageDetails of syncIterator) {
-          console.log(
+          logger.log(
+            'sync-order-events',
             `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Found ${pageDetails.numEventsFound} Saved ${pageDetails.numEventsSaved} Page ${pageDetails.pageNumber}`
           );
           if (stop != null && Date.now() > stop) {
@@ -64,14 +66,16 @@ export async function syncOrderEvents(
         }
       } catch (err) {
         if (err instanceof Error && err.message.includes('Sync paused')) {
-          console.warn(
+          logger.warn(
+            'sync-order-events',
             `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
               syncMetadata.data.metadata.collection ?? ''
             }`,
             err
           );
         } else {
-          console.error(
+          logger.error(
+            'sync-order-events',
             `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
               syncMetadata.data.metadata.collection ?? ''
             }`,
@@ -112,7 +116,7 @@ export async function syncOrderEvents(
   const cancelSnapshot = syncsQuery.onSnapshot(
     (snapshot) => {
       const changes = snapshot.docChanges();
-      console.log(`Received: ${changes.length} document changes`);
+      logger.log('sync-order-events', `Received: ${changes.length} document changes`);
 
       for (const item of changes) {
         const data = item.doc.data();
@@ -134,7 +138,7 @@ export async function syncOrderEvents(
       }
     },
     (err) => {
-      console.error(`On Snapshot error: ${err}`);
+      logger.error('sync-order-events', `On Snapshot error: ${err}`);
     }
   );
 

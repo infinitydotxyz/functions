@@ -8,8 +8,9 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 // TODO adi change in release
-// import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
-import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
+import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
+
+// import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -89,6 +90,7 @@ const getPG = () => {
 
 export const config = {
   isDev,
+  isDeployed,
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
@@ -97,6 +99,9 @@ export const config = {
     serviceAccount: serviceAccount as ServiceAccount,
     region: 'us-east1',
     snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+  },
+  redis: {
+    connectionUrl: getEnvVariable('REDIS_URL', false)
   },
   pg: {
     getPG,

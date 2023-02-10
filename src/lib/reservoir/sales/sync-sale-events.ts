@@ -1,6 +1,7 @@
 import { sleep } from '@infinityxyz/lib/utils';
 
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { logger } from '@/lib/logger';
 
 import * as Reservoir from '..';
 import { DocRef, Firestore } from '../../../firestore/types';
@@ -44,11 +45,13 @@ export async function syncSaleEvents(
       try {
         const syncIterator = Reservoir.Sales.sync(db, syncMetadata, supportedCollections, checkAbort);
         for await (const pageDetails of syncIterator) {
-          console.log(
+          logger.log(
+            'sync-sale-events',
             `Synced: ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}  Saved ${pageDetails.numItemsInPage} Page ${pageDetails.pageNumber}`
           );
           if (stopAfterBackfill) {
-            console.log(
+            logger.log(
+              'sync-sale-events',
               `Backfill completed for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}`
             );
             stopSync(syncMetadata.ref.id);
@@ -64,14 +67,16 @@ export async function syncSaleEvents(
         }
       } catch (err) {
         if (err instanceof Error && err.message.includes('Abort')) {
-          console.warn(
+          logger.warn(
+            'sync-sale-events',
             `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
               syncMetadata.data.metadata.collection ?? ''
             }`,
             err
           );
         } else {
-          console.error(
+          logger.error(
+            'sync-sale-events',
             `Failed to complete sync for ${syncMetadata.data.metadata.chainId}:${syncMetadata.data.metadata.type}:${
               syncMetadata.data.metadata.collection ?? ''
             }`,
@@ -110,7 +115,7 @@ export async function syncSaleEvents(
   const cancelSnapshot = syncsQuery.onSnapshot(
     (snapshot) => {
       const changes = snapshot.docChanges();
-      console.log(`Received: ${changes.length} document changes`);
+      logger.log('sync-sale-events', `Received: ${changes.length} document changes`);
       for (const item of changes) {
         const data = item.doc.data();
         switch (item.type) {
@@ -131,7 +136,7 @@ export async function syncSaleEvents(
       }
     },
     (err) => {
-      console.error(`On Snapshot error: ${err}`);
+      logger.error('sync-sale-events', `On Snapshot error: ${err}`);
     }
   );
 

@@ -10,7 +10,7 @@ automatic_scaling:
     target_utilization: 0.95
 resources:
   cpu: 2
-  memory_gb: 4
+  memory_gb: 16
   disk_size_gb: 20
 readiness_check:
   app_start_timeout_sec: 1800

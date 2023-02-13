@@ -9,7 +9,11 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.95
 resources:
+<<<<<<< HEAD
   cpu: 2
+=======
+  cpu: 4
+>>>>>>> e46ff8c720d3ca47c1c3fd29d959a88a655c785e
   memory_gb: 16
   disk_size_gb: 20
 readiness_check:

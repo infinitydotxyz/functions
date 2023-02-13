@@ -1,4 +1,4 @@
-import { Job, MetricsTime, Queue, Worker } from 'bullmq';
+import { Job, JobType, MetricsTime, Queue, Worker } from 'bullmq';
 import EventEmitter from 'events';
 import Redis from 'ioredis';
 
@@ -10,6 +10,10 @@ export abstract class AbstractProcess<T extends { id: string }, U> extends Event
   protected _worker: Worker<T, WithTiming<U>>;
   protected _queue: Queue<T, WithTiming<U>>;
 
+  public get queue() {
+    return this._queue;
+  }
+
   log(message: string) {
     logger.log(this.queueName, message);
   }
@@ -20,7 +24,7 @@ export abstract class AbstractProcess<T extends { id: string }, U> extends Event
     logger.warn(this.queueName, message);
   }
 
-  constructor(protected _db: Redis, protected queueName: string, options?: ProcessOptions) {
+  constructor(protected _db: Redis, public readonly queueName: string, options?: ProcessOptions) {
     super();
     const metrics =
       options?.enableMetrics === true
@@ -38,7 +42,8 @@ export abstract class AbstractProcess<T extends { id: string }, U> extends Event
           delay: 10_000
         },
         removeOnComplete: true,
-        removeOnFail: 10_000
+        removeOnFail: 10_000,
+        delay: options?.delay ?? 0
       }
     });
 
@@ -61,6 +66,10 @@ export abstract class AbstractProcess<T extends { id: string }, U> extends Event
 
   public resume() {
     this._resume();
+  }
+
+  public getJobs(types?: JobType[] | JobType, start?: number, end?: number, asc?: boolean) {
+    return this._queue.getJobs(types, start, end, asc);
   }
 
   public async pause() {

@@ -13,7 +13,6 @@ import { SalesEventsQueue, SalesJobData, SalesJobResult } from './sales-events-q
 
 async function main() {
   const db = getDb();
-  await redis.config('SET', 'maxmemory-policy', 'noeviction');
   const supportedCollections = new SupportedCollectionsProvider(db);
   await supportedCollections.init();
 

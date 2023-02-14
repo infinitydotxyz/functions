@@ -1,4 +1,4 @@
-import { Job, JobType, MetricsTime, Queue, Worker } from 'bullmq';
+import { Job, MetricsTime, Queue, Worker } from 'bullmq';
 import EventEmitter from 'events';
 import Redis from 'ioredis';
 
@@ -66,10 +66,6 @@ export abstract class AbstractProcess<T extends { id: string }, U> extends Event
 
   public resume() {
     this._resume();
-  }
-
-  public getJobs(types?: JobType[] | JobType, start?: number, end?: number, asc?: boolean) {
-    return this._queue.getJobs(types, start, end, asc);
   }
 
   public async pause() {

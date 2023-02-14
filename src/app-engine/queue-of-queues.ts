@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 
-interface JobData<SubQueueJob> {
+export interface JobData<SubQueueJob> {
   id: string;
   queueId: string;
   job: SubQueueJob;
@@ -19,7 +19,10 @@ export class QueueOfQueues<SubQueueJob extends { id: string }, SubQueueResult> e
   constructor(
     _db: Redis,
     queueName: string,
-    protected initQueue: (id: string) => AbstractProcess<SubQueueJob, SubQueueResult>,
+    protected initQueue: (
+      id: string,
+      queue: AbstractProcess<JobData<SubQueueJob>, { id: string }>
+    ) => AbstractProcess<SubQueueJob, SubQueueResult>,
     options?: ProcessOptions
   ) {
     super(_db, queueName, options);
@@ -30,7 +33,7 @@ export class QueueOfQueues<SubQueueJob extends { id: string }, SubQueueResult> e
     let queue = this._queues.get(id);
 
     if (!queue) {
-      queue = this.initQueue(id);
+      queue = this.initQueue(id, this);
 
       queue.run().catch((err) => {
         this.error(err);

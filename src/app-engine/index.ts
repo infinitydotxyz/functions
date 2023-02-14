@@ -2,13 +2,14 @@ import cron from 'node-cron';
 
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { AbstractProcess } from '@/lib/process/process.abstract';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
-import { JobData, JobResult, OrderEventsQueue } from './order-events-queue';
-import { QueueOfQueues } from './queue-of-queues';
+import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events-queue';
+import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
-import { SalesEventsQueue, JobData as SalesJobData, JobResult as SalesJobResult } from './sales-events-queue';
+import { SalesEventsQueue, SalesJobData, SalesJobResult } from './sales-events-queue';
 
 async function main() {
   const db = getDb();
@@ -18,19 +19,20 @@ async function main() {
   const promises = [];
 
   if (config.syncs.processOrders) {
-    const initQueue = (id: string) => {
+    const initQueue = (id: string, queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) => {
       const orderEventsQueue = new OrderEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
         concurrency: 1,
         debug: true,
         attempts: 1
       });
+      orderEventsQueue.enqueueOnComplete(queue);
       return orderEventsQueue;
     };
 
-    const queue = new QueueOfQueues<JobData, JobResult>(redis, 'reservoir-order-events-sync', initQueue, {
+    const queue = new QueueOfQueues<OrderJobData, OrderJobResult>(redis, 'reservoir-order-events-sync', initQueue, {
       enableMetrics: false,
-      concurrency: 20,
+      concurrency: 1,
       debug: true,
       attempts: 3
     });
@@ -64,19 +66,20 @@ async function main() {
   }
 
   if (config.syncs.processSales) {
-    const initQueue = (id: string) => {
+    const initQueue = (id: string, queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) => {
       const salesEventsQueue = new SalesEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
         concurrency: 1,
         debug: true,
         attempts: 1
       });
+      salesEventsQueue.enqueueOnComplete(queue);
       return salesEventsQueue;
     };
 
     const queue = new QueueOfQueues<SalesJobData, SalesJobResult>(redis, 'reservoir-sales-events-sync', initQueue, {
       enableMetrics: false,
-      concurrency: 20,
+      concurrency: 1,
       debug: true,
       attempts: 3
     });

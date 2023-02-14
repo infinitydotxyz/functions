@@ -12,22 +12,23 @@ import { ProcessOptions, WithTiming } from '@/lib/process/types';
 import { syncPage } from '@/lib/reservoir/sales/sync-page';
 
 import { Reservoir } from '../lib';
+import { JobData } from './queue-of-queues';
 import { redlock } from './redis';
 
-export interface JobData {
+export interface SalesJobData {
   id: string;
   syncMetadata: Reservoir.Sales.Types.SyncMetadata['metadata'];
   syncDocPath: string;
 }
 
-export type JobResult = WithTiming<{
+export type SalesJobResult = WithTiming<{
   id: string;
   status: 'skipped' | 'paused' | 'errored' | 'completed';
   syncMetadata: Reservoir.Sales.Types.SyncMetadata['metadata'];
   syncDocPath: string;
 }>;
 
-export class SalesEventsQueue extends AbstractProcess<JobData, JobResult> {
+export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResult> {
   constructor(
     id: string,
     redis: Redis,
@@ -37,11 +38,11 @@ export class SalesEventsQueue extends AbstractProcess<JobData, JobResult> {
     super(redis, `reservoir-sales-event-sync:${id}`, options);
   }
 
-  async add(data: JobData | JobData[]): Promise<void> {
+  async add(data: SalesJobData | SalesJobData[]): Promise<void> {
     const arr = Array.isArray(data) ? data : [data];
     const jobs: {
       name: string;
-      data: JobData;
+      data: SalesJobData;
       opts?: BulkJobOptions | undefined;
     }[] = arr.map((item) => {
       return {
@@ -52,25 +53,32 @@ export class SalesEventsQueue extends AbstractProcess<JobData, JobResult> {
     await this._queue.addBulk(jobs);
   }
 
-  public async run() {
+  public enqueueOnComplete(queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) {
     this._worker.on('completed', async (job, result) => {
       if (result.status === 'completed' || result.status === 'errored') {
         try {
-          await this.add({
+          await queue.add({
             id: result.id,
-            syncMetadata: result.syncMetadata,
-            syncDocPath: result.syncDocPath
+            queueId: this.queueName,
+            job: {
+              id: result.id,
+              syncMetadata: result.syncMetadata,
+              syncDocPath: result.syncDocPath
+            }
           });
         } catch (err) {
           this.error(JSON.stringify(err));
         }
       }
     });
+    return;
+  }
 
+  public async run() {
     await super._run();
   }
 
-  async processJob(job: Job<JobData, JobResult, string>): Promise<JobResult> {
+  async processJob(job: Job<SalesJobData, SalesJobResult, string>): Promise<SalesJobResult> {
     const db = getDb();
     const syncRef = db.doc(job.data.syncDocPath) as DocRef<Reservoir.Sales.Types.SyncMetadata>;
     const lockDuration = 5_000;

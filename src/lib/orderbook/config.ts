@@ -1,3 +1,5 @@
+import { OrderSource } from '@infinityxyz/lib/types/core';
+
 import * as Transformers from './order-transformer';
 
 const flowConfig = {
@@ -47,6 +49,10 @@ export const config = {
     source: 'seaport',
     enabled: true,
     kinds: seaportConfig
+  },
+  'seaport-v1.2': {
+    source: 'seaport-v1.2',
+    enabled: false
   },
   'wyvern-v2': {
     source: 'wyvern-v2',

@@ -13,22 +13,23 @@ import { syncPage } from '@/lib/reservoir/order-events/sync-page';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
+import { JobData } from './queue-of-queues';
 import { redlock } from './redis';
 
-export interface JobData {
+export interface OrderJobData {
   id: string;
   syncMetadata: Reservoir.OrderEvents.Types.SyncMetadata['metadata'];
   syncDocPath: string;
 }
 
-export type JobResult = WithTiming<{
+export type OrderJobResult = WithTiming<{
   id: string;
   status: 'skipped' | 'paused' | 'errored' | 'completed';
   syncMetadata: Reservoir.OrderEvents.Types.SyncMetadata['metadata'];
   syncDocPath: string;
 }>;
 
-export class OrderEventsQueue extends AbstractProcess<JobData, JobResult> {
+export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResult> {
   constructor(
     id: string,
     redis: Redis,
@@ -38,11 +39,11 @@ export class OrderEventsQueue extends AbstractProcess<JobData, JobResult> {
     super(redis, `reservoir-order-event-sync:${id}`, options);
   }
 
-  async add(data: JobData | JobData[]): Promise<void> {
+  async add(data: OrderJobData | OrderJobData[]): Promise<void> {
     const arr = Array.isArray(data) ? data : [data];
     const jobs: {
       name: string;
-      data: JobData;
+      data: OrderJobData;
       opts?: BulkJobOptions | undefined;
     }[] = arr.map((item) => {
       return {
@@ -53,25 +54,32 @@ export class OrderEventsQueue extends AbstractProcess<JobData, JobResult> {
     await this._queue.addBulk(jobs);
   }
 
-  public async run() {
+  public enqueueOnComplete(queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) {
     this._worker.on('completed', async (job, result) => {
       if (result.status === 'completed' || result.status === 'errored') {
         try {
-          await this.add({
+          await queue.add({
             id: result.id,
-            syncMetadata: result.syncMetadata,
-            syncDocPath: result.syncDocPath
+            queueId: this.queueName,
+            job: {
+              id: result.id,
+              syncMetadata: result.syncMetadata,
+              syncDocPath: result.syncDocPath
+            }
           });
         } catch (err) {
           this.error(JSON.stringify(err));
         }
       }
     });
+    return;
+  }
 
+  public async run() {
     await super._run();
   }
 
-  async processJob(job: Job<JobData, JobResult, string>): Promise<JobResult> {
+  async processJob(job: Job<OrderJobData, OrderJobResult, string>): Promise<OrderJobResult> {
     const db = getDb();
     const syncRef = db.doc(job.data.syncDocPath) as DocRef<Reservoir.OrderEvents.Types.SyncMetadata>;
     const lockDuration = 5_000;

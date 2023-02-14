@@ -13,6 +13,7 @@ import { SalesEventsQueue, SalesJobData, SalesJobResult } from './sales-events-q
 
 async function main() {
   const db = getDb();
+  await redis.config('SET', 'maxmemory-policy', 'noeviction');
   const supportedCollections = new SupportedCollectionsProvider(db);
   await supportedCollections.init();
 
@@ -46,10 +47,10 @@ async function main() {
         const syncMetadata = doc.data();
         if (syncMetadata) {
           await queue.add({
-            id: doc.ref.path,
-            queueId: doc.ref.path,
+            id: `reservoir-order-event-sync:${doc.ref.id}`,
+            queueId: `reservoir-order-event-sync:${doc.ref.id}`,
             job: {
-              id: doc.ref.path,
+              id: `reservoir-order-event-sync:${doc.ref.id}`,
               syncMetadata: syncMetadata.metadata,
               syncDocPath: doc.ref.path
             }
@@ -93,10 +94,10 @@ async function main() {
         const syncMetadata = doc.data();
         if (syncMetadata) {
           await queue.add({
-            id: doc.ref.path,
-            queueId: doc.ref.path,
+            id: `reservoir-sale-event-sync:${doc.ref.id}`,
+            queueId: `reservoir-sale-event-sync:${doc.ref.id}`,
             job: {
-              id: doc.ref.path,
+              id: `reservoir-sale-event-sync:${doc.ref.id}`,
               syncMetadata: syncMetadata.metadata,
               syncDocPath: doc.ref.path
             }

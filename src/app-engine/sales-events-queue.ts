@@ -35,7 +35,7 @@ export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResu
     protected _supportedCollections: SupportedCollectionsProvider,
     options?: ProcessOptions
   ) {
-    super(redis, `reservoir-sales-event-sync:${id}`, options);
+    super(redis, id, options);
   }
 
   async add(data: SalesJobData | SalesJobData[]): Promise<void> {
@@ -127,6 +127,7 @@ export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResu
         await syncRef.set(result.sync, { merge: true });
         checkAbortThrow();
 
+        this.log(`Synced ${result.numEvents} events. Has next page: ${result.hasNextPage ? 'yes' : 'no'}`);
         if (!result.hasNextPage) {
           await sleep(10_000);
         }

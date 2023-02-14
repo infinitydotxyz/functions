@@ -36,7 +36,7 @@ export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResu
     protected _supportedCollections: SupportedCollectionsProvider,
     options?: ProcessOptions
   ) {
-    super(redis, `reservoir-order-event-sync:${id}`, options);
+    super(redis, id, options);
   }
 
   async add(data: OrderJobData | OrderJobData[]): Promise<void> {
@@ -126,6 +126,7 @@ export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResu
         await syncRef.set(result.sync, { merge: true });
         checkAbort();
 
+        this.log(`Synced ${result.numEventsSaved} events. Has next page: ${result.hasNextPage ? 'yes' : 'no'}`);
         if (!result.hasNextPage) {
           await sleep(5_000);
         }

@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+import { Firestore } from 'firebase-admin/firestore';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
 import {
@@ -6,6 +7,7 @@ import {
   ChainId,
   EtherscanLinkType,
   EventType,
+  FlattenedPostgresNFTSale,
   NftSale,
   NftSaleEvent,
   OrderSource,
@@ -24,14 +26,47 @@ import {
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
-import { DocRef, DocSnap, Firestore } from '@/firestore/types';
+import { DocRef, DocSnap } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 
 import { Reservoir } from '../..';
-import { FlattenedPostgresNFTSale } from '../api/sales';
 import { FlattenedPostgresNFTSaleWithId } from '../api/sales/types';
 import { SyncMetadata } from './types';
+
+export async function syncPage(
+  db: FirebaseFirestore.Firestore,
+  supportedCollections: SupportedCollectionsProvider,
+  sync: SyncMetadata,
+  checkAbort: () => { abort: boolean }
+) {
+  if (sync.metadata.isPaused) {
+    throw new Error('Paused');
+  }
+
+  const { lastItemProcessed, numSales, lastItemProcessedTimestamp } = await processSales(
+    db,
+    supportedCollections,
+    { data: sync },
+    checkAbort
+  );
+
+  if (!lastItemProcessed) {
+    throw new Error('No last item processed');
+  }
+
+  const endTimestamp = lastItemProcessedTimestamp ? lastItemProcessedTimestamp - 60_000 : sync.data.endTimestamp;
+
+  const update: Partial<SyncMetadata> = {
+    data: {
+      eventsProcessed: sync.data.eventsProcessed + numSales,
+      lastItemProcessed: lastItemProcessed,
+      endTimestamp
+    }
+  };
+
+  return { sync: update, hasNextPage: false, numEvents: numSales };
+}
 
 export async function* getSales(
   _syncData: { lastIdProcessed: string; startTimestamp: number },
@@ -66,7 +101,12 @@ export async function* getSales(
 
         if (item.id === _syncData.lastIdProcessed) {
           logger.log('sync-sale-events', `Hit last processed id ${firstItem?.id ?? ''}`);
-          yield { sales: pageSales, firstItemId: firstItem.id, complete: true };
+          yield {
+            sales: pageSales,
+            firstItemId: firstItem.id,
+            firstItemTimestamp: firstItem.sale_timestamp,
+            complete: true
+          };
           return;
         }
         pageSales.push(item as FlattenedPostgresNFTSaleWithId);
@@ -231,10 +271,7 @@ const batchSaveToFirestore = async (
     };
   });
 
-  /**
-   * If this is set higher it causes the app to stall when deployed
-   */
-  const batchHandler = new BatchHandler(100);
+  const batchHandler = new BatchHandler();
   const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
   const feedCollectionRef = db.collection(firestoreConstants.FEED_COLL);
   for (const { sale, saleV2, pgSale, feedEvent } of nftSales) {
@@ -325,82 +362,19 @@ const processSales = async (
         'sync-sale-events',
         `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
       );
-      await Promise.all([
-        batchSaveToPostgres(data.map((item) => item.pgSale)).then(() => {
-          logger.log('sync-sale-events', 'Saved to postgres');
-        }),
-        batchSaveToFirestore(db, supportedCollections, data).then(() => {
-          logger.log('sync-sale-events', 'Saved to firestore');
-        })
-      ]);
+      await batchSaveToPostgres(data.map((item) => item.pgSale));
+      logger.log('sync-sale-events', 'Saved to postgres');
+      await batchSaveToFirestore(db, supportedCollections, data);
+      logger.log('sync-sale-events', 'Saved to firestore');
     }
 
     numSales += page.sales.length;
     if (page.complete) {
       logger.log('sync-sale-events', `Hit end of page, waiting for all events to to saved`);
-      return { lastItemProcessed: page.firstItemId, numSales };
+      return { lastItemProcessed: page.firstItemId, lastItemProcessedTimestamp: page.firstItemTimestamp, numSales };
     }
     logger.log('sync-sale-events', `Not at end of page, continuing`);
   }
 
   throw new Error('Failed to complete sync');
 };
-
-export async function* sync(
-  db: FirebaseFirestore.Firestore,
-  initialSync: { data: SyncMetadata; ref: DocRef<SyncMetadata> },
-  supportedCollections: SupportedCollectionsProvider,
-  checkAbort: () => { abort: boolean }
-) {
-  let pageNumber = 0;
-  let totalItemsProcessed = 0;
-
-  while (true) {
-    const currentSyncSnap = await initialSync.ref.get();
-    const currentSync = currentSyncSnap.data() as SyncMetadata;
-
-    const { abort } = checkAbort();
-    if (abort) {
-      throw new Error(`Abort`);
-    } else if (currentSync.metadata.isPaused) {
-      throw new Error(`Paused`);
-    }
-    const { lastItemProcessed, numSales } = await processSales(
-      db,
-      supportedCollections,
-      { data: currentSync },
-      checkAbort
-    );
-    if (!lastItemProcessed) {
-      throw new Error('No last item processed');
-    }
-    await db.runTransaction(async (txn) => {
-      const snap = await txn.get(initialSync.ref);
-      const prevSetSync = snap.data() as SyncMetadata;
-      if (prevSetSync.data.lastItemProcessed !== currentSync.data.lastItemProcessed) {
-        throw new Error('Sync metadata changed while processing');
-      } else if (prevSetSync.data.endTimestamp !== currentSync.data.endTimestamp) {
-        throw new Error('Sync metadata changed while processing');
-      } else if (prevSetSync.data.eventsProcessed !== currentSync.data.eventsProcessed) {
-        throw new Error('Sync metadata changed while processing');
-      }
-
-      txn.set(
-        initialSync.ref,
-        {
-          data: {
-            lastItemProcessed,
-            endTimestamp: prevSetSync.data.endTimestamp,
-            eventsProcessed: prevSetSync.data.eventsProcessed + numSales
-          }
-        },
-        { merge: true }
-      );
-      return { numSales, lastItemProcessed };
-    });
-
-    pageNumber += 1;
-    totalItemsProcessed += numSales;
-    yield { numItemsInPage: numSales, pageNumber, totalItemsProcessed, lastItemProcessed };
-  }
-}

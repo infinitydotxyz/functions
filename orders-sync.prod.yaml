@@ -1,4 +1,4 @@
-service: events-sync
+service: orders-sync
 runtime: nodejs
 env: flex
 entrypoint: npm run start
@@ -9,13 +9,13 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.95
 resources:
-  cpu: 4
-  memory_gb: 16
+  cpu: 2
+  memory_gb: 8
   disk_size_gb: 20
 readiness_check:
   app_start_timeout_sec: 1800
 env_variables:
-  SYNC_SALES: 1
+  SYNC_SALES: 0
   SYNC_ORDERS: 1
 beta_settings:
   cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers

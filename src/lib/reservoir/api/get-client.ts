@@ -58,7 +58,8 @@ export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => 
           'x-api-key': apiKey
         },
         searchParams: (params as any)?.query ?? {},
-        throwHttpErrors: false
+        throwHttpErrors: false,
+        timeout: 20_000
       });
       const statusCode = response.statusCode as StatusCodes<P, M>;
       if (response.statusCode != null && response.statusCode > 299) {

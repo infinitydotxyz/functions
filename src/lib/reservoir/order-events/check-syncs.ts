@@ -55,10 +55,6 @@ export const checkProgress = async (db: Firestore, chainId: ChainId, collection?
   const nextTimestampMs = new Date(nextTimestamp).getTime();
   const difference = Math.ceil(Math.abs(currentTimestampMs - nextTimestampMs) / 1000);
   const oneHour = 60 * 60;
-  if (nextPage.data.events.length < pageSize || difference < oneHour) {
-    logger.log('check-syncs', `Sync ${syncRef.id} complete`);
-    return true;
-  }
 
   const days = Math.floor(difference / (60 * 60 * 24));
   const hours = Math.floor((difference / (60 * 60)) % 24);
@@ -70,5 +66,9 @@ export const checkProgress = async (db: Firestore, chainId: ChainId, collection?
     `Sync ${syncRef.id} At ID: ${nextId} Reservoir at ID: ${currentId} Difference ${difference} seconds - ${days}d ${hours}h ${minutes}m ${seconds}s`
   );
 
+  if (nextPage.data.events.length < pageSize || difference < oneHour) {
+    logger.log('check-syncs', `Sync ${syncRef.id} complete`);
+    return true;
+  }
   return false;
 };

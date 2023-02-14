@@ -118,6 +118,10 @@ export class OrderEventsQueue extends AbstractProcess<JobData, JobResult> {
         await syncRef.set(result.sync, { merge: true });
         checkAbort();
 
+        if (!result.hasNextPage) {
+          await sleep(5_000);
+        }
+
         return;
       });
 

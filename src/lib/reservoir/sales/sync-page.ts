@@ -31,13 +31,11 @@ import { SupportedCollectionsProvider } from '@/lib/collections/supported-collec
 import { logger } from '@/lib/logger';
 
 import { Reservoir } from '../..';
-import { ReservoirClient } from '../api/get-client';
 import { FlattenedPostgresNFTSaleWithId } from '../api/sales/types';
 import { SyncMetadata } from './types';
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
-  client: ReservoirClient,
   supportedCollections: SupportedCollectionsProvider,
   sync: SyncMetadata,
   checkAbort: () => { abort: boolean }
@@ -46,17 +44,24 @@ export async function syncPage(
     throw new Error('Paused');
   }
 
-  const { lastItemProcessed, numSales } = await processSales(db, supportedCollections, { data: sync }, checkAbort);
+  const { lastItemProcessed, numSales, lastItemProcessedTimestamp } = await processSales(
+    db,
+    supportedCollections,
+    { data: sync },
+    checkAbort
+  );
 
   if (!lastItemProcessed) {
     throw new Error('No last item processed');
   }
 
+  const endTimestamp = lastItemProcessedTimestamp ? lastItemProcessedTimestamp - 60_000 : sync.data.endTimestamp;
+
   const update: Partial<SyncMetadata> = {
     data: {
       eventsProcessed: sync.data.eventsProcessed + numSales,
       lastItemProcessed: lastItemProcessed,
-      endTimestamp: sync.data.endTimestamp
+      endTimestamp
     }
   };
 
@@ -96,7 +101,12 @@ export async function* getSales(
 
         if (item.id === _syncData.lastIdProcessed) {
           logger.log('sync-sale-events', `Hit last processed id ${firstItem?.id ?? ''}`);
-          yield { sales: pageSales, firstItemId: firstItem.id, complete: true };
+          yield {
+            sales: pageSales,
+            firstItemId: firstItem.id,
+            firstItemTimestamp: firstItem.sale_timestamp,
+            complete: true
+          };
           return;
         }
         pageSales.push(item as FlattenedPostgresNFTSaleWithId);
@@ -361,7 +371,7 @@ const processSales = async (
     numSales += page.sales.length;
     if (page.complete) {
       logger.log('sync-sale-events', `Hit end of page, waiting for all events to to saved`);
-      return { lastItemProcessed: page.firstItemId, numSales };
+      return { lastItemProcessed: page.firstItemId, lastItemProcessedTimestamp: page.firstItemTimestamp, numSales };
     }
     logger.log('sync-sale-events', `Not at end of page, continuing`);
   }

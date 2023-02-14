@@ -11,7 +11,6 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions, WithTiming } from '@/lib/process/types';
 import { syncPage } from '@/lib/reservoir/sales/sync-page';
 
-import { config } from '../config';
 import { Reservoir } from '../lib';
 import { redlock } from './redis';
 
@@ -114,12 +113,15 @@ export class SalesEventsQueue extends AbstractProcess<JobData, JobResult> {
           return;
         }
 
-        const reservoirClient = Reservoir.Api.getClient(sync.metadata.chainId, config.reservoir.apiKey);
-        const result = await syncPage(db, reservoirClient, this._supportedCollections, sync, checkAbort);
+        const result = await syncPage(db, this._supportedCollections, sync, checkAbort);
         checkAbortThrow();
 
         await syncRef.set(result.sync, { merge: true });
         checkAbortThrow();
+
+        if (!result.hasNextPage) {
+          await sleep(10_000);
+        }
 
         return;
       });

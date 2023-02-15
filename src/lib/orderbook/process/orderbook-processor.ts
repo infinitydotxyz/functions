@@ -3,9 +3,7 @@ import { BigNumber } from 'ethers';
 import Redis from 'ioredis';
 
 import { RawFirestoreOrder } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
 
-import { CollRef } from '@/firestore/types';
 import { AbstractSandboxProcess } from '@/lib/process/sandbox-process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 
@@ -25,11 +23,7 @@ export abstract class AbstractOrderbookProcessor<
     this.concurrency = this._workers.length;
   }
 
-  get ref() {
-    return this._firestore.collection(firestoreConstants.ORDERS_V2_COLL) as CollRef<RawFirestoreOrder>;
-  }
-
-  static getSplitQueries(query: FirebaseFirestore.Query<RawFirestoreOrder>, numQueries: number) {
+  static getSplitOrderQuery(query: FirebaseFirestore.Query<RawFirestoreOrder>, numQueries: number) {
     const max = BigNumber.from('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
     const queries = [];
     const len = max.toHexString().length;

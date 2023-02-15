@@ -34,7 +34,7 @@ export default async function (job: Job) {
       .where('order.isValid', '==', true)
       .where('order.isSellOrder', '==', isSellOrder) as Query<RawFirestoreOrder>;
 
-    let query = AbstractOrderbookProcessor.getSplitQueries(validSells, numQueries)[queryNum];
+    let query = AbstractOrderbookProcessor.getSplitOrderQuery(validSells, numQueries)[queryNum];
 
     const checkpointKey = `validate-orders:env:${
       config.isDev ? 'dev' : 'prod'

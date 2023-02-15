@@ -1,5 +1,3 @@
-import { OrderSource } from '@infinityxyz/lib/types/core';
-
 import * as Transformers from './order-transformer';
 
 const flowConfig = {

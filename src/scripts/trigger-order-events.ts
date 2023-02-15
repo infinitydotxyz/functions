@@ -14,13 +14,13 @@ async function main() {
   const id = `trigger-order-events:env:${config.isDev ? 'dev' : 'prod'}`;
   const processor = new TriggerReservoirOrderEventsProcessor(id, redis, db, {
     enableMetrics: false,
-    concurrency: 8,
+    concurrency: 32,
     debug: true,
     attempts: 1,
     delay: 0
   });
 
-  const numQueries = 16;
+  const numQueries = 32;
 
   const jobs = [];
   for (let queryNum = 0; queryNum < numQueries; queryNum++) {

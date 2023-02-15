@@ -20,6 +20,7 @@ export enum ErrorCode {
   SeaportConduitKey = 101,
   SeaportZone = 102,
 
+  FailedToGetReservoirOrder = 900,
   NotFound = 999,
   Unexpected = 1000
 }

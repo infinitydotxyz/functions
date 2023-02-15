@@ -61,6 +61,12 @@ export class OrderCurrencyError extends OrderError {
   }
 }
 
+export class FailedToGetReservoirOrderError extends OrderError {
+  constructor() {
+    super('failed to get reservoir order', ErrorCode.FailedToGetReservoirOrder, '', 'unknown', 'unexpected');
+  }
+}
+
 export class NotFoundError extends OrderError {
   constructor(message: string) {
     super(`not found`, ErrorCode.NotFound, message, 'unknown', 'unexpected');

@@ -2,16 +2,22 @@ import { Job } from 'bullmq';
 import { BigNumber } from 'ethers';
 import 'module-alias/register';
 
+import { FirestoreDisplayOrder, OrderSource, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query } from '@/firestore/types';
+import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { Orderbook } from '@/lib/index';
 import { logger } from '@/lib/logger';
 import { WithTiming } from '@/lib/process/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
+import { BaseOrder } from '../../order/base-order';
 import { JobData, JobResult } from './trigger-order-events';
 
 const splitQueries = (
@@ -76,8 +82,50 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
       query = query.startAfter(db.doc(checkpoint));
     }
 
+    const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
+    await supportedCollectionsProvider.init();
+
     const batch = new BatchHandler(300);
     const trigger = async (data: ReservoirOrderEvent, ref: DocRef<ReservoirOrderEvent>, reason: string) => {
+      const contract = data.data.order.contract;
+      const source = data.data.order.source.toLowerCase();
+      if (
+        !supportedCollectionsProvider.has(`${data.metadata.chainId}:${contract}`) &&
+        source !== 'infinity' &&
+        source !== 'flow'
+      ) {
+        logger.log(name, `Found unsupported order ${ref.path} - Deleting`);
+        const orderRef = ref.parent.parent as DocRef<RawFirestoreOrder>;
+        const orderSnap = await orderRef.get();
+        if (!orderSnap.exists) {
+          await db.recursiveDelete(orderRef);
+        } else {
+          const provider = getProvider(data.metadata.chainId);
+          const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+          const baseOrder = new BaseOrder(
+            data.metadata.id,
+            data.metadata.chainId,
+            data.metadata.isSellOrder,
+            db,
+            provider,
+            gasSimulator
+          );
+
+          const chainDisplayRef = db
+            .collection('ordersV2ByChain')
+            .doc(data.metadata.chainId)
+            .collection('chainV2Orders')
+            .doc(data.metadata.id) as DocRef<FirestoreDisplayOrder>;
+
+          const displayOrderSnap = await chainDisplayRef.get();
+          const displayOrder = displayOrderSnap.data();
+          if (displayOrder) {
+            await baseOrder.delete(displayOrder);
+          } else {
+            await db.recursiveDelete(orderRef);
+          }
+        }
+      }
       triggered += 1;
       data.data.order.contract;
       await batch.addAsync(

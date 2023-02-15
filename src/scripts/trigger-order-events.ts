@@ -22,8 +22,6 @@ async function main() {
 
   const numQueries = 16;
 
-  await processor.queue.drain();
-
   const jobs = [];
   for (let queryNum = 0; queryNum < numQueries; queryNum++) {
     const jobData: JobData = {

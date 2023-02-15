@@ -227,10 +227,11 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     txn?: FirebaseFirestore.Transaction
   ): Promise<OrderEvents> {
     let timestamp;
-    if (data.event.txTimestamp) {
-      timestamp = data.event.txTimestamp * 1000;
-    } else if (data.event.createdAt) {
+
+    if (data.event.createdAt) {
       timestamp = new Date(data.event.createdAt).getTime();
+    } else if (data.event.txTimestamp) {
+      timestamp = data.event.txTimestamp * 1000;
     } else {
       throw new Error(`No timestamp found for event: ${JSON.stringify(data)}`);
     }

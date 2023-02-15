@@ -34,7 +34,6 @@ async function main() {
   );
 
   const db = getDb();
-  const start = Date.now();
   const eventsRef = db
     .collection('ordersV2')
     .doc(id)

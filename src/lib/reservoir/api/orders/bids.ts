@@ -2,7 +2,7 @@ import { ReservoirClient } from '../get-client';
 import { BidOrder, OrderStatus } from './types';
 
 export interface BidOrderOptions {
-  ids?: string;
+  ids?: string[];
   token?: string;
   tokenSetId?: string;
   maker?: string;
@@ -25,12 +25,16 @@ export async function getOrders(client: ReservoirClient, _options: Partial<BidOr
     ..._options
   };
 
+  const contracts = _options.contracts?.length ? { contracts: _options.contracts } : {};
+  const ids = _options.ids?.length ? { ids: _options.ids } : {};
   const response = await client(
     '/orders/bids/v3',
     'get'
   )({
     query: {
-      ...options
+      ...options,
+      ...(contracts as any),
+      ...(ids as any)
     }
   });
 

@@ -2,7 +2,7 @@ import { ReservoirClient } from '../get-client';
 import { AskOrder, OrderStatus } from './types';
 
 export interface AskOrderOptions {
-  ids?: string;
+  ids?: string[];
   token?: string;
   maker?: string;
   community?: string;
@@ -29,24 +29,24 @@ export async function getOrders(
   };
   statusCode: number;
 }> {
-  const contracts = _options.contracts?.length ? { contracts: (_options.contracts ?? []).join(',') } : {};
-  const options: AskOrderOptions = {
+  const contracts = _options.contracts?.length ? { contracts: _options.contracts } : {};
+  const ids = _options.ids?.length ? { ids: _options.ids } : {};
+  const options: Omit<AskOrderOptions, 'ids'> & { ids: string } = {
     includePrivate: false,
     includeCriteriaMetadata: false,
     includeRawData: true,
     normalizeRoyalties: false,
     limit: 100,
     ..._options,
-    ...(contracts as any)
+    ...(contracts as any),
+    ...(ids as any)
   };
 
   const response = await client(
     '/orders/asks/v4',
     'get'
   )({
-    query: {
-      ...options
-    }
+    query: options
   });
 
   const orders = response.data.orders as AskOrder[];

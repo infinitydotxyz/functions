@@ -33,7 +33,8 @@
     "backfill-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-supported-collections.ts",
     "check-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-supported-collections.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
-    "trigger-order-events": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/trigger-order-events.ts"
+    "trigger-order-events": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/trigger-order-events.ts",
+    "validate-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/validate-orders.ts"
   },
   "engines": {
     "node": "16"

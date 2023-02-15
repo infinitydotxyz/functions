@@ -3,7 +3,13 @@ import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from 
 import { Orderbook, Reservoir } from '@/lib/index';
 import { AskOrder } from '@/lib/reservoir/api/orders/types';
 
-import { ErrorCode, NotFoundError, OrderError, UnexpectedOrderError } from '../../errors';
+import {
+  ErrorCode,
+  FailedToGetReservoirOrderError,
+  NotFoundError,
+  OrderError,
+  UnexpectedOrderError
+} from '../../errors';
 import { TransformationResult } from '../../order-transformer/types';
 import { OrderBuilder } from './order-builder.abstract';
 
@@ -115,7 +121,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
         throw err;
       }
       console.error(err);
-      throw new UnexpectedOrderError(`failed to get reservoir order ${orderId}`);
+      throw new FailedToGetReservoirOrderError();
     }
   }
 

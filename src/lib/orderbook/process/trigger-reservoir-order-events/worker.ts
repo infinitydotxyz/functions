@@ -2,7 +2,7 @@ import { Job } from 'bullmq';
 import { BigNumber } from 'ethers';
 import 'module-alias/register';
 
-import { FirestoreDisplayOrder, OrderSource, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { FirestoreDisplayOrder, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
 
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
@@ -87,8 +87,8 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
 
     const batch = new BatchHandler(300);
     const trigger = async (data: ReservoirOrderEvent, ref: DocRef<ReservoirOrderEvent>, reason: string) => {
-      const contract = data.data.order.contract;
-      const source = data.data.order.source.toLowerCase();
+      const contract = data?.data?.order?.contract;
+      const source = (data?.data?.order?.source ?? '').toLowerCase();
       if (
         !supportedCollectionsProvider.has(`${data.metadata.chainId}:${contract}`) &&
         source !== 'infinity' &&
@@ -125,29 +125,32 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
             await db.recursiveDelete(orderRef);
           }
         }
-      }
-      triggered += 1;
-      data.data.order.contract;
-      await batch.addAsync(
-        ref,
-        {
-          metadata: {
-            ...data.metadata,
-            processed: false,
-            hasError: false
+      } else {
+        triggered += 1;
+        data.data.order.contract;
+        await batch.addAsync(
+          ref,
+          {
+            metadata: {
+              ...data.metadata,
+              processed: false,
+              hasError: false
+            },
+            error: null
           },
-          error: null
-        },
-        { merge: true }
-      );
+          { merge: true }
+        );
 
-      const rate = numOrderEvents / ((Date.now() - start) / 1000);
-      const triggerRate = triggered / ((Date.now() - start) / 1000);
-      logger.log(
-        name,
-        `Triggering event ${ref.path} \tRate ${rate.toFixed(2)} docs/s \tTrigger Rate ${triggerRate.toFixed(2)} docs/s`
-      );
-      logger.log(name, `\t${reason} \tRate ${rate.toFixed(2)} docs/s`);
+        const rate = numOrderEvents / ((Date.now() - start) / 1000);
+        const triggerRate = triggered / ((Date.now() - start) / 1000);
+        logger.log(
+          name,
+          `Triggering event ${ref.path} \tRate ${rate.toFixed(2)} docs/s \tTrigger Rate ${triggerRate.toFixed(
+            2
+          )} docs/s`
+        );
+        logger.log(name, `\t${reason} \tRate ${rate.toFixed(2)} docs/s`);
+      }
     };
 
     const stream = streamQueryWithRef(query);
@@ -156,7 +159,9 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     for await (const { data, ref } of stream) {
       mostRecentRef = ref;
       numOrderEvents += 1;
-      if ('error' in data && data.error && data.error.errorCode !== 1) {
+      if (!data?.data?.order) {
+        await trigger(data, ref, 'No order data');
+      } else if ('error' in data && data.error && data.error.errorCode !== 1) {
         switch (data.error.reason) {
           case 'Invalid complication address': {
             await trigger(data, ref, data.error.reason);

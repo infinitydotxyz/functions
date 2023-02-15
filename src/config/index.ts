@@ -23,7 +23,6 @@ const getEnvVariable = (key: string, required = true): string => {
 const isDev = serviceAccount.project_id === 'nftc-dev';
 const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 const env = `.env.${isDev ? 'development' : 'production'}.${isDeployed ? 'deploy' : 'local'}`;
-console.log(`Loading environment variables from ${env}`);
 loadEnv({ path: env, override: true });
 
 const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';

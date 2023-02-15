@@ -34,7 +34,7 @@
     "check-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-supported-collections.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
     "trigger-order-events": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/trigger-order-events.ts",
-    "validate-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/validate-orders.ts"
+    "validate-orders": "npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js"
   },
   "engines": {
     "node": "16"
@@ -92,6 +92,7 @@
   "_moduleAliases": {
     "@/firestore": "dist/firestore",
     "@/config": "dist/config",
-    "@/lib": "dist/lib"
+    "@/lib": "dist/lib",
+    "@/app-engine": "dist/app-engine"
   }
 }

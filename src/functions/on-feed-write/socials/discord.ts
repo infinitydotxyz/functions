@@ -111,7 +111,7 @@ export function notifyDiscordWebhook(event: FeedEvent) {
 
   embed.color = 16777215; // white
   embed.timestamp = new Date(event.timestamp).toISOString();
-  // embed.footer = {
+  // todo uncomment and replace image embed.footer = {
   //   text: event.type.split('_').pop() || '',
   //   icon_url: 'https://pbs.twimg.com/profile_images/1488261914731814915/nyEgvjn2_400x400.png'
   // };

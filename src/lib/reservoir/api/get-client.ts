@@ -1,5 +1,6 @@
 import got, { Method } from 'got';
 import { join, normalize } from 'path';
+import qs from 'qs';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { paths } from '@reservoir0x/reservoir-kit-client';
@@ -57,13 +58,16 @@ export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => 
         headers: {
           'x-api-key': apiKey
         },
-        searchParams: (params as any)?.query ?? {},
+        searchParams: qs.stringify(
+          typeof params === 'object' && params && 'query' in params && params.query ? params.query : {},
+          { arrayFormat: 'repeat' }
+        ),
         throwHttpErrors: false,
         timeout: 20_000
       });
       const statusCode = response.statusCode as StatusCodes<P, M>;
       if (response.statusCode != null && response.statusCode > 299) {
-        throw new Error(`Request failed with status code ${response.statusCode}`);
+        throw new Error(`Request failed with status code ${response.statusCode} ${response.body}`);
       }
 
       if (response.body) {

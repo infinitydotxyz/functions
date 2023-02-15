@@ -137,6 +137,10 @@ export const config = {
   forward: {
     source: 'forward',
     enabled: false
+  },
+  'seaport-v1.2': {
+    source: 'forward',
+    enabled: false
   }
 };
 // satisfies Record<OrderKind, unknown>;

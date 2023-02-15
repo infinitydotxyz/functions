@@ -97,7 +97,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
       const client = Reservoir.Api.getClient(this._chainId, ''); // don't use an api key here
       const OrderSide = isSellOrder ? Reservoir.Api.Orders.AskOrders : Reservoir.Api.Orders.BidOrders;
       const response = await OrderSide.getOrders(client, {
-        ids: orderId,
+        ids: [orderId],
         includeMetadata: true,
         includeRawData: true,
         limit: 1

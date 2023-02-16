@@ -2,12 +2,14 @@ import Redis from 'ioredis';
 
 import { ProcessOptions } from '@/lib/process/types';
 
+import { ErrorCode } from '../../errors';
 import { AbstractOrderbookProcessor } from '../orderbook-processor';
 
 export interface JobData {
   id: string;
   queryNum: number;
   numQueries: number;
+  errorCode: ErrorCode;
 }
 
 export interface JobResult {

@@ -2,8 +2,6 @@ import { Job } from 'bullmq';
 import { BigNumber } from 'ethers';
 import 'module-alias/register';
 
-import { FirestoreDisplayOrder, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
-
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -11,14 +9,12 @@ import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollGroupRef, CollRef, DocRef, Query } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
-import { Orderbook } from '@/lib/index';
 import { logger } from '@/lib/logger';
 import { WithTiming } from '@/lib/process/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
-import { getProvider } from '@/lib/utils/ethersUtils';
 
-import { BaseOrder } from '../../order/base-order';
 import { JobData, JobResult } from './trigger-order-events';
+import { ReservoirOrderEventTrigger } from './trigger-processor';
 
 const splitQueries = (
   ref: CollGroupRef<ReservoirOrderEvent> | CollRef<ReservoirOrderEvent> | Query<ReservoirOrderEvent>,
@@ -50,7 +46,7 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
   const start = Date.now();
   let numOrderEvents = 0;
   let triggered = 0;
-  const { queryNum, numQueries } = job.data;
+  const { queryNum, numQueries, errorCode } = job.data;
 
   const interval = setInterval(() => {
     const rate = numOrderEvents / ((Date.now() - start) / 1000);
@@ -62,7 +58,9 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
 
   try {
     const db = getDb();
-    const orderEvents = db.collectionGroup('reservoirOrderEvents') as unknown as Query<ReservoirOrderEvent>;
+    const orderEvents = db
+      .collectionGroup('reservoirOrderEvents')
+      .where('error.errorCode', '==', errorCode) as Query<ReservoirOrderEvent>; // TODO enable filtering by errorCode
 
     let query = splitQueries(orderEvents, numQueries)[queryNum];
     if (!query) {
@@ -70,7 +68,7 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     }
     const checkpointKey = `trigger-reservoir-order-events:env:${
       config.isDev ? 'dev' : 'prod'
-    }:numQueries:${numQueries}:queryNum:${queryNum}`;
+    }:numQueries:${numQueries}:queryNum:${queryNum}:errorCode:${errorCode}`;
     const checkpoint = await redis.get(checkpointKey);
     const saveCheckpoint = async (ref: DocRef<ReservoirOrderEvent>) => {
       logger.log(name, `Query num ${queryNum} Saving checkpoint!`);
@@ -86,70 +84,24 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     await supportedCollectionsProvider.init();
 
     const batch = new BatchHandler(300);
+    const queue = new ReservoirOrderEventTrigger(redis, db, supportedCollectionsProvider, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+
     const trigger = async (data: ReservoirOrderEvent, ref: DocRef<ReservoirOrderEvent>, reason: string) => {
-      const contract = data?.data?.order?.contract;
-      const source = (data?.data?.order?.source ?? '').toLowerCase();
-      if (
-        !supportedCollectionsProvider.has(`${data.metadata.chainId}:${contract}`) &&
-        source !== 'infinity' &&
-        source !== 'flow'
-      ) {
-        logger.log(name, `Found unsupported order ${ref.path} - Deleting`);
-        const orderRef = ref.parent.parent as DocRef<RawFirestoreOrder>;
-        const orderSnap = await orderRef.get();
-        if (!orderSnap.exists) {
-          await db.recursiveDelete(orderRef);
-        } else {
-          const provider = getProvider(data.metadata.chainId);
-          const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
-          const baseOrder = new BaseOrder(
-            data.metadata.id,
-            data.metadata.chainId,
-            data.metadata.isSellOrder,
-            db,
-            provider,
-            gasSimulator
-          );
-
-          const chainDisplayRef = db
-            .collection('ordersV2ByChain')
-            .doc(data.metadata.chainId)
-            .collection('chainV2Orders')
-            .doc(data.metadata.id) as DocRef<FirestoreDisplayOrder>;
-
-          const displayOrderSnap = await chainDisplayRef.get();
-          const displayOrder = displayOrderSnap.data();
-          if (displayOrder) {
-            await baseOrder.delete(displayOrder);
-          } else {
-            await db.recursiveDelete(orderRef);
-          }
-        }
-      } else {
-        triggered += 1;
-        data.data.order.contract;
-        await batch.addAsync(
-          ref,
-          {
-            metadata: {
-              ...data.metadata,
-              processed: false,
-              hasError: false
-            },
-            error: null
-          },
-          { merge: true }
-        );
-
-        const rate = numOrderEvents / ((Date.now() - start) / 1000);
-        const triggerRate = triggered / ((Date.now() - start) / 1000);
-        logger.log(
-          name,
-          `Triggering event ${ref.path} \tRate ${rate.toFixed(2)} docs/s \tTrigger Rate ${triggerRate.toFixed(
-            2
-          )} docs/s`
-        );
-        logger.log(name, `\t${reason} \tRate ${rate.toFixed(2)} docs/s`);
+      await queue.add({
+        data,
+        path: ref.path,
+        id: ref.path,
+        reason
+      });
+      triggered += 1;
+      if (triggered % 500 === 0) {
+        const rate = triggered / ((Date.now() - start) / 1000);
+        logger.log(name, `Triggering event ${ref.path} - ${reason}. Rate: ${Math.floor(rate)} orders/s`);
       }
     };
 
@@ -186,6 +138,10 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
             break;
           }
           case 'unsupported order: unsupported order: order currency': {
+            break;
+          }
+          case 'unexpected order: unexpected order: failed to get reservoir order': {
+            await trigger(data, ref, 'failed to get reservoir order');
             break;
           }
           case 'unsupported order: unsupported order: order side': {

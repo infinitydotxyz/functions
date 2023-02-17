@@ -1,11 +1,17 @@
 import cron from 'node-cron';
 
+import { ChainId } from '@infinityxyz/lib/types/core';
+import { getExchangeAddress } from '@infinityxyz/lib/utils';
+
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { logger } from '@/lib/logger';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
+import { BlockScheduler } from './on-chain-events/block-scheduler';
+import { FlowExchange } from './on-chain-events/flow-exchange/flow-exchange';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
@@ -110,6 +116,40 @@ async function main() {
       await trigger();
     });
     promises.push(queue.run());
+  }
+
+  if (config.syncs.processOnChainEvents) {
+    const chainId = ChainId.Mainnet;
+    const address = getExchangeAddress(chainId);
+    const startBlockNumber = 16471202;
+    const blockProcessor = new FlowExchange(redis, chainId, address, startBlockNumber, db, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 5
+    });
+    const blockScheduler = new BlockScheduler(redis, chainId, [blockProcessor], {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+    const trigger = async () => {
+      const provider = config.providers[chainId];
+      if (!provider) {
+        logger.error('on-chain-events-trigger', `No provider found for chainId ${chainId}`);
+        return;
+      }
+      await blockScheduler.add({
+        id: chainId,
+        chainId,
+        httpsProviderUrl: provider.connection.url,
+        wsProviderUrl: provider.connection.url.replace('https', 'wss')
+      });
+    };
+
+    await trigger();
+    promises.push(blockScheduler.run(), blockProcessor.run());
   }
 
   await Promise.all(promises);

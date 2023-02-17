@@ -15,15 +15,18 @@ export class CancelAllOrdersEvent extends AbstractEvent<CancelAllOrdersEventData
   protected _topics: (string | string[])[];
   protected _topic: string | string[];
   protected _numTopics: number;
+  protected _eventKind = ContractEventKind.FlowExchangeCancelAllOrders;
 
-  protected _eventKind: ContractEventKind.FlowExchangeCancelAllOrders;
+  protected _getEventKind(): ContractEventKind {
+    return this._eventKind;
+  }
 
-  constructor(chainId: ChainId, contract: Contract, addresses: string[], db: FirebaseFirestore.Firestore) {
-    super(chainId, addresses, contract.interface, db);
+  constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
+    super(chainId, address, contract.interface, db);
     const event = contract.filters.CancelAllOrders();
     this._topics = event.topics ?? [];
     this._topic = this._topics[0];
-    this._numTopics = this._topics.length;
+    this._numTopics = 2;
   }
 
   protected transformEvent(event: { log: Log; baseParams: BaseParams }): CancelAllOrdersEventData {

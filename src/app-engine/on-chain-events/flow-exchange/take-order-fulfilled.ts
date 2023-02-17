@@ -21,14 +21,18 @@ export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEve
   protected _topic: string | string[];
   protected _numTopics: number;
 
-  protected _eventKind: ContractEventKind.FlowExchangeTakeOrderFulfilled;
+  protected _eventKind = ContractEventKind.FlowExchangeTakeOrderFulfilled;
 
-  constructor(chainId: ChainId, contract: Contract, addresses: string[], db: FirebaseFirestore.Firestore) {
-    super(chainId, addresses, contract.interface, db);
+  protected _getEventKind(): ContractEventKind {
+    return this._eventKind;
+  }
+
+  constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
+    super(chainId, address, contract.interface, db);
     const event = contract.filters.TakeOrderFulfilled();
     this._topics = event.topics ?? [];
     this._topic = this._topics[0];
-    this._numTopics = this._topics.length;
+    this._numTopics = 4;
   }
 
   protected transformEvent(event: { log: Log; baseParams: BaseParams }): TakeOrderFulfilledEventData {

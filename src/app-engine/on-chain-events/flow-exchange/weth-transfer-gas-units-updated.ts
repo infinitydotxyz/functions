@@ -15,14 +15,18 @@ export class WethTransferGasUnitsUpdated extends AbstractEvent<WethTransferGasUn
   protected _topic: string | string[];
   protected _numTopics: number;
 
-  protected _eventKind: ContractEventKind.FlowExchangeWethTransferGasUnitsUpdated;
+  protected _eventKind = ContractEventKind.FlowExchangeWethTransferGasUnitsUpdated;
 
-  constructor(chainId: ChainId, contract: Contract, addresses: string[], db: FirebaseFirestore.Firestore) {
-    super(chainId, addresses, contract.interface, db);
+  protected _getEventKind(): ContractEventKind {
+    return this._eventKind;
+  }
+
+  constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
+    super(chainId, address, contract.interface, db);
     const event = contract.filters.WethTransferGasUnitsUpdated();
     this._topics = event.topics ?? [];
     this._topic = this._topics[0];
-    this._numTopics = this._topics.length;
+    this._numTopics = 1;
   }
 
   protected transformEvent(event: { log: Log; baseParams: BaseParams }): WethTransferGasUnitsUpdatedData {

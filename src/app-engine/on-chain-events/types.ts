@@ -61,7 +61,6 @@ export interface BaseParams {
   block: number;
   blockHash: string;
   logIndex: number;
-  timestamp: number;
   batchIndex: number;
 }
 

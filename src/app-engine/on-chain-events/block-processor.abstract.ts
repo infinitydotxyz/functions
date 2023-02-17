@@ -54,6 +54,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     protected _chainId: ChainId,
     type: string,
     protected _startBlockNumber: number,
+    protected _address: string,
     options?: ProcessOptions
   ) {
     super(_db, `block-processor:chain:${_chainId}:type:${type}`, options);
@@ -63,7 +64,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
   protected abstract events: AbstractEvent<unknown>[];
 
   protected get eventFilters(): EventFilter[] {
-    return this.events.flatMap((event) => event.eventFilters);
+    return this.events.map((event) => event.eventFilter);
   }
 
   async add(data: BlockProcessorJobData | BlockProcessorJobData[]): Promise<void> {
@@ -81,27 +82,14 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     await this._queue.addBulk(jobs);
   }
 
-  protected async getBlockTimestamp(blockNumber: number, provider: ethers.providers.StaticJsonRpcProvider) {
-    const blockTimestampKey = `chain:${this._chainId}:block:${blockNumber}:timestamp`;
-    const result = await this._db.get(blockTimestampKey);
-    if (result) {
-      this.log(`Found block timestamp for block ${blockNumber} in cache`);
-      return parseInt(result, 10);
-    } else {
-      this.log(`Block timestamp for block ${blockNumber} not found in cache, fetching from provider`);
-      const block = await provider.getBlock(blockNumber);
-      await this._db.set(blockTimestampKey, block.timestamp.toString(), 'EX', 60 * 5);
-      return block.timestamp;
-    }
-  }
-
-  protected async _loadCursor(): Promise<Cursor> {
+  protected async _loadCursor(): Promise<{ cursor: Cursor; isBackfill: boolean }> {
     const cursorKey = `${this.type}:cursor`;
     let cursor: Cursor;
+    let isBackfill = false;
     try {
       cursor = JSON.parse((await this._db.get(cursorKey)) ?? '') as Cursor;
     } catch (err) {
-      this.log('Failed to find cursor, starting from block 0');
+      this.log(`Failed to find cursor, starting from block ${this._startBlockNumber}`);
       cursor = {
         metadata: {
           chainId: this._chainId,
@@ -112,8 +100,9 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           finalizedBlockNumber: this._startBlockNumber
         }
       };
+      isBackfill = true;
     }
-    return cursor;
+    return { cursor, isBackfill };
   }
 
   protected async saveCursor(cursor: Cursor): Promise<void> {
@@ -121,7 +110,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     await this._db.set(cursorKey, JSON.stringify(cursor));
   }
 
-  protected getEventParams = (log: ethers.providers.Log, timestamp: number): BaseParams => {
+  protected getEventParams = (log: ethers.providers.Log): BaseParams => {
     const address = log.address.toLowerCase();
     const block = log.blockNumber;
     const blockHash = log.blockHash.toLowerCase();
@@ -137,14 +126,13 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
       block,
       blockHash,
       logIndex,
-      timestamp,
       batchIndex: 1
     };
   };
 
   async processJob(job: Job<BlockProcessorJobData, BlockProcessorJobResult, string>): Promise<BlockProcessorJobResult> {
     const { httpsProviderUrl, chainId, latestBlockNumber, finalizedBlockNumber } = job.data;
-    const httpProvider = new ethers.providers.StaticJsonRpcProvider(httpsProviderUrl, chainId);
+    const httpProvider = new ethers.providers.StaticJsonRpcProvider(httpsProviderUrl, parseInt(chainId, 10));
     const lockKey = `block-processor:chain:${chainId}:type:${this.type}:lock`;
     const lockDuration = 5_000;
 
@@ -156,7 +144,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           }
         };
 
-        const cursor = await this._loadCursor();
+        const { cursor, isBackfill } = await this._loadCursor();
         checkSignal();
 
         const fromLatestBlockNumber = cursor.data.latestBlockNumber + 1;
@@ -167,6 +155,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
         const fromBlock = Math.min(fromLatestBlockNumber, fromFinalizedBlockNumber);
         const toBlock = Math.max(toLatestBlockNumber, toFinalizedBlockNumber);
 
+        this.log(`Processing blocks ${fromBlock} to ${toBlock}`);
         const logIterator = await this.getLogs(fromBlock, toBlock, httpProvider);
         checkSignal();
 
@@ -174,6 +163,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
         let logsProcessed = 0;
 
         for await (const chunk of logIterator) {
+          this.log(`Processing chunk ${chunk.fromBlock} to ${chunk.toBlock}`);
           const { events, fromBlock, toBlock } = chunk;
           const logsByBlock: {
             events: {
@@ -185,13 +175,12 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
             blockHash?: string;
           }[] = [];
           for (let block = fromBlock; block <= toBlock; block += 1) {
-            const blockTimestamp = await this.getBlockTimestamp(block, httpProvider);
             const blockEvents = events
               .filter((log) => log.blockNumber === block)
               .map((log) => {
                 return {
                   log,
-                  baseParams: this.getEventParams(log, blockTimestamp)
+                  baseParams: this.getEventParams(log)
                 };
               });
             logsProcessed += events.length;
@@ -205,7 +194,8 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           }
 
           for (const block of logsByBlock) {
-            await this._processBlock(block.events, block.blockNumber, block.commitment, block.blockHash);
+            this.log(`Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`);
+            await this._processBlock(block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
             checkSignal();
           }
         }
@@ -258,16 +248,26 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     events: { log: ethers.providers.Log; baseParams: BaseParams }[],
     blockNumber: number,
     commitment: 'latest' | 'finalized',
+    isBackfill: boolean,
     blockHash?: string
   ): Promise<void>;
 
   protected async getLogs(fromBlock: number, toBlock: number, provider: ethers.providers.StaticJsonRpcProvider) {
-    const logRequest = (fromBlock: number, toBlock: number) => {
-      return provider.getLogs({
-        fromBlock,
-        toBlock,
-        ...this.eventFilters
-      });
+    const eventFilters = this.eventFilters;
+    const logRequest = async (fromBlock: number, toBlock: number) => {
+      this.log(`Requesting logs from block ${fromBlock} to ${toBlock}`);
+
+      const responses: any[] = [];
+      for (const eventFilter of eventFilters) {
+        const res = await provider.getLogs({
+          fromBlock,
+          toBlock,
+          address: this._address,
+          topics: eventFilter.topics
+        });
+        responses.push(...res);
+      }
+      return responses;
     };
     return this.paginateLogs(logRequest, provider, { fromBlock, toBlock, returnType: 'generator' });
   }
@@ -306,7 +306,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     maxBlock: number,
     maxAttempts: number
   ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
-    const defaultPageSize = 500;
+    const defaultPageSize = 10_000;
     const blockRange = {
       maxBlock,
       minBlock,
@@ -343,7 +343,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
               events
             };
           } catch (err) {
-            console.error('Failed to optimize logs query', err);
+            this.error(`Failed to optimize logs query ${err}`);
             pagesWithoutResults = 0;
           }
         }

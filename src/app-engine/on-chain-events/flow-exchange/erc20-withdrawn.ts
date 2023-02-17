@@ -17,14 +17,18 @@ export class ERC20WithdrawnEvent extends AbstractEvent<ERC20WithdrawnEventData> 
   protected _topic: string | string[];
   protected _numTopics: number;
 
-  protected _eventKind: ContractEventKind.FlowExchangeETHWithdrawnEvent;
+  protected _eventKind = ContractEventKind.FlowExchangeERC20WithdrawnEvent;
 
-  constructor(chainId: ChainId, contract: Contract, addresses: string[], db: FirebaseFirestore.Firestore) {
-    super(chainId, addresses, contract.interface, db);
+  protected _getEventKind(): ContractEventKind {
+    return this._eventKind;
+  }
+
+  constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
+    super(chainId, address, contract.interface, db);
     const event = contract.filters.ERC20Withdrawn();
     this._topics = event.topics ?? [];
     this._topic = this._topics[0];
-    this._numTopics = this._topics.length;
+    this._numTopics = 3;
   }
 
   protected transformEvent(event: { log: Log; baseParams: BaseParams }): ERC20WithdrawnEventData {

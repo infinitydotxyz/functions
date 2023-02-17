@@ -122,6 +122,7 @@ export const config = {
   },
   syncs: {
     processSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
-    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1
+    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
+    processOnChainEvents: Number(getEnvVariable('SYNC_ON_CHAIN_EVENTS', false)) === 1
   }
 };

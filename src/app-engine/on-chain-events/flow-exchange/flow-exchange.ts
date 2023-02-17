@@ -30,12 +30,12 @@ export class FlowExchange extends AbstractBlockProcessor {
   constructor(
     _db: Redis,
     chainId: ChainId,
-    protected _address: string,
+    _address: string,
     startBlockNumber: number,
     firestore: FirebaseFirestore.Firestore,
     options?: ProcessOptions
   ) {
-    super(_db, chainId, `flow-exchange:${_address}`, startBlockNumber, options);
+    super(_db, chainId, `flow-exchange:${_address}`, startBlockNumber, _address, options);
     const contract = new ethers.Contract(_address, FlowExchangeABI);
 
     const Events = [
@@ -53,18 +53,20 @@ export class FlowExchange extends AbstractBlockProcessor {
       UnpausedEvent
     ];
 
-    this.events = Events.map((Event) => new Event(chainId, contract, [_address], firestore));
+    this.events = Events.map((Event) => new Event(chainId, contract, _address, firestore));
   }
 
   protected async _processBlock(
     events: { log: Log; baseParams: BaseParams }[],
     blockNumber: number,
     commitment: 'finalized' | 'latest',
+    isBackfill: boolean,
     blockHash?: string | undefined
   ): Promise<void> {
+    const promises = [];
     for (const event of this.events) {
-      await event.handleBlock(events, blockNumber, commitment, blockHash);
+      promises.push(event.handleBlock(events, blockNumber, commitment, isBackfill, blockHash));
     }
-    throw new Error('Method not implemented.');
+    await Promise.all(promises);
   }
 }

@@ -28,10 +28,8 @@ async function main() {
   const ordersCollection = db.collection(firestoreConstants.ORDERS_V2_COLL) as CollRef<RawFirestoreOrder>;
 
   const stream = streamQueryWithRef(
-    ordersCollection
-      .where('order.isValid', '==', true)
-      .orderBy('__name__')
-      .startAfter('0x9f0ee0d6604f8bd12351e34eca91cca62b6075b41c05f9ebab311c882f62ed9b')
+    ordersCollection.where('order.isValid', '==', true).orderBy('__name__')
+    // .startAfter('0x9f0ee0d6604f8bd12351e34eca91cca62b6075b41c05f9ebab311c882f62ed9b')
   );
 
   const supportedCollectionsProvider = new SupportedCollectionsProvider(db);

@@ -45,10 +45,9 @@ export abstract class AbstractEvent<T> {
 
   protected getEventId(baseParams: BaseParams) {
     const blockIndex = toNumericallySortedLexicographicStr(baseParams.block, 64);
-    const transactionIndex = toNumericallySortedLexicographicStr(baseParams.txIndex, 64);
     const logIndex = toNumericallySortedLexicographicStr(baseParams.logIndex, 64);
     const batchIndex = toNumericallySortedLexicographicStr(baseParams.batchIndex, 64);
-    return `${blockIndex}${transactionIndex}${logIndex}${batchIndex}`;
+    return `${blockIndex}${logIndex}${batchIndex}`;
   }
 
   protected async handleReorgs(batch: BatchHandler, blockNumber: number, blockHash?: string) {

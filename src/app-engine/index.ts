@@ -6,10 +6,10 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
-import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events-queue';
+import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
-import { SalesEventsQueue, SalesJobData, SalesJobResult } from './sales-events-queue';
+import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
 
 async function main() {
   const db = getDb();

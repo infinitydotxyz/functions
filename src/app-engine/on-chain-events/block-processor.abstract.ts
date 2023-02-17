@@ -1,5 +1,5 @@
 import { BulkJobOptions, Job } from 'bullmq';
-import { ethers } from 'ethers';
+import { EventFilter, ethers } from 'ethers';
 import { Redis } from 'ioredis';
 import { ExecutionError } from 'redlock';
 
@@ -10,7 +10,9 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 
 import { redlock } from '../redis';
+import { AbstractEvent } from './event.abstract';
 import {
+  BaseParams,
   EthersJsonRpcRequest,
   HistoricalLogs,
   HistoricalLogsChunk,
@@ -58,7 +60,11 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     this.type = type;
   }
 
-  protected abstract filters: ethers.EventFilter;
+  protected abstract events: AbstractEvent<unknown>[];
+
+  protected get eventFilters(): EventFilter[] {
+    return this.events.flatMap((event) => event.eventFilters);
+  }
 
   async add(data: BlockProcessorJobData | BlockProcessorJobData[]): Promise<void> {
     const arr = Array.isArray(data) ? data : [data];
@@ -73,6 +79,20 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
       };
     });
     await this._queue.addBulk(jobs);
+  }
+
+  protected async getBlockTimestamp(blockNumber: number, provider: ethers.providers.StaticJsonRpcProvider) {
+    const blockTimestampKey = `chain:${this._chainId}:block:${blockNumber}:timestamp`;
+    const result = await this._db.get(blockTimestampKey);
+    if (result) {
+      this.log(`Found block timestamp for block ${blockNumber} in cache`);
+      return parseInt(result, 10);
+    } else {
+      this.log(`Block timestamp for block ${blockNumber} not found in cache, fetching from provider`);
+      const block = await provider.getBlock(blockNumber);
+      await this._db.set(blockTimestampKey, block.timestamp.toString(), 'EX', 60 * 5);
+      return block.timestamp;
+    }
   }
 
   protected async _loadCursor(): Promise<Cursor> {
@@ -100,6 +120,27 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     const cursorKey = `${this.type}:cursor`;
     await this._db.set(cursorKey, JSON.stringify(cursor));
   }
+
+  protected getEventParams = (log: ethers.providers.Log, timestamp: number): BaseParams => {
+    const address = log.address.toLowerCase();
+    const block = log.blockNumber;
+    const blockHash = log.blockHash.toLowerCase();
+    const txHash = log.transactionHash.toLowerCase();
+    const txIndex = log.transactionIndex;
+    const logIndex = log.logIndex;
+
+    return {
+      chainId: this._chainId,
+      address,
+      txHash,
+      txIndex,
+      block,
+      blockHash,
+      logIndex,
+      timestamp,
+      batchIndex: 1
+    };
+  };
 
   async processJob(job: Job<BlockProcessorJobData, BlockProcessorJobResult, string>): Promise<BlockProcessorJobResult> {
     const { httpsProviderUrl, chainId, latestBlockNumber, finalizedBlockNumber } = job.data;
@@ -135,25 +176,36 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
         for await (const chunk of logIterator) {
           const { events, fromBlock, toBlock } = chunk;
           const logsByBlock: {
+            events: {
+              log: ethers.providers.Log;
+              baseParams: BaseParams;
+            }[];
             blockNumber: number;
-            logs: ethers.providers.Log[];
             commitment: 'finalized' | 'latest';
             blockHash?: string;
           }[] = [];
           for (let block = fromBlock; block <= toBlock; block += 1) {
-            const blockLogs = events.filter((log) => log.blockNumber === block);
+            const blockTimestamp = await this.getBlockTimestamp(block, httpProvider);
+            const blockEvents = events
+              .filter((log) => log.blockNumber === block)
+              .map((log) => {
+                return {
+                  log,
+                  baseParams: this.getEventParams(log, blockTimestamp)
+                };
+              });
             logsProcessed += events.length;
             blocksProcessed += 1;
             logsByBlock.push({
               blockNumber: block,
-              logs: blockLogs,
+              events: blockEvents,
               commitment: block < finalizedBlockNumber ? 'finalized' : 'latest',
-              blockHash: blockLogs[0]?.blockHash
+              blockHash: blockEvents[0]?.log?.blockHash
             });
           }
 
           for (const block of logsByBlock) {
-            await this._processBlock(block.logs, block.blockNumber, block.commitment, block.blockHash);
+            await this._processBlock(block.events, block.blockNumber, block.commitment, block.blockHash);
             checkSignal();
           }
         }
@@ -203,7 +255,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
    * @param blockHash - block hash of the logs (only available if there are logs)
    */
   protected abstract _processBlock(
-    logs: ethers.providers.Log[],
+    events: { log: ethers.providers.Log; baseParams: BaseParams }[],
     blockNumber: number,
     commitment: 'latest' | 'finalized',
     blockHash?: string
@@ -214,7 +266,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
       return provider.getLogs({
         fromBlock,
         toBlock,
-        ...this.filters
+        ...this.eventFilters
       });
     };
     return this.paginateLogs(logRequest, provider, { fromBlock, toBlock, returnType: 'generator' });

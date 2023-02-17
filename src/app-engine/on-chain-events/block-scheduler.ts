@@ -10,7 +10,7 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 
 import { redlock } from '../redis';
-import { AbstractBlockProcessor } from './block-processor';
+import { AbstractBlockProcessor } from './block-processor.abstract';
 
 interface JobData {
   id: string;

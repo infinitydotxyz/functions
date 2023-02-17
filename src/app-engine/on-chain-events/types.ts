@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
 
+import { ChainId } from '@infinityxyz/lib/types/core';
+
 export enum JsonRpcError {
   RateLimit = 429,
   ParseError = -32700,
@@ -49,4 +51,43 @@ export interface HistoricalLogsOptions {
   fromBlock?: number;
   toBlock?: number | 'latest';
   returnType?: 'stream' | 'promise' | 'generator';
+}
+
+export interface BaseParams {
+  chainId: ChainId;
+  address: string;
+  txHash: string;
+  txIndex: number;
+  block: number;
+  blockHash: string;
+  logIndex: number;
+  timestamp: number;
+  batchIndex: number;
+}
+
+export enum ContractEventKind {
+  PauseablePausedEvent = 'PAUSEABLE_PAUSE_EVENT',
+  PauseableUnpausedEvent = 'PAUSEABLE_UNPAUSED_EVENT',
+  OwnableOwnershipTransferredEvent = 'OWNABLE_OWNERSHIP_TRANSFERRED_EVENT',
+  FlowExchangeETHWithdrawnEvent = 'FLOW_EXCHANGE_ETH_WITHDRAWN_EVENT',
+  FlowExchangeERC20WithdrawnEvent = 'FLOW_EXCHANGE_ERC20_WITHDRAWN_EVENT',
+  FlowExchangeMatchExecutorUpdated = 'FLOW_EXCHANGE_MATCH_EXECUTOR_UPDATED',
+  FlowExchangeWethTransferGasUnitsUpdated = 'FLOW_EXCHANGE_WETH_TRANSFER_GAS_UNITS_UPDATED',
+  FlowExchangeProtocolFeeUpdated = 'FLOW_EXCHANGE_PROTOCOL_FEE_UPDATED',
+  FlowExchangeMatchOrderFulfilled = 'FLOW_EXCHANGE_MATCH_ORDER_FULFILLED',
+  FlowExchangeTakeOrderFulfilled = 'FLOW_EXCHANGE_TAKE_ORDER_FULFILLED',
+  FlowExchangeCancelAllOrders = 'FLOW_EXCHANGE_CANCEL_ALL_ORDERS',
+  FlowExchangeCancelMultipleOrders = 'FLOW_EXCHANGE_CANCEL_MULTIPLE_ORDERS'
+}
+
+export interface ContractEvent<T> {
+  metadata: {
+    eventId: string;
+    eventKind: ContractEventKind;
+    commitment: 'latest' | 'finalized';
+    processed: boolean;
+    reorged: boolean;
+  };
+  event: T;
+  baseParams: BaseParams;
 }

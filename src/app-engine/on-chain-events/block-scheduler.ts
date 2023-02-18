@@ -66,7 +66,6 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
     }
 
     let cancel: undefined | (() => void);
-
     const handler = (signal: AbortSignal) => async (blockNumber: number) => {
       this.log(`Received block ${blockNumber}`);
 

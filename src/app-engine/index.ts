@@ -149,6 +149,9 @@ async function main() {
     };
 
     await trigger();
+    cron.schedule('*/2 * * * *', async () => {
+      await trigger();
+    });
     promises.push(blockScheduler.run(), blockProcessor.run());
   }
 

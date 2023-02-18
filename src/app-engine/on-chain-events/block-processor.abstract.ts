@@ -319,7 +319,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     maxBlock: number,
     maxAttempts: number
   ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
-    const defaultPageSize = 10_000;
+    const defaultPageSize = 500;
     const blockRange = {
       maxBlock,
       minBlock,

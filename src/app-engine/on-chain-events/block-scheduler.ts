@@ -104,9 +104,6 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
           };
 
           wsProvider.on('block', callback);
-          this._worker.once('closing', () => {
-            cancel?.();
-          });
         });
       });
     } catch (err) {

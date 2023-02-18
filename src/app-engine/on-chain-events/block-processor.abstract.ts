@@ -96,8 +96,8 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           updatedAt: Date.now()
         },
         data: {
-          latestBlockNumber: this._startBlockNumber,
-          finalizedBlockNumber: this._startBlockNumber
+          latestBlockNumber: this._startBlockNumber - 1,
+          finalizedBlockNumber: this._startBlockNumber - 1
         }
       };
       isBackfill = true;
@@ -152,53 +152,66 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
         const toLatestBlockNumber = latestBlockNumber;
         const toFinalizedBlockNumber = finalizedBlockNumber;
 
-        const fromBlock = Math.min(fromLatestBlockNumber, fromFinalizedBlockNumber);
-        const toBlock = Math.max(toLatestBlockNumber, toFinalizedBlockNumber);
-
-        this.log(`Processing blocks ${fromBlock} to ${toBlock}`);
-        const logIterator = await this.getLogs(fromBlock, toBlock, httpProvider);
-        checkSignal();
-
         let blocksProcessed = 0;
         let logsProcessed = 0;
 
-        for await (const chunk of logIterator) {
-          this.log(`Processing chunk ${chunk.fromBlock} to ${chunk.toBlock}`);
-          const { events, fromBlock, toBlock } = chunk;
-          const logsByBlock: {
-            events: {
-              log: ethers.providers.Log;
-              baseParams: BaseParams;
-            }[];
-            blockNumber: number;
-            commitment: 'finalized' | 'latest';
-            blockHash?: string;
-          }[] = [];
-          for (let block = fromBlock; block <= toBlock; block += 1) {
-            const blockEvents = events
-              .filter((log) => log.blockNumber === block)
-              .map((log) => {
-                return {
-                  log,
-                  baseParams: this.getEventParams(log)
-                };
+        const processLogs = async (logs: HistoricalLogs) => {
+          for await (const chunk of logs) {
+            this.log(`Processing chunk ${chunk.fromBlock} to ${chunk.toBlock}`);
+            const { events, fromBlock, toBlock } = chunk;
+            const logsByBlock: {
+              events: {
+                log: ethers.providers.Log;
+                baseParams: BaseParams;
+              }[];
+              blockNumber: number;
+              commitment: 'finalized' | 'latest';
+              blockHash?: string;
+            }[] = [];
+            for (let block = fromBlock; block <= toBlock; block += 1) {
+              const blockEvents = events
+                .filter((log) => log.blockNumber === block)
+                .map((log) => {
+                  return {
+                    log,
+                    baseParams: this.getEventParams(log)
+                  };
+                });
+              logsProcessed += events.length;
+              blocksProcessed += 1;
+              logsByBlock.push({
+                blockNumber: block,
+                events: blockEvents,
+                commitment: block < finalizedBlockNumber ? 'finalized' : 'latest',
+                blockHash: blockEvents[0]?.log?.blockHash
               });
-            logsProcessed += events.length;
-            blocksProcessed += 1;
-            logsByBlock.push({
-              blockNumber: block,
-              events: blockEvents,
-              commitment: block < finalizedBlockNumber ? 'finalized' : 'latest',
-              blockHash: blockEvents[0]?.log?.blockHash
-            });
-          }
+            }
 
-          for (const block of logsByBlock) {
-            this.log(`Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`);
-            await this._processBlock(block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
-            checkSignal();
+            for (const block of logsByBlock) {
+              if (block.commitment === 'latest') {
+                this.log(`Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`);
+              }
+              await this._processBlock(block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
+              checkSignal();
+            }
           }
+        };
+
+        if (fromFinalizedBlockNumber <= toFinalizedBlockNumber) {
+          this.log(`Processing finalized blocks ${fromFinalizedBlockNumber} to ${toFinalizedBlockNumber}`);
+          const finalizedLogs = await this.getLogs(fromFinalizedBlockNumber, toFinalizedBlockNumber, httpProvider);
+          checkSignal();
+          await processLogs(finalizedLogs);
         }
+
+        const latestBlock = Math.max(fromLatestBlockNumber, toFinalizedBlockNumber + 1);
+        if (latestBlock <= toLatestBlockNumber) {
+          this.log(`Processing latest blocks ${latestBlock} to ${toLatestBlockNumber}`);
+          const latestLogs = await this.getLogs(latestBlock, toLatestBlockNumber, httpProvider);
+          checkSignal();
+          await processLogs(latestLogs);
+        }
+
         checkSignal();
         await this.saveCursor({
           metadata: {

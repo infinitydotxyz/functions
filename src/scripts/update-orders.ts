@@ -8,7 +8,8 @@ import {
   OrderStatusEvent,
   RawFirestoreOrder
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getOBComplicationAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
@@ -27,12 +28,7 @@ async function main() {
 
   const ordersCollection = db.collection(firestoreConstants.ORDERS_V2_COLL) as CollRef<RawFirestoreOrder>;
 
-  const stream = streamQueryWithRef(
-    ordersCollection
-      .where('order.isValid', '==', true)
-      .orderBy('__name__')
-      .startAfter('0x9f0ee0d6604f8bd12351e34eca91cca62b6075b41c05f9ebab311c882f62ed9b')
-  );
+  const stream = streamQueryWithRef(ordersCollection.where('order.isValid', '==', true).orderBy('__name__'));
 
   const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
   await supportedCollectionsProvider.init();
@@ -46,7 +42,7 @@ async function main() {
     queue
       .add(async () => {
         if ('order' in data && data.order) {
-          const flowComplication = getOBComplicationAddress(data.metadata.chainId);
+          const flowComplication = Flow.Addresses.ComplicationV2[parseInt(data.metadata.chainId, 10)];
           const maker = data.order.maker;
           const complication = data.order.complication;
           const collection = data.order.collection;

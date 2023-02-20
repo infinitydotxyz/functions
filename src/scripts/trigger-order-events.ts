@@ -15,9 +15,10 @@ import { config } from '../config';
 async function main() {
   const db = getDb();
 
-  const errorCode = ErrorCode.FailedToGetReservoirOrder;
+  const errorCode = ErrorCode.Unexpected;
 
   const supportedCollectionsProvider = new SupportedCollectionsProvider(db);
+  await supportedCollectionsProvider.init();
 
   const triggerer = new ReservoirOrderEventTrigger(redis, db, supportedCollectionsProvider, {
     enableMetrics: false,

@@ -108,7 +108,7 @@ export async function syncPage(
   }
   await batch.flush();
 
-  const hasNextPage = numItems < pageSize || !!page.data.continuation;
+  const hasNextPage = numItems === pageSize;
   const updatedContinuation = page.data.continuation || sync.data.continuation;
 
   /**

@@ -241,7 +241,7 @@ export class RewardsEventHandler {
         updatedAt: Date.now(),
         chainId,
         state: phase.index === 0 ? RaffleState.InProgress : RaffleState.Unstarted,
-        raffleContractAddress: '', // TODO
+        raffleContractAddress: '', // future-TODO
         raffleContractChainId: chainId,
         id,
         activePhaseIds: [phase.id],

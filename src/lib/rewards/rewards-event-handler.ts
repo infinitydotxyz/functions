@@ -1,8 +1,11 @@
 import { ChainId, RaffleState, RaffleType, RewardEvent, UserRaffle } from '@infinityxyz/lib/types/core';
-import { FeesGeneratedDto, TokenomicsConfigDto, TokenomicsPhaseDto, TradingFeeProgram } from '@infinityxyz/lib/types/dto/rewards';
+import {
+  FeesGeneratedDto,
+  TokenomicsConfigDto,
+  TokenomicsPhaseDto,
+  TradingFeeProgram
+} from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants, formatEth, getRelevantStakerContracts } from '@infinityxyz/lib/utils';
-
-
 
 import { DEFAULT_PHASES } from './config';
 import { Phase } from './phases/phase.abstract';
@@ -13,7 +16,6 @@ import { RaffleHandler } from './trading-fee-program-handlers/raffle-handler';
 import { TransactionFeeHandler } from './trading-fee-program-handlers/transaction-fee-handler';
 import { TreasuryHandler } from './trading-fee-program-handlers/treasury-handler';
 import { TradingFeeProgramEventHandler } from './types';
-
 
 export class RewardsEventHandler {
   protected _programEventHandler: Record<TradingFeeProgram, TradingFeeProgramEventHandler>;

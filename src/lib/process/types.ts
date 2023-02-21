@@ -1,5 +1,7 @@
 import { MetricsOptions } from 'bullmq';
 
+export type ProcessJobResult = Record<string, unknown>;
+
 export type WithTiming<T> = T & {
   timing: {
     created: number;
@@ -7,6 +9,22 @@ export type WithTiming<T> = T & {
     completed: number;
   };
 };
+
+export type DefaultJob<T> = {
+  id: string;
+  _processMetadata: {
+    type: 'default';
+  };
+} & T;
+
+export interface HealthCheckJob {
+  id: string;
+  _processMetadata: {
+    type: 'health-check';
+  };
+}
+
+export type JobDataType<T> = DefaultJob<T> | HealthCheckJob;
 
 export interface ProcessOptions {
   enableMetrics?: boolean | MetricsOptions;

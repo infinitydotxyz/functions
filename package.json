@@ -34,7 +34,8 @@
     "check-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-supported-collections.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
-    "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js"
+    "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
+    "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js"
   },
   "engines": {
     "node": "16"
@@ -42,7 +43,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.326.2",
+    "@infinityxyz/lib": "^1.326.4",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "^0.0.322",
     "@types/node": "^18.11.19",

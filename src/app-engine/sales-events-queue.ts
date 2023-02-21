@@ -1,4 +1,4 @@
-import { BulkJobOptions, Job } from 'bullmq';
+import { Job } from 'bullmq';
 import Redis from 'ioredis';
 import { ExecutionError } from 'redlock';
 
@@ -38,32 +38,18 @@ export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResu
     super(redis, id, options);
   }
 
-  async add(data: SalesJobData | SalesJobData[]): Promise<void> {
-    const arr = Array.isArray(data) ? data : [data];
-    const jobs: {
-      name: string;
-      data: SalesJobData;
-      opts?: BulkJobOptions | undefined;
-    }[] = arr.map((item) => {
-      return {
-        name: item.id,
-        data: item
-      };
-    });
-    await this._queue.addBulk(jobs);
-  }
-
   public enqueueOnComplete(queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) {
     this._worker.on('completed', async (job, result) => {
-      if (result.status === 'completed' || result.status === 'errored') {
+      if (('status' in result && result.status === 'completed') || result.status === 'errored') {
+        const res = result as WithTiming<SalesJobResult>;
         try {
           await queue.add({
-            id: result.id,
+            id: res.id,
             queueId: this.queueName,
             job: {
-              id: result.id,
-              syncMetadata: result.syncMetadata,
-              syncDocPath: result.syncDocPath
+              id: res.id,
+              syncMetadata: res.syncMetadata,
+              syncDocPath: res.syncDocPath
             }
           });
         } catch (err) {

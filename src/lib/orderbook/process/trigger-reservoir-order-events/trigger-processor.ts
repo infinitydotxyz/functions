@@ -1,4 +1,4 @@
-import { BulkJobOptions, Job } from 'bullmq';
+import { Job } from 'bullmq';
 import Redis from 'ioredis';
 
 import { FirestoreDisplayOrder, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
@@ -36,21 +36,6 @@ export class ReservoirOrderEventTrigger extends AbstractProcess<JobData, JobResu
     options?: ProcessOptions
   ) {
     super(redis, ReservoirOrderEventTrigger.queueName, options);
-  }
-
-  async add(data: JobData | JobData[]): Promise<void> {
-    const arr = Array.isArray(data) ? data : [data];
-    const jobs: {
-      name: string;
-      data: JobData;
-      opts?: BulkJobOptions | undefined;
-    }[] = arr.map((item) => {
-      return {
-        name: item.id,
-        data: item
-      };
-    });
-    await this._queue.addBulk(jobs);
   }
 
   async processJob(job: Job<JobData, JobResult, string>): Promise<JobResult> {

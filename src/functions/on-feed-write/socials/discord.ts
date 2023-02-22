@@ -111,15 +111,12 @@ function buildEmbed(event: FeedEvent) {
  * Posts a feed event to a discord webhook (configured in `DISCORD_WEBHOOK_URL`).
  */
 export function notifyDiscordWebhook(event: FeedEvent) {
-  console.log('notifyDiscordWebhook', event.type, event.timestamp);
   // skip ens and sandbox order events; sale events are fine
   const sandboxAddress = '0x5cc5b05a8a13e3fbdb0bb9fccd98d38e50f90c38'.toLowerCase();
   const ensAddress = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'.toLowerCase();
   if (event.type === EventType.NftOffer || event.type === EventType.NftListing) {
     const eventAddress = event.collectionAddress.toLowerCase();
-    console.log('event.collectionAddress', eventAddress);
     if (eventAddress === ensAddress || eventAddress === sandboxAddress) {
-      console.log('skipping ens or sandbox event', eventAddress);
       return;
     }
   }

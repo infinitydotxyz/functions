@@ -7,9 +7,9 @@ import { Reservoir } from '../lib';
 export async function main() {
   await Reservoir.OrderEvents.addSyncs(
     getDb(),
-    ChainId.Goerli,
-    ['collection-ask'],
-    '0x142c5b3a5689ba0871903c53dacf235a28cb21f0',
+    ChainId.Mainnet,
+    ['collection-bid'],
+    '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85',
     Date.now()
   );
 }

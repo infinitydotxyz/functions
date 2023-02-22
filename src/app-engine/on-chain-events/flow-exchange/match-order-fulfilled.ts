@@ -24,10 +24,6 @@ export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledE
 
   protected _eventKind = ContractEventKind.FlowExchangeMatchOrderFulfilled;
 
-  protected _getEventKind(): ContractEventKind {
-    return this._eventKind;
-  }
-
   constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
     super(chainId, address, contract.interface, db);
     const event = contract.filters.MatchOrderFulfilled();

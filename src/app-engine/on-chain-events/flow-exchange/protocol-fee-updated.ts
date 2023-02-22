@@ -17,10 +17,6 @@ export class ProtocolFeeUpdatedEvent extends AbstractEvent<ProtocolFeeUpdatedEve
 
   protected _eventKind = ContractEventKind.FlowExchangeProtocolFeeUpdated;
 
-  protected _getEventKind(): ContractEventKind {
-    return this._eventKind;
-  }
-
   constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
     super(chainId, address, contract.interface, db);
     const event = contract.filters.ProtocolFeeUpdated();

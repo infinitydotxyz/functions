@@ -76,7 +76,15 @@ export enum ContractEventKind {
   FlowExchangeMatchOrderFulfilled = 'FLOW_EXCHANGE_MATCH_ORDER_FULFILLED',
   FlowExchangeTakeOrderFulfilled = 'FLOW_EXCHANGE_TAKE_ORDER_FULFILLED',
   FlowExchangeCancelAllOrders = 'FLOW_EXCHANGE_CANCEL_ALL_ORDERS',
-  FlowExchangeCancelMultipleOrders = 'FLOW_EXCHANGE_CANCEL_MULTIPLE_ORDERS'
+  FlowExchangeCancelMultipleOrders = 'FLOW_EXCHANGE_CANCEL_MULTIPLE_ORDERS',
+  CumulativeMerkleDistributorErc20Added = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ERC20_ADDED',
+  CumulativeMerkleDistributorErc20Removed = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ERC20_REMOVED',
+  CumulativeMerkleDistributorEthWithdrawn = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ETH_WITHDRAWN',
+  CumulativeMerkleDistributorErc20Withdrawn = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ERC20_WITHDRAWN',
+  CumulativeMerkleDistributorEthClaimed = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ETH_CLAIMED',
+  CumulativeMerkleDistributorErc20Claimed = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ERC20_CLAIMED',
+  CumulativeMerkleDistributorErc20MerkleRootUpdated = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ERC20_MERKLE_ROOT_UPDATED',
+  CumulativeMerkleDistributorEthMerkleRootUpdated = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ETH_MERKLE_ROOT_UPDATED'
 }
 
 export interface ContractEvent<T> {

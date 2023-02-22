@@ -1,4 +1,4 @@
-import { BulkJobOptions, Job } from 'bullmq';
+import { Job } from 'bullmq';
 import { EventFilter, ethers } from 'ethers';
 import { Redis } from 'ioredis';
 import { ExecutionError } from 'redlock';
@@ -65,21 +65,6 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
 
   protected get eventFilters(): EventFilter[] {
     return this.events.map((event) => event.eventFilter);
-  }
-
-  async add(data: BlockProcessorJobData | BlockProcessorJobData[]): Promise<void> {
-    const arr = Array.isArray(data) ? data : [data];
-    const jobs: {
-      name: string;
-      data: BlockProcessorJobData;
-      opts?: BulkJobOptions | undefined;
-    }[] = arr.map((item) => {
-      return {
-        name: item.id,
-        data: item
-      };
-    });
-    await this._queue.addBulk(jobs);
   }
 
   protected async _loadCursor(): Promise<{ cursor: Cursor; isBackfill: boolean }> {

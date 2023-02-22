@@ -19,10 +19,6 @@ export class ERC20WithdrawnEvent extends AbstractEvent<ERC20WithdrawnEventData> 
 
   protected _eventKind = ContractEventKind.FlowExchangeERC20WithdrawnEvent;
 
-  protected _getEventKind(): ContractEventKind {
-    return this._eventKind;
-  }
-
   constructor(chainId: ChainId, contract: Contract, address: string, db: FirebaseFirestore.Firestore) {
     super(chainId, address, contract.interface, db);
     const event = contract.filters.ERC20Withdrawn();

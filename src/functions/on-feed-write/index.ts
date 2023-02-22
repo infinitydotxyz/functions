@@ -16,14 +16,12 @@ export const onFeedWrite = functions
   .onWrite(async ({ after }) => {
     try {
       const type: EventType = after.get('type');
-      console.log('Feed event type:', type);
       if (
         (type === EventType.NftSale && after.get('source') === 'flow') ||
         type === EventType.NftOffer ||
         type === EventType.NftListing
       ) {
         const document = after.data() as FeedEvent;
-        console.log('Feed event:', document);
         await notifySocials(document);
       }
     } catch (err) {

@@ -7,13 +7,18 @@ import { logger } from '@/lib/logger';
 import { Reservoir } from '../..';
 import { SyncMetadata } from './types';
 
-export const checkProgress = async (db: Firestore, chainId: ChainId, collection?: string) => {
+export const checkProgress = async (
+  db: Firestore,
+  chainId: ChainId,
+  type: SyncMetadata['metadata']['type'],
+  collection?: string
+) => {
   const syncs = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncsRef(db);
   let syncRef: DocRef<SyncMetadata>;
   if (collection) {
-    syncRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncRef(syncs, chainId, 'collection-ask', collection);
+    syncRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncRef(syncs, chainId, type, collection);
   } else {
-    syncRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncRef(syncs, chainId, 'ask');
+    syncRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncRef(syncs, chainId, type);
   }
 
   const syncSnap = await syncRef.get();

@@ -4,7 +4,7 @@ import { Reservoir } from '../lib';
 
 async function main() {
   const db = getDb();
-  const syncsRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncsRef(db);
+  const syncsRef = Reservoir.OrderEvents.SyncMetadata.getOrderEventSyncsRef(db).where('metadata.isPaused', '==', false);
 
   const syncsSnap = await syncsRef.get();
 
@@ -13,7 +13,7 @@ async function main() {
     if (data.metadata.isPaused) {
       console.log(`Sync ${item.id} is paused`);
     }
-    await Reservoir.OrderEvents.checkProgress(db, data.metadata.chainId, data.metadata.collection);
+    await Reservoir.OrderEvents.checkProgress(db, data.metadata.chainId, data.metadata.type, data.metadata.collection);
   }
 }
 

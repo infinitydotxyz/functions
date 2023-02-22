@@ -1,4 +1,5 @@
 import admin from 'firebase-admin';
+
 import { config } from '../config';
 
 let db: FirebaseFirestore.Firestore;

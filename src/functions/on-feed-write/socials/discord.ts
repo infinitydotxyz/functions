@@ -56,7 +56,6 @@ function embedOfferOrListing(event: NftOfferEvent | NftListingEvent): APIEmbed {
         value: `[${event.collectionName}](${BASE_URL}/collection/${event.collectionSlug})`
       },
       {
-        // todo: add link to asset as the below link is not valid anymore
         name: 'Asset',
         value: `[${event.tokenId}${event.quantity > 1 ? ` (x${event.quantity})` : ''}](${BASE_URL}?collectionAddress=${
           event.collectionAddress

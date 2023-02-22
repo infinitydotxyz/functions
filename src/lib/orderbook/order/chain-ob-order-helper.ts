@@ -16,15 +16,6 @@ export class ChainOBOrderHelper extends Flow.Order {
     });
   }
 
-  isSigValid() {
-    try {
-      this._verifySig(this.sig);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
   get startPriceEth() {
     return formatEth(this.startPrice, 6);
   }

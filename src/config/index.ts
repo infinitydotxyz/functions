@@ -7,7 +7,6 @@ import pg from 'pg-promise/typescript/pg-subset';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-// TODO adi change in release
 import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
 
 const getEnvVariable = (key: string, required = true): string => {

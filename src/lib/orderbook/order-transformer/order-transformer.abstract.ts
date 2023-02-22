@@ -126,7 +126,7 @@ export abstract class OrderTransformer<SourceOrder = never> {
       currency: Sdk.Common.Addresses.Weth[this.chainId],
       numItems: this.numItems,
       nfts: this.nfts,
-      complication: Sdk.Flow.Addresses.Complication[this.chainId],
+      complication: Sdk.Flow.Addresses.ComplicationV2[this.chainId],
       extraParams: ethers.constants.HashZero,
       trustedExecution: '0'
     });

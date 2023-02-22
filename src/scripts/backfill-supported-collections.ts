@@ -87,7 +87,12 @@ async function main() {
           // eslint-disable-next-line no-constant-condition
           while (true) {
             try {
-              const isComplete = await Reservoir.OrderEvents.checkProgress(db, chainId as ChainId, collection);
+              const isComplete = await Reservoir.OrderEvents.checkProgress(
+                db,
+                chainId as ChainId,
+                'collection-ask',
+                collection
+              );
               if (isComplete) {
                 break;
               }

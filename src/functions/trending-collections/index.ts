@@ -10,13 +10,15 @@ export const fetchTrendingCollections = functions
   .pubsub.schedule('every 30 minutes')
   .onRun(async () => {
     // call BE API endpoint using phin
-    const url = new URL(normalize(join(config.flow.serverBaseUrl, '/collections/update-trending-colls')));
-    try {
-      await phin({
-        url: url.toString(),
-        method: 'PUT'
-      });
-    } catch (error) {
-      console.log('Error calling update-trending-colls api', error);
+    if (config.flow.serverBaseUrl) {
+      const url = new URL(normalize(join(config.flow.serverBaseUrl, '/collections/update-trending-colls')));
+      try {
+        await phin({
+          url: url.toString(),
+          method: 'PUT'
+        });
+      } catch (error) {
+        console.log('Error calling update-trending-colls api', error);
+      }
     }
   });

@@ -7,5 +7,4 @@ import { notifyDiscordWebhook } from './socials/discord';
  */
 export async function notifySocials(event: FeedEvent) {
   await notifyDiscordWebhook(event);
-  // TODO: twitter
 }

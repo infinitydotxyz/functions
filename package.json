@@ -45,7 +45,7 @@
     "@georgeroman/evm-tx-simulator": "^0.0.9",
     "@infinityxyz/lib": "^1.326.4",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
-    "@reservoir0x/sdk": "^0.0.322",
+    "@reservoir0x/sdk": "0.0.323",
     "@types/node": "^18.11.19",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",

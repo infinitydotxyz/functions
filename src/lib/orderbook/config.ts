@@ -48,10 +48,6 @@ export const config = {
     enabled: true,
     kinds: seaportConfig
   },
-  'seaport-v1.2': {
-    source: 'seaport-v1.2',
-    enabled: false
-  },
   'wyvern-v2': {
     source: 'wyvern-v2',
     enabled: false
@@ -134,6 +130,10 @@ export const config = {
   },
   forward: {
     source: 'forward',
+    enabled: false
+  },
+  'seaport-v1.4': {
+    source: 'seaport-v1.4',
     enabled: false
   }
 };

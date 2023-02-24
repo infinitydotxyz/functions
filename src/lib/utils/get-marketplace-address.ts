@@ -50,8 +50,8 @@ export const getMarketplaceAddress = (chainId: ChainId, orderKind?: OrderSource)
     case 'seaport':
       return Sdk.Seaport.Addresses.Exchange[chainIdInt];
 
-    case 'seaport-v1.2':
-      return Sdk.SeaportV12.Addresses.Exchange[chainIdInt];
+    case 'seaport-v1.4':
+      return Sdk.SeaportV14.Addresses.Exchange[chainIdInt];
 
     case 'sudoswap':
       return Sdk.Sudoswap.Addresses.PairFactory[chainIdInt];

@@ -132,8 +132,8 @@ export const config = {
     source: 'forward',
     enabled: false
   },
-  'seaport-v1.2': {
-    source: 'forward',
+  'seaport-v1.4': {
+    source: 'seaport-v1.4',
     enabled: false
   }
 };

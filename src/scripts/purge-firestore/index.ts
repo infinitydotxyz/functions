@@ -18,138 +18,138 @@ async function main() {
 
   logger.log('process', 'Adding items to queue');
 
-  const feedEvents = [
-    EventType.NftListing,
-    EventType.NftOffer,
-    EventType.NftSale,
-    EventType.NftTransfer,
-    EventType.TokensRageQuit,
-    EventType.TokensStaked,
-    EventType.TokensUnStaked,
-    EventType.TwitterTweet,
-    EventType.UserVote,
-    EventType.UserVoteRemoved
-  ];
+  // const feedEvents = [
+  //   EventType.NftListing,
+  //   EventType.NftOffer,
+  //   EventType.NftSale,
+  //   EventType.NftTransfer,
+  //   EventType.TokensRageQuit,
+  //   EventType.TokensStaked,
+  //   EventType.TokensUnStaked,
+  //   EventType.TwitterTweet,
+  //   EventType.UserVote,
+  //   EventType.UserVoteRemoved
+  // ];
 
-  for (const feedEvent of feedEvents) {
-    const job: FeedJobData = {
-      id: feedEvent,
-      type: 'feed',
-      eventTypeToDelete: feedEvent,
-      keepEventsAfterTimestamp: Date.now() - ONE_HOUR * 24
-    };
-    await queue.add(job);
-  }
+  // for (const feedEvent of feedEvents) {
+  //   const job: FeedJobData = {
+  //     id: feedEvent,
+  //     type: 'feed',
+  //     eventTypeToDelete: feedEvent,
+  //     keepEventsAfterTimestamp: Date.now() - ONE_HOUR * 24
+  //   };
+  //   await queue.add(job);
+  // }
 
-  await queue.add({
-    id: 'marketplace-stats',
-    type: 'marketplace-stats'
-  });
+  // await queue.add({
+  //   id: 'marketplace-stats',
+  //   type: 'marketplace-stats'
+  // });
 
-  await queue.add({
-    id: 'collections-trigger',
-    type: 'collections-trigger',
-    numQueries: 128,
-    chainId: ChainId.Goerli
-  });
+  // await queue.add({
+  //   id: 'collections-trigger',
+  //   type: 'collections-trigger',
+  //   numQueries: 128,
+  //   chainId: ChainId.Goerli
+  // });
 
-  await queue.add({
-    id: 'collections-trigger',
-    type: 'collections-trigger',
-    numQueries: 128,
-    chainId: ChainId.Polygon
-  });
+  // await queue.add({
+  //   id: 'collections-trigger',
+  //   type: 'collections-trigger',
+  //   numQueries: 128,
+  //   chainId: ChainId.Polygon
+  // });
 
-  await queue.add({
-    id: 'collections-trigger',
-    type: 'collections-trigger',
-    numQueries: 128,
-    chainId: ChainId.Mainnet
-  });
+  // await queue.add({
+  //   id: 'collections-trigger',
+  //   type: 'collections-trigger',
+  //   numQueries: 128,
+  //   chainId: ChainId.Mainnet
+  // });
 
-  await queue.add({
-    id: 'nfts-trigger',
-    type: 'nfts-trigger',
-    numQueries: 128,
-    chainId: ChainId.Mainnet
-  });
+  // await queue.add({
+  //   id: 'nfts-trigger',
+  //   type: 'nfts-trigger',
+  //   numQueries: 128,
+  //   chainId: ChainId.Mainnet
+  // });
 
-  await queue.add({
-    id: 'nfts-trigger',
-    type: 'nfts-trigger',
-    numQueries: 128,
-    chainId: ChainId.Goerli
-  });
+  // await queue.add({
+  //   id: 'nfts-trigger',
+  //   type: 'nfts-trigger',
+  //   numQueries: 128,
+  //   chainId: ChainId.Goerli
+  // });
 
-  await queue.add({
-    id: 'nfts-trigger',
-    type: 'nfts-trigger',
-    numQueries: 128,
-    chainId: ChainId.Polygon
-  });
+  // await queue.add({
+  //   id: 'nfts-trigger',
+  //   type: 'nfts-trigger',
+  //   numQueries: 128,
+  //   chainId: ChainId.Polygon
+  // });
 
-  await queue.add({
-    id: 'collection-stats-trigger',
-    type: 'collection-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Mainnet
-  });
+  // await queue.add({
+  //   id: 'collection-stats-trigger',
+  //   type: 'collection-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Mainnet
+  // });
 
-  await queue.add({
-    id: 'collection-stats-trigger',
-    type: 'collection-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Goerli
-  });
+  // await queue.add({
+  //   id: 'collection-stats-trigger',
+  //   type: 'collection-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Goerli
+  // });
 
-  await queue.add({
-    id: 'collection-stats-trigger',
-    type: 'collection-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Polygon
-  });
+  // await queue.add({
+  //   id: 'collection-stats-trigger',
+  //   type: 'collection-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Polygon
+  // });
 
-  await queue.add({
-    id: 'socials-stats-trigger',
-    type: 'socials-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Mainnet
-  });
+  // await queue.add({
+  //   id: 'socials-stats-trigger',
+  //   type: 'socials-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Mainnet
+  // });
 
-  await queue.add({
-    id: 'socials-stats-trigger',
-    type: 'socials-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Goerli
-  });
+  // await queue.add({
+  //   id: 'socials-stats-trigger',
+  //   type: 'socials-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Goerli
+  // });
 
-  await queue.add({
-    id: 'socials-stats-trigger',
-    type: 'socials-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Polygon
-  });
+  // await queue.add({
+  //   id: 'socials-stats-trigger',
+  //   type: 'socials-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Polygon
+  // });
 
-  await queue.add({
-    id: 'nft-stats-trigger',
-    type: 'nft-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Mainnet
-  });
+  // await queue.add({
+  //   id: 'nft-stats-trigger',
+  //   type: 'nft-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Mainnet
+  // });
 
-  await queue.add({
-    id: 'nft-stats-trigger',
-    type: 'nft-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Goerli
-  });
+  // await queue.add({
+  //   id: 'nft-stats-trigger',
+  //   type: 'nft-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Goerli
+  // });
 
-  await queue.add({
-    id: 'nft-stats-trigger',
-    type: 'nft-stats-trigger',
-    numQueries: 32,
-    chainId: ChainId.Polygon
-  });
+  // await queue.add({
+  //   id: 'nft-stats-trigger',
+  //   type: 'nft-stats-trigger',
+  //   numQueries: 32,
+  //   chainId: ChainId.Polygon
+  // });
 
   logger.log('process', 'Done adding items to queue');
 

@@ -54,12 +54,12 @@ export default async function (job: Job<JobData>) {
     case 'feed':
       await processFeedJob(job as Job<FeedJobData>);
       break;
-    case 'nfts-trigger':
-      await processNftsTriggerJob(job as Job<NftsTriggerJobData>);
-      break;
-    case 'nfts':
-      await processNftJob(job as Job<NftsJobData>);
-      break;
+    // case 'nfts-trigger':
+    //   await processNftsTriggerJob(job as Job<NftsTriggerJobData>);
+    //   break;
+    // case 'nfts':
+    //   await processNftJob(job as Job<NftsJobData>);
+    //   break;
     case 'collection-stats-trigger':
       await processCollectionStatsTriggerJob(job as Job<CollectionStatsTriggerJobData>);
       break;
@@ -72,12 +72,12 @@ export default async function (job: Job<JobData>) {
     case 'socials-stats':
       await processSocialsStatsJob(job as Job<SocialsStatsJobData>);
       break;
-    case 'nft-stats-trigger':
-      await processNftStatsTriggerJob(job as Job<NftStatsTriggerJobData>);
-      break;
-    case 'nft-stats':
-      await processNftStatsJob(job as Job<NftStatsJobData>);
-      break;
+    // case 'nft-stats-trigger':
+    //   await processNftStatsTriggerJob(job as Job<NftStatsTriggerJobData>);
+    //   break;
+    // case 'nft-stats':
+    //   await processNftStatsJob(job as Job<NftStatsJobData>);
+    //   break;
   }
 
   const end = Date.now();

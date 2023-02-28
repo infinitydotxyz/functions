@@ -1,5 +1,5 @@
 import { ReservoirClient } from '../get-client';
-import { AskV2Order, ReservoirEventMetadata } from './types';
+import { AskEventV3 } from './types';
 
 export interface AskEventOptions {
   contract?: string;
@@ -20,7 +20,7 @@ export async function getEvents(client: ReservoirClient, _options: Partial<AskEv
   };
 
   const response = await client(
-    '/events/asks/v2',
+    '/events/asks/v3',
     'get'
   )({
     query: {
@@ -28,7 +28,7 @@ export async function getEvents(client: ReservoirClient, _options: Partial<AskEv
     }
   });
 
-  const askEvents = response.data.events as { order: AskV2Order; event: ReservoirEventMetadata }[];
+  const askEvents = response.data.events as AskEventV3[];
 
   return {
     data: {

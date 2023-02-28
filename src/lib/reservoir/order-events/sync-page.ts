@@ -4,7 +4,7 @@ import { BatchHandler } from '@/firestore/batch-handler';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 
 import { Reservoir } from '../..';
-import { AskV2Order, BidV1Order, ReservoirEventMetadata } from '../api/events/types';
+import { AskEventV3, BidEventV3 } from '../api/events/types';
 import { ReservoirClient } from '../api/get-client';
 import { ReservoirOrderEvent, SyncMetadata } from './types';
 import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
@@ -45,12 +45,7 @@ export async function syncPage(
 
   const numItems = (page.data?.events ?? []).length;
 
-  const events = (
-    page.data.events as (
-      | { event: ReservoirEventMetadata; order: AskV2Order }
-      | { event: ReservoirEventMetadata; bid: BidV1Order }
-    )[]
-  ).filter((item) => {
+  const events = (page.data.events as (AskEventV3 | BidEventV3)[]).filter((item) => {
     const isReprice = item.event.kind === 'reprice';
     const isBid = 'bid' in item;
     const collAddress = isBid ? item.bid.contract : item.order.contract;
@@ -63,7 +58,7 @@ export async function syncPage(
     const isSupportedCollection = supportedCollections.has(collectionDocId);
 
     return !isReprice && isSupportedCollection;
-  }) as { bid: BidV1Order; event: ReservoirEventMetadata }[] | { order: AskV2Order; event: ReservoirEventMetadata }[];
+  });
 
   const numItemsAfterFiltering = events.length;
 

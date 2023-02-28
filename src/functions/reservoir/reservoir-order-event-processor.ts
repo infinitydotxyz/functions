@@ -195,11 +195,13 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
         txn.create(result.transformedEventRef, result.transformedEvent);
       }
 
-      if (!handledEvents.has(result.reservoirEventRef.path)) {
+      if (!handledEvents.has(result.reservoirEventRef.path) && !transformedEventSnap.get('metadata.processed')) {
         /**
          * update the reservoir event as processed
          */
         txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
+        handledEvents.add(result.reservoirEventRef.path);
+      } else if (transformedEventSnap.get('metadata.processed')) {
         handledEvents.add(result.reservoirEventRef.path);
       }
     }

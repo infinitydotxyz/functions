@@ -5,12 +5,13 @@ import { getDb } from '@/firestore/db';
 import { Reservoir } from '../lib';
 
 async function main() {
-  const startBlockNum = 16528000;
+  // const startBlockNum = 16528000;
+  const startBlockNumGoerli = 8373022;
 
-  const chainId = ChainId.Mainnet;
+  const chainId = ChainId.Goerli;
   const db = getDb();
-  await db.doc('/_sync/_reservoirSales/_reservoirSalesSyncMetadata/1:sales').delete();
-  await Reservoir.Sales.addSyncs(getDb(), chainId, ['sales'], startBlockNum);
+  await db.doc('/_sync/_reservoirSales/_reservoirSalesSyncMetadata/5:sales').delete();
+  await Reservoir.Sales.addSyncs(getDb(), chainId, ['sales'], startBlockNumGoerli);
 
   console.log(`Successfully initiated sales syncing for chain ${chainId}.`);
 }

@@ -18,6 +18,7 @@ export interface SyncMetadata {
     eventsProcessed: number;
     continuation: string;
     minTimestampMs?: number;
+    mostRecentEventId: string;
   };
 }
 

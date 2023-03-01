@@ -1,3 +1,5 @@
+import { BigNumber } from 'ethers';
+
 import { getCollectionDocId } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -45,6 +47,8 @@ export async function syncPage(
 
   const numItems = (page.data?.events ?? []).length;
 
+  const mostRecentEventId = BigNumber.from(page.data.events[0]?.event?.id ?? 0);
+
   const events = (page.data.events as (AskEventV3 | BidEventV3)[]).filter((item) => {
     const isReprice = item.event.kind === 'reprice';
     const isBid = 'bid' in item;
@@ -57,12 +61,12 @@ export async function syncPage(
     });
     const isSupportedCollection = supportedCollections.has(collectionDocId);
 
-    return !isReprice && isSupportedCollection;
+    return !isReprice && isSupportedCollection && BigNumber.from(item.event.id).gt(mostRecentEventId);
   });
 
   const numItemsAfterFiltering = events.length;
 
-  if (page.data.continuation === sync.data.continuation) {
+  if (page.data.continuation === sync.data.continuation || (!page.data.continuation && events.length === 0)) {
     /**
      * continuation did not change
      * skip attempting to read events from firestore
@@ -73,6 +77,7 @@ export async function syncPage(
   let numEventsSaved = 0;
 
   const batch = new BatchHandler();
+  const mostRecentEvent = events[0];
   for (const item of events) {
     const event = item.event;
     const id = event.id;
@@ -113,7 +118,11 @@ export async function syncPage(
     data: {
       eventsProcessed: sync.data.eventsProcessed + numEventsSaved,
       minTimestampMs: sync.data.minTimestampMs ?? 0,
-      continuation: updatedContinuation
+      continuation: updatedContinuation,
+      mostRecentEventId:
+        sync.data.mostRecentEventId && BigNumber.from(sync.data.mostRecentEventId).gte(mostRecentEvent?.event.id ?? 0)
+          ? sync.data.mostRecentEventId
+          : mostRecentEvent?.event.id ?? '0'
     }
   };
 

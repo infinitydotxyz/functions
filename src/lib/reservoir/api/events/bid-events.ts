@@ -26,7 +26,7 @@ export async function getEvents(client: ReservoirClient, _options: Partial<BidEv
     query: options
   });
 
-  const bidEvents = response.data.events as BidEventV3[];
+  const bidEvents = response.data.events as unknown as BidEventV3[];
 
   return {
     data: {

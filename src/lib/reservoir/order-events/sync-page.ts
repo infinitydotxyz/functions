@@ -47,8 +47,7 @@ export async function syncPage(
 
   const numItems = (page.data?.events ?? []).length;
 
-  const mostRecentEventId = BigNumber.from(page.data.events[0]?.event?.id ?? 0);
-
+  const mostRecentEventId = BigNumber.from(sync.data.mostRecentEventId ?? 0);
   const events = (page.data.events as (AskEventV3 | BidEventV3)[]).filter((item) => {
     const isReprice = item.event.kind === 'reprice';
     const isBid = 'bid' in item;
@@ -66,18 +65,22 @@ export async function syncPage(
 
   const numItemsAfterFiltering = events.length;
 
-  if (page.data.continuation === sync.data.continuation || (!page.data.continuation && events.length === 0)) {
+  if (page.data.continuation === sync.data.continuation || (page.data.continuation == null && events.length === 0)) {
     /**
      * continuation did not change
      * skip attempting to read events from firestore
      */
-    return { numEventsSaved: 0, continuation: page.data.continuation, numItems, numItemsAfterFiltering, sync };
+    return {
+      numEventsSaved: 0,
+      numItems,
+      numItemsAfterFiltering,
+      sync
+    };
   }
 
   let numEventsSaved = 0;
 
   const batch = new BatchHandler();
-  const mostRecentEvent = events[0];
   for (const item of events) {
     const event = item.event;
     const id = event.id;
@@ -114,15 +117,15 @@ export async function syncPage(
   /**
    * update sync metadata
    */
+  const updatedMostRecentEventId = BigNumber.from(page.data.events[page.data.events.length - 1]?.event?.id ?? 0);
   const update: Partial<SyncMetadata> = {
     data: {
       eventsProcessed: sync.data.eventsProcessed + numEventsSaved,
       minTimestampMs: sync.data.minTimestampMs ?? 0,
       continuation: updatedContinuation,
-      mostRecentEventId:
-        sync.data.mostRecentEventId && BigNumber.from(sync.data.mostRecentEventId).gte(mostRecentEvent?.event.id ?? 0)
-          ? sync.data.mostRecentEventId
-          : mostRecentEvent?.event.id ?? '0'
+      mostRecentEventId: mostRecentEventId.gte(updatedMostRecentEventId)
+        ? mostRecentEventId.toString()
+        : updatedMostRecentEventId.toString()
     }
   };
 

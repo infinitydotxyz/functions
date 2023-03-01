@@ -26,7 +26,7 @@ export const checkProgress = async (
   const continuation = syncData?.data.continuation;
 
   if (!continuation) {
-    throw new Error('no continuation');
+    throw new Error(`no continuation ${chainId} ${type} ${collection}`);
   }
   const method = Reservoir.Api.Events.AskEvents.getEvents;
   const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);

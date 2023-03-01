@@ -1,12 +1,12 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { ONE_HOUR } from '@infinityxyz/lib/utils';
+import { ONE_DAY } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 
 import { Reservoir } from '../lib';
 
 export async function main() {
-  const startTimestamp = Date.now() - ONE_HOUR;
+  const startTimestamp = Date.now() - ONE_DAY;
   await Reservoir.OrderEvents.addSyncs(getDb(), ChainId.Goerli, ['ask', 'bid'], undefined, startTimestamp);
 }
 

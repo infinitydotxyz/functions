@@ -28,7 +28,7 @@ export async function getEvents(client: ReservoirClient, _options: Partial<AskEv
     }
   });
 
-  const askEvents = response.data.events as AskEventV3[];
+  const askEvents = response.data.events as unknown as AskEventV3[];
 
   return {
     data: {

@@ -14,7 +14,7 @@ export type EventV2Kind =
   | 'reprice';
 
 export interface ReservoirEventMetadata {
-  id: number;
+  id: string;
   kind: EventV2Kind;
   txHash?: string;
   txTimestamp?: number;

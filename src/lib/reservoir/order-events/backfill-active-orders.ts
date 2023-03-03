@@ -1,13 +1,7 @@
 /* eslint-disable no-constant-condition */
 import PQueue from 'p-queue';
 
-import {
-  ChainId,
-  OrderCreatedEvent,
-  OrderEventKind,
-  OrderEventMetadata,
-  OrderSource
-} from '@infinityxyz/lib/types/core';
+import { ChainId, OrderCreatedEvent, OrderEventKind, OrderEventMetadata } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';

@@ -25,9 +25,8 @@ export class SingleTokenOrderTransformer extends SeaportV14OrderTransformer {
       flowOrder: this.getFlowOrder(),
       getSourceTxn: async (timestamp: number, from: string) => {
         const seaport = new SeaportV14.Exchange(this.chainId);
-        const priceAtTime = this._order.getMatchingPrice(timestamp);
         const builder = new SeaportV14.Builders.SingleToken(this.chainId);
-        const matchParams = builder.buildMatching(this._order, { amount: priceAtTime });
+        const matchParams = builder.buildMatching(this._order);
         const data = await seaport.fillOrderTx(from, this._order, matchParams);
         return data;
       }

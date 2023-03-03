@@ -66,7 +66,8 @@ export const config = {
   },
   'seaport-v1.4': {
     source: 'seaport-v1.4',
-    enabled: seaportV14Config
+    enabled: true,
+    kinds: seaportV14Config
   },
   'wyvern-v2': {
     source: 'wyvern-v2',

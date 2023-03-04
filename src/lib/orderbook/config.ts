@@ -33,6 +33,22 @@ const seaportConfig = {
 };
 // satisfies Record<Sdk.Seaport.Types.OrderKind, unknown>;
 
+const seaportV14Config = {
+  'single-token': {
+    enabled: true,
+    transformer: Transformers.SeaportV14.SingleToken
+  },
+  'bundle-ask': {
+    enabled: false
+  },
+  'contract-wide': {
+    enabled: false
+  },
+  'token-list': {
+    enabled: false
+  }
+};
+
 export const config = {
   infinity: {
     source: 'infinity',
@@ -47,6 +63,11 @@ export const config = {
     source: 'seaport',
     enabled: true,
     kinds: seaportConfig
+  },
+  'seaport-v1.4': {
+    source: 'seaport-v1.4',
+    enabled: true,
+    kinds: seaportV14Config
   },
   'wyvern-v2': {
     source: 'wyvern-v2',
@@ -130,10 +151,6 @@ export const config = {
   },
   forward: {
     source: 'forward',
-    enabled: false
-  },
-  'seaport-v1.4': {
-    source: 'seaport-v1.4',
     enabled: false
   }
 };

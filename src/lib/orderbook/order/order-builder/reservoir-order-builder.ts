@@ -133,9 +133,8 @@ export class ReservoirOrderBuilder extends OrderBuilder {
     let gasUsage = '0';
     if (!transformationResult.isNative) {
       try {
-        gasUsage = await this._gasSimulator.simulate(
-          await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
-        );
+        const sourceTxn = await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount);
+        gasUsage = await this._gasSimulator.simulate(sourceTxn);
       } catch (err) {
         throw new OrderError(
           `failed to simulate gas usage for order ${orderId}`,

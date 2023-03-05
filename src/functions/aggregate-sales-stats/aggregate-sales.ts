@@ -1,8 +1,5 @@
 import { ChainId, CollectionStats, NftSale, PreMergedRewardSaleEvent, RewardEventVariant, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
-
-
-
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 

@@ -1,5 +1,8 @@
 import { ChainId, CollectionStats, NftSale, PreMergedRewardSaleEvent, RewardEventVariant, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+
+
+
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 
@@ -55,18 +58,17 @@ export async function aggregateSalesStats() {
           .doc(collDocId)
           .collection(firestoreConstants.COLLECTION_STATS_COLL)
           .doc(StatsPeriod.All);
+          
         const statsData = (await tx.get(collStatsDoc)).data() as CollectionStats;
-        if (!statsData) {
-          throw new Error(`Collection stats not found for ${collDocId}`);
+        if (statsData) {
+          const dataToStore: Partial<CollectionStats> = {
+            floorPrice: saleWithDocId.price < statsData.floorPrice ? saleWithDocId.price : statsData.floorPrice,
+            numSales: statsData.numSales + 1,
+            volume: statsData.volume + saleWithDocId.price,
+            updatedAt: Date.now()
+          };
+          tx.set(collStatsDoc, dataToStore, { merge: true });
         }
-        const floorPrice = statsData.floorPrice || Infinity;
-        const dataToStore: Partial<CollectionStats> = {
-          floorPrice: saleWithDocId.price < floorPrice ? saleWithDocId.price : floorPrice,
-          numSales: statsData.numSales + 1,
-          volume: statsData.volume + saleWithDocId.price,
-          updatedAt: Date.now()
-        };
-        tx.set(collStatsDoc, dataToStore, { merge: true });
 
         tx.update(ref, saleUpdate);
       });

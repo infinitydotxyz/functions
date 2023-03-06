@@ -23,7 +23,7 @@ import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef, DocRef, DocSnap, Firestore } from '@/firestore/types';
-import { AskOrder, OrderStatus } from '@/lib/reservoir/api/orders/types';
+import { AskOrder, BidOrder, OrderStatus } from '@/lib/reservoir/api/orders/types';
 import { bn, getUserDisplayData } from '@/lib/utils';
 import { GWEI } from '@/lib/utils/constants';
 import { getErc721Owner } from '@/lib/utils/ethersUtils';
@@ -128,7 +128,7 @@ export class BaseOrder {
 
   async load(
     txn?: FirebaseFirestore.Transaction,
-    reservoirOrder?: AskOrder
+    reservoirOrder?: AskOrder | BidOrder
   ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder; requiresSave: boolean }> {
     const getAll = txn ? txn.getAll.bind(txn)<any> : this._db.getAll.bind(this._db);
 
@@ -251,7 +251,7 @@ export class BaseOrder {
 
   protected async _build(
     txn?: FirebaseFirestore.Transaction,
-    reservoirOrder?: AskOrder
+    reservoirOrder?: AskOrder | BidOrder
   ): Promise<{ rawOrder: RawFirestoreOrder; displayOrder: FirestoreDisplayOrder }> {
     const orderBuilder = new ReservoirOrderBuilder(this._chainId, this._gasSimulator);
     const { order, initialStatus } = await orderBuilder.buildOrder(this._id, this._isSellOrder, reservoirOrder);

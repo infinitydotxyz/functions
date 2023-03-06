@@ -1,8 +1,10 @@
 import { config as loadEnv } from 'dotenv';
 import { ethers } from 'ethers';
 import { ServiceAccount } from 'firebase-admin';
+import Redis from 'ioredis';
 import pgPromise from 'pg-promise';
 import pg from 'pg-promise/typescript/pg-subset';
+import Redlock from 'redlock';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
@@ -86,6 +88,29 @@ const getPG = () => {
   return _pg;
 };
 
+const redisConnectionUrl = getEnvVariable('REDIS_URL', false);
+let redis: Redis;
+const getRedis = () => {
+  if (!redis && redisConnectionUrl) {
+    redis = new Redis(redisConnectionUrl, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false
+    });
+  }
+  return redis;
+};
+
+let redlock: Redlock;
+const getRedlock = () => {
+  if (!redlock) {
+    const redis = getRedis();
+    if (redis) {
+      redlock = new Redlock([redis.duplicate()], { retryCount: 0 });
+    }
+  }
+  return redlock;
+};
+
 export const config = {
   isDev,
   isDeployed,
@@ -99,7 +124,9 @@ export const config = {
     snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
   },
   redis: {
-    connectionUrl: getEnvVariable('REDIS_URL', false)
+    connectionUrl: redisConnectionUrl,
+    getRedis,
+    getRedlock
   },
   pg: {
     getPG,
@@ -122,6 +149,7 @@ export const config = {
   },
   syncs: {
     processSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
-    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1
+    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
+    cacheReservoirOrders: Number(getEnvVariable('SYNC_RESERVOIR_ORDERS_CACHE', false)) === 1
   }
 };

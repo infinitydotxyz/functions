@@ -15,7 +15,7 @@ export class GasSimulator {
     if (value.gt(0)) {
       try {
         const estimate = await this._provider.estimateGas({
-          from: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // Vitalik - has lots of ETH
+          from: '0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979',
           to: txnData.to,
           value,
           data: txnData.data

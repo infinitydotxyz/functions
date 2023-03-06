@@ -1,11 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-
-
 import { getDb } from '@/firestore/db';
 import { backfillActiveListings } from '@/lib/reservoir/order-events/backfill-active-orders';
-
 
 async function main() {
   const db = getDb();

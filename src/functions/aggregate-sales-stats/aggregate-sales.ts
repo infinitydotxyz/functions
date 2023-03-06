@@ -1,11 +1,15 @@
-import { ChainId, CollectionStats, NftSale, PreMergedRewardSaleEvent, RewardEventVariant, StatsPeriod } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  CollectionStats,
+  NftSale,
+  PreMergedRewardSaleEvent,
+  RewardEventVariant,
+  StatsPeriod
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
-
-
 
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
-
 
 export async function aggregateSalesStats() {
   const db = getDb();
@@ -58,7 +62,7 @@ export async function aggregateSalesStats() {
           .doc(collDocId)
           .collection(firestoreConstants.COLLECTION_STATS_COLL)
           .doc(StatsPeriod.All);
-          
+
         const statsData = (await tx.get(collStatsDoc)).data() as CollectionStats;
         if (statsData) {
           const dataToStore: Partial<CollectionStats> = {

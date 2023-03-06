@@ -136,6 +136,10 @@ export default async function (job: Job) {
         .catch((err) => {
           logger.error(name, err);
         });
+
+      if (pageQueue.size > 5 * concurrentReservoirRequests) {
+        await pageQueue.onEmpty();
+      }
     }
 
     logger.log(name, `Waiting for ${pageQueue.size} pages to finish`);

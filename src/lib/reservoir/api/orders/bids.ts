@@ -10,6 +10,7 @@ export interface BidOrderOptions {
   status?: OrderStatus;
   source?: string;
   native?: boolean;
+  startTimestamp?: number;
   includeMetadata: boolean;
   includeRawData: boolean;
   sortBy?: 'createdAt' | 'price';

@@ -1,5 +1,7 @@
 import cron from 'node-cron';
 
+import { ChainId } from '@infinityxyz/lib/types/core';
+
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { AbstractProcess } from '@/lib/process/process.abstract';
@@ -9,6 +11,7 @@ import { Reservoir } from '../lib';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
+import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './sales-events-queue';
 
 async function main() {
@@ -17,6 +20,39 @@ async function main() {
   await supportedCollections.init();
 
   const promises = [];
+
+  if (config.syncs.cacheReservoirOrders) {
+    const supportedChains = [ChainId.Mainnet, ChainId.Goerli];
+    for (const chainId of supportedChains) {
+      const bidCacheQueue = new ReservoirOrderCacheQueue(
+        `reservoir-order-cache:chain:${chainId}:type:bid`,
+        redis,
+        supportedCollections
+      );
+      const askCacheQueue = new ReservoirOrderCacheQueue(
+        `reservoir-order-cache:chain:${chainId}:type:ask`,
+        redis,
+        supportedCollections
+      );
+
+      cron.schedule('*/5 * * * * *', async () => {
+        await bidCacheQueue.add({
+          id: `bid-cache-${chainId}-${Date.now()}`,
+          chainId,
+          side: 'bid'
+        });
+
+        await askCacheQueue.add({
+          id: `ask-cache-${chainId}-${Date.now()}`,
+          chainId,
+          side: 'ask'
+        });
+      });
+
+      promises.push(bidCacheQueue.run());
+      promises.push(askCacheQueue.run());
+    }
+  }
 
   if (config.syncs.processOrders) {
     const initQueue = (id: string, queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) => {

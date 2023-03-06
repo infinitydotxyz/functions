@@ -60,15 +60,19 @@ export class ReservoirOrderCacheQueue extends AbstractProcess<
     const cursorKey = `reservoir:orders-cache:${chainId}:${side}:cursor`;
 
     const getCursor = async () => {
+      const minTimestamp = Date.now() - 5 * ONE_MIN;
       try {
         const cursorString = await this._db.get(cursorKey);
         const cursor = JSON.parse(cursorString ?? '') as Cursor;
-        return cursor;
+        return {
+          ...cursor,
+          startTimestamp: Math.max(cursor.startTimestamp, minTimestamp)
+        };
       } catch (err) {
         return {
           chainId,
           side,
-          startTimestamp: Date.now() - ONE_HOUR
+          startTimestamp: minTimestamp
         };
       }
     };

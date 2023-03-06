@@ -6,15 +6,27 @@ import { Firestore } from '../../../firestore/types';
 import { getSaleEventSyncRef, getSaleEventSyncsRef } from './get-sync-metadata';
 import { SyncMetadata, SyncMetadataType } from './types';
 
-type SyncUpdater = (db: Firestore, chainId: ChainId, types: SyncMetadataType[], startAtBlock?: number) => Promise<void>;
+type SyncUpdater = (
+  db: Firestore,
+  chainId: ChainId,
+  types: SyncMetadataType[],
+  collection?: string,
+  startAtBlock?: number
+) => Promise<void>;
 
-export const addSyncs: SyncUpdater = async (db, chainId, types: SyncMetadataType[], startAtBlock?: number) => {
+export const addSyncs: SyncUpdater = async (
+  db,
+  chainId,
+  types: SyncMetadataType[],
+  collection?: string,
+  startAtBlock?: number
+) => {
   const syncsRef = getSaleEventSyncsRef(db);
   const syncs = (types ?? []).map((item) => {
     return {
       chainId,
       type: item,
-      ref: getSaleEventSyncRef(syncsRef, chainId, item)
+      ref: getSaleEventSyncRef(syncsRef, chainId, item, collection)
     };
   });
 
@@ -30,12 +42,14 @@ export const addSyncs: SyncUpdater = async (db, chainId, types: SyncMetadataType
       if (snap.exists) {
         throw new Error(`Sync already exists for chainId: ${chainId} and type: ${sync.type}`);
       } else {
+        const collectionData = collection ? { collection } : {};
         const data: SyncMetadata = {
           metadata: {
             chainId: sync.chainId,
             type: sync.type,
             updatedAt: Date.now(),
-            isPaused: false
+            isPaused: false,
+            ...collectionData
           },
           data: {
             eventsProcessed: 0,

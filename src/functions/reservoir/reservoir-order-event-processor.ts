@@ -11,6 +11,7 @@ import {
   OrderPriceUpdateEvent,
   OrderRevalidationEvent,
   OrderSaleEvent,
+  OrderSource,
   RawFirestoreOrder,
   RawOrder
 } from '@infinityxyz/lib/types/core';
@@ -19,7 +20,7 @@ import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
-import { ErrorCode, OrderError } from '@/lib/orderbook/errors';
+import { ErrorCode, OrderError, OrderSideError } from '@/lib/orderbook/errors';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -414,6 +415,18 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     const provider = getProvider(metadata.chainId);
     if (!provider) {
       throw new Error(`No provider found for chainId: ${metadata.chainId}`);
+    }
+
+    const isFlow =
+      ('kind' in data.order && data.order.kind === 'flow') ||
+      ('source' in data.order && data.order.source.toLowerCase().includes('flow'));
+    if (!metadata.isSellOrder && !isFlow) {
+      /**
+       * prevent unnecessary processing
+       */
+      const kind = 'kind' in data.order ? data.order.kind : 'unknown';
+      // TODO remove this to support other marketplace buy orders
+      throw new OrderSideError(metadata.isSellOrder, kind as OrderSource, 'unsupported');
     }
 
     const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);

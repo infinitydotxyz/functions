@@ -139,6 +139,8 @@ export class ReservoirOrderCacheQueue extends AbstractProcess<
           .filter((item) => {
             if (!this._supportedCollections.has(`${chainId}:${item.contract}`)) {
               return false;
+            } else if (item.side === 'buy' && item.kind !== 'flow') {
+              return false; // TODO remove this to support other marketplace buy orders
             }
             return item && item.rawData;
           })

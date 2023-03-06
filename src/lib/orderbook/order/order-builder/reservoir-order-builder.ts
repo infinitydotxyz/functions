@@ -106,9 +106,9 @@ export class ReservoirOrderBuilder extends OrderBuilder {
       try {
         order = await this._getReservoirOrderFromCache(orderId);
         if (order) {
-          console.log(`CACHE HIT ${orderId}`);
+          console.log(`${this._chainId}:${isSellOrder ? 'ask' : 'bid'} CACHE HIT ${orderId}`);
         } else {
-          console.log(`CACHE MISS ${orderId}`);
+          console.log(`${this._chainId}:${isSellOrder ? 'ask' : 'bid'} CACHE MISS ${orderId}`);
           order = await this._getReservoirOrderFromApi(orderId, isSellOrder);
         }
       } catch (err) {

@@ -8,6 +8,7 @@ import { AbstractOrderbookProcessor } from '../orderbook-processor';
 
 interface JobData {
   id: string;
+  executionId: string;
   queryNum: number;
   isSellOrder: boolean;
   concurrentReservoirRequests: number;

@@ -116,7 +116,8 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
             transformedEvent,
             transformedEventRef,
             reservoirEventUpdate: reservoirEventUpdate,
-            reservoirEventRef: event.ref
+            reservoirEventRef: event.ref,
+            requiresSave: !event.data.metadata.processed
           };
           successful.push(result);
         } else {
@@ -195,13 +196,17 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
         txn.create(result.transformedEventRef, result.transformedEvent);
       }
 
-      if (!handledEvents.has(result.reservoirEventRef.path) && !transformedEventSnap.get('metadata.processed')) {
+      if (!handledEvents.has(result.reservoirEventRef.path) && result.requiresSave) {
         /**
          * update the reservoir event as processed
+         * if it has not been processed yet
          */
-        txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
         handledEvents.add(result.reservoirEventRef.path);
-      } else if (transformedEventSnap.get('metadata.processed')) {
+        txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
+      } else {
+        /**
+         * mark it as handled
+         */
         handledEvents.add(result.reservoirEventRef.path);
       }
     }

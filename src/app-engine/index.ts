@@ -58,7 +58,6 @@ async function main() {
     cron.schedule('0 2 * * *', async () => {
       await trigger();
     });
-    await trigger();
     promises.push(queue.run());
   }
 

@@ -114,6 +114,7 @@ const getRedlock = () => {
 export const config = {
   isDev,
   isDeployed,
+  supportedChains: [ChainId.Mainnet, ChainId.Goerli],
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
@@ -147,9 +148,10 @@ export const config = {
   orderbook: {
     gasSimulationAccount: trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979')
   },
-  syncs: {
-    processSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
-    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
-    cacheReservoirOrders: Number(getEnvVariable('SYNC_RESERVOIR_ORDERS_CACHE', false)) === 1
+  components: {
+    syncSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
+    syncOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
+    cacheReservoirOrders: Number(getEnvVariable('SYNC_RESERVOIR_ORDERS_CACHE', false)) === 1,
+    validateOrderbook: Number(getEnvVariable('VALIDATE_ORDERBOOK', false)) === 1
   }
 };

@@ -1,4 +1,5 @@
 import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { Orderbook, Reservoir } from '@/lib/index';
@@ -109,6 +110,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
           console.log(`${this._chainId}:${isSellOrder ? 'ask' : 'bid'} CACHE HIT ${orderId}`);
         } else {
           console.log(`${this._chainId}:${isSellOrder ? 'ask' : 'bid'} CACHE MISS ${orderId}`);
+
           order = await this._getReservoirOrderFromApi(orderId, isSellOrder);
         }
       } catch (err) {
@@ -131,16 +133,19 @@ export class ReservoirOrderBuilder extends OrderBuilder {
 
   protected async _getReservoirOrderFromCache(orderId: string) {
     const redis = config.redis.getRedis();
-
     if (redis) {
-      const orderString = await redis.get(`reservoir:orders-cache:${orderId}`);
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const orderString = await redis.get(`reservoir:orders-cache:${orderId}`);
 
-      try {
-        const order = JSON.parse(orderString ?? '') as AskOrder | BidOrder;
-        return order;
-      } catch (err) {
-        return null;
+        try {
+          const order = JSON.parse(orderString ?? '') as AskOrder | BidOrder;
+          return order;
+        } catch (err) {
+          // noop
+        }
+        await sleep(1000);
       }
+      return null;
     }
     return null;
   }

@@ -26,7 +26,7 @@ async function main() {
   if (config.components.validateOrderbook) {
     const queue = new ValidateOrdersProcessor('validate-orders', redis, db, {
       enableMetrics: false,
-      concurrency: 4,
+      concurrency: 2,
       debug: true,
       attempts: 1
     });
@@ -58,6 +58,7 @@ async function main() {
     cron.schedule('0 2 * * *', async () => {
       await trigger();
     });
+    await trigger();
     promises.push(queue.run());
   }
 

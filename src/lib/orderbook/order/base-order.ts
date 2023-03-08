@@ -1,12 +1,25 @@
 import { constants, ethers, providers } from 'ethers';
 
-
-
-import { ChainId, ChainNFTs, ChainOBOrder, DisplayOrder, FirestoreDisplayOrder, FirestoreDisplayOrderWithError, OrderEvents, OrderItem, OrderItemToken, OrderSource, RawFirestoreOrder, RawFirestoreOrderWithError, RawOrder, RawOrderWithoutError, TokenStandard, UserDisplayData } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  ChainNFTs,
+  ChainOBOrder,
+  DisplayOrder,
+  FirestoreDisplayOrder,
+  FirestoreDisplayOrderWithError,
+  OrderEvents,
+  OrderItem,
+  OrderItemToken,
+  OrderSource,
+  RawFirestoreOrder,
+  RawFirestoreOrderWithError,
+  RawOrder,
+  RawOrderWithoutError,
+  TokenStandard,
+  UserDisplayData
+} from '@infinityxyz/lib/types/core';
 import { CollectionDto, NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
-
-
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef, DocRef, DocSnap, Firestore } from '@/firestore/types';
@@ -15,14 +28,11 @@ import { bn, getUserDisplayData } from '@/lib/utils';
 import { GWEI } from '@/lib/utils/constants';
 import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
-
-
 import { Orderbook } from '../..';
 import { ErrorCode, OrderError } from '../errors';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
-
 
 export class BaseOrder {
   get rawRef() {
@@ -275,7 +285,7 @@ export class BaseOrder {
       return { rawOrder: rawFirestoreOrder, displayOrder };
     } else {
       /**
-       * joe-todo: how do we handle the maker as the match executor?
+       * future-todo: how do we handle the maker as the match executor?
        */
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
 

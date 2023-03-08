@@ -1,14 +1,13 @@
 import { constants } from 'ethers';
 
-
-
-import { FirestoreDisplayOrderWithoutError, PostgresOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
-
-
+import {
+  FirestoreDisplayOrderWithoutError,
+  PostgresOrder,
+  RawFirestoreOrderWithoutError
+} from '@infinityxyz/lib/types/core';
 
 import { config } from '@/config/index';
 import { getMarketplaceAddress } from '@/lib/utils/get-marketplace-address';
-
 
 export const saveOrdersBatchToPG = async (pgOrders: PostgresOrder[]) => {
   const pg = config.pg.getPG();

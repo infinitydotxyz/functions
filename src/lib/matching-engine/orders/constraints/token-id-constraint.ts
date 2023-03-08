@@ -76,7 +76,7 @@ export class OrderItemTokenIdConstraint extends OrderItemConstraint {
     query: FirebaseFirestore.Query<FirestoreOrderItem>
   ): FirebaseFirestore.Query<FirestoreOrderItem> {
     if (this.component.firestoreOrderItem.isSellOrder) {
-      return query; // joe-todo: should we optimize this with a where('tokenId', 'in', ['', this.component.firestoreOrderItem.tokenId])?
+      return query;
     }
 
     if (this.component.firestoreOrderItem.tokenId) {

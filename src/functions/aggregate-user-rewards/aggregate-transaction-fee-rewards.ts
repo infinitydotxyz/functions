@@ -26,8 +26,10 @@ const getDefaultUserAllTimeRewardsDoc = (chainId: ChainId, userAddress: string):
     userListings: 0,
     protocolFeesWei: '0',
     protocolFeesEth: 0,
-    protocolFeesUSDC: 0
-  } as any; // joe-todo
+    protocolFeesUSDC: 0,
+    flowAirdrop: 0,
+    flurAirdrop: 0
+  };
   return doc;
 };
 

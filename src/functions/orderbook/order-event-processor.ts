@@ -1,12 +1,26 @@
 import { ethers } from 'ethers';
 import { nanoid } from 'nanoid';
 
-
-
-import { InfinityLinkType, ChainId, EventType, FirestoreDisplayOrder, FirestoreDisplayOrderWithoutError, NftListingEvent, NftOfferEvent, OrderBookEvent, OrderCreatedEvent, OrderDirection, OrderEventKind, OrderEventMetadata, OrderEvents, OrderStatusEvent, OrderTokenOwnerUpdate, RawFirestoreOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import {
+  InfinityLinkType,
+  ChainId,
+  EventType,
+  FirestoreDisplayOrder,
+  FirestoreDisplayOrderWithoutError,
+  NftListingEvent,
+  NftOfferEvent,
+  OrderBookEvent,
+  OrderCreatedEvent,
+  OrderDirection,
+  OrderEventKind,
+  OrderEventMetadata,
+  OrderEvents,
+  OrderStatusEvent,
+  OrderTokenOwnerUpdate,
+  RawFirestoreOrder,
+  RawFirestoreOrderWithoutError
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getInfinityLink } from '@infinityxyz/lib/utils';
-
-
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
@@ -17,10 +31,7 @@ import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
-
-
 import { saveOrderToPG } from './save-order-to-pg';
-
 
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number; id: string } } = OrderEvents>(

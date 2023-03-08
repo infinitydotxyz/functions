@@ -1,17 +1,12 @@
 import { BigNumberish, constants, ethers } from 'ethers';
 
-
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
-
-
 
 import { Reservoir } from '../..';
 import { ErrorCode } from '../errors/error-code';
 import { OrderCurrencyError, OrderDynamicError, OrderError, OrderSideError } from '../errors/order.error';
 import { TransformationResult } from './types';
-
 
 export abstract class OrderTransformer<SourceOrder = never> {
   get chainId(): number {
@@ -116,19 +111,17 @@ export abstract class OrderTransformer<SourceOrder = never> {
   public getFlowOrder(): Sdk.Flow.Order {
     this.checkValid();
 
+    // Signer, nonce, and max gas price will get set immediately before execution
     const order = new Sdk.Flow.Order(this.chainId, {
-      signer: ethers.constants.AddressZero, // joe-todo: must be updated
-      nonce: '0', // joe-todo: must be updated
-      maxGasPrice: '0', // joe-todo: must be updated
+      signer: ethers.constants.AddressZero,
+      nonce: '0',
+      maxGasPrice: '0',
       isSellOrder: this.isSellOrder,
       startTime: this.startTime,
       endTime: this.endTime,
       startPrice: this.startPrice.toString(),
       endPrice: this.endPrice.toString(),
-      /**
-       * all orders are in WETH for simplicity
-       */
-      currency: Sdk.Common.Addresses.Weth[this.chainId],
+      currency: this.isSellOrder ? Sdk.Common.Addresses.Eth[this.chainId] : Sdk.Common.Addresses.Weth[this.chainId],
       numItems: this.numItems,
       nfts: this.nfts,
       complication: Sdk.Flow.Addresses.ComplicationV2[this.chainId],

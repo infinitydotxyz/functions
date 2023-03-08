@@ -1,28 +1,24 @@
 import { createHash } from 'crypto';
 
-import {
-  ChainId,
-  FirestoreOrderMatch,
-  FirestoreOrderMatchCollection,
-  FirestoreOrderMatchMethod,
-  FirestoreOrderMatchOneToMany,
-  FirestoreOrderMatchOneToOne,
-  FirestoreOrderMatchStatus,
-  FirestoreOrderMatchToken,
-  FirestoreOrderMatches,
-  UserOrderRole
-} from '@infinityxyz/lib/types/core';
+
+
+import { ChainId, FirestoreOrderMatch, FirestoreOrderMatchCollection, FirestoreOrderMatchMethod, FirestoreOrderMatchOneToMany, FirestoreOrderMatchOneToOne, FirestoreOrderMatchStatus, FirestoreOrderMatchToken, FirestoreOrderMatches, UserOrderRole } from '@infinityxyz/lib/types/core';
 import { FirestoreOrder, FirestoreOrderItem } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 
+
+
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
+
+
 
 import * as Algorithms from '../algorithms';
 import * as Graph from '../graph';
 import { OrderItem } from './order-item';
 import { OrdersGraph } from './orders-graph';
 import { OrderItem as IOrderItem, OneToManyOrderItemMatch, OrderItemMatch } from './orders.types';
+
 
 export class Order {
   static getRef(id: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
@@ -89,7 +85,7 @@ export class Order {
     const res: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[] = [];
     for (const orderItem of orderItems) {
       const possibleMatches: FirestoreOrderItem[] = [];
-      const iterator = orderItem.getPossibleMatches(); // TODO should erc1155 use the num tokens constraint?
+      const iterator = orderItem.getPossibleMatches(); // future-todo: should erc1155 use the num tokens constraint?
       for await (const possibleMatch of iterator) {
         possibleMatches.push(possibleMatch);
       }

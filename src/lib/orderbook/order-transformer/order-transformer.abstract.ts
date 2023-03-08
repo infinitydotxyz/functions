@@ -1,12 +1,17 @@
 import { BigNumberish, constants, ethers } from 'ethers';
 
+
+
 import { ChainId } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
+
+
 
 import { Reservoir } from '../..';
 import { ErrorCode } from '../errors/error-code';
 import { OrderCurrencyError, OrderDynamicError, OrderError, OrderSideError } from '../errors/order.error';
 import { TransformationResult } from './types';
+
 
 export abstract class OrderTransformer<SourceOrder = never> {
   get chainId(): number {
@@ -112,9 +117,9 @@ export abstract class OrderTransformer<SourceOrder = never> {
     this.checkValid();
 
     const order = new Sdk.Flow.Order(this.chainId, {
-      signer: ethers.constants.AddressZero, // TODO must be updated
-      nonce: '0', // TODO must be updated
-      maxGasPrice: '0', // TODO must be updated
+      signer: ethers.constants.AddressZero, // joe-todo: must be updated
+      nonce: '0', // joe-todo: must be updated
+      maxGasPrice: '0', // joe-todo: must be updated
       isSellOrder: this.isSellOrder,
       startTime: this.startTime,
       endTime: this.endTime,

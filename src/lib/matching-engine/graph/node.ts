@@ -2,6 +2,7 @@ import { Edge } from './edge';
 import { EdgeType } from './graph.types';
 import { Node as INode } from './graph.types';
 
+
 export class Node<T> implements INode<T> {
   private _edges: Set<Edge<T>>;
   private _incomingEdges: Set<Edge<T>>;
@@ -77,7 +78,7 @@ export class Node<T> implements INode<T> {
   }
 
   remove(edge: Edge<T>) {
-    // TODO what happens to the flow if an edge with flow is removed?
+    // future-todo: what happens to the flow if an edge with flow is removed?
     if (this.isSink && this._incomingEdges.has(edge)) {
       this._flow -= edge.flow;
     }

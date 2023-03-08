@@ -2,6 +2,8 @@ import { Job } from 'bullmq';
 import { BigNumber } from 'ethers';
 import 'module-alias/register';
 
+
+
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -13,8 +15,11 @@ import { logger } from '@/lib/logger';
 import { WithTiming } from '@/lib/process/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 
+
+
 import { JobData, JobResult } from './trigger-order-events';
 import { ReservoirOrderEventTrigger } from './trigger-processor';
+
 
 const splitQueries = (
   ref: CollGroupRef<ReservoirOrderEvent> | CollRef<ReservoirOrderEvent> | Query<ReservoirOrderEvent>,
@@ -60,7 +65,7 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     const db = getDb();
     const orderEvents = db
       .collectionGroup('reservoirOrderEvents')
-      .where('error.errorCode', '==', errorCode) as Query<ReservoirOrderEvent>; // TODO enable filtering by errorCode
+      .where('error.errorCode', '==', errorCode) as Query<ReservoirOrderEvent>; // joe-todo: enable filtering by errorCode
 
     let query = splitQueries(orderEvents, numQueries)[queryNum];
     if (!query) {

@@ -1,25 +1,12 @@
 import { constants, ethers, providers } from 'ethers';
 
-import {
-  ChainId,
-  ChainNFTs,
-  ChainOBOrder,
-  DisplayOrder,
-  FirestoreDisplayOrder,
-  FirestoreDisplayOrderWithError,
-  OrderEvents,
-  OrderItem,
-  OrderItemToken,
-  OrderSource,
-  RawFirestoreOrder,
-  RawFirestoreOrderWithError,
-  RawOrder,
-  RawOrderWithoutError,
-  TokenStandard,
-  UserDisplayData
-} from '@infinityxyz/lib/types/core';
+
+
+import { ChainId, ChainNFTs, ChainOBOrder, DisplayOrder, FirestoreDisplayOrder, FirestoreDisplayOrderWithError, OrderEvents, OrderItem, OrderItemToken, OrderSource, RawFirestoreOrder, RawFirestoreOrderWithError, RawOrder, RawOrderWithoutError, TokenStandard, UserDisplayData } from '@infinityxyz/lib/types/core';
 import { CollectionDto, NftDto, UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
+
+
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef, DocRef, DocSnap, Firestore } from '@/firestore/types';
@@ -28,11 +15,14 @@ import { bn, getUserDisplayData } from '@/lib/utils';
 import { GWEI } from '@/lib/utils/constants';
 import { getErc721Owner } from '@/lib/utils/ethersUtils';
 
+
+
 import { Orderbook } from '../..';
 import { ErrorCode, OrderError } from '../errors';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { GasSimulator } from './gas-simulator/gas-simulator';
 import { ReservoirOrderBuilder } from './order-builder/reservoir-order-builder';
+
 
 export class BaseOrder {
   get rawRef() {
@@ -285,7 +275,7 @@ export class BaseOrder {
       return { rawOrder: rawFirestoreOrder, displayOrder };
     } else {
       /**
-       * TODO how do we handle the maker as the match executor?
+       * joe-todo: how do we handle the maker as the match executor?
        */
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
 
@@ -564,7 +554,7 @@ export class BaseOrder {
       },
       rawOrder,
       order: {
-        collection: collection, // TODO update this if multi-collection orders are supported
+        collection: collection, // future-todo: update this if multi-collection orders are supported
         isSellOrder: this._isSellOrder,
         startTime: orderHelper.startTime,
         endTime: orderHelper.endTime,
@@ -572,7 +562,7 @@ export class BaseOrder {
         endTimeMs: orderHelper.endTimeMs,
         maker: orderHelper.signer,
         owners: owners,
-        taker: constants.AddressZero, // TODO update this if private orders are supported
+        taker: constants.AddressZero, // future-todo: update this if private orders are supported
         numItems: orderHelper.numItems,
         currency: orderHelper.currency,
         startPrice: orderHelper.startPrice,
@@ -598,7 +588,7 @@ export class BaseOrder {
           numTokens,
           isSubSetOrder: totalTokenQuantity !== orderHelper.numItems,
           isDynamic: orderHelper.startPrice !== orderHelper.endPrice,
-          isPrivate: false // TODO update this if private orders are supported
+          isPrivate: false // future-todo: update this if private orders are supported
         },
         hasBlueCheck,
         status,

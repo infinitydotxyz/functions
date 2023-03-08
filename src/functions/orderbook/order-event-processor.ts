@@ -1,26 +1,12 @@
 import { ethers } from 'ethers';
 import { nanoid } from 'nanoid';
 
-import {
-  InfinityLinkType,
-  ChainId,
-  EventType,
-  FirestoreDisplayOrder,
-  FirestoreDisplayOrderWithoutError,
-  NftListingEvent,
-  NftOfferEvent,
-  OrderBookEvent,
-  OrderCreatedEvent,
-  OrderDirection,
-  OrderEventKind,
-  OrderEventMetadata,
-  OrderEvents,
-  OrderStatusEvent,
-  OrderTokenOwnerUpdate,
-  RawFirestoreOrder,
-  RawFirestoreOrderWithoutError
-} from '@infinityxyz/lib/types/core';
+
+
+import { InfinityLinkType, ChainId, EventType, FirestoreDisplayOrder, FirestoreDisplayOrderWithoutError, NftListingEvent, NftOfferEvent, OrderBookEvent, OrderCreatedEvent, OrderDirection, OrderEventKind, OrderEventMetadata, OrderEvents, OrderStatusEvent, OrderTokenOwnerUpdate, RawFirestoreOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getInfinityLink } from '@infinityxyz/lib/utils';
+
+
 
 import { config } from '@/config/index';
 import { FirestoreInOrderBatchEventProcessor } from '@/firestore/event-processors/firestore-in-order-batch-event-processor';
@@ -31,7 +17,10 @@ import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
+
+
 import { saveOrderToPG } from './save-order-to-pg';
+
 
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number; id: string } } = OrderEvents>(
@@ -171,7 +160,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
         case OrderEventKind.ApprovalChange:
         case OrderEventKind.Bootstrap:
         case OrderEventKind.Revalidation:
-        case OrderEventKind.PriceUpdate: // TODO handle this differently to support dynamic orders
+        case OrderEventKind.PriceUpdate: // future-todo: handle this differently to support dynamic orders
         case OrderEventKind.Cancelled:
         case OrderEventKind.Expired:
         case OrderEventKind.Sale:
@@ -310,9 +299,9 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     const collection =
       displayOrder.displayOrder?.kind === 'single-collection'
         ? displayOrder.displayOrder.item
-        : displayOrder.displayOrder.items[0]; //TODO support multiple collections
+        : displayOrder.displayOrder.items[0]; // future-todo: support multiple collections
 
-    const token = collection.kind === 'single-token' ? collection.token : undefined; // TODO support token lists
+    const token = collection.kind === 'single-token' ? collection.token : undefined; // future-todo: support token lists
     const eventRef = db.collection(firestoreConstants.FEED_COLL).doc(orderCreatedEvent.metadata.id);
     const base: Omit<OrderBookEvent, 'isSellOrder' | 'type'> = {
       orderId: order.metadata.id,

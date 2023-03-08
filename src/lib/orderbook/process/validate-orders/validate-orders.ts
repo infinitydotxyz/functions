@@ -6,8 +6,9 @@ import { ProcessOptions } from '@/lib/process/types';
 
 import { AbstractOrderbookProcessor } from '../orderbook-processor';
 
-interface JobData {
+export interface JobData {
   id: string;
+  executionId: string;
   queryNum: number;
   isSellOrder: boolean;
   concurrentReservoirRequests: number;
@@ -15,7 +16,7 @@ interface JobData {
   numQueries: number;
 }
 
-interface JobResult {
+export interface JobResult {
   numOrders: number;
 }
 

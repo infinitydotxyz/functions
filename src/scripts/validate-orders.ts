@@ -9,6 +9,7 @@ import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders
 async function main() {
   const db = getDb();
   const isSellOrder = true;
+  const executionId = 'manual';
 
   const id = `validate-orders:${isSellOrder}:`;
   const processor = new ValidateOrdersProcessor(id, redis, db, {
@@ -27,9 +28,10 @@ async function main() {
       id: `${queryNum}`,
       queryNum,
       isSellOrder,
-      concurrentReservoirRequests: 5,
+      concurrentReservoirRequests: 2,
       chainId: ChainId.Mainnet,
-      numQueries
+      numQueries,
+      executionId
     };
     jobs.push(jobData);
   }

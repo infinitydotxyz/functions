@@ -18,7 +18,7 @@ const reservoirOrderEventProcessor = new ReservoirOrderStatusEventProcessor(
   },
   {
     schedule: 'every 2 minutes',
-    tts: ONE_MIN
+    tts: 2 * ONE_MIN
   },
   getDb,
   true
@@ -41,5 +41,21 @@ const scheduleBuilder = scheduleSettings.pubsub.schedule;
 
 export const onProcessReservoirOrderStatusEvent = processor.onEvent(documentBuilder);
 export const onProcessReservoirOrderStatusEventBackup = processor.scheduledBackupEvents(scheduleBuilder);
-export const onProcessReservoirOrderStatusEventProcess = processor.process(documentBuilder);
+
+const vpc = config.pg.vpcConnector
+  ? {
+      vpcConnector: config.pg.vpcConnector,
+      vpcConnectorEgressSettings: 'PRIVATE_RANGES_ONLY'
+    }
+  : {};
+const processDocumentSettings = functions.region(config.firebase.region).runWith({
+  timeoutSeconds: 60,
+  maxInstances: 500,
+  minInstances: 1,
+  ...(vpc as {
+    vpcConnector: string;
+    vpcConnectorEgressSettings: functions.RuntimeOptions['vpcConnectorEgressSettings'];
+  })
+}).firestore.document;
+export const onProcessReservoirOrderStatusEventProcess = processor.process(processDocumentSettings);
 export const onProcessReservoirOrderStatusEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);

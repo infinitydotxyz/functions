@@ -76,18 +76,18 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
 
     const offerSnippet: OrderItemSnippetDto = {
       hasOrder: !!bestOffer,
-      orderItemId: bestOffer?.metadata.id,
+      orderItemId: bestOffer?.metadata.id || (null as any),
       orderItem: bestOffer
         ? this.getOrderItem(bestOffer as FirestoreDisplayOrderWithoutError, collection, tokenId)
-        : undefined
+        : null
     };
 
     const listingSnippet: OrderItemSnippetDto = {
       hasOrder: !!bestListing,
-      orderItemId: bestListing?.metadata.id,
+      orderItemId: bestListing?.metadata.id || (null as any),
       orderItem: bestListing
         ? this.getOrderItem(bestListing as FirestoreDisplayOrderWithoutError, collection, tokenId)
-        : undefined
+        : null
     };
 
     const orderSnippet: OrdersSnippetDto = {

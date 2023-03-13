@@ -1,6 +1,9 @@
+import PQueue from 'p-queue';
+
 import {
   ChainId,
   CollectionStats,
+  FlowNftSale,
   NftSale,
   PreMergedRewardSaleEvent,
   RewardEventVariant,
@@ -9,76 +12,110 @@ import {
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
-import { streamQueryWithRef } from '@/firestore/stream-query';
+import { streamQueryPageWithRef } from '@/firestore/stream-query';
+import { DocRef, DocSnap } from '@/firestore/types';
+import { partitionArray } from '@/lib/utils';
 
 export async function aggregateSalesStats() {
   const db = getDb();
   const unaggregatedSales = db
     .collection(firestoreConstants.SALES_COLL)
     .where('isAggregated', '==', false) as FirebaseFirestore.Query<NftSale>;
-  const unaggregatedSalesStream = streamQueryWithRef(unaggregatedSales, (item, ref) => [ref], {
-    pageSize: 300
+  const unaggregatedSalesStream = streamQueryPageWithRef(unaggregatedSales, (item, ref) => [ref], {
+    pageSize: 600
   });
 
-  const saveSale = async (ref: FirebaseFirestore.DocumentReference<NftSale>) => {
-    try {
-      await db.runTransaction(async (tx) => {
-        const saleSnap = await tx.get(ref);
-        const sale = saleSnap.data();
-        if (!sale) {
-          throw new Error(`Sale not found at ${ref.path}`);
+  const queue = new PQueue({ concurrency: 1 });
+
+  for await (const page of unaggregatedSalesStream) {
+    queue
+      .add(async () => {
+        const collections = [...new Set(page.map((item) => `${item.data.chainId}:${item.data.collectionAddress}`))].map(
+          (collectionId) => {
+            const collStatsDoc = db
+              .collection(firestoreConstants.COLLECTIONS_COLL)
+              .doc(collectionId)
+              .collection(firestoreConstants.COLLECTION_STATS_COLL)
+              .doc(StatsPeriod.All) as DocRef<CollectionStats>;
+
+            return collStatsDoc;
+          }
+        );
+        const collectionStatsSnaps = (await db.getAll(...collections)) as DocSnap<CollectionStats>[];
+        const updatedCollectionStats = new Set();
+
+        const chunks = partitionArray(
+          page.sort((itemA, itemB) => {
+            return itemA.data.price - itemB.data.price;
+          }),
+          150 // ~ 500 / 3 since we write to at most 3 documents per item
+        );
+
+        for (const sortedItems of chunks) {
+          // eslint-disable-next-line @typescript-eslint/require-await
+          await db.runTransaction(async (tx) => {
+            for (const { data, ref } of sortedItems) {
+              const saleWithDocId: NftSale & { docId: string; updatedAt: number } = {
+                ...data,
+                docId: ref.id,
+                updatedAt: Date.now()
+              };
+
+              if (saleWithDocId.source === 'flow') {
+                const saleEvent: PreMergedRewardSaleEvent = {
+                  ...(saleWithDocId as FlowNftSale & { docId: string; updatedAt: number }),
+                  source: saleWithDocId.source,
+                  discriminator: RewardEventVariant.Sale,
+                  chainId: saleWithDocId.chainId as ChainId,
+                  isMerged: false
+                };
+                const flowRewardsLedger = db
+                  .collection(firestoreConstants.REWARDS_COLL)
+                  .doc(saleWithDocId.chainId)
+                  .collection('flowRewardsLedger');
+                tx.set(flowRewardsLedger.doc(), saleEvent);
+              }
+
+              const saleUpdate: Pick<NftSale, 'isAggregated'> = {
+                isAggregated: true
+              };
+
+              const collDocId = getCollectionDocId({
+                collectionAddress: saleWithDocId.collectionAddress,
+                chainId: saleWithDocId.chainId
+              });
+
+              if (!updatedCollectionStats.has(collDocId)) {
+                const collectionStats = collectionStatsSnaps.find((item) => item.ref.path.includes(collDocId));
+                if (collectionStats) {
+                  const statsData = collectionStats.data();
+                  if (statsData) {
+                    const dataToStore: Partial<CollectionStats> = {
+                      floorPrice:
+                        saleWithDocId.price < statsData.floorPrice ? saleWithDocId.price : statsData.floorPrice,
+                      numSales: statsData.numSales + 1,
+                      volume: statsData.volume + saleWithDocId.price,
+                      updatedAt: Date.now()
+                    };
+                    tx.set(collectionStats.ref, dataToStore, { merge: true });
+                    updatedCollectionStats.add(collDocId);
+                  }
+                }
+              }
+
+              tx.update(ref, saleUpdate);
+            }
+          });
         }
-
-        const saleWithDocId = {
-          ...sale,
-          docId: ref.id,
-          updatedAt: Date.now()
-        };
-
-        if (saleWithDocId.source === 'flow') {
-          const saleEvent: PreMergedRewardSaleEvent = {
-            ...(saleWithDocId as any),
-            discriminator: RewardEventVariant.Sale,
-            chainId: saleWithDocId.chainId as ChainId,
-            isMerged: false
-          };
-          const flowRewardsLedger = db
-            .collection(firestoreConstants.REWARDS_COLL)
-            .doc(saleWithDocId.chainId)
-            .collection('flowRewardsLedger');
-          tx.set(flowRewardsLedger.doc(), saleEvent);
-        }
-
-        const saleUpdate: Pick<NftSale, 'isAggregated'> = {
-          isAggregated: true
-        };
-
-        const collDocId = getCollectionDocId({
-          collectionAddress: saleWithDocId.collectionAddress,
-          chainId: saleWithDocId.chainId
-        });
-        const collStatsDoc = db
-          .collection(firestoreConstants.COLLECTIONS_COLL)
-          .doc(collDocId)
-          .collection(firestoreConstants.COLLECTION_STATS_COLL)
-          .doc(StatsPeriod.All);
-        const statsData = (await tx.get(collStatsDoc)).data() as CollectionStats;
-        const dataToStore: Partial<CollectionStats> = {
-          floorPrice: saleWithDocId.price < statsData.floorPrice ? saleWithDocId.price : statsData.floorPrice,
-          numSales: statsData.numSales + 1,
-          volume: statsData.volume + saleWithDocId.price,
-          updatedAt: Date.now()
-        };
-        tx.set(collStatsDoc, dataToStore, { merge: true });
-
-        tx.update(ref, saleUpdate);
+      })
+      .catch((err) => {
+        console.error(err);
       });
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
-  for await (const { ref } of unaggregatedSalesStream) {
-    await saveSale(ref);
+    if (queue.size > 10) {
+      await queue.onEmpty();
+    }
   }
+
+  await queue.onIdle();
 }

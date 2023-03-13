@@ -14,7 +14,7 @@ export type EventV2Kind =
   | 'reprice';
 
 export interface ReservoirEventMetadata {
-  id: number;
+  id: string;
   kind: EventV2Kind;
   txHash?: string;
   txTimestamp?: number;
@@ -66,6 +66,67 @@ export interface BidV1Order {
   };
 }
 
+export interface BidV3Order {
+  id: string;
+  status: Orders.Types.OrderStatus;
+  contract: string;
+  maker: string;
+  price?: definitions['price'];
+  quantityRemaining: number;
+  nonce: string;
+  validFrom: number;
+  validUntil: number;
+  rawData: any;
+  kind: string;
+  source: string;
+  criteria?: {
+    kind?: string;
+    data?: {
+      token?: {
+        tokenId?: string;
+        name?: string;
+        image?: string;
+      };
+      collection?: {
+        id: string;
+        name: string;
+        image: string;
+      };
+    };
+  };
+}
+
+export interface AskV3Order {
+  id: string;
+  status: Orders.Types.OrderStatus;
+  contract: string;
+  maker: string;
+  price?: definitions['price'];
+  quantityRemaining: number;
+  nonce: string;
+  validFrom: number;
+  validUntil: number;
+  rawData: any;
+  kind: string;
+  source: string;
+  isDynamic: boolean;
+  criteria?: {
+    kind?: string;
+    data?: {
+      token?: {
+        tokenId?: string;
+        name?: string;
+        image?: string;
+      };
+      collection?: {
+        id: string;
+        name: string;
+        image: string;
+      };
+    };
+  };
+}
+
 export interface AskEventV2 {
   order: AskV2Order;
   event: ReservoirEventMetadata;
@@ -73,6 +134,16 @@ export interface AskEventV2 {
 
 export interface BidEventV1 {
   bid: BidV1Order;
+  event: ReservoirEventMetadata;
+}
+
+export interface AskEventV3 {
+  order: AskV3Order;
+  event: ReservoirEventMetadata;
+}
+
+export interface BidEventV3 {
+  bid: BidV3Order;
   event: ReservoirEventMetadata;
 }
 

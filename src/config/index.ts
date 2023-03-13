@@ -1,8 +1,10 @@
 import { config as loadEnv } from 'dotenv';
 import { ethers } from 'ethers';
 import { ServiceAccount } from 'firebase-admin';
+import Redis from 'ioredis';
 import pgPromise from 'pg-promise';
 import pg from 'pg-promise/typescript/pg-subset';
+import Redlock from 'redlock';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
@@ -22,6 +24,7 @@ const getEnvVariable = (key: string, required = true): string => {
 const isDev = serviceAccount.project_id === 'nftc-dev';
 const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 const env = `.env.${isDev ? 'development' : 'production'}.${isDeployed ? 'deploy' : 'local'}`;
+loadEnv({ path: `.env` });
 loadEnv({ path: env, override: true });
 
 const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
@@ -85,9 +88,33 @@ const getPG = () => {
   return _pg;
 };
 
+const redisConnectionUrl = getEnvVariable('REDIS_URL', false);
+let redis: Redis;
+const getRedis = () => {
+  if (!redis && redisConnectionUrl) {
+    redis = new Redis(redisConnectionUrl, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false
+    });
+  }
+  return redis;
+};
+
+let redlock: Redlock;
+const getRedlock = () => {
+  if (!redlock) {
+    const redis = getRedis();
+    if (redis) {
+      redlock = new Redlock([redis.duplicate()], { retryCount: 0 });
+    }
+  }
+  return redlock;
+};
+
 export const config = {
   isDev,
   isDeployed,
+  supportedChains: [ChainId.Mainnet, ChainId.Goerli],
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
@@ -98,7 +125,9 @@ export const config = {
     snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
   },
   redis: {
-    connectionUrl: getEnvVariable('REDIS_URL', false)
+    connectionUrl: redisConnectionUrl,
+    getRedis,
+    getRedlock
   },
   pg: {
     getPG,
@@ -117,11 +146,13 @@ export const config = {
     [ChainId.Goerli]: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null
   },
   orderbook: {
-    gasSimulationAccount: trimLowerCase('0x74265Fc35f4df36d36b4fF18362F14f50790204F')
+    gasSimulationAccount: trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979')
   },
-  syncs: {
-    processSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
-    processOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
-    processOnChainEvents: Number(getEnvVariable('SYNC_ON_CHAIN_EVENTS', false)) === 1
+  components: {
+    syncSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
+    syncOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
+    cacheReservoirOrders: Number(getEnvVariable('SYNC_RESERVOIR_ORDERS_CACHE', false)) === 1,
+    validateOrderbook: Number(getEnvVariable('VALIDATE_ORDERBOOK', false)) === 1,
+    syncOnChainEvents: Number(getEnvVariable('SYNC_ON_CHAIN_EVENTS', false)) === 1
   }
 };

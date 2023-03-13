@@ -1,10 +1,12 @@
+import { BigNumber } from 'ethers';
+
 import { getCollectionDocId } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 
 import { Reservoir } from '../..';
-import { AskV2Order, BidV1Order, ReservoirEventMetadata } from '../api/events/types';
+import { AskEventV3, BidEventV3 } from '../api/events/types';
 import { ReservoirClient } from '../api/get-client';
 import { ReservoirOrderEvent, SyncMetadata } from './types';
 import { getReservoirOrderEventId, getReservoirOrderEventRef } from './utils';
@@ -45,12 +47,8 @@ export async function syncPage(
 
   const numItems = (page.data?.events ?? []).length;
 
-  const events = (
-    page.data.events as (
-      | { event: ReservoirEventMetadata; order: AskV2Order }
-      | { event: ReservoirEventMetadata; bid: BidV1Order }
-    )[]
-  ).filter((item) => {
+  const mostRecentEventId = BigNumber.from(sync.data.mostRecentEventId ?? 0);
+  const events = (page.data.events as (AskEventV3 | BidEventV3)[]).filter((item) => {
     const isReprice = item.event.kind === 'reprice';
     const isBid = 'bid' in item;
     const collAddress = isBid ? item.bid.contract : item.order.contract;
@@ -62,17 +60,22 @@ export async function syncPage(
     });
     const isSupportedCollection = supportedCollections.has(collectionDocId);
 
-    return !isReprice && isSupportedCollection;
-  }) as { bid: BidV1Order; event: ReservoirEventMetadata }[] | { order: AskV2Order; event: ReservoirEventMetadata }[];
+    return !isReprice && isSupportedCollection && BigNumber.from(item.event.id).gt(mostRecentEventId);
+  });
 
   const numItemsAfterFiltering = events.length;
 
-  if (page.data.continuation === sync.data.continuation) {
+  if (page.data.continuation === sync.data.continuation || (page.data.continuation == null && events.length === 0)) {
     /**
      * continuation did not change
      * skip attempting to read events from firestore
      */
-    return { numEventsSaved: 0, continuation: page.data.continuation, numItems, numItemsAfterFiltering, sync };
+    return {
+      numEventsSaved: 0,
+      numItems,
+      numItemsAfterFiltering,
+      sync
+    };
   }
 
   let numEventsSaved = 0;
@@ -114,11 +117,15 @@ export async function syncPage(
   /**
    * update sync metadata
    */
+  const updatedMostRecentEventId = BigNumber.from(page.data.events[page.data.events.length - 1]?.event?.id ?? 0);
   const update: Partial<SyncMetadata> = {
     data: {
       eventsProcessed: sync.data.eventsProcessed + numEventsSaved,
       minTimestampMs: sync.data.minTimestampMs ?? 0,
-      continuation: updatedContinuation
+      continuation: updatedContinuation,
+      mostRecentEventId: mostRecentEventId.gte(updatedMostRecentEventId)
+        ? mostRecentEventId.toString()
+        : updatedMostRecentEventId.toString()
     }
   };
 

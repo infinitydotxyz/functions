@@ -9,14 +9,16 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.95
 resources:
-  cpu: 2
-  memory_gb: 8
-  disk_size_gb: 20
+  cpu: 4
+  memory_gb: 12
+  disk_size_gb: 10
 readiness_check:
   app_start_timeout_sec: 1800
 env_variables:
   SYNC_SALES: 0
   SYNC_ORDERS: 1
+  SYNC_RESERVOIR_ORDERS_CACHE: 1
+  VALIDATE_ORDERBOOK: 1
 beta_settings:
   cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
 vpc_access_connector:

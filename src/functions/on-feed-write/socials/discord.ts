@@ -106,11 +106,20 @@ function buildEmbed(event: FeedEvent) {
  * Posts a feed event to a discord webhook (configured in `DISCORD_WEBHOOK_URL`).
  */
 export function notifyDiscordWebhook(event: FeedEvent) {
+  // skip ens and sandbox order events; sale events are fine
+  const sandboxAddress = '0x5cc5b05a8a13e3fbdb0bb9fccd98d38e50f90c38'.toLowerCase();
+  const ensAddress = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'.toLowerCase();
+  if (event.type === EventType.NftOffer || event.type === EventType.NftListing) {
+    const eventAddress = event.collectionAddress.toLowerCase();
+    if (eventAddress === ensAddress || eventAddress === sandboxAddress) {
+      return;
+    }
+  }
   const embed = buildEmbed(event);
 
   embed.color = 16777215; // white
   embed.timestamp = new Date(event.timestamp).toISOString();
-  // todo uncomment and replace image embed.footer = {
+  // adi-todo: uncomment and replace image embed.footer = {
   //   text: event.type.split('_').pop() || '',
   //   icon_url: 'https://pbs.twimg.com/profile_images/1488261914731814915/nyEgvjn2_400x400.png'
   // };

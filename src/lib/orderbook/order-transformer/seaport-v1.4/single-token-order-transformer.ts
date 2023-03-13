@@ -1,11 +1,11 @@
-import { Seaport } from '@reservoir0x/sdk';
+import { SeaportV14 } from '@reservoir0x/sdk';
 
 import { ErrorCode } from '../../errors/error-code';
 import { OrderError } from '../../errors/order.error';
 import { TransformationResult } from '../types';
-import { SeaportOrderTransformer } from './base-order-transformer';
+import { SeaportV14OrderTransformer } from './base-order-transformer';
 
-export class SingleTokenOrderTransformer extends SeaportOrderTransformer {
+export class SingleTokenOrderTransformer extends SeaportV14OrderTransformer {
   protected _checkOrderKindValid(): void {
     if (this.numItems !== 1) {
       throw new OrderError(
@@ -18,14 +18,14 @@ export class SingleTokenOrderTransformer extends SeaportOrderTransformer {
     }
   }
 
-  public transform(): Promise<TransformationResult<Seaport.Order>> {
+  public transform(): Promise<TransformationResult<SeaportV14.Order>> {
     return Promise.resolve({
       isNative: false,
       sourceOrder: this._order,
       flowOrder: this.getFlowOrder(),
       getSourceTxn: async (timestamp: number, from: string) => {
-        const seaport = new Seaport.Exchange(this.chainId);
-        const builder = new Seaport.Builders.SingleToken(this.chainId);
+        const seaport = new SeaportV14.Exchange(this.chainId);
+        const builder = new SeaportV14.Builders.SingleToken(this.chainId);
         const matchParams = builder.buildMatching(this._order);
         const data = await seaport.fillOrderTx(from, this._order, matchParams);
         return data;

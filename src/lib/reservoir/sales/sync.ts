@@ -208,7 +208,7 @@ const batchSaveToFirestore = async (
     };
 
     if (item.marketplace === 'flow') {
-      const PROTOCOL_FEE_BPS = 250;
+      const PROTOCOL_FEE_BPS = 50;
       const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
       const protocolFeeEth = formatEth(protocolFeeWei.toString());
       return {

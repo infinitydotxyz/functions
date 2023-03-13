@@ -16,7 +16,6 @@ export const onFeedWrite = functions
   .onWrite(async ({ after }) => {
     try {
       const type: EventType = after.get('type');
-
       if (
         (type === EventType.NftSale && after.get('source') === 'flow') ||
         type === EventType.NftOffer ||

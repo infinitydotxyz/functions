@@ -10,6 +10,7 @@ export interface AskOrderOptions {
   status?: OrderStatus;
   source?: string;
   native?: boolean;
+  startTimestamp?: number;
   includePrivate: boolean;
   includeCriteriaMetadata: boolean;
   includeRawData: boolean;

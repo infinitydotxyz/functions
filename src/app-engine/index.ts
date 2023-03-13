@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { nanoid } from 'nanoid';
 import cron from 'node-cron';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
@@ -6,7 +7,7 @@ import { getExchangeAddress } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
-import { logger } from '@/lib/logger';
+import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders/validate-orders';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
@@ -17,6 +18,7 @@ import { FlowExchange } from './on-chain-events/flow-exchange/flow-exchange';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
+import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
 
 async function main() {
@@ -26,7 +28,79 @@ async function main() {
 
   const promises = [];
 
-  if (config.syncs.processOrders) {
+  if (config.components.validateOrderbook) {
+    const queue = new ValidateOrdersProcessor('validate-orders', redis, db, {
+      enableMetrics: false,
+      concurrency: 2,
+      debug: true,
+      attempts: 1
+    });
+
+    const trigger = async () => {
+      const id = nanoid();
+      const jobs = [];
+      const numQueries = 16;
+
+      for (const chainId of config.supportedChains) {
+        for (const isSellOrder of [true, false]) {
+          for (let queryNum = 0; queryNum < numQueries; queryNum++) {
+            const jobData = {
+              id: `${id}:${chainId}:${isSellOrder}:${queryNum}`,
+              queryNum,
+              isSellOrder,
+              concurrentReservoirRequests: 2,
+              chainId,
+              numQueries,
+              executionId: id
+            };
+            jobs.push(jobData);
+          }
+        }
+      }
+      await queue.add(jobs);
+    };
+
+    cron.schedule('0 2 * * *', async () => {
+      await trigger();
+    });
+    await trigger();
+    promises.push(queue.run());
+  }
+
+  if (config.components.cacheReservoirOrders) {
+    const supportedChains = [ChainId.Mainnet, ChainId.Goerli];
+    for (const chainId of supportedChains) {
+      const bidCacheQueue = new ReservoirOrderCacheQueue(
+        `reservoir-order-cache:chain:${chainId}:type:bid`,
+        redis,
+        supportedCollections
+      );
+      const askCacheQueue = new ReservoirOrderCacheQueue(
+        `reservoir-order-cache:chain:${chainId}:type:ask`,
+        redis,
+        supportedCollections
+      );
+
+      cron.schedule('*/5 * * * * *', async () => {
+        await bidCacheQueue.add({
+          id: `bid-cache-${chainId}-${Date.now()}`,
+          chainId,
+          side: 'bid'
+        });
+
+        await askCacheQueue.add({
+          id: `ask-cache-${chainId}-${Date.now()}`,
+          chainId,
+          side: 'ask'
+        });
+      });
+
+      promises.push(bidCacheQueue.run());
+      promises.push(askCacheQueue.run());
+    }
+  }
+
+  if (config.components.syncOrders) {
     const initQueue = (id: string, queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) => {
       const orderEventsQueue = new OrderEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
@@ -73,7 +147,7 @@ async function main() {
     promises.push(queue.run());
   }
 
-  if (config.syncs.processSales) {
+  if (config.components.syncSales) {
     const initQueue = (id: string, queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) => {
       const salesEventsQueue = new SalesEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
@@ -120,7 +194,7 @@ async function main() {
     promises.push(queue.run());
   }
 
-  if (config.syncs.processOnChainEvents) {
+  if (config.components.syncOnChainEvents) {
     const chainId = ChainId.Mainnet;
     const address = getExchangeAddress(chainId);
     const startBlockNumber = 16471202;

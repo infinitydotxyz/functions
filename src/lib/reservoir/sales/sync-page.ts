@@ -69,7 +69,7 @@ export async function syncPage(
 }
 
 export async function* getSales(
-  _syncData: { lastIdProcessed: string; startTimestamp: number },
+  _syncData: { lastIdProcessed: string; startTimestamp: number; collection?: string },
   chainId: ChainId,
   checkAbort: () => { abort: boolean }
 ) {
@@ -78,12 +78,14 @@ export async function* getSales(
   let continuation: string | undefined;
   let attempts = 0;
   let firstItem: FlattenedPostgresNFTSaleWithId | undefined;
+  const collection = _syncData.collection ? { collection: _syncData.collection } : {};
   const pageSize = 1000;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const pageSales: FlattenedPostgresNFTSaleWithId[] = [];
       const page = await method(client, {
+        ...collection,
         continuation,
         startTimestamp: Math.floor(_syncData.startTimestamp / 1000),
         limit: pageSize
@@ -248,7 +250,7 @@ const batchSaveToFirestore = async (
     };
 
     if (item.marketplace === 'flow') {
-      const PROTOCOL_FEE_BPS = 250;
+      const PROTOCOL_FEE_BPS = 50;
       const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
       const protocolFeeEth = formatEth(protocolFeeWei.toString());
       return {
@@ -310,7 +312,11 @@ const processSales = async (
 ) => {
   let numSales = 0;
   const iterator = getSales(
-    { lastIdProcessed: currentSync.data.data.lastItemProcessed, startTimestamp: currentSync.data.data.endTimestamp },
+    {
+      lastIdProcessed: currentSync.data.data.lastItemProcessed,
+      startTimestamp: currentSync.data.data.endTimestamp,
+      collection: currentSync.data.metadata.collection
+    },
     currentSync.data.metadata.chainId,
     checkAbort
   );

@@ -11,6 +11,7 @@ import {
   OrderPriceUpdateEvent,
   OrderRevalidationEvent,
   OrderSaleEvent,
+  OrderSource,
   RawFirestoreOrder,
   RawOrder
 } from '@infinityxyz/lib/types/core';
@@ -19,7 +20,7 @@ import { config } from '@/config/index';
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
 import { Orderbook, Reservoir } from '@/lib/index';
-import { ErrorCode, OrderError } from '@/lib/orderbook/errors';
+import { ErrorCode, OrderError, OrderSideError } from '@/lib/orderbook/errors';
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 import { ReservoirOrderEvent } from '@/lib/reservoir/order-events/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -116,7 +117,8 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
             transformedEvent,
             transformedEventRef,
             reservoirEventUpdate: reservoirEventUpdate,
-            reservoirEventRef: event.ref
+            reservoirEventRef: event.ref,
+            requiresSave: !event.data.metadata.processed
           };
           successful.push(result);
         } else {
@@ -195,11 +197,17 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
         txn.create(result.transformedEventRef, result.transformedEvent);
       }
 
-      if (!handledEvents.has(result.reservoirEventRef.path)) {
+      if (!handledEvents.has(result.reservoirEventRef.path) && result.requiresSave) {
         /**
          * update the reservoir event as processed
+         * if it has not been processed yet
          */
+        handledEvents.add(result.reservoirEventRef.path);
         txn.set(result.reservoirEventRef, result.reservoirEventUpdate, { merge: true });
+      } else {
+        /**
+         * mark it as handled
+         */
         handledEvents.add(result.reservoirEventRef.path);
       }
     }
@@ -407,6 +415,18 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
     const provider = getProvider(metadata.chainId);
     if (!provider) {
       throw new Error(`No provider found for chainId: ${metadata.chainId}`);
+    }
+
+    const isFlow =
+      ('kind' in data.order && data.order.kind === 'flow') ||
+      ('source' in data.order && data.order.source.toLowerCase().includes('flow'));
+    if (!metadata.isSellOrder && !isFlow) {
+      /**
+       * prevent unnecessary processing
+       */
+      const kind = 'kind' in data.order ? data.order.kind : 'unknown';
+      // TODO remove this to support other marketplace buy orders
+      throw new OrderSideError(metadata.isSellOrder, kind as OrderSource, 'unsupported');
     }
 
     const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);

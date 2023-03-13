@@ -48,11 +48,11 @@ export const getPGOrder = (
         break;
       }
       default:
-        // TODO support complex orders
+        // future-todo: support complex orders
         throw new Error(`Received unsupported order item kind`);
     }
   } else {
-    // TODO support complex orders
+    // future-todo: support complex orders
     throw new Error(`Received unsupported order kind`);
   }
 
@@ -72,7 +72,7 @@ export const getPGOrder = (
     marketplace: order.metadata.source,
     marketplace_address: getMarketplaceAddress(order.metadata.chainId, order.metadata.source),
     is_private: order.order.taker !== '' && order.order.taker !== constants.AddressZero,
-    is_complex: false, // TODO support complex orders
+    is_complex: false, // future-todo: support complex orders
     status: order.order.status
   };
   return pgOrder;

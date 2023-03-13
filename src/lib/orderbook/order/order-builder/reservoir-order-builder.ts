@@ -1,7 +1,9 @@
 import { BaseRawOrder, RawOrder, RawOrderWithError, RawOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { sleep } from '@infinityxyz/lib/utils';
 
+import { config } from '@/config/index';
 import { Orderbook, Reservoir } from '@/lib/index';
-import { AskOrder } from '@/lib/reservoir/api/orders/types';
+import { AskOrder, BidOrder } from '@/lib/reservoir/api/orders/types';
 
 import {
   ErrorCode,
@@ -17,7 +19,7 @@ export class ReservoirOrderBuilder extends OrderBuilder {
   public async buildOrder(
     orderId: string,
     isSellOrder: boolean,
-    reservoirOrder?: AskOrder
+    reservoirOrder?: AskOrder | BidOrder
   ): Promise<{ order: RawOrder; initialStatus: 'active' | 'inactive' }> {
     const baseOrder: Omit<BaseRawOrder, 'createdAt' | 'infinityOrderId'> = {
       id: orderId,
@@ -100,16 +102,20 @@ export class ReservoirOrderBuilder extends OrderBuilder {
 
   protected async _getReservoirOrder(orderId: string, isSellOrder: boolean) {
     try {
-      const client = Reservoir.Api.getClient(this._chainId, ''); // don't use an api key here
-      const OrderSide = isSellOrder ? Reservoir.Api.Orders.AskOrders : Reservoir.Api.Orders.BidOrders;
-      const response = await OrderSide.getOrders(client, {
-        ids: [orderId],
-        includeMetadata: true,
-        includeRawData: true,
-        limit: 1
-      });
+      let order;
 
-      const order = response.data.orders[0];
+      try {
+        order = await this._getReservoirOrderFromCache(orderId);
+        if (order) {
+          console.log(`${this._chainId}:${isSellOrder ? 'ask' : 'bid'} CACHE HIT ${orderId}`);
+        } else {
+          console.log(`${this._chainId}:${isSellOrder ? 'ask' : 'bid'} CACHE MISS ${orderId}`);
+
+          order = await this._getReservoirOrderFromApi(orderId, isSellOrder);
+        }
+      } catch (err) {
+        console.error(`Failed to load order ${orderId}`, err);
+      }
 
       if (!order || !order.rawData) {
         throw new NotFoundError(`reservoir order not found ${orderId}`);
@@ -125,6 +131,39 @@ export class ReservoirOrderBuilder extends OrderBuilder {
     }
   }
 
+  protected async _getReservoirOrderFromCache(orderId: string) {
+    const redis = config.redis.getRedis();
+    if (redis) {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const orderString = await redis.get(`reservoir:orders-cache:${orderId}`);
+
+        try {
+          const order = JSON.parse(orderString ?? '') as AskOrder | BidOrder;
+          return order;
+        } catch (err) {
+          // noop
+        }
+        await sleep(1000);
+      }
+      return null;
+    }
+    return null;
+  }
+
+  protected async _getReservoirOrderFromApi(orderId: string, isSellOrder: boolean) {
+    const client = Reservoir.Api.getClient(this._chainId, ''); // don't use an api key here
+    const OrderSide = isSellOrder ? Reservoir.Api.Orders.AskOrders : Reservoir.Api.Orders.BidOrders;
+    const response = await OrderSide.getOrders(client, {
+      ids: [orderId],
+      includeRawData: true,
+      limit: 1
+    });
+
+    const order = response.data.orders[0];
+
+    return order;
+  }
+
   protected async _getGasUsage(
     transformationResult: TransformationResult<unknown>,
     orderKind: Reservoir.Api.Orders.Types.OrderKind,
@@ -133,9 +172,8 @@ export class ReservoirOrderBuilder extends OrderBuilder {
     let gasUsage = '0';
     if (!transformationResult.isNative) {
       try {
-        gasUsage = await this._gasSimulator.simulate(
-          await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
-        );
+        const sourceTxn = await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount);
+        gasUsage = await this._gasSimulator.simulate(sourceTxn);
       } catch (err) {
         throw new OrderError(
           `failed to simulate gas usage for order ${orderId}`,

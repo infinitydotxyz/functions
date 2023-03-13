@@ -13,9 +13,10 @@ export const getSaleEventSyncsRef = (db: Firestore) => {
 export const getSaleEventSyncRef = (
   syncsRef: CollRef<SyncMetadata>,
   chainId: ChainId,
-  type: SyncMetadata['metadata']['type']
+  type: SyncMetadata['metadata']['type'],
+  collection?: string
 ) => {
-  return syncsRef.doc(`${chainId}:${type}`) as DocRef<SyncMetadata>;
+  return syncsRef.doc(`${chainId}:${type}${collection ? `:${collection}` : ''}`) as DocRef<SyncMetadata>;
 };
 
 export async function getSyncMetadata(
@@ -45,28 +46,4 @@ export async function getSyncMetadata(
   });
 
   return syncs;
-}
-
-export async function getChainSyncMetadata(
-  db: Firestore,
-  chainId: ChainId,
-  type: SyncMetadata['metadata']['type'],
-  options?: { txn?: FirebaseFirestore.Transaction }
-) {
-  const syncsRef = getSaleEventSyncsRef(db);
-  const syncRef = getSaleEventSyncRef(syncsRef, chainId, type);
-
-  let snap;
-  if (options?.txn) {
-    snap = await options.txn.get(syncRef);
-  } else {
-    snap = await syncRef.get();
-  }
-
-  const data = snap.data() as SyncMetadata;
-
-  return {
-    data,
-    ref: snap.ref
-  };
 }

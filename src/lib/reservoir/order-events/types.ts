@@ -18,6 +18,7 @@ export interface SyncMetadata {
     eventsProcessed: number;
     continuation: string;
     minTimestampMs?: number;
+    mostRecentEventId: string;
   };
 }
 
@@ -35,7 +36,11 @@ export type ReservoirOrderEvent = {
   };
   data: {
     event: Reservoir.Api.Events.Types.ReservoirEventMetadata;
-    order: Reservoir.Api.Events.Types.BidV1Order | Reservoir.Api.Events.Types.AskV2Order;
+    order:
+      | Reservoir.Api.Events.Types.BidV1Order
+      | Reservoir.Api.Events.Types.AskV2Order
+      | Reservoir.Api.Events.Types.BidV3Order
+      | Reservoir.Api.Events.Types.AskV3Order;
   };
   error?: {
     errorCode: ErrorCode;

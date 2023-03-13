@@ -23,8 +23,8 @@ const orderEventProcessor = new OrderEventProcessor(
     isCollectionGroup: true
   },
   {
-    schedule: 'every 5 minutes',
-    tts: 5 * ONE_MIN
+    schedule: 'every 2 minutes',
+    tts: ONE_MIN
   },
   getDb,
   true
@@ -38,7 +38,7 @@ const documentSettings = functions.region(config.firebase.region).runWith({
 });
 
 const scheduleSettings = functions.region(config.firebase.region).runWith({
-  timeoutSeconds: 5 * 60 - 5,
+  timeoutSeconds: 2 * 60 - 5,
   maxInstances: 1
 });
 

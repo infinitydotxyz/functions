@@ -1,4 +1,4 @@
-import { MetricsTime, Queue, Worker } from 'bullmq';
+import { BulkJobOptions, MetricsTime, Queue, Worker } from 'bullmq';
 import EventEmitter from 'events';
 import Redis from 'ioredis';
 
@@ -66,8 +66,6 @@ export abstract class AbstractSandboxProcess<T extends { id: string }, U> extend
     this._registerListeners(options?.debug);
   }
 
-  abstract add(jobs: T | T[]): Promise<void>;
-
   public async run(): Promise<void> {
     await this._run();
   }
@@ -82,6 +80,21 @@ export abstract class AbstractSandboxProcess<T extends { id: string }, U> extend
 
   public async close() {
     await this._close();
+  }
+
+  async add(job: T | T[]): Promise<void> {
+    const arr = Array.isArray(job) ? job : [job];
+    const jobs: {
+      name: string;
+      data: T;
+      opts?: BulkJobOptions | undefined;
+    }[] = arr.map((item) => {
+      return {
+        name: `${item.id}`,
+        data: item
+      };
+    });
+    await this._queue.addBulk(jobs);
   }
 
   protected async _run() {

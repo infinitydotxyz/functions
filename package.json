@@ -11,10 +11,10 @@
     "start:shell": "npm run shell",
     "deploy:dev": "firebase deploy --only functions --project nftc-dev",
     "deploy:prod": "firebase deploy --only functions --project nftc-infinity",
-    "deploy:sales:dev": "npm run build && gcloud app deploy -q --appyaml=./sales-sync.dev.yaml --project=nftc-dev",
-    "deploy:sales:prod": "npm run build && gcloud app deploy -q --appyaml=./sales-sync.prod.yaml --project=nftc-infinity",
-    "deploy:orders:dev": "npm run build && gcloud app deploy -q --appyaml=./orders-sync.dev.yaml --project=nftc-dev",
-    "deploy:orders:prod": "npm run build && gcloud app deploy -q --appyaml=./orders-sync.prod.yaml --project=nftc-infinity",
+    "deploy:sales:dev": "npm run build && gcloud app deploy -q --appyaml=./app.sales-sync.dev.yaml --project=nftc-dev",
+    "deploy:sales:prod": "npm run build && gcloud app deploy -q --appyaml=./app.sales-sync.prod.yaml --project=nftc-infinity",
+    "deploy:orders:dev": "npm run build && gcloud app deploy -q --appyaml=./app.orders-sync.dev.yaml --project=nftc-dev",
+    "deploy:orders:prod": "npm run build && gcloud app deploy -q --appyaml=./app.orders-sync.prod.yaml --project=nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -27,7 +27,7 @@
     "start-sales-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/start-sales-sync.ts",
     "check-sync": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-sync.ts",
     "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
-    "start:dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/app-engine/index.ts",
+    "start:dev": "npm run clean && npm run build && node --max-old-space-size=4096 -r dotenv/config ./dist/app-engine/bootstrap.js",
     "start": "node --max-old-space-size=4096 -r dotenv/config ./dist/app-engine/bootstrap.js",
     "backfill-pg-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders-to-pg.ts",
     "backfill-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-supported-collections.ts",
@@ -35,7 +35,8 @@
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
     "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
-    "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js"
+    "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",
+    "purge-firestore": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/purge-firestore/index.js"
   },
   "engines": {
     "node": "16"
@@ -43,9 +44,9 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.326.4",
+    "@infinityxyz/lib": "^1.334.1",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
-    "@reservoir0x/sdk": "^0.0.322",
+    "@reservoir0x/sdk": "0.0.324",
     "@types/node": "^18.11.19",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.9.0",

@@ -89,7 +89,7 @@ export class Order {
     const res: { orderItem: IOrderItem; possibleMatches: FirestoreOrderItem[] }[] = [];
     for (const orderItem of orderItems) {
       const possibleMatches: FirestoreOrderItem[] = [];
-      const iterator = orderItem.getPossibleMatches(); // TODO should erc1155 use the num tokens constraint?
+      const iterator = orderItem.getPossibleMatches(); // future-todo: should erc1155 use the num tokens constraint?
       for await (const possibleMatch of iterator) {
         possibleMatches.push(possibleMatch);
       }

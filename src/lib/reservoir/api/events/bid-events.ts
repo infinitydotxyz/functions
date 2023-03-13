@@ -1,5 +1,5 @@
 import { ReservoirClient } from '../get-client';
-import { BidV1Order, ReservoirEventMetadata } from './types';
+import { BidEventV3 } from './types';
 
 export interface BidEventOptions {
   contract?: string;
@@ -20,13 +20,13 @@ export async function getEvents(client: ReservoirClient, _options: Partial<BidEv
   };
 
   const response = await client(
-    '/events/bids/v1',
+    '/events/bids/v3' as '/events/bids/v2',
     'get'
   )({
     query: options
   });
 
-  const bidEvents = response.data.events as { bid: BidV1Order; event: ReservoirEventMetadata }[];
+  const bidEvents = response.data.events as unknown as BidEventV3[];
 
   return {
     data: {

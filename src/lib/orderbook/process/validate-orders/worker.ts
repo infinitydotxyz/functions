@@ -3,7 +3,7 @@ import 'module-alias/register';
 import PQueue from 'p-queue';
 
 import { OrderEventKind, OrderRevalidationEvent, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { ONE_HOUR, firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
@@ -15,8 +15,9 @@ import { Reservoir } from '@/lib/index';
 import { logger } from '@/lib/logger';
 
 import { AbstractOrderbookProcessor } from '../orderbook-processor';
+import { JobData, JobResult } from './validate-orders';
 
-export default async function (job: Job) {
+export default async function (job: Job<JobData, JobResult>) {
   const name = 'validate-orders';
   const start = Date.now();
   let numOrders = 0;
@@ -36,13 +37,13 @@ export default async function (job: Job) {
 
     let query = AbstractOrderbookProcessor.getSplitOrderQuery(validSells, numQueries)[queryNum];
 
-    const checkpointKey = `validate-orders:env:${
-      config.isDev ? 'dev' : 'prod'
-    }:chain:${chainId}:numQueries:${numQueries}:queryNum:${queryNum}:isSellOrder:${isSellOrder}`;
+    const checkpointKey = `validate-orders:env:${config.isDev ? 'dev' : 'prod'}:chain:${chainId}:executionId:${
+      job.data.executionId
+    }:numQueries:${numQueries}:queryNum:${queryNum}:isSellOrder:${isSellOrder}`;
     const checkpoint = await redis.get(checkpointKey);
 
     const saveCheckpoint = async (ref: DocRef<RawFirestoreOrder>) => {
-      await redis.set(checkpointKey, ref.path);
+      await redis.set(checkpointKey, ref.path, 'PX', ONE_HOUR * 12);
     };
 
     if (checkpoint) {
@@ -136,6 +137,10 @@ export default async function (job: Job) {
         .catch((err) => {
           logger.error(name, err);
         });
+
+      if (pageQueue.size > 5 * concurrentReservoirRequests) {
+        await pageQueue.onEmpty();
+      }
     }
 
     logger.log(name, `Waiting for ${pageQueue.size} pages to finish`);

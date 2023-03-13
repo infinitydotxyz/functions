@@ -32,11 +32,7 @@ export class OrderTransformerFactory {
             return new kindConfig.transformer(chainId, reservoirOrder, provider);
           }
           throw new OrderKindError(kind, source, 'unsupported');
-        } else {
-          console.log('kind not found', kind, sourceKindConfig);
         }
-      } else {
-        console.log('no kinds in source config');
       }
       throw new OrderSourceError(source, 'unexpected');
     } else if (source in config) {

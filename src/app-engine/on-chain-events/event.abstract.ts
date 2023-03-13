@@ -2,13 +2,17 @@ import { EventFilter, ethers } from 'ethers';
 import { Interface } from 'ethers/lib/utils';
 import { FieldPath } from 'firebase-admin/firestore';
 
+import { getTxTrace } from '@georgeroman/evm-tx-simulator';
+import { CallTrace } from '@georgeroman/evm-tx-simulator/dist/types';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
+import { ONE_HOUR, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollRef } from '@/firestore/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
+import { redis } from '../redis';
 import { BaseParams, ContractEvent, ContractEventKind } from './types';
 
 export abstract class AbstractEvent<T> {
@@ -92,7 +96,7 @@ export abstract class AbstractEvent<T> {
       if (this.matches(log, baseParams)) {
         const collectionRef = this._db.collection(`contractStates`).doc(`${this._chainId}:${baseParams.address}`);
         const contractEvents = collectionRef.collection(`contractEvents`) as CollRef<ContractEvent<unknown>>;
-        const eventData = this.transformEvent({ log, baseParams });
+        const eventData = await this.transformEvent({ log, baseParams });
         const eventId = this.getEventId(baseParams);
         const event: ContractEvent<T> = {
           event: eventData,
@@ -117,5 +121,20 @@ export abstract class AbstractEvent<T> {
     }
   }
 
-  protected abstract transformEvent(event: { log: ethers.providers.Log; baseParams: BaseParams }): T;
+  protected abstract transformEvent(event: { log: ethers.providers.Log; baseParams: BaseParams }): T | Promise<T>;
+
+  protected async getCallTrace(params: { txHash: string }) {
+    const txTraceCacheKey = `chain:${this._chainId}:txTrace:${params.txHash}:cache`;
+    let trace: CallTrace;
+    try {
+      const traceString = await redis.get(txTraceCacheKey);
+      trace = JSON.parse(traceString ?? '') as CallTrace;
+    } catch (err) {
+      const provider = getProvider(this._chainId);
+      trace = await getTxTrace({ hash: params.txHash }, provider);
+      await redis.set(txTraceCacheKey, JSON.stringify(trace), 'PX', ONE_HOUR);
+    }
+
+    return trace;
+  }
 }

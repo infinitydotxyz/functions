@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import cron from 'node-cron';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
@@ -7,6 +8,7 @@ import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 import { AbstractProcess } from '@/lib/process/process.abstract';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
@@ -122,29 +124,28 @@ async function main() {
     const chainId = ChainId.Mainnet;
     const address = getExchangeAddress(chainId);
     const startBlockNumber = 16471202;
-    const blockProcessor = new FlowExchange(redis, chainId, address, startBlockNumber, db, {
+    const provider = getProvider(chainId);
+    const wsProvider = new ethers.providers.WebSocketProvider(
+      provider.connection.url.replace('https', 'wss'),
+      parseInt(chainId, 10)
+    );
+
+    const blockProcessor = new FlowExchange(redis, chainId, address, startBlockNumber, db, provider, {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
       attempts: 5
     });
-    const blockScheduler = new BlockScheduler(redis, chainId, [blockProcessor], {
+
+    const blockScheduler = new BlockScheduler(redis, chainId, provider, wsProvider, [blockProcessor], {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
       attempts: 1
     });
     const trigger = async () => {
-      const provider = config.providers[chainId];
-      if (!provider) {
-        logger.error('on-chain-events-trigger', `No provider found for chainId ${chainId}`);
-        return;
-      }
       await blockScheduler.add({
-        id: chainId,
-        chainId,
-        httpsProviderUrl: provider.connection.url,
-        wsProviderUrl: provider.connection.url.replace('https', 'wss')
+        id: chainId
       });
     };
 

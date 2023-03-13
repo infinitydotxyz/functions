@@ -33,10 +33,11 @@ export class FlowExchange extends AbstractBlockProcessor {
     _address: string,
     startBlockNumber: number,
     firestore: FirebaseFirestore.Firestore,
+    provider: ethers.providers.StaticJsonRpcProvider,
     options?: ProcessOptions
   ) {
     super(_db, chainId, `flow-exchange:${_address}`, startBlockNumber, _address, options);
-    const contract = new ethers.Contract(_address, FlowExchangeABI);
+    const contract = new ethers.Contract(_address, FlowExchangeABI, provider);
 
     const Events = [
       CancelAllOrdersEvent,

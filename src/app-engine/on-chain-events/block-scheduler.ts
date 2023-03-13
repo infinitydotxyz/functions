@@ -8,15 +8,13 @@ import { ONE_MIN, sleep } from '@infinityxyz/lib/utils';
 
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
+import { safeWebSocketSubscription } from '@/lib/utils/safe-websocket-subscription';
 
 import { redlock } from '../redis';
 import { AbstractBlockProcessor } from './block-processor.abstract';
 
 interface JobData {
   id: string;
-  chainId: ChainId;
-  httpsProviderUrl: string;
-  wsProviderUrl: string;
 }
 
 interface JobResult {
@@ -26,11 +24,13 @@ interface JobResult {
 export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
   constructor(
     db: Redis,
-    chainId: ChainId,
+    protected _chainId: ChainId,
+    protected _httpProvider: ethers.providers.StaticJsonRpcProvider,
+    protected _wsProvider: ethers.providers.WebSocketProvider,
     protected _blockProcessors: AbstractBlockProcessor[],
     options?: ProcessOptions
   ) {
-    super(db, `block-scheduler:chain:${chainId}`, options);
+    super(db, `block-scheduler:chain:${_chainId}`, options);
   }
 
   async run(): Promise<void> {
@@ -38,12 +38,8 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
   }
 
   async processJob(job: Job<JobData, JobResult, string>): Promise<JobResult> {
-    const lockKey = `block-scheduler:chain:${job.data.chainId}:lock`;
+    const lockKey = `block-scheduler:chain:${this._chainId}:lock`;
     const lockDuration = 15_000;
-
-    const chainId = parseInt(job.data.chainId, 10);
-    const wsProvider = new ethers.providers.WebSocketProvider(job.data.wsProviderUrl, chainId);
-    const httpProvider = new ethers.providers.StaticJsonRpcProvider(job.data.httpsProviderUrl, chainId);
 
     if (job.timestamp < Date.now() - ONE_MIN * 5) {
       this.log(`Job is too old, skipping...`);
@@ -59,36 +55,45 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
         return;
       }
 
-      const finalizedBlock = await httpProvider.getBlock('finalized');
+      const finalizedBlock = await this._httpProvider.getBlock('finalized');
 
       for (const blockProcessor of this._blockProcessors) {
-        await blockProcessor.add({
-          id: `${blockNumber}:${finalizedBlock.number}`,
-          latestBlockNumber: blockNumber,
-          finalizedBlockNumber: finalizedBlock.number,
-          chainId: job.data.chainId,
-          httpsProviderUrl: job.data.httpsProviderUrl
-        });
+        await blockProcessor.add(
+          {
+            id: `${blockNumber}:${finalizedBlock.number}`,
+            latestBlockNumber: blockNumber,
+            finalizedBlockNumber: finalizedBlock.number,
+            chainId: this._chainId,
+            httpsProviderUrl: this._httpProvider.connection.url
+          },
+          `chain:${this._chainId}:block:${blockNumber}:finalizedBlock:${finalizedBlock.number}`
+        );
       }
     };
 
     try {
       await redlock.using([lockKey], lockDuration, async (signal) => {
         this.log(`Acquired lock!`);
-
         const callback = handler(signal);
-        await new Promise<void>((resolve, reject) => {
-          cancel = () => {
-            wsProvider.off('block', callback);
-            if (signal.aborted) {
-              reject(signal.error ?? new Error('Aborted'));
-            } else {
-              resolve();
-            }
-          };
-
-          wsProvider.on('block', callback);
+        /**
+         * use web sockets to attempt to get block numbers
+         * right await
+         */
+        safeWebSocketSubscription(this._wsProvider.connection.url, async (provider) => {
+          provider.on('block', callback);
+          await Promise.resolve();
         });
+
+        /**
+         * poll in-case the websocket connection fails
+         */
+        const iterator = this._blockIterator(3_000);
+        for await (const { blockNumber } of iterator) {
+          await callback(blockNumber);
+          if (signal.aborted) {
+            return;
+          }
+        }
       });
     } catch (err) {
       if (err instanceof ExecutionError) {
@@ -109,5 +114,13 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
     return {
       id: job.data.id
     };
+  }
+
+  protected async *_blockIterator(delay: number) {
+    while (true) {
+      const blockNumber = await this._httpProvider.getBlockNumber();
+      yield { blockNumber };
+      await sleep(delay);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Job } from 'bullmq';
+import { BulkJobOptions, Job } from 'bullmq';
 import { EventFilter, ethers } from 'ethers';
 import { Redis } from 'ioredis';
 import { ExecutionError } from 'redlock';
@@ -7,7 +7,7 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { sleep } from '@infinityxyz/lib/utils';
 
 import { AbstractProcess } from '@/lib/process/process.abstract';
-import { ProcessOptions } from '@/lib/process/types';
+import { JobDataType, ProcessOptions } from '@/lib/process/types';
 
 import { redlock } from '../redis';
 import { AbstractEvent } from './event.abstract';
@@ -65,6 +65,32 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
 
   protected get eventFilters(): EventFilter[] {
     return this.events.map((event) => event.eventFilter);
+  }
+
+  async add(job: BlockProcessorJobData, id?: string): Promise<void>;
+  async add(jobs: BlockProcessorJobData[]): Promise<void>;
+  async add(job: BlockProcessorJobData | BlockProcessorJobData[], id?: string): Promise<void> {
+    const arr = Array.isArray(job) ? job : [job];
+    if (Array.isArray(job) && id) {
+      throw new Error(`Can only specify an id for a single job`);
+    }
+
+    const jobs: {
+      name: string;
+      data: JobDataType<BlockProcessorJobData>;
+      opts?: BulkJobOptions | undefined;
+    }[] = arr.map((item) => {
+      return {
+        name: `${item.id}`,
+        data: {
+          _processMetadata: {
+            type: 'default'
+          },
+          ...item
+        }
+      };
+    });
+    await this._queue.addBulk(jobs);
   }
 
   protected async _loadCursor(): Promise<{ cursor: Cursor; isBackfill: boolean }> {

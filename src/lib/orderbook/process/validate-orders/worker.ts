@@ -102,12 +102,12 @@ export default async function (job: Job<JobData, JobResult>) {
                 /**
                  * mark unsigned seaport orders as inactive
                  */
-                if (chainId === ChainId.Goerli && (reservoirOrder.kind ?? '').includes('seaport')) {
+                if (chainId === ChainId.Goerli) {
                   switch (reservoirOrder.kind) {
                     case 'seaport': {
                       const order = new Seaport.Order(5, reservoirOrder.rawData as Seaport.Types.OrderComponents);
                       if (!order.params.signature) {
-                        logger.log(name, `${item.data.metadata.id} ${itemStatus} => inactive`);
+                        logger.log(name, `${item.data.metadata.id} no signature`);
                         const orderEvent: OrderRevalidationEvent = {
                           metadata: {
                             id: `REVALIDATE:${timestamp}:${index}`,
@@ -135,7 +135,7 @@ export default async function (job: Job<JobData, JobResult>) {
                     case 'seaport-v1.4': {
                       const order = new SeaportV14.Order(5, reservoirOrder.rawData as SeaportV14.Types.OrderComponents);
                       if (!order.params.signature) {
-                        logger.log(name, `${item.data.metadata.id} ${itemStatus} => ${status}`);
+                        logger.log(name, `${item.data.metadata.id} no signature`);
                         const orderEvent: OrderRevalidationEvent = {
                           metadata: {
                             id: `REVALIDATE:${timestamp}:${index}`,

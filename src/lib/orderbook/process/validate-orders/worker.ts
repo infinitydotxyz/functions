@@ -2,8 +2,9 @@ import { Job } from 'bullmq';
 import 'module-alias/register';
 import PQueue from 'p-queue';
 
-import { OrderEventKind, OrderRevalidationEvent, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderEventKind, OrderRevalidationEvent, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
 import { ONE_HOUR, firestoreConstants } from '@infinityxyz/lib/utils';
+import { Seaport, SeaportV14 } from '@reservoir0x/sdk';
 
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
@@ -97,12 +98,79 @@ export default async function (job: Job<JobData, JobResult>) {
                 const status = reservoirOrder.status;
                 const itemStatus = item.data.order?.status;
 
-                if (status !== itemStatus) {
+                let updated = false;
+                /**
+                 * mark unsigned seaport orders as inactive
+                 */
+                if (chainId === ChainId.Goerli && (reservoirOrder.kind ?? '').includes('seaport')) {
+                  switch (reservoirOrder.kind) {
+                    case 'seaport': {
+                      const order = new Seaport.Order(5, reservoirOrder.rawData as Seaport.Types.OrderComponents);
+                      if (!order.params.signature) {
+                        logger.log(name, `${item.data.metadata.id} ${itemStatus} => inactive`);
+                        const orderEvent: OrderRevalidationEvent = {
+                          metadata: {
+                            id: `REVALIDATE:${timestamp}:${index}`,
+                            isSellOrder,
+                            orderId: item.data.metadata.id,
+                            chainId: item.data.metadata.chainId,
+                            processed: false,
+                            migrationId: 1,
+                            eventKind: OrderEventKind.Revalidation,
+                            timestamp,
+                            updatedAt: timestamp,
+                            eventSource: 'infinity-orderbook'
+                          },
+                          data: {
+                            status: 'inactive' as const
+                          }
+                        };
+
+                        const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
+                        await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                        updated = true;
+                      }
+                      break;
+                    }
+                    case 'seaport-v1.4': {
+                      const order = new SeaportV14.Order(5, reservoirOrder.rawData as SeaportV14.Types.OrderComponents);
+                      if (!order.params.signature) {
+                        logger.log(name, `${item.data.metadata.id} ${itemStatus} => ${status}`);
+                        const orderEvent: OrderRevalidationEvent = {
+                          metadata: {
+                            id: `REVALIDATE:${timestamp}:${index}`,
+                            isSellOrder,
+                            orderId: item.data.metadata.id,
+                            chainId: item.data.metadata.chainId,
+                            processed: false,
+                            migrationId: 1,
+                            eventKind: OrderEventKind.Revalidation,
+                            timestamp,
+                            updatedAt: timestamp,
+                            eventSource: 'infinity-orderbook'
+                          },
+                          data: {
+                            status: 'inactive' as const
+                          }
+                        };
+
+                        const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
+                        await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                        updated = true;
+                      }
+                      break;
+                    }
+                    default:
+                      break;
+                  }
+                }
+
+                if (!updated && status !== itemStatus) {
                   logger.log(name, `${item.data.metadata.id} ${itemStatus} => ${status}`);
                   const orderEvent: OrderRevalidationEvent = {
                     metadata: {
                       id: `REVALIDATE:${timestamp}:${index}`,
-                      isSellOrder: true,
+                      isSellOrder,
                       orderId: item.data.metadata.id,
                       chainId: item.data.metadata.chainId,
                       processed: false,

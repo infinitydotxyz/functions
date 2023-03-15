@@ -285,7 +285,7 @@ export class BaseOrder {
       return { rawOrder: rawFirestoreOrder, displayOrder };
     } else {
       /**
-       * TODO how do we handle the maker as the match executor?
+       * future-todo: how do we handle the maker as the match executor?
        */
       const displayData = await this._getDisplayData(rawOrder.infinityOrder.nfts, rawOrder.infinityOrder.signer);
 
@@ -564,7 +564,7 @@ export class BaseOrder {
       },
       rawOrder,
       order: {
-        collection: collection, // TODO update this if multi-collection orders are supported
+        collection: collection, // future-todo: update this if multi-collection orders are supported
         isSellOrder: this._isSellOrder,
         startTime: orderHelper.startTime,
         endTime: orderHelper.endTime,
@@ -572,7 +572,7 @@ export class BaseOrder {
         endTimeMs: orderHelper.endTimeMs,
         maker: orderHelper.signer,
         owners: owners,
-        taker: constants.AddressZero, // TODO update this if private orders are supported
+        taker: constants.AddressZero, // future-todo: update this if private orders are supported
         numItems: orderHelper.numItems,
         currency: orderHelper.currency,
         startPrice: orderHelper.startPrice,
@@ -598,7 +598,7 @@ export class BaseOrder {
           numTokens,
           isSubSetOrder: totalTokenQuantity !== orderHelper.numItems,
           isDynamic: orderHelper.startPrice !== orderHelper.endPrice,
-          isPrivate: false // TODO update this if private orders are supported
+          isPrivate: false // future-todo: update this if private orders are supported
         },
         hasBlueCheck,
         status,

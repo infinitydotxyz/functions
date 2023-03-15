@@ -60,7 +60,7 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     const db = getDb();
     const orderEvents = db
       .collectionGroup('reservoirOrderEvents')
-      .where('error.errorCode', '==', errorCode) as Query<ReservoirOrderEvent>; // TODO enable filtering by errorCode
+      .where('error.errorCode', '==', errorCode) as Query<ReservoirOrderEvent>;
 
     let query = splitQueries(orderEvents, numQueries)[queryNum];
     if (!query) {

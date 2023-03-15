@@ -15,7 +15,7 @@ export const TRADING_FEE_SPLIT_PHASE_1_TO_4: TradingFeeSplit = {
 };
 
 export const TRADING_FEE_SPLIT_PHASE_5: TradingFeeSplit = {
-  // TODO what should this be?
+  // future-todo: what should this be?
   [TradingFeeDestination.Curators]: { percentage: 80 },
   [TradingFeeDestination.Raffle]: { percentage: 0 },
   [TradingFeeDestination.CollectionPot]: { percentage: 0 },

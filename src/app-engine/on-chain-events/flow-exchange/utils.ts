@@ -30,14 +30,13 @@ export const decodeArrayifiedOrder = (chainId: ChainId, item: ArrayifiedFlowOrde
     }
   );
 
-  const params: Flow.Types.SignedOrder = {
+  const params: Flow.Types.InternalOrder = {
     isSellOrder,
     signer: signer.toLowerCase(),
     constraints: constraints.map((item) => BigNumber.from(item).toString()),
     nfts,
     execParams: [complication, currency].map((x) => x.toLowerCase()),
-    extraParams,
-    sig
+    extraParams
   };
 
   return new Flow.Order(parseInt(chainId, 10), params);

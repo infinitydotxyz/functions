@@ -38,7 +38,7 @@ export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledE
     this._numTopics = 4;
   }
 
-  protected async transformEvent(event: { log: Log; baseParams: BaseParams }): Promise<MatchOrderFulfilledEventData> {
+  async transformEvent(event: { log: Log; baseParams: BaseParams }): Promise<MatchOrderFulfilledEventData> {
     const parsedLog = this._iface.parseLog(event.log);
     const sellOrderHash = parsedLog.args.sellOrderHash.toLowerCase();
     const buyOrderHash = parsedLog.args.buyOrderHash.toLowerCase();
@@ -82,10 +82,7 @@ export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledE
     };
   }
 
-  protected async getOrderNonceFromTrace(
-    orderHash: string,
-    params: { txHash: string }
-  ): Promise<{ nonce: string | null }> {
+  async getOrderNonceFromTrace(orderHash: string, params: { txHash: string }): Promise<{ nonce: string | null }> {
     const txTrace = await this.getCallTrace(params);
     const trace = searchForCall(txTrace, {
       to: this._contract.address,
@@ -102,8 +99,14 @@ export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledE
       if (method) {
         try {
           const result = method.decodeInput(input, this._contract.interface, this._chainId);
-          const order = result.find((item) => item.hash() === orderHash);
-          if (order) {
+
+          const order = result.find((item) => {
+            return item.hash() === orderHash;
+          });
+
+          if (!order) {
+            logger.warn('match-order-fulfilled', `Failed to find nonce for order ${orderHash}`);
+          } else {
             return { nonce: order.nonce };
           }
         } catch (err) {

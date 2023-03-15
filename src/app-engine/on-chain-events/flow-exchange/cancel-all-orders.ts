@@ -25,7 +25,7 @@ export class CancelAllOrdersEvent extends AbstractEvent<CancelAllOrdersEventData
     this._numTopics = 2;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): CancelAllOrdersEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): CancelAllOrdersEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const user = parsedLog.args.user.toLowerCase();
     const newMinNonce = BigNumber.from(parsedLog.args.newMinNonce).toString();

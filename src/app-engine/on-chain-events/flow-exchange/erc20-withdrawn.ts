@@ -27,7 +27,7 @@ export class ERC20WithdrawnEvent extends AbstractEvent<ERC20WithdrawnEventData> 
     this._numTopics = 3;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): ERC20WithdrawnEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): ERC20WithdrawnEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const destination = parsedLog.args.destination.toLowerCase();
     const currency = parsedLog.args.currency.toLowerCase();

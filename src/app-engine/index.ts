@@ -195,9 +195,10 @@ async function main() {
   }
 
   if (config.components.syncOnChainEvents) {
-    const chainId = ChainId.Mainnet;
+    const chainId = ChainId.Goerli;
     const address = getExchangeAddress(chainId);
-    const startBlockNumber = 16471202;
+    // const startBlockNumber = 16471202;
+    const startBlockNumber = 8329378;
     const provider = getProvider(chainId);
     const wsProvider = new ethers.providers.WebSocketProvider(
       provider.connection.url.replace('https', 'wss'),

@@ -25,7 +25,7 @@ export class ProtocolFeeUpdatedEvent extends AbstractEvent<ProtocolFeeUpdatedEve
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): ProtocolFeeUpdatedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): ProtocolFeeUpdatedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const protocolFee = BigNumber.from(parsedLog.args.protocolFee).toString();
 

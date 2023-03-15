@@ -25,7 +25,7 @@ export class EthMerkleRootUpdated extends AbstractEvent<EthMerkleRootUpdatedEven
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): EthMerkleRootUpdatedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): EthMerkleRootUpdatedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const oldRoot = parsedLog.args.oldRoot.toLowerCase();
     const newRoot = parsedLog.args.newRoot.toLowerCase();

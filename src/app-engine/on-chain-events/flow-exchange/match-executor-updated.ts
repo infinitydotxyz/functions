@@ -25,7 +25,7 @@ export class MatchExecutorUpdatedEvent extends AbstractEvent<MatchExecutorUpdate
     this._numTopics = 2;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): MatchExecutorUpdatedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): MatchExecutorUpdatedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const matchExecutor = parsedLog.args.matchExecutor.toLowerCase();
 

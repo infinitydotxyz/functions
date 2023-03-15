@@ -36,7 +36,7 @@ export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEve
     this._numTopics = 4;
   }
 
-  protected async transformEvent(event: { log: Log; baseParams: BaseParams }): Promise<TakeOrderFulfilledEventData> {
+  async transformEvent(event: { log: Log; baseParams: BaseParams }): Promise<TakeOrderFulfilledEventData> {
     const parsedLog = this._iface.parseLog(event.log);
     const orderHash = parsedLog.args.orderHash.toLowerCase();
     const seller = parsedLog.args.seller.toLowerCase();

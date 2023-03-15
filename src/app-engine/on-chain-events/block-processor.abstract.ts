@@ -166,53 +166,18 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
         let blocksProcessed = 0;
         let logsProcessed = 0;
 
-        const processLogs = async (logs: HistoricalLogs) => {
-          for await (const chunk of logs) {
-            this.log(`Processing chunk ${chunk.fromBlock} to ${chunk.toBlock}`);
-            const { events, fromBlock, toBlock } = chunk;
-            const logsByBlock: {
-              events: {
-                log: ethers.providers.Log;
-                baseParams: BaseParams;
-              }[];
-              blockNumber: number;
-              commitment: 'finalized' | 'latest';
-              blockHash?: string;
-            }[] = [];
-            for (let block = fromBlock; block <= toBlock; block += 1) {
-              const blockEvents = events
-                .filter((log) => log.blockNumber === block)
-                .map((log) => {
-                  return {
-                    log,
-                    baseParams: this.getEventParams(log)
-                  };
-                });
-              logsProcessed += events.length;
-              blocksProcessed += 1;
-              logsByBlock.push({
-                blockNumber: block,
-                events: blockEvents,
-                commitment: block < finalizedBlockNumber ? 'finalized' : 'latest',
-                blockHash: blockEvents[0]?.log?.blockHash
-              });
-            }
-
-            for (const block of logsByBlock) {
-              if (block.commitment === 'latest') {
-                this.log(`Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`);
-              }
-              await this._processBlock(block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
-              checkSignal();
-            }
-          }
-        };
-
         if (fromFinalizedBlockNumber <= toFinalizedBlockNumber) {
           this.log(`Processing finalized blocks ${fromFinalizedBlockNumber} to ${toFinalizedBlockNumber}`);
           const finalizedLogs = await this.getLogs(fromFinalizedBlockNumber, toFinalizedBlockNumber, httpProvider);
           checkSignal();
-          await processLogs(finalizedLogs);
+          const { logsProcessed: numLogs, blocksProcessed: numBlocks } = await this.processLogs(
+            finalizedLogs,
+            finalizedBlockNumber,
+            isBackfill,
+            checkSignal
+          );
+          logsProcessed += numLogs;
+          blocksProcessed += numBlocks;
         }
 
         const latestBlock = Math.max(fromLatestBlockNumber, toFinalizedBlockNumber + 1);
@@ -220,7 +185,14 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           this.log(`Processing latest blocks ${latestBlock} to ${toLatestBlockNumber}`);
           const latestLogs = await this.getLogs(latestBlock, toLatestBlockNumber, httpProvider);
           checkSignal();
-          await processLogs(latestLogs);
+          const { logsProcessed: numLogs, blocksProcessed: numBlocks } = await this.processLogs(
+            latestLogs,
+            finalizedBlockNumber,
+            isBackfill,
+            checkSignal
+          );
+          logsProcessed += numLogs;
+          blocksProcessed += numBlocks;
         }
 
         checkSignal();
@@ -256,6 +228,59 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     }
   }
 
+  async processLogs(logs: HistoricalLogs, finalizedBlockNumber: number, isBackfill: boolean, checkSignal: () => void) {
+    let logsProcessed = 0;
+    let blocksProcessed = 0;
+    for await (const chunk of logs) {
+      this.log(`Processing chunk ${chunk.fromBlock} to ${chunk.toBlock}. With ${chunk.events.length} logs`);
+      const { events, fromBlock, toBlock } = chunk;
+      const logsByBlock: {
+        events: {
+          log: ethers.providers.Log;
+          baseParams: BaseParams;
+        }[];
+        blockNumber: number;
+        commitment: 'finalized' | 'latest';
+        blockHash?: string;
+      }[] = [];
+      for (let block = fromBlock; block <= toBlock; block += 1) {
+        const blockEvents = events
+          .filter((log) => log.blockNumber === block)
+          .map((log) => {
+            return {
+              log,
+              baseParams: this.getEventParams(log)
+            };
+          });
+
+        logsProcessed += events.length;
+        blocksProcessed += 1;
+        logsByBlock.push({
+          blockNumber: block,
+          events: blockEvents,
+          commitment: block < finalizedBlockNumber ? 'finalized' : 'latest',
+          blockHash: blockEvents[0]?.log?.blockHash
+        });
+      }
+
+      for (const block of logsByBlock) {
+        if (block.commitment === 'latest') {
+          this.log(`Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`);
+        }
+        if (block.events.length > 0) {
+          console.log(`Processing block ${block.blockNumber} With ${block.events.length} logs`);
+        }
+        await this._processBlock(block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
+        checkSignal();
+      }
+    }
+
+    return {
+      logsProcessed,
+      blocksProcessed
+    };
+  }
+
   /**
    * _processBlock is expected to
    * 1. Process logs
@@ -281,7 +306,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     const logRequest = async (fromBlock: number, toBlock: number) => {
       this.log(`Requesting logs from block ${fromBlock} to ${toBlock}`);
 
-      const responses: any[] = [];
+      const responses: ethers.providers.Log[] = [];
       for (const eventFilter of eventFilters) {
         const res = await provider.getLogs({
           fromBlock,
@@ -358,7 +383,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           try {
             const events = await thunkedLogRequest(blockRange.from, blockRange.maxBlock);
             const fromBlock = blockRange.minBlock;
-            const toBlock = blockRange.to;
+            const toBlock = blockRange.maxBlock;
             blockRange.to = blockRange.maxBlock;
             return {
               progress,

@@ -56,9 +56,8 @@ export class FlowExchange extends AbstractBlockProcessor {
 
     this.events = Events.map((Event) => new Event(chainId, contract, _address, firestore));
   }
-
   protected async _processBlock(
-    events: { log: Log; baseParams: BaseParams }[],
+    eventLogs: { log: Log; baseParams: BaseParams }[],
     blockNumber: number,
     commitment: 'finalized' | 'latest',
     isBackfill: boolean,
@@ -66,7 +65,7 @@ export class FlowExchange extends AbstractBlockProcessor {
   ): Promise<void> {
     const promises = [];
     for (const event of this.events) {
-      promises.push(event.handleBlock(events, blockNumber, commitment, isBackfill, blockHash));
+      promises.push(event.handleBlock(eventLogs, blockNumber, commitment, isBackfill, blockHash));
     }
     await Promise.all(promises);
   }

@@ -24,7 +24,7 @@ export class Erc20Removed extends AbstractEvent<Erc20RemovedEventData> {
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): Erc20RemovedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): Erc20RemovedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const token = parsedLog.args.token.toLowerCase();
     return { token };

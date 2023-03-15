@@ -25,7 +25,7 @@ export class PausedEvent extends AbstractEvent<PausedEventData> {
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): PausedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): PausedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const account = parsedLog.args.account.toLowerCase();
     return { account };

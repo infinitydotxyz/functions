@@ -26,7 +26,7 @@ export class Erc20Claimed extends AbstractEvent<Erc20ClaimedEventData> {
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): Erc20ClaimedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): Erc20ClaimedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const user = parsedLog.args.user.toLowerCase();
     const token = parsedLog.args.token.toLowerCase();

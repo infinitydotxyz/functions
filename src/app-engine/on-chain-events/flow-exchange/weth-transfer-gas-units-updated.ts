@@ -25,7 +25,7 @@ export class WethTransferGasUnitsUpdated extends AbstractEvent<WethTransferGasUn
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): WethTransferGasUnitsUpdatedData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): WethTransferGasUnitsUpdatedData {
     const parsedLog = this._iface.parseLog(event.log);
     const wethTransferGasUnits = BigNumber.from(parsedLog.args.wethTransferGasUnits).toString();
 

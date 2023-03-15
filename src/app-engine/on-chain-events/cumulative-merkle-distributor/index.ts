@@ -50,7 +50,7 @@ export class CumulativeMerkleDistributor extends AbstractBlockProcessor {
   }
 
   protected async _processBlock(
-    events: { log: Log; baseParams: BaseParams }[],
+    eventLogs: { log: Log; baseParams: BaseParams }[],
     blockNumber: number,
     commitment: 'finalized' | 'latest',
     isBackfill: boolean,
@@ -58,7 +58,7 @@ export class CumulativeMerkleDistributor extends AbstractBlockProcessor {
   ): Promise<void> {
     const promises = [];
     for (const event of this.events) {
-      promises.push(event.handleBlock(events, blockNumber, commitment, isBackfill, blockHash));
+      promises.push(event.handleBlock(eventLogs, blockNumber, commitment, isBackfill, blockHash));
     }
     await Promise.all(promises);
   }

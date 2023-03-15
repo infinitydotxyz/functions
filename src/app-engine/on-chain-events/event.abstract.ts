@@ -2,7 +2,7 @@ import { EventFilter, ethers } from 'ethers';
 import { Interface } from 'ethers/lib/utils';
 import { FieldPath } from 'firebase-admin/firestore';
 
-import { getTxTrace } from '@georgeroman/evm-tx-simulator';
+import { getTxTraces } from '@georgeroman/evm-tx-simulator';
 import { CallTrace } from '@georgeroman/evm-tx-simulator/dist/types';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ONE_HOUR, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
@@ -39,7 +39,7 @@ export abstract class AbstractEvent<T> {
     this._address = _address;
   }
 
-  protected matches(event: ethers.providers.Log, baseParams: BaseParams): boolean {
+  matches(event: ethers.providers.Log, baseParams: BaseParams): boolean {
     if (this._address !== baseParams.address) {
       return false;
     }
@@ -121,7 +121,7 @@ export abstract class AbstractEvent<T> {
     }
   }
 
-  protected abstract transformEvent(event: { log: ethers.providers.Log; baseParams: BaseParams }): T | Promise<T>;
+  abstract transformEvent(event: { log: ethers.providers.Log; baseParams: BaseParams }): T | Promise<T>;
 
   protected async getCallTrace(params: { txHash: string }) {
     const txTraceCacheKey = `chain:${this._chainId}:txTrace:${params.txHash}:cache`;
@@ -131,7 +131,7 @@ export abstract class AbstractEvent<T> {
       trace = JSON.parse(traceString ?? '') as CallTrace;
     } catch (err) {
       const provider = getProvider(this._chainId);
-      trace = await getTxTrace({ hash: params.txHash }, provider);
+      trace = (await getTxTraces([{ hash: params.txHash }], provider))[params.txHash];
       await redis.set(txTraceCacheKey, JSON.stringify(trace), 'PX', ONE_HOUR);
     }
 

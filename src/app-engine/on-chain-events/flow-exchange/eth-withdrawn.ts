@@ -26,7 +26,7 @@ export class ETHWithdrawnEvent extends AbstractEvent<ETHWithdrawnEventData> {
     this._numTopics = 2;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): ETHWithdrawnEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): ETHWithdrawnEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const destination = parsedLog.args.destination.toLowerCase();
     const amount = BigNumber.from(parsedLog.args.amount).toString();

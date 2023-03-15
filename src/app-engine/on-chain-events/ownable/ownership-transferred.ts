@@ -26,7 +26,7 @@ export class OwnershipTransferredEvent extends AbstractEvent<OwnershipTransferre
     this._numTopics = 3;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): OwnershipTransferredEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): OwnershipTransferredEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const prevOwner = parsedLog.args.previousOwner.toLowerCase();
     const newOwner = parsedLog.args.newOwner.toLowerCase();

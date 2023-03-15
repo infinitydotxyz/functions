@@ -25,7 +25,7 @@ export class UnpausedEvent extends AbstractEvent<UnpausedEventData> {
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): UnpausedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): UnpausedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const account = parsedLog.args.account.toLowerCase();
     return { account };

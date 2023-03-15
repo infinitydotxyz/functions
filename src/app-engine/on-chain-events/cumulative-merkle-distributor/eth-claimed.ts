@@ -25,7 +25,7 @@ export class EthClaimed extends AbstractEvent<EthClaimedEventData> {
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): EthClaimedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): EthClaimedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const user = parsedLog.args.user.toLowerCase();
     const amount = BigNumber.from(parsedLog.args.amount).toString();

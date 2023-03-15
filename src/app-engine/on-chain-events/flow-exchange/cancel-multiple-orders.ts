@@ -26,7 +26,7 @@ export class CancelMultipleOrdersEvent extends AbstractEvent<CancelMultipleOrder
     this._numTopics = 2;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): CancelMultipleOrdersEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): CancelMultipleOrdersEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const user = parsedLog.args.user.toLowerCase();
     const orderNonces = parsedLog.args.orderNonces.map((nonce: BigNumberish) => BigNumber.from(nonce).toString());

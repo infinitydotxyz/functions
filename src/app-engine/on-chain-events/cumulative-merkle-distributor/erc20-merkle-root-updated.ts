@@ -26,7 +26,7 @@ export class Erc20MerkleRootUpdated extends AbstractEvent<Erc20MerkleRootUpdated
     this._numTopics = 1;
   }
 
-  protected transformEvent(event: { log: Log; baseParams: BaseParams }): Erc20MerkleRootUpdatedEventData {
+  transformEvent(event: { log: Log; baseParams: BaseParams }): Erc20MerkleRootUpdatedEventData {
     const parsedLog = this._iface.parseLog(event.log);
     const token = parsedLog.args.token.toLowerCase();
     const oldRoot = parsedLog.args.oldRoot.toLowerCase();

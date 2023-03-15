@@ -87,7 +87,9 @@ export enum ContractEventKind {
   CumulativeMerkleDistributorEthMerkleRootUpdated = 'CUMULATIVE_MERKLE_DISTRIBUTOR_ETH_MERKLE_ROOT_UPDATED',
   Erc721Transfer = 'ERC721_TRANSFER_EVENT',
   Erc721Approval = 'ERC721_APPROVAL_EVENT',
-  Erc721ApprovalForAll = 'ERC721_APPROVAL_FOR_ALL_EVENT'
+  Erc721ApprovalForAll = 'ERC721_APPROVAL_FOR_ALL_EVENT',
+  Erc20Transfer = 'ERC20_TRANSFER_EVENT',
+  Erc20Approval = 'ERC20_APPROVAL_EVENT'
 }
 
 export interface ContractEvent<T> {

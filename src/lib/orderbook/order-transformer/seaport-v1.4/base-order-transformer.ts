@@ -81,7 +81,12 @@ export abstract class SeaportV14OrderTransformer extends OrderTransformer<Seapor
      * order kind should be known
      */
     if (!this.kind) {
-      throw new OrderKindError(`${this.kind}`, 'seaport-v1.4', 'unexpected');
+      throw new OrderKindError(`${this.kind}`, this.source, 'unexpected');
+    }
+
+    if (!this._order.params.signature && this._chainId !== ChainId.Mainnet) {
+      // remove this to support unsigned orders on testnets
+      throw new OrderError('No signature on non-mainnet order', ErrorCode.NotSigned, '', this.source, 'unsupported');
     }
 
     const zones = [ethers.constants.AddressZero, SeaportV14.Addresses.PausableZone[this.chainId]];
@@ -94,7 +99,7 @@ export abstract class SeaportV14OrderTransformer extends OrderTransformer<Seapor
         `invalid conduitKey`,
         ErrorCode.SeaportConduitKey,
         `${this._components.conduitKey}`,
-        'seaport-v1.4',
+        this.source,
         'unsupported'
       );
     }

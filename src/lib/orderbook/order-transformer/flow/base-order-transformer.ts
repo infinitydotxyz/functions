@@ -78,7 +78,7 @@ export abstract class FlowOrderTransformer extends OrderTransformer<Flow.Order> 
 
   protected _checkValid() {
     if (!this._order.sig) {
-      throw new OrderError('order not signed', ErrorCode.NotSigned, '', 'infinity', 'unsupported');
+      throw new OrderError('order not signed', ErrorCode.NotSigned, '', 'flow', 'unsupported');
     }
     const complication = getOBComplicationAddress(this._chainId);
 

@@ -1,7 +1,6 @@
 import PQueue from 'p-queue';
 
 import {
-  ChainId,
   OrderCancelledEvent,
   OrderEventKind,
   OrderStatus,
@@ -19,7 +18,8 @@ import { logger } from '@/lib/logger';
 import { CancelAllOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-all-orders';
 import { CancelMultipleOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-multiple-orders';
 import { ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
-import { getProvider } from '@/lib/utils/ethersUtils';
+
+import { getOrderStatus } from './validate-orders';
 
 export async function* iterateCancelAllEvents() {
   const contractEvents = getDb().collectionGroup('contractEvents');
@@ -172,38 +172,15 @@ function handleNonces(
         /**
          * mark the event as processed
          */
-        const update: ContractEvent<unknown>['metadata'] = {
+        const metadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...data.metadata,
           processed: true
         };
-        await batch.addAsync(ref, update, { merge: true });
+        await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
+        await batch.flush();
       })
       .catch((err) => {
         logger.error('indexer', `Failed to mark orders as cancelled ${err}`);
       });
-  }
-}
-
-export async function getOrderStatus(order: Flow.Order): Promise<OrderStatus> {
-  const provider = getProvider(order.chainId.toString() as ChainId);
-  const now = Date.now();
-  const hasStarted = order.startTime * 1000 > now;
-  const hasEnded = order.endTime * 1000 < now;
-  if (!hasStarted) {
-    return 'inactive';
-  } else if (hasEnded) {
-    return 'expired';
-  }
-  try {
-    await order.checkFillability(provider);
-    return 'active';
-  } catch (err) {
-    if (err instanceof Error) {
-      if (err.message.includes('not-fillable')) {
-        return 'cancelled';
-      }
-      return 'inactive';
-    }
-    return 'inactive';
   }
 }

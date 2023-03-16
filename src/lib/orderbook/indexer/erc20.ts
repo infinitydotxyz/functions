@@ -14,15 +14,15 @@ import { ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
 
 import { validateOrders } from './validate-orders';
 
-export async function* erc20BalanceChanges() {
+export async function* erc20Transfers() {
   const db = getDb();
   const contractEvents = db.collectionGroup('contractEvents');
 
-  const balanceChanges = contractEvents
+  const transfers = contractEvents
     .where('metadata.processed', '==', false)
     .where('metadata.eventKind', '==', ContractEventKind.Erc20Transfer) as Query<ContractEvent<Erc20TransferEventData>>;
 
-  const stream = streamQueryWithRef(balanceChanges);
+  const stream = streamQueryWithRef(transfers);
 
   for await (const { data, ref } of stream) {
     yield { data, ref };
@@ -83,8 +83,8 @@ export async function handleErc20ApprovalEvents() {
   }
 }
 
-export async function handleErc20BalanceEvents() {
-  const iterator = erc20BalanceChanges();
+export async function handleErc20TransferEvents() {
+  const iterator = erc20Transfers();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const item of iterator) {
@@ -110,8 +110,8 @@ export async function handleErc20BalanceEvents() {
         /**
          * validate bids placed by the users involved
          */
-        await validateOrders(fromOrdersQuery, item.data, OrderEventKind.ApprovalChange, batch);
-        await validateOrders(toOrdersQuery, item.data, OrderEventKind.ApprovalChange, batch);
+        await validateOrders(fromOrdersQuery, item.data, OrderEventKind.BalanceChange, batch);
+        await validateOrders(toOrdersQuery, item.data, OrderEventKind.BalanceChange, batch);
         const contractEventMetadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...item.data.metadata,
           processed: true
@@ -122,7 +122,7 @@ export async function handleErc20BalanceEvents() {
         await batch.flush();
       })
       .catch((err) => {
-        logger.error('indexer', `Failed to handle ERC20 approval event ${err}`);
+        logger.error('indexer', `Failed to handle ERC20 transfer event ${err}`);
       });
   }
 }

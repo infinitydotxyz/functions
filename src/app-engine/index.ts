@@ -13,8 +13,8 @@ import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
-import { BlockScheduler } from './on-chain-events/block-scheduler';
-import { FlowExchange } from './on-chain-events/flow-exchange/flow-exchange';
+import { BlockScheduler } from '../lib/on-chain-events/block-scheduler';
+import { FlowExchange } from '../lib/on-chain-events/flow-exchange/flow-exchange';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';

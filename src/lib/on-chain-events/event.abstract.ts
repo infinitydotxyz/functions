@@ -12,7 +12,7 @@ import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollRef } from '@/firestore/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
-import { redis } from '../redis';
+import { redis } from '../../app-engine/redis';
 import { BaseParams, ContractEvent, ContractEventKind } from './types';
 
 export abstract class AbstractEvent<T> {

@@ -10,7 +10,7 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 import { safeWebSocketSubscription } from '@/lib/utils/safe-websocket-subscription';
 
-import { redlock } from '../redis';
+import { redlock } from '../../app-engine/redis';
 import { AbstractBlockProcessor } from './block-processor.abstract';
 
 interface JobData {

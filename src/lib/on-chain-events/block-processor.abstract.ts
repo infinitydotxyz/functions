@@ -9,7 +9,7 @@ import { sleep } from '@infinityxyz/lib/utils';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { JobDataType, ProcessOptions } from '@/lib/process/types';
 
-import { redlock } from '../redis';
+import { redlock } from '../../app-engine/redis';
 import { AbstractEvent } from './event.abstract';
 import {
   BaseParams,

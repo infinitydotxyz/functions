@@ -30,14 +30,10 @@ describe('MatchOrderFulfilled', () => {
         logIndex: log.logIndex,
         batchIndex: 1,
         txIndex: receipt.transactionIndex,
-        blockHash: receipt.blockHash
+        blockHash: receipt.blockHash,
+        blockTimestamp: 0
       };
       if (eventHandler.matches(log, baseParams)) {
-        const result = await eventHandler.transformEvent({
-          log,
-          baseParams
-        });
-
         numLogs += 1;
       }
     }
@@ -54,8 +50,6 @@ describe('MatchOrderFulfilled', () => {
     const orderHash = '0xc01f044e56e1bafd790dbfd1227414a2d83cf62c0914767ef3a8e5af39ef5cc5';
     const txHash = '0x66926260da6090427b8bc5caa495f145b5570e0e78e9dbbe0433d4825e2df8e0';
     const result = await eventHandler.getOrderNonceFromTrace(orderHash, { txHash });
-
-    console.log(`Result: ${JSON.stringify(result, null, 2)}`);
 
     expect(result).not.toBeNull();
   });

@@ -1,7 +1,7 @@
 import { BigNumber, BigNumberish, Contract } from 'ethers';
 
 import { Log } from '@ethersproject/abstract-provider';
-import { searchForCall } from '@georgeroman/evm-tx-simulator';
+import { CallTrace, CallType } from '@georgeroman/evm-tx-simulator/dist/types';
 import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
 
 import { logger } from '@/lib/logger';
@@ -84,37 +84,75 @@ export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledE
 
   async getOrderNonceFromTrace(orderHash: string, params: { txHash: string }): Promise<{ nonce: string | null }> {
     const txTrace = await this.getCallTrace(params);
-    const trace = searchForCall(txTrace, {
+
+    const searchValue = {
       to: this._contract.address,
-      type: 'CALL',
+      type: 'CALL' as CallType,
       sigHashes: Object.values(FlowFulfillOrderMethods).map((item) => item.methodId)
-    });
+    };
 
-    if (trace) {
-      const input = trace?.input;
-      const method = Object.values(FlowFulfillOrderMethods).find((method) => {
-        return input.startsWith(method.methodId);
-      });
+    const traces = searchForCalls(txTrace, searchValue);
 
-      if (method) {
-        try {
-          const result = method.decodeInput(input, this._contract.interface, this._chainId);
+    for (const trace of traces) {
+      if (trace) {
+        const input = trace?.input;
+        const method = Object.values(FlowFulfillOrderMethods).find((method) => {
+          return input.startsWith(method.methodId);
+        });
 
-          const order = result.find((item) => {
-            return item.hash() === orderHash;
-          });
+        if (method) {
+          try {
+            const result = method.decodeInput(input, this._contract.interface, this._chainId);
 
-          if (!order) {
-            logger.warn('match-order-fulfilled', `Failed to find nonce for order ${orderHash}`);
-          } else {
-            return { nonce: order.nonce };
+            const order = result.find((item) => {
+              return item.hash() === orderHash;
+            });
+
+            if (order) {
+              return { nonce: order.nonce };
+            }
+          } catch (err) {
+            logger.error('match-order-fulfilled', `Failed to decode input for ${this._eventKind} ${err}`);
           }
-        } catch (err) {
-          logger.error('match-order-fulfilled', `Failed to decode input for ${this._eventKind} ${err}`);
         }
       }
     }
-
     return { nonce: null };
   }
 }
+
+export const searchForCalls = (
+  trace: CallTrace,
+  options: { to?: string; type?: CallType; sigHashes?: string[] }
+): CallTrace[] => {
+  const matches: CallTrace[] = [];
+  const helper = (trace: CallTrace) => {
+    let match = true;
+    if (options.to && trace.to !== options.to) {
+      match = false;
+    }
+    if (options.type && trace.type !== options.type) {
+      match = false;
+    }
+    if (options.sigHashes && !options.sigHashes.includes(trace.input.slice(0, 10))) {
+      match = false;
+    }
+    if (trace.error) {
+      match = false;
+    }
+
+    if (match) {
+      matches.push(trace);
+    }
+
+    if (!trace.error) {
+      for (const call of trace.calls ?? []) {
+        helper(call);
+      }
+    }
+  };
+
+  helper(trace);
+
+  return matches;
+};

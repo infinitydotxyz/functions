@@ -62,6 +62,7 @@ export interface BaseParams {
   blockHash: string;
   logIndex: number;
   batchIndex: number;
+  blockTimestamp: number;
 }
 
 export enum ContractEventKind {

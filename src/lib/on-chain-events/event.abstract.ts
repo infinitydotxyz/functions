@@ -2,7 +2,6 @@ import { EventFilter, ethers } from 'ethers';
 import { Interface } from 'ethers/lib/utils';
 import { FieldPath } from 'firebase-admin/firestore';
 
-import { getTxTraces } from '@georgeroman/evm-tx-simulator';
 import { CallTrace } from '@georgeroman/evm-tx-simulator/dist/types';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ONE_HOUR, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
@@ -131,8 +130,19 @@ export abstract class AbstractEvent<T> {
       trace = JSON.parse(traceString ?? '') as CallTrace;
     } catch (err) {
       const provider = getProvider(this._chainId);
-      trace = (await getTxTraces([{ hash: params.txHash }], provider))[params.txHash];
+      trace = await this.getTxTrace({ hash: params.txHash }, provider);
+
       await redis.set(txTraceCacheKey, JSON.stringify(trace), 'PX', ONE_HOUR);
+    }
+
+    return trace;
+  }
+
+  protected async getTxTrace(tx: { hash: string }, provider: ethers.providers.JsonRpcProvider) {
+    const trace: CallTrace = await provider.send('debug_traceTransaction', [tx.hash, { tracer: 'callTracer' }]);
+
+    if (trace.error) {
+      throw new Error('execution-reverted');
     }
 
     return trace;

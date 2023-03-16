@@ -11,6 +11,7 @@ import { JobDataType, ProcessOptions } from '@/lib/process/types';
 
 import { redlock } from '../../app-engine/redis';
 import { AbstractEvent } from './event.abstract';
+import { getBlockTimestamp } from './get-block-timestamp';
 import {
   BaseParams,
   EthersJsonRpcRequest,
@@ -121,7 +122,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
     await this._db.set(cursorKey, JSON.stringify(cursor));
   }
 
-  protected getEventParams = (log: ethers.providers.Log): BaseParams => {
+  protected getEventParams = (log: ethers.providers.Log, blockTimestamp: number): BaseParams => {
     const address = log.address.toLowerCase();
     const block = log.blockNumber;
     const blockHash = log.blockHash.toLowerCase();
@@ -137,7 +138,8 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
       block,
       blockHash,
       logIndex,
-      batchIndex: 1
+      batchIndex: 1,
+      blockTimestamp
     };
   };
 
@@ -244,12 +246,13 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
         blockHash?: string;
       }[] = [];
       for (let block = fromBlock; block <= toBlock; block += 1) {
+        const blockTimestamp = await getBlockTimestamp(this._chainId, block);
         const blockEvents = events
           .filter((log) => log.blockNumber === block)
           .map((log) => {
             return {
               log,
-              baseParams: this.getEventParams(log)
+              baseParams: this.getEventParams(log, blockTimestamp)
             };
           });
 
@@ -268,7 +271,7 @@ export abstract class AbstractBlockProcessor extends AbstractProcess<BlockProces
           this.log(`Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`);
         }
         if (block.events.length > 0) {
-          console.log(`Processing block ${block.blockNumber} With ${block.events.length} logs`);
+          this.log(`Processing block ${block.blockNumber} With ${block.events.length} logs`);
         }
         await this._processBlock(block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
         checkSignal();

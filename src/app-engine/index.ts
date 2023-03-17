@@ -10,6 +10,7 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
+import { start } from './api';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
@@ -24,6 +25,7 @@ async function main() {
   const promises = [];
 
   if (config.components.validateOrderbook) {
+    await start();
     const queue = new ValidateOrdersProcessor('validate-orders', redis, db, {
       enableMetrics: false,
       concurrency: 2,

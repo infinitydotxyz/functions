@@ -29,7 +29,7 @@ async function main() {
       queryNum,
       isSellOrder,
       concurrentReservoirRequests: 2,
-      chainId: ChainId.Mainnet,
+      chainId: ChainId.Goerli,
       numQueries,
       executionId
     };

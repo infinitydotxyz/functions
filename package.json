@@ -55,6 +55,7 @@
     "discord.js": "^14.6.0",
     "dotenv": "^16.0.1",
     "ethers": "^5.6.6",
+    "fastify": "^4.14.1",
     "firebase-admin": "^11.5.0",
     "firebase-functions": "^4.2.0",
     "got": "^11.8.3",

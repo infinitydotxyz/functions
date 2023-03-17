@@ -18,91 +18,89 @@ import { getProvider } from '@/lib/utils/ethersUtils';
 import { redis } from '../redis';
 import { initializeEventProcessors } from './initialize-event-processors';
 
-async function startIndexer() {
-  if (config.components.indexer.enabled) {
-    const promises: Promise<unknown>[] = [];
-    const startBlockNumberByChain: Record<ChainId, number> = {
-      [ChainId.Mainnet]: 16471202,
-      [ChainId.Goerli]: 8329378,
-      [ChainId.Polygon]: 0 // TODO-future
-    };
+export async function startIndexer() {
+  const promises: Promise<unknown>[] = [];
+  const startBlockNumberByChain: Record<ChainId, number> = {
+    [ChainId.Mainnet]: 16471202,
+    [ChainId.Goerli]: 8329378,
+    [ChainId.Polygon]: 0 // TODO-future
+  };
 
-    const db = getDb();
+  const db = getDb();
 
-    /**
-     * Initialize on chain event syncing
-     *
-     * note - requires us to restart the indexer when we
-     * add support for/remove support for a collection
-     */
-    for (const chainId of config.supportedChains) {
-      const exchangeAddress = getExchangeAddress(chainId);
-      const wethAddress = Common.Addresses.Weth[parseInt(chainId, 10)];
-      const startBlockNumber = startBlockNumberByChain[chainId];
-      const provider = getProvider(chainId);
-      const wsProvider = new ethers.providers.WebSocketProvider(
-        provider.connection.url.replace('https', 'wss'),
-        parseInt(chainId, 10)
-      );
-      const flowBlockProcessor = new FlowExchange(redis, chainId, exchangeAddress, startBlockNumber, db, provider, {
-        enableMetrics: false,
-        concurrency: 1,
-        debug: true,
-        attempts: 5
-      });
+  /**
+   * Initialize on chain event syncing
+   *
+   * note - requires us to restart the indexer when we
+   * add support for/remove support for a collection
+   */
+  for (const chainId of config.supportedChains) {
+    const exchangeAddress = getExchangeAddress(chainId);
+    const wethAddress = Common.Addresses.Weth[parseInt(chainId, 10)];
+    const startBlockNumber = startBlockNumberByChain[chainId];
+    const provider = getProvider(chainId);
+    const wsProvider = new ethers.providers.WebSocketProvider(
+      provider.connection.url.replace('https', 'wss'),
+      parseInt(chainId, 10)
+    );
+    const flowBlockProcessor = new FlowExchange(redis, chainId, exchangeAddress, startBlockNumber, db, provider, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 5
+    });
 
-      const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, startBlockNumber, db, provider, {
-        enableMetrics: false,
-        concurrency: 1,
-        debug: true,
-        attempts: 5
-      });
+    const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, startBlockNumber, db, provider, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 5
+    });
 
-      const supportedCollections = new SupportedCollectionsProvider(db, chainId);
-      await supportedCollections.init();
-      const blockProcessors: AbstractBlockProcessor[] = [flowBlockProcessor, wethBlockProcessor];
+    const supportedCollections = new SupportedCollectionsProvider(db, chainId);
+    await supportedCollections.init();
+    const blockProcessors: AbstractBlockProcessor[] = [flowBlockProcessor, wethBlockProcessor];
 
-      for (const item of supportedCollections.values()) {
-        const [itemChainId, erc721Address] = item.split(':');
+    for (const item of supportedCollections.values()) {
+      const [itemChainId, erc721Address] = item.split(':');
 
-        if (itemChainId !== chainId) {
-          throw new Error(`ChainId mismatch: ${itemChainId} !== ${chainId}`);
-        }
-
-        const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, startBlockNumber, db, provider, {
-          enableMetrics: false,
-          concurrency: 1,
-          debug: true,
-          attempts: 5
-        });
-
-        blockProcessors.push(erc721BlockProcessor);
+      if (itemChainId !== chainId) {
+        throw new Error(`ChainId mismatch: ${itemChainId} !== ${chainId}`);
       }
 
-      const blockScheduler = new BlockScheduler(redis, chainId, provider, wsProvider, blockProcessors, {
+      const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, startBlockNumber, db, provider, {
         enableMetrics: false,
         concurrency: 1,
         debug: true,
-        attempts: 1
-      });
-      const trigger = async () => {
-        await blockScheduler.add({
-          id: chainId
-        });
-      };
-      cron.schedule('*/2 * * * *', async () => {
-        await trigger();
+        attempts: 5
       });
 
-      const blockProcessorPromises = blockProcessors.map((blockProcessor) => blockProcessor.run());
-      promises.push(blockScheduler.run(), ...blockProcessorPromises);
+      blockProcessors.push(erc721BlockProcessor);
     }
 
-    /**
-     * Initialize on chain event processing - these are not chain specific
-     */
-    const eventProcessorsPromises = initializeEventProcessors();
+    const blockScheduler = new BlockScheduler(redis, chainId, provider, wsProvider, blockProcessors, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+    const trigger = async () => {
+      await blockScheduler.add({
+        id: chainId
+      });
+    };
+    cron.schedule('*/2 * * * *', async () => {
+      await trigger();
+    });
 
-    await Promise.all([...promises, ...eventProcessorsPromises]);
+    const blockProcessorPromises = blockProcessors.map((blockProcessor) => blockProcessor.run());
+    promises.push(blockScheduler.run(), ...blockProcessorPromises);
   }
+
+  /**
+   * Initialize on chain event processing - these are not chain specific
+   */
+  const eventProcessorsPromises = initializeEventProcessors();
+
+  await Promise.all([...promises, ...eventProcessorsPromises]);
 }

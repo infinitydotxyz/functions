@@ -1,3 +1,5 @@
+import { logger } from 'ethers';
+
 import {
   ChainId,
   OrderApprovalChangeEvent,
@@ -55,65 +57,72 @@ export async function validateOrders(
       } as OrderEventMetadata & { eventKind: T };
     };
     const chainIdInt = parseInt(orderData.metadata.chainId, 10);
-    const order = new Flow.Order(chainIdInt, orderData.rawOrder.rawOrder);
-    const status = await getOrderStatus(order);
-    let statusEvent: OrderApprovalChangeEvent | OrderBalanceChangeEvent | OrderTokenOwnerUpdate;
-    switch (type) {
-      case OrderEventKind.ApprovalChange: {
-        statusEvent = {
-          metadata: getMetadata(OrderEventKind.ApprovalChange),
-          data: {
-            txHash: contractEvent.baseParams.txHash,
-            txTimestamp: contractEvent.baseParams.blockTimestamp,
-            status: status
-          }
-        };
-        break;
-      }
-      case OrderEventKind.BalanceChange: {
-        statusEvent = {
-          metadata: getMetadata(OrderEventKind.BalanceChange),
-          data: {
-            txHash: contractEvent.baseParams.txHash,
-            txTimestamp: contractEvent.baseParams.blockTimestamp,
-            status: status
-          }
-        };
-        break;
-      }
-      case OrderEventKind.TokenOwnerUpdate: {
-        const _contractEvent = contractEvent as ContractEvent<Erc721TransferEventData>;
-        const ownerAddress = _contractEvent.metadata.reorged
-          ? await new Common.Helpers.Erc721(provider, _contractEvent.baseParams.address).getOwner(
-              _contractEvent.event.tokenId
-            )
-          : _contractEvent.event.to;
-        const ownerRef = getDb()
-          .collection('users')
-          .doc(ownerAddress) as FirebaseFirestore.DocumentReference<UserProfileDto>;
-        const owner = await getUserDisplayData(ownerRef);
-        statusEvent = {
-          metadata: getMetadata(OrderEventKind.TokenOwnerUpdate),
-          data: {
-            txHash: contractEvent.baseParams.txHash,
-            txTimestamp: contractEvent.baseParams.blockTimestamp,
-            status: status,
-            token: {
-              address: _contractEvent.baseParams.address,
-              tokenId: _contractEvent.event.tokenId
-            },
-            owner
-          }
-        };
-        break;
-      }
-      default: {
-        throw new Error(`Unhandled event type ${type}`);
-      }
+    let order;
+    try {
+      order = new Flow.Order(chainIdInt, orderData.rawOrder.infinityOrder as Flow.Types.SignedOrder);
+    } catch (err) {
+      logger.warn('indexer', `Failed to parse order ${err}`);
     }
+    if (order) {
+      const status = await getOrderStatus(order);
+      let statusEvent: OrderApprovalChangeEvent | OrderBalanceChangeEvent | OrderTokenOwnerUpdate;
+      switch (type) {
+        case OrderEventKind.ApprovalChange: {
+          statusEvent = {
+            metadata: getMetadata(OrderEventKind.ApprovalChange),
+            data: {
+              txHash: contractEvent.baseParams.txHash,
+              txTimestamp: contractEvent.baseParams.blockTimestamp,
+              status: status
+            }
+          };
+          break;
+        }
+        case OrderEventKind.BalanceChange: {
+          statusEvent = {
+            metadata: getMetadata(OrderEventKind.BalanceChange),
+            data: {
+              txHash: contractEvent.baseParams.txHash,
+              txTimestamp: contractEvent.baseParams.blockTimestamp,
+              status: status
+            }
+          };
+          break;
+        }
+        case OrderEventKind.TokenOwnerUpdate: {
+          const _contractEvent = contractEvent as ContractEvent<Erc721TransferEventData>;
+          const ownerAddress = _contractEvent.metadata.reorged
+            ? await new Common.Helpers.Erc721(provider, _contractEvent.baseParams.address).getOwner(
+                _contractEvent.event.tokenId
+              )
+            : _contractEvent.event.to;
+          const ownerRef = getDb()
+            .collection('users')
+            .doc(ownerAddress) as FirebaseFirestore.DocumentReference<UserProfileDto>;
+          const owner = await getUserDisplayData(ownerRef);
+          statusEvent = {
+            metadata: getMetadata(OrderEventKind.TokenOwnerUpdate),
+            data: {
+              txHash: contractEvent.baseParams.txHash,
+              txTimestamp: contractEvent.baseParams.blockTimestamp,
+              status: status,
+              token: {
+                address: _contractEvent.baseParams.address,
+                tokenId: _contractEvent.event.tokenId
+              },
+              owner
+            }
+          };
+          break;
+        }
+        default: {
+          throw new Error(`Unhandled event type ${type}`);
+        }
+      }
 
-    const statusEventRef = orderRef.collection('orderEvents').doc(statusEvent.metadata.id);
-    await batch.addAsync(statusEventRef, statusEvent, { merge: true });
+      const statusEventRef = orderRef.collection('orderEvents').doc(statusEvent.metadata.id);
+      await batch.addAsync(statusEventRef, statusEvent, { merge: true });
+    }
   }
 }
 

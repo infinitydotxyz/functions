@@ -17,7 +17,7 @@ import { CollRef, DocRef, Query } from '@/firestore/types';
 import { logger } from '@/lib/logger';
 import { CancelAllOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-all-orders';
 import { CancelMultipleOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-multiple-orders';
-import { ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
+import { BaseParams, ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
 
 import { getOrderStatus } from './validate-orders';
 
@@ -58,12 +58,14 @@ export async function handleCancelMultipleEvents() {
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const { data, ref } of iterator) {
-    handleNonces(queue, data, ref);
+    await handleNonces(queue, data, ref);
 
     if (queue.size > 300) {
       await queue.onEmpty();
     }
   }
+
+  await queue.onIdle();
 }
 
 export async function handleCancelAllEvents() {
@@ -71,44 +73,73 @@ export async function handleCancelAllEvents() {
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const { data, ref } of iterator) {
-    handleNonces(queue, data, ref);
+    await handleNonces(queue, data, ref);
 
     if (queue.size > 300) {
       await queue.onEmpty();
     }
   }
+
+  await queue.onIdle();
 }
 
-function handleNonces(
+async function handleNonces(
   queue: PQueue,
   data: ContractEvent<CancelMultipleOrdersEventData> | ContractEvent<CancelAllOrdersEventData>,
   ref: DocRef<ContractEvent<CancelMultipleOrdersEventData> | ContractEvent<CancelAllOrdersEventData>>
 ) {
-  const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
-  const usersRef = getDb().collection('users');
-  let nonces: string[];
+  let nonces: { nonce: string; user: string; baseParams: BaseParams; metadata: ContractEvent<unknown>['metadata'] }[];
   let queryType: 'max' | 'equal';
   if (data.metadata.eventKind === ContractEventKind.FlowExchangeCancelAllOrders) {
-    nonces = [(data.event as CancelAllOrdersEventData).newMinNonce];
+    nonces = [
+      {
+        nonce: (data.event as CancelAllOrdersEventData).newMinNonce,
+        baseParams: data.baseParams,
+        metadata: data.metadata,
+        user: data.event.user
+      }
+    ];
     queryType = 'max';
   } else {
-    nonces = (data.event as CancelMultipleOrdersEventData).orderNonces;
+    nonces = (data.event as CancelMultipleOrdersEventData).orderNonces.map((nonce) => {
+      return { nonce, baseParams: data.baseParams, metadata: data.metadata, user: data.event.user };
+    });
     queryType = 'equal';
   }
+  const batch = new BatchHandler();
+  updateNonces(queue, batch, nonces, queryType);
 
-  for (const nonce of nonces) {
+  /**
+   * mark the event as processed
+   */
+  const metadataUpdate: ContractEvent<unknown>['metadata'] = {
+    ...data.metadata,
+    processed: true
+  };
+  await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
+  await batch.flush();
+}
+
+export function updateNonces(
+  queue: PQueue,
+  batch: BatchHandler,
+  nonces: { nonce: string; user: string; baseParams: BaseParams; metadata: ContractEvent<unknown>['metadata'] }[],
+  queryType: 'max' | 'equal'
+) {
+  const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
+  const usersRef = getDb().collection('users');
+  for (const { nonce, user, baseParams, metadata } of nonces) {
     queue
       .add(async () => {
-        const batch = new BatchHandler();
         const ordersToCancel = ordersRef
-          .where('order.maker', '==', data.event.user)
+          .where('order.maker', '==', user)
           .where('order.nonce', queryType === 'max' ? '<' : '==', nonce);
 
-        const userNoncesRef = usersRef.doc(data.event.user).collection('userNonces') as CollRef<UserNonce>;
+        const userNoncesRef = usersRef.doc(user).collection('userNonces') as CollRef<UserNonce>;
 
         const formattedNonce = toNumericallySortedLexicographicStr(nonce, 256);
         const noncesToCancel = userNoncesRef
-          .where('contractAddress', '==', data.baseParams.address)
+          .where('contractAddress', '==', baseParams.address)
           .where('nonce', queryType === 'max' ? '<' : '==', formattedNonce);
         const eventTimestamp = Date.now();
 
@@ -117,7 +148,7 @@ function handleNonces(
          */
         for await (const order of streamQueryWithRef(ordersToCancel)) {
           let status: OrderStatus;
-          if (data.metadata.reorged) {
+          if (metadata.reorged) {
             const flowOrder = new Flow.Order(
               parseInt(order.data.metadata.chainId, 10),
               order.data.rawOrder.infinityOrder as Flow.Types.SignedOrder
@@ -133,20 +164,20 @@ function handleNonces(
               /**
                * update the order event on reorgs
                */
-              id: `FLOW:CANCELLED_MULTIPLE:${data.event.user}:${data.baseParams.txHash}:${data.baseParams.logIndex}`,
+              id: `FLOW:CANCELLED_MULTIPLE:${user}:${baseParams.txHash}:${baseParams.logIndex}`,
               isSellOrder: order.data.order.isSellOrder,
               orderId: order.data.metadata.id,
               chainId: order.data.metadata.chainId,
               processed: false,
               migrationId: 1,
-              timestamp: data.baseParams.blockTimestamp * 1000,
+              timestamp: baseParams.blockTimestamp * 1000,
               updatedAt: eventTimestamp,
               eventSource: 'infinity-orderbook'
             },
             data: {
               status,
-              txHash: data.baseParams.txHash,
-              txTimestamp: data.baseParams.blockTimestamp
+              txHash: baseParams.txHash,
+              txTimestamp: baseParams.blockTimestamp
             }
           };
           const orderEventRef = order.ref.collection('orderEvents').doc(orderEvent.metadata.id);
@@ -158,8 +189,8 @@ function handleNonces(
          */
         for await (const { data: nonce, ref: nonceRef } of streamQueryWithRef(noncesToCancel)) {
           let fillability: UserNonce['fillability'];
-          if (data.metadata.reorged) {
-            const exchange = new Flow.Exchange(parseInt(data.baseParams.chainId, 10));
+          if (metadata.reorged) {
+            const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
             const isValid = await exchange.contract.isNonceValid(nonce.userAddress, nonce.nonce);
             fillability = isValid ? 'fillable' : 'cancelled';
           } else {
@@ -168,16 +199,6 @@ function handleNonces(
 
           await batch.addAsync(nonceRef, { fillability }, { merge: true });
         }
-
-        /**
-         * mark the event as processed
-         */
-        const metadataUpdate: ContractEvent<unknown>['metadata'] = {
-          ...data.metadata,
-          processed: true
-        };
-        await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
-        await batch.flush();
       })
       .catch((err) => {
         logger.error('indexer', `Failed to mark orders as cancelled ${err}`);

@@ -18,7 +18,7 @@ export interface TakeOrderFulfilledEventData {
   currency: string;
   amount: string;
   nfts: ChainNFTs[];
-  nonce: string | null;
+  nonce: string;
 }
 
 export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEventData> {
@@ -63,6 +63,9 @@ export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEve
     });
 
     const { nonce } = await this.getOrderNonceFromTrace(orderHash, event.baseParams);
+    if (!nonce) {
+      throw new Error(`Failed to get nonce for ${orderHash}`);
+    }
 
     return { orderHash, seller, buyer, complication, currency, amount, nfts, nonce };
   }

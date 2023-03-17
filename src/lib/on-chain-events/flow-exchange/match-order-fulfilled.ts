@@ -19,8 +19,8 @@ export interface MatchOrderFulfilledEventData {
   currency: string;
   amount: string;
   nfts: ChainNFTs[];
-  sellOrderNonce: string | null;
-  buyOrderNonce: string | null;
+  sellOrderNonce: string;
+  buyOrderNonce: string;
 }
 
 export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledEventData> {
@@ -68,6 +68,11 @@ export class MatchOrderFulfilledEvent extends AbstractEvent<MatchOrderFulfilledE
     const { nonce: sellOrderNonce } = await this.getOrderNonceFromTrace(sellOrderHash, event.baseParams);
     const { nonce: buyOrderNonce } = await this.getOrderNonceFromTrace(buyOrderHash, event.baseParams);
 
+    if (!sellOrderNonce) {
+      throw new Error(`Failed to find nonce for order ${sellOrderHash}`);
+    } else if (!buyOrderNonce) {
+      throw new Error(`Failed to find nonce for order ${buyOrderHash}`);
+    }
     return {
       sellOrderHash,
       buyOrderHash,

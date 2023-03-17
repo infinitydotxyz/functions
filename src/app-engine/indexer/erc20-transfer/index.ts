@@ -11,8 +11,8 @@ export interface JobResult {
   id: string;
 }
 
-export class HandleCancelMultipleEvents extends AbstractSandboxProcess<JobData, JobResult> {
+export class Erc20TransferEventsQueue extends AbstractSandboxProcess<JobData, JobResult> {
   constructor(db: Redis, options?: ProcessOptions) {
-    super(db, `${__dirname}/worker.js`, options);
+    super(db, `erc20-transfer`, `${__dirname}/worker.js`, options);
   }
 }

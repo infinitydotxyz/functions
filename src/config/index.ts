@@ -149,10 +149,25 @@ export const config = {
     gasSimulationAccount: trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979')
   },
   components: {
-    syncSales: Number(getEnvVariable('SYNC_SALES', false)) === 1,
-    syncOrders: Number(getEnvVariable('SYNC_ORDERS', false)) === 1,
-    cacheReservoirOrders: Number(getEnvVariable('SYNC_RESERVOIR_ORDERS_CACHE', false)) === 1,
-    validateOrderbook: Number(getEnvVariable('VALIDATE_ORDERBOOK', false)) === 1,
-    syncOnChainEvents: Number(getEnvVariable('SYNC_ON_CHAIN_EVENTS', false)) === 1
+    syncSales: {
+      enabled: Number(getEnvVariable('SYNC_SALES', false)) === 1
+    },
+    syncOrders: {
+      enabled: Number(getEnvVariable('SYNC_ORDERS', false)) === 1
+    },
+    cacheReservoirOrders: {
+      enabled: Number(getEnvVariable('SYNC_RESERVOIR_ORDERS_CACHE', false)) === 1
+    },
+    validateOrderbook: {
+      enabled: Number(getEnvVariable('VALIDATE_ORDERBOOK', false)) === 1
+    },
+    indexer: {
+      enabled: Number(getEnvVariable('INDEXER', false)) === 1,
+      erc20: {}
+    },
+    api: {
+      apiKey: getEnvVariable('API_KEY', false),
+      port: Number(getEnvVariable('PORT', false) || 8080)
+    }
   }
 };

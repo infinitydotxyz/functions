@@ -1,26 +1,108 @@
+import { ethers } from 'ethers';
 import cron from 'node-cron';
 
-import { Erc20ApprovalEventsQueue } from './erc20-approval';
-import { Erc20TransferEventsQueue } from './erc20-transfer';
-import { Erc721ApprovalEventsQueue } from './erc721-approval';
-import { Erc721ApprovalForAllEventsQueue } from './erc721-approval-for-all';
-import { Erc721TransferEventsQueue } from './erc721-transfer';
-import { ExpirationEventsQueue } from './expiration';
-import { FlowCancelAllEventsQueue } from './flow-cancel-all';
-import { FlowCancelMultipleEventsQueue } from './flow-cancel-multiple';
-import { FlowMatchOrderFulfilledEventsQueue } from './flow-match-order.ts';
-import { FlowTakeOrderFulfilledEventsQueue } from './flow-take-order.ts';
+import { ChainId } from '@infinityxyz/lib/types/core';
+import { getExchangeAddress } from '@infinityxyz/lib/utils';
+import { Common } from '@reservoir0x/sdk';
+
+import { config } from '@/config/index';
+import { getDb } from '@/firestore/db';
+import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { AbstractBlockProcessor } from '@/lib/on-chain-events/block-processor.abstract';
+import { BlockScheduler } from '@/lib/on-chain-events/block-scheduler';
+import { Erc20 } from '@/lib/on-chain-events/erc20/erc20';
+import { Erc721 } from '@/lib/on-chain-events/erc721/erc721';
+import { FlowExchange } from '@/lib/on-chain-events/flow-exchange/flow-exchange';
+import { getProvider } from '@/lib/utils/ethersUtils';
+
+import { redis } from '../redis';
+import { initializeEventProcessors } from './initialize-event-processors';
 
 async function startIndexer() {
-  //     Erc20ApprovalEventsQueue,
-  //     Erc20TransferEventsQueue,
-  //     Erc721ApprovalEventsQueue,
-  //     Erc721ApprovalForAllEventsQueue,
-  //     Erc721TransferEventsQueue,
-  //     ExpirationEventsQueue,
-  //     FlowCancelAllEventsQueue,
-  //     FlowCancelMultipleEventsQueue,
-  //     FlowMatchOrderFulfilledEventsQueue,
-  //     FlowTakeOrderFulfilledEventsQueue
-  //   cron.schedule('*/15 * * * * *', async () => {});
+  if (config.components.indexer.enabled) {
+    const promises: Promise<unknown>[] = [];
+    const startBlockNumberByChain: Record<ChainId, number> = {
+      [ChainId.Mainnet]: 16471202,
+      [ChainId.Goerli]: 8329378,
+      [ChainId.Polygon]: 0 // TODO-future
+    };
+
+    const db = getDb();
+
+    /**
+     * Initialize on chain event syncing
+     *
+     * note - requires us to restart the indexer when we
+     * add support for/remove support for a collection
+     */
+    for (const chainId of config.supportedChains) {
+      const exchangeAddress = getExchangeAddress(chainId);
+      const wethAddress = Common.Addresses.Weth[parseInt(chainId, 10)];
+      const startBlockNumber = startBlockNumberByChain[chainId];
+      const provider = getProvider(chainId);
+      const wsProvider = new ethers.providers.WebSocketProvider(
+        provider.connection.url.replace('https', 'wss'),
+        parseInt(chainId, 10)
+      );
+      const flowBlockProcessor = new FlowExchange(redis, chainId, exchangeAddress, startBlockNumber, db, provider, {
+        enableMetrics: false,
+        concurrency: 1,
+        debug: true,
+        attempts: 5
+      });
+
+      const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, startBlockNumber, db, provider, {
+        enableMetrics: false,
+        concurrency: 1,
+        debug: true,
+        attempts: 5
+      });
+
+      const supportedCollections = new SupportedCollectionsProvider(db, chainId);
+      await supportedCollections.init();
+      const blockProcessors: AbstractBlockProcessor[] = [flowBlockProcessor, wethBlockProcessor];
+
+      for (const item of supportedCollections.values()) {
+        const [itemChainId, erc721Address] = item.split(':');
+
+        if (itemChainId !== chainId) {
+          throw new Error(`ChainId mismatch: ${itemChainId} !== ${chainId}`);
+        }
+
+        const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, startBlockNumber, db, provider, {
+          enableMetrics: false,
+          concurrency: 1,
+          debug: true,
+          attempts: 5
+        });
+
+        blockProcessors.push(erc721BlockProcessor);
+      }
+
+      const blockScheduler = new BlockScheduler(redis, chainId, provider, wsProvider, blockProcessors, {
+        enableMetrics: false,
+        concurrency: 1,
+        debug: true,
+        attempts: 1
+      });
+      const trigger = async () => {
+        await blockScheduler.add({
+          id: chainId
+        });
+      };
+      cron.schedule('*/2 * * * *', async () => {
+        await trigger();
+      });
+
+      const blockProcessorPromises = blockProcessors.map((blockProcessor) => blockProcessor.run());
+      promises.push(blockScheduler.run(), ...blockProcessorPromises);
+    }
+
+    /**
+     * Initialize on chain event processing - these are not chain specific
+     */
+    const eventProcessorsPromises = initializeEventProcessors();
+
+    await Promise.all([...promises, ...eventProcessorsPromises]);
+  }
 }

@@ -7,15 +7,16 @@ import { getExchangeAddress } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { BlockScheduler } from '@/lib/on-chain-events/block-scheduler';
+import { FlowExchange } from '@/lib/on-chain-events/flow-exchange/flow-exchange';
 import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders/validate-orders';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
-import { BlockScheduler } from '../lib/on-chain-events/block-scheduler';
-import { FlowExchange } from '../lib/on-chain-events/flow-exchange/flow-exchange';
-import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
+import { start } from './api';
+import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
@@ -29,6 +30,7 @@ async function main() {
   const promises = [];
 
   if (config.components.validateOrderbook) {
+    await start();
     const queue = new ValidateOrdersProcessor('validate-orders', redis, db, {
       enableMetrics: false,
       concurrency: 2,
@@ -192,43 +194,6 @@ async function main() {
       await trigger();
     });
     promises.push(queue.run());
-  }
-
-  if (config.components.syncOnChainEvents) {
-    const chainId = ChainId.Goerli;
-    const address = getExchangeAddress(chainId);
-    // const startBlockNumber = 16471202;
-    const startBlockNumber = 8329378;
-    const provider = getProvider(chainId);
-    const wsProvider = new ethers.providers.WebSocketProvider(
-      provider.connection.url.replace('https', 'wss'),
-      parseInt(chainId, 10)
-    );
-
-    const blockProcessor = new FlowExchange(redis, chainId, address, startBlockNumber, db, provider, {
-      enableMetrics: false,
-      concurrency: 1,
-      debug: true,
-      attempts: 5
-    });
-
-    const blockScheduler = new BlockScheduler(redis, chainId, provider, wsProvider, [blockProcessor], {
-      enableMetrics: false,
-      concurrency: 1,
-      debug: true,
-      attempts: 1
-    });
-    const trigger = async () => {
-      await blockScheduler.add({
-        id: chainId
-      });
-    };
-
-    await trigger();
-    cron.schedule('*/2 * * * *', async () => {
-      await trigger();
-    });
-    promises.push(blockScheduler.run(), blockProcessor.run());
   }
 
   await Promise.all(promises);

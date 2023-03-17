@@ -84,6 +84,11 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
       throw new OrderKindError(`${this.kind}`, 'seaport', 'unexpected');
     }
 
+    if (!this._order.params.signature && this._chainId !== ChainId.Mainnet) {
+      // remove this to support unsigned orders on testnets
+      throw new OrderError('No signature on non-mainnet order', ErrorCode.NotSigned, '', this.source, 'unsupported');
+    }
+
     const zones = [ethers.constants.AddressZero, Seaport.Addresses.PausableZone[this.chainId]];
     if (!zones.includes(this._components.zone)) {
       throw new OrderError('unknown zone', ErrorCode.SeaportZone, this._components.zone, this.source, 'unsupported');

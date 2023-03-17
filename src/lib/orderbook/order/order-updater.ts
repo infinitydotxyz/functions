@@ -1,4 +1,5 @@
 import {
+  ChainId,
   DisplayOrder,
   FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
@@ -6,6 +7,7 @@ import {
   RawFirestoreOrderWithoutError,
   UserDisplayData
 } from '@infinityxyz/lib/types/core';
+import { Seaport } from '@reservoir0x/sdk';
 
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 
@@ -50,6 +52,30 @@ export class OrderUpdater {
       this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
       this._rawOrder.metadata.processed = false;
     }
+
+    if (!this.isSupported() && this._rawOrder.order.status === 'active') {
+      this._rawOrder.order.status = 'inactive';
+      this._rawOrder.order.isValid = true;
+      this._rawOrder.metadata.processed = false;
+    }
+  }
+
+  isSupported() {
+    /**
+     * todo update this to support unsigned seaport orders on testnets
+     */
+    if (this.rawOrder.metadata.chainId !== ChainId.Mainnet) {
+      switch (this.rawOrder.metadata.source) {
+        case 'seaport':
+        case 'seaport-v1.4': {
+          if (!(this.rawOrder?.rawOrder?.rawOrder as Seaport.Types.OrderComponents)?.signature) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
   }
 
   setTokenOwner(owner: UserDisplayData, token: { address: string; tokenId: string }) {

@@ -1,6 +1,8 @@
+import { constants } from 'ethers';
 import PQueue from 'p-queue';
 
 import { OrderEventKind, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -12,6 +14,7 @@ import { Erc721ApprovalEventData } from '@/lib/on-chain-events/erc721/erc721-app
 import { Erc721ApprovalForAllEventData } from '@/lib/on-chain-events/erc721/erc721-approval-for-all';
 import { Erc721TransferEventData } from '@/lib/on-chain-events/erc721/erc721-transfer';
 import { ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
+import { NftEventKind, NftTransferEvent } from '@/lib/tokens/transfers/types';
 
 import { validateOrders } from './validate-orders';
 
@@ -188,6 +191,42 @@ export async function handleErc721TransferEvents() {
           processed: true
         };
 
+        const id = `${item.data.baseParams.block}:${item.data.baseParams.blockHash}:${item.data.baseParams.logIndex}`;
+
+        const transferEvent: NftTransferEvent = {
+          metadata: {
+            kind: NftEventKind.Transfer,
+            processed: false,
+            commitment: item.data.metadata.commitment,
+            timestamp: Date.now(),
+            chainId: item.data.baseParams.chainId,
+            address: item.data.baseParams.address,
+            tokenId: item.data.event.tokenId
+          },
+          data: {
+            from: item.data.event.from,
+            to: item.data.event.to,
+            isMint: item.data.event.from === constants.AddressZero,
+            blockNumber: item.data.baseParams.block,
+            blockHash: item.data.baseParams.blockHash,
+            blockTimestamp: item.data.baseParams.blockTimestamp,
+            transactionHash: item.data.baseParams.txHash,
+            transactionIndex: 0,
+            logIndex: item.data.baseParams.logIndex,
+            removed: item.data.metadata.reorged,
+            topics: [],
+            data: ''
+          }
+        };
+
+        const tokenRef = getDb()
+          .collection(firestoreConstants.COLLECTIONS_COLL)
+          .doc(`${item.data.baseParams.chainId}:${item.data.baseParams.address}`)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(item.data.event.tokenId);
+
+        const transferRef = tokenRef.collection('nftTransferEvents').doc(id);
+        await batch.addAsync(transferRef, transferEvent, { merge: true });
         await batch.addAsync(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
 
         await batch.flush();

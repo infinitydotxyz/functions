@@ -9,7 +9,7 @@ import Redlock from 'redlock';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
+import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -119,7 +119,7 @@ const getRedlock = () => {
 export const config = {
   isDev,
   isDeployed,
-  supportedChains: [ChainId.Mainnet, ChainId.Goerli],
+  supportedChains: [ChainId.Goerli],
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)

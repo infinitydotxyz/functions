@@ -43,33 +43,34 @@ export async function startIndexer() {
       attempts: 5
     });
 
-    const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, {
-      enableMetrics: false,
-      concurrency: 1,
-      debug: true,
-      attempts: 5
-    });
+    // const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, {
+    //   enableMetrics: false,
+    //   concurrency: 1,
+    //   debug: true,
+    //   attempts: 5
+    // });
 
     const supportedCollections = new SupportedCollectionsProvider(db, chainId);
     await supportedCollections.init();
-    const blockProcessors: AbstractBlockProcessor[] = [flowBlockProcessor, wethBlockProcessor];
+    // const blockProcessors: AbstractBlockProcessor[] = [flowBlockProcessor, wethBlockProcessor];
+    const blockProcessors: AbstractBlockProcessor[] = [flowBlockProcessor];
 
-    for (const item of supportedCollections.values()) {
-      const [itemChainId, erc721Address] = item.split(':');
+    // for (const item of supportedCollections.values()) {
+    //   const [itemChainId, erc721Address] = item.split(':');
 
-      if (itemChainId !== chainId) {
-        throw new Error(`ChainId mismatch: ${itemChainId} !== ${chainId}`);
-      }
+    //   if (itemChainId !== chainId) {
+    //     throw new Error(`ChainId mismatch: ${itemChainId} !== ${chainId}`);
+    //   }
 
-      const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, {
-        enableMetrics: false,
-        concurrency: 1,
-        debug: true,
-        attempts: 5
-      });
+    //   const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, {
+    //     enableMetrics: false,
+    //     concurrency: 1,
+    //     debug: true,
+    //     attempts: 5
+    //   });
 
-      blockProcessors.push(erc721BlockProcessor);
-    }
+    //   blockProcessors.push(erc721BlockProcessor);
+    // }
 
     const blockScheduler = new BlockScheduler(redis, chainId, provider, wsProvider, blockProcessors, {
       enableMetrics: false,
@@ -86,6 +87,8 @@ export async function startIndexer() {
       await trigger();
     });
 
+    promises.push(trigger());
+
     const blockProcessorPromises = blockProcessors.map((blockProcessor) => blockProcessor.run());
     promises.push(blockScheduler.run(), ...blockProcessorPromises);
   }
@@ -93,7 +96,8 @@ export async function startIndexer() {
   /**
    * Initialize on chain event processing - these are not chain specific
    */
-  const eventProcessorsPromises = initializeEventProcessors();
+  // const eventProcessorsPromises = initializeEventProcessors();
 
-  await Promise.all([...promises, ...eventProcessorsPromises]);
+  // await Promise.all([...promises, ...eventProcessorsPromises]);
+  await Promise.all([...promises]);
 }

@@ -1,3 +1,4 @@
+/* eslint-disable no-constant-condition */
 import { Job } from 'bullmq';
 import { EventFilter, ethers } from 'ethers';
 import { Redis } from 'ioredis';
@@ -28,6 +29,7 @@ import { BlockProcessorJobData, BlockProcessorJobResult } from './block-processo
 import { blockProcessorConfig } from './config';
 
 const OptimizeAfterXEmptyRequests = 5;
+
 interface Cursor {
   metadata: {
     chainId: ChainId;
@@ -123,115 +125,119 @@ export default async function (
 
   const id = config.id(chainId, address);
   const httpProvider = new ethers.providers.StaticJsonRpcProvider(httpsProviderUrl, parseInt(chainId, 10));
-  const lockKey = `block-processor:type:${id}:lock`;
-  const lockDuration = 5_000;
+  const lockKey = `${id}:lock`;
+  const lockDuration = 5000;
 
-  try {
-    const db = getDb();
-    const abi = config.abi;
-    const contract = new ethers.Contract(address, abi, httpProvider);
+  const attempt = 0;
+  while (true) {
+    try {
+      const db = getDb();
+      const abi = config.abi;
+      const contract = new ethers.Contract(address, abi, httpProvider);
 
-    const eventHandlers = config.events.map((item) => new item(chainId, contract, address, db));
-    const eventFilters = eventHandlers.map((item) => item.eventFilter);
-    const startBlockNumber = config.startBlockNumberByChain[chainId];
-    const result = await redlock.using([lockKey], lockDuration, async (signal) => {
-      const checkSignal = () => {
-        if (signal.aborted) {
-          throw new Error('Lock aborted');
-        }
-      };
-
-      const { cursor, isBackfill } = await loadCursor(chainId, id, startBlockNumber, redis);
-      checkSignal();
-
-      const fromLatestBlockNumber = cursor.data.latestBlockNumber + 1;
-      const fromFinalizedBlockNumber = cursor.data.finalizedBlockNumber + 1;
-      const toLatestBlockNumber = latestBlockNumber;
-      const toFinalizedBlockNumber = finalizedBlockNumber;
-
-      let blocksProcessed = 0;
-      let logsProcessed = 0;
-
-      if (fromFinalizedBlockNumber <= toFinalizedBlockNumber) {
-        logger.log(
-          'block-processor',
-          `Processing finalized blocks ${fromFinalizedBlockNumber} to ${toFinalizedBlockNumber}`
-        );
-        const finalizedLogs = await getLogs(
-          eventFilters,
-          fromFinalizedBlockNumber,
-          toFinalizedBlockNumber,
-          httpProvider
-        );
-        checkSignal();
-        const { logsProcessed: numLogs, blocksProcessed: numBlocks } = await processLogs(
-          chainId,
-          eventHandlers,
-          finalizedLogs,
-          finalizedBlockNumber,
-          isBackfill,
-          checkSignal
-        );
-        logsProcessed += numLogs;
-        blocksProcessed += numBlocks;
-      }
-
-      const latestBlock = Math.max(fromLatestBlockNumber, toFinalizedBlockNumber + 1);
-      if (latestBlock <= toLatestBlockNumber) {
-        logger.log('block-processor', `Processing latest blocks ${latestBlock} to ${toLatestBlockNumber}`);
-        const latestLogs = await getLogs(eventFilters, latestBlock, toLatestBlockNumber, httpProvider);
-        checkSignal();
-        const { logsProcessed: numLogs, blocksProcessed: numBlocks } = await processLogs(
-          chainId,
-          eventHandlers,
-          latestLogs,
-          finalizedBlockNumber,
-          isBackfill,
-          checkSignal
-        );
-        logsProcessed += numLogs;
-        blocksProcessed += numBlocks;
-      }
-
-      checkSignal();
-      await saveCursor(
-        id,
-        {
-          metadata: {
-            chainId,
-            updatedAt: Date.now()
-          },
-          data: {
-            latestBlockNumber: toLatestBlockNumber,
-            finalizedBlockNumber: toFinalizedBlockNumber
+      const eventHandlers = config.events.map((item) => new item(chainId, contract, address, db));
+      const eventFilters = eventHandlers.map((item) => item.eventFilter);
+      const startBlockNumber = config.startBlockNumberByChain[chainId];
+      const result = await redlock.using([lockKey], lockDuration, async (signal) => {
+        const checkSignal = () => {
+          if (signal.aborted) {
+            throw new Error('Lock aborted');
           }
-        },
-        redis
-      );
+        };
 
-      return {
-        id: job.data.id,
-        blocksProcessed,
-        logsProcessed,
-        timing: {
-          created: job.timestamp,
-          started: start,
-          completed: Date.now()
+        const { cursor, isBackfill } = await loadCursor(chainId, id, startBlockNumber, redis);
+        checkSignal();
+
+        const fromLatestBlockNumber = cursor.data.latestBlockNumber + 1;
+        const fromFinalizedBlockNumber = cursor.data.finalizedBlockNumber + 1;
+        const toLatestBlockNumber = latestBlockNumber;
+        const toFinalizedBlockNumber = finalizedBlockNumber;
+
+        let blocksProcessed = 0;
+        let logsProcessed = 0;
+
+        if (fromFinalizedBlockNumber <= toFinalizedBlockNumber) {
+          logger.log(id, `Processing finalized blocks ${fromFinalizedBlockNumber} to ${toFinalizedBlockNumber}`);
+          const finalizedLogs = await getLogs(
+            eventFilters,
+            fromFinalizedBlockNumber,
+            toFinalizedBlockNumber,
+            httpProvider
+          );
+          checkSignal();
+          const { logsProcessed: numLogs, blocksProcessed: numBlocks } = await processLogs(
+            chainId,
+            eventHandlers,
+            finalizedLogs,
+            finalizedBlockNumber,
+            isBackfill,
+            checkSignal
+          );
+          logsProcessed += numLogs;
+          blocksProcessed += numBlocks;
         }
-      };
-    });
 
-    return result;
-  } catch (err) {
-    if (err instanceof ExecutionError) {
-      logger.warn('block-processor', `Failed to acquire lock`);
-      await sleep(3000);
-    } else if (err instanceof Error) {
-      logger.error('block-processor', `${err}`);
-    } else {
-      logger.error('block-processor', `Unknown error: ${err}`);
+        const latestBlock = Math.max(fromLatestBlockNumber, toFinalizedBlockNumber + 1);
+        if (latestBlock <= toLatestBlockNumber) {
+          logger.log(id, `Processing latest blocks ${latestBlock} to ${toLatestBlockNumber}`);
+          const latestLogs = await getLogs(eventFilters, latestBlock, toLatestBlockNumber, httpProvider);
+          checkSignal();
+          const { logsProcessed: numLogs, blocksProcessed: numBlocks } = await processLogs(
+            chainId,
+            eventHandlers,
+            latestLogs,
+            finalizedBlockNumber,
+            isBackfill,
+            checkSignal
+          );
+          logsProcessed += numLogs;
+          blocksProcessed += numBlocks;
+        }
+
+        checkSignal();
+        await saveCursor(
+          id,
+          {
+            metadata: {
+              chainId,
+              updatedAt: Date.now()
+            },
+            data: {
+              latestBlockNumber: toLatestBlockNumber,
+              finalizedBlockNumber: toFinalizedBlockNumber
+            }
+          },
+          redis
+        );
+
+        return {
+          id: job.data.id,
+          blocksProcessed,
+          logsProcessed,
+          timing: {
+            created: job.timestamp,
+            started: start,
+            completed: Date.now()
+          }
+        };
+      });
+
+      return result;
+    } catch (err) {
+      if (err instanceof ExecutionError) {
+        logger.warn(id, `Failed to acquire lock`);
+        await sleep(5000);
+        if (attempt > 3) {
+          throw err;
+        }
+      } else if (err instanceof Error) {
+        logger.error(id, `${err}`);
+        throw err;
+      } else {
+        logger.error(id, `Unknown error: ${err}`);
+        throw err;
+      }
     }
-    throw err;
   }
 }
 
@@ -276,17 +282,25 @@ async function processLogs(
       blockHash?: string;
     }[] = [];
     for (let block = fromBlock; block <= toBlock; block += 1) {
-      const blockTimestamp = await getBlockTimestamp(chainId, block);
-      const blockEvents = events
-        .filter((log) => log.blockNumber === block)
-        .map((log) => {
-          return {
-            log,
-            baseParams: getEventParams(chainId, log, blockTimestamp)
-          };
-        });
+      if (isBackfill && chunk.events.length === 0) {
+        continue;
+      }
+      let blockTimestamp: number;
+      const blockLogs = events.filter((log) => log.blockNumber === block);
+      if (blockLogs.length > 0) {
+        blockTimestamp = await getBlockTimestamp(chainId, block);
+      } else {
+        blockTimestamp = 0;
+      }
 
-      logsProcessed += events.length;
+      const blockEvents = blockLogs.map((log) => {
+        return {
+          log,
+          baseParams: getEventParams(chainId, log, blockTimestamp)
+        };
+      });
+
+      logsProcessed += blockEvents.length;
       blocksProcessed += 1;
       logsByBlock.push({
         blockNumber: block,
@@ -302,9 +316,6 @@ async function processLogs(
           'block-processor',
           `Processing block ${block.blockNumber} - ${block.blockHash} - ${block.commitment}`
         );
-      }
-      if (block.events.length > 0) {
-        logger.log('block-processor', `Processing block ${block.blockNumber} With ${block.events.length} logs`);
       }
       await processBlock(eventHandlers, block.events, block.blockNumber, block.commitment, isBackfill, block.blockHash);
       checkSignal();

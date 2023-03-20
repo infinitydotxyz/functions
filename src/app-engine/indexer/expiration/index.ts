@@ -13,6 +13,6 @@ export interface JobResult {
 
 export class ExpirationEventsQueue extends AbstractSandboxProcess<JobData, JobResult> {
   constructor(db: Redis, options?: ProcessOptions) {
-    super(db, `order-expiration`, `${__dirname}/worker.js`, options);
+    super(db, `order-expiration:processor`, `${__dirname}/worker.js`, options);
   }
 }

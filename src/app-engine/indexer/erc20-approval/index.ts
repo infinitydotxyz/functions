@@ -13,6 +13,6 @@ export interface JobResult {
 
 export class Erc20ApprovalEventsQueue extends AbstractSandboxProcess<JobData, JobResult> {
   constructor(db: Redis, options?: ProcessOptions) {
-    super(db, `erc20-approval`, `${__dirname}/worker.js`, options);
+    super(db, `erc20-approval:processor`, `${__dirname}/worker.js`, options);
   }
 }

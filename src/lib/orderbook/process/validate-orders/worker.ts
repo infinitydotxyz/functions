@@ -2,9 +2,15 @@ import { Job } from 'bullmq';
 import 'module-alias/register';
 import PQueue from 'p-queue';
 
-import { ChainId, OrderEventKind, OrderRevalidationEvent, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  OrderEventKind,
+  OrderRevalidationEvent,
+  RawFirestoreOrder,
+  RawOrderWithoutError
+} from '@infinityxyz/lib/types/core';
 import { ONE_HOUR, firestoreConstants } from '@infinityxyz/lib/utils';
-import { Seaport, SeaportV14 } from '@reservoir0x/sdk';
+import { Flow, Seaport, SeaportV14 } from '@reservoir0x/sdk';
 
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
@@ -15,6 +21,7 @@ import { CollRef, DocRef, Query } from '@/firestore/types';
 import { Reservoir } from '@/lib/index';
 import { logger } from '@/lib/logger';
 
+import { getOrderStatus } from '../../indexer/validate-orders';
 import { AbstractOrderbookProcessor } from '../orderbook-processor';
 import { JobData, JobResult } from './validate-orders';
 
@@ -73,7 +80,43 @@ export default async function (job: Job<JobData, JobResult>) {
           const batchHandler = new BatchHandler();
           const itemById = new Map<string, { data: RawFirestoreOrder; ref: DocRef<RawFirestoreOrder> }>();
           for (const item of page) {
-            itemById.set(item.data.metadata.id, item);
+            if (item.data.metadata.source !== 'flow') {
+              itemById.set(item.data.metadata.id, item);
+            } else if (item.data.rawOrder && (item.data.rawOrder as RawOrderWithoutError)?.rawOrder) {
+              try {
+                const flowOrder = new Flow.Order(
+                  parseInt(item.data.metadata.chainId, 10),
+                  (item.data.rawOrder as RawOrderWithoutError).rawOrder
+                );
+
+                const status = await getOrderStatus(flowOrder);
+
+                logger.log(name, `${item.data.metadata.id} ${item.data.order?.status} => ${status}`);
+                const timestamp = Date.now();
+                const orderEvent: OrderRevalidationEvent = {
+                  metadata: {
+                    id: `REVALIDATE:${timestamp}`,
+                    isSellOrder,
+                    orderId: item.data.metadata.id,
+                    chainId: item.data.metadata.chainId,
+                    processed: false,
+                    migrationId: 1,
+                    eventKind: OrderEventKind.Revalidation,
+                    timestamp,
+                    updatedAt: timestamp,
+                    eventSource: 'infinity-orderbook'
+                  },
+                  data: {
+                    status: status
+                  }
+                };
+
+                const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
+                await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+              } catch (err) {
+                itemById.set(item.data.metadata.id, item);
+              }
+            }
           }
 
           const ids = page.map((item) => item.data.metadata.id);
@@ -160,6 +203,7 @@ export default async function (job: Job<JobData, JobResult>) {
                       }
                       break;
                     }
+
                     default:
                       break;
                   }

@@ -7,19 +7,16 @@ import { getDb } from '@/firestore/db';
 import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders/validate-orders';
 
 async function main() {
-  const db = getDb();
   const isSellOrder = true;
   const executionId = 'manual';
 
   const id = `validate-orders:${isSellOrder}:`;
-  const processor = new ValidateOrdersProcessor(id, redis, db, {
+  const processor = new ValidateOrdersProcessor(id, redis, getDb(), {
     enableMetrics: false,
-    concurrency: 8,
+    concurrency: 2,
     debug: true,
-    attempts: 1,
-    delay: 0
+    attempts: 1
   });
-
   const numQueries = 16;
 
   const jobs = [];

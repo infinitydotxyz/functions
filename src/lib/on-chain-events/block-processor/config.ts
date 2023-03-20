@@ -19,25 +19,33 @@ import { OwnershipTransferredEvent } from '../ownable/ownership-transferred';
 import { PausedEvent } from '../pauseable/paused-event';
 import { UnpausedEvent } from '../pauseable/unpaused-event';
 
-const version = 1;
-export const startBlockNumberByChain: Record<ChainId, number> = {
-  [ChainId.Mainnet]: 16471202,
-  [ChainId.Goerli]: 8329378,
-  [ChainId.Polygon]: 0 // TODO-future
-} as const;
+/**
+ * The version can be incremented to reset cursor values
+ */
+const version = 2;
 
 export const blockProcessorConfig = {
   erc20: {
     id: (chainId: ChainId, address: string) =>
       `block-processor:chain:${chainId}:type:erc20:address:${address}:version:${version}`,
     events: [Erc20TransferEvent, Erc20ApprovalEvent],
-    abi: ERC20ABI
+    abi: ERC20ABI,
+    startBlockNumberByChain: {
+      [ChainId.Mainnet]: 16869618,
+      [ChainId.Goerli]: 8688093,
+      [ChainId.Polygon]: 0 // TODO-future
+    }
   },
   erc721: {
     id: (chainId: ChainId, address: string) =>
       `block-processor:chain:${chainId}:type:erc721:address:${address}:version:${version}`,
     events: [Erc721TransferEvent, Erc721ApprovalEvent, Erc721ApprovalForAllEvent],
-    abi: ERC721ABI
+    abi: ERC721ABI,
+    startBlockNumberByChain: {
+      [ChainId.Mainnet]: 16869618,
+      [ChainId.Goerli]: 8688093,
+      [ChainId.Polygon]: 0 // TODO-future
+    }
   },
   flowExchange: {
     id: (chainId: ChainId, address: string) =>
@@ -56,6 +64,11 @@ export const blockProcessorConfig = {
       PausedEvent,
       UnpausedEvent
     ],
-    abi: FlowExchangeABI
+    abi: FlowExchangeABI,
+    startBlockNumberByChain: {
+      [ChainId.Mainnet]: 16471202,
+      [ChainId.Goerli]: 8329378,
+      [ChainId.Polygon]: 0 // TODO-future
+    }
   }
 } as const;

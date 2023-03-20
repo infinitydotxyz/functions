@@ -25,7 +25,7 @@ import {
   ThunkedLogRequest
 } from '../types';
 import { BlockProcessorJobData, BlockProcessorJobResult } from './block-processor.abstract';
-import { blockProcessorConfig, startBlockNumberByChain } from './config';
+import { blockProcessorConfig } from './config';
 
 const OptimizeAfterXEmptyRequests = 5;
 interface Cursor {
@@ -133,7 +133,7 @@ export default async function (
 
     const eventHandlers = config.events.map((item) => new item(chainId, contract, address, db));
     const eventFilters = eventHandlers.map((item) => item.eventFilter);
-    const startBlockNumber = startBlockNumberByChain[chainId];
+    const startBlockNumber = config.startBlockNumberByChain[chainId];
     const result = await redlock.using([lockKey], lockDuration, async (signal) => {
       const checkSignal = () => {
         if (signal.aborted) {

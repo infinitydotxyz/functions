@@ -41,7 +41,7 @@ export abstract class AbstractBlockProcessor extends AbstractSandboxProcess<
     protected _address: string,
     options?: ProcessOptions
   ) {
-    super(_db, `block-processor:chain:${_chainId}:type:${type}`, `${__dirname}/worker.js`, options);
+    super(_db, `block-processor:version:1:chain:${_chainId}:type:${type}`, `${__dirname}/worker.js`, options);
   }
 
   async add(job: BlockProcessorJobData, id?: string): Promise<void>;

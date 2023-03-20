@@ -119,7 +119,7 @@ const getRedlock = () => {
 export const config = {
   isDev,
   isDeployed,
-  supportedChains: [ChainId.Goerli],
+  supportedChains: [ChainId.Mainnet, ChainId.Goerli],
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)

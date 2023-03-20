@@ -132,6 +132,7 @@ export function updateNonces(
     queue
       .add(async () => {
         const ordersToCancel = ordersRef
+          .where('metadata.source', '==', 'flow')
           .where('order.maker', '==', user)
           .where('order.nonce', queryType === 'max' ? '<' : '==', nonce);
 

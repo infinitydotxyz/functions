@@ -87,6 +87,7 @@ export async function handleErc721ApprovalEvents() {
            * this could be filtered by token id as well but might not be worth the additional index
            */
           const impactedOrdersQuery = ordersRef
+            .where('metadata.source', '==', 'flow')
             .where('metadata.chainId', '==', item.data.baseParams.chainId)
             .where('order.isSellOrder', '==', true)
             .where('order.maker', '==', item.data.event.owner)
@@ -128,6 +129,7 @@ export async function handleErc721ApprovalForAllEvents() {
            * ERC721 approvals are required for asks
            */
           const impactedOrdersQuery = ordersRef
+            .where('metadata.source', '==', 'flow')
             .where('metadata.chainId', '==', item.data.baseParams.chainId)
             .where('order.isSellOrder', '==', true)
             .where('order.maker', '==', item.data.event.owner)
@@ -170,12 +172,14 @@ export async function handleErc721TransferEvents() {
          * this could be filtered by token id as well but might not be worth the additional index
          */
         const fromOrdersQuery = ordersRef
+          .where('metadata.source', '==', 'flow')
           .where('metadata.chainId', '==', item.data.baseParams.chainId)
           .where('order.isSellOrder', '==', true)
           .where('order.maker', '==', item.data.event.from)
           .where('order.collection', '==', item.data.baseParams.address);
 
         const toOrdersQuery = ordersRef
+          .where('metadata.source', '==', 'flow')
           .where('metadata.chainId', '==', item.data.baseParams.chainId)
           .where('order.isSellOrder', '==', true)
           .where('order.maker', '==', item.data.event.to)

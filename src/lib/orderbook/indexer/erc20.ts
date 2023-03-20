@@ -59,6 +59,7 @@ export async function handleErc20ApprovalEvents() {
            * WETH approvals are required for bids only
            */
           const impactedOrdersQuery = ordersRef
+            .where('metadata.source', '==', 'flow')
             .where('metadata.chainId', '==', item.data.baseParams.chainId)
             .where('order.isSellOrder', '==', false)
             .where('order.maker', '==', item.data.event.owner);
@@ -98,11 +99,13 @@ export async function handleErc20TransferEvents() {
          * WETH balances are required for bids only
          */
         const fromOrdersQuery = ordersRef
+          .where('metadata.source', '==', 'flow')
           .where('metadata.chainId', '==', item.data.baseParams.chainId)
           .where('order.isSellOrder', '==', false)
           .where('order.maker', '==', item.data.event.from);
 
         const toOrdersQuery = ordersRef
+          .where('metadata.source', '==', 'flow')
           .where('metadata.chainId', '==', item.data.baseParams.chainId)
           .where('order.isSellOrder', '==', false)
           .where('order.maker', '==', item.data.event.to);

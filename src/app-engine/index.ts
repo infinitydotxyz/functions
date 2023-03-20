@@ -5,17 +5,19 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { logger } from '@/lib/logger';
 import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders/validate-orders';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 
 import { config } from '../config';
 import { Reservoir } from '../lib';
 import { start } from './api';
-import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events-queue';
+import { startIndexer } from './indexer';
+import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
-import { SalesEventsQueue, SalesJobData, SalesJobResult } from './sales-events-queue';
+import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
 
 async function main() {
   const db = getDb();
@@ -24,7 +26,7 @@ async function main() {
 
   const promises = [];
 
-  if (config.components.validateOrderbook) {
+  if (config.components.validateOrderbook.enabled) {
     await start();
     const queue = new ValidateOrdersProcessor('validate-orders', redis, db, {
       enableMetrics: false,
@@ -64,7 +66,7 @@ async function main() {
     promises.push(queue.run());
   }
 
-  if (config.components.cacheReservoirOrders) {
+  if (config.components.cacheReservoirOrders.enabled) {
     const supportedChains = [ChainId.Mainnet, ChainId.Goerli];
     for (const chainId of supportedChains) {
       const bidCacheQueue = new ReservoirOrderCacheQueue(
@@ -97,7 +99,7 @@ async function main() {
     }
   }
 
-  if (config.components.syncOrders) {
+  if (config.components.syncOrders.enabled) {
     const initQueue = (id: string, queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) => {
       const orderEventsQueue = new OrderEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
@@ -144,7 +146,7 @@ async function main() {
     promises.push(queue.run());
   }
 
-  if (config.components.syncSales) {
+  if (config.components.syncSales.enabled) {
     const initQueue = (id: string, queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) => {
       const salesEventsQueue = new SalesEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
@@ -189,6 +191,11 @@ async function main() {
       await trigger();
     });
     promises.push(queue.run());
+  }
+
+  if (config.components.indexer.enabled) {
+    logger.log('indexer', `Starting indexer!`);
+    promises.push(startIndexer());
   }
 
   await Promise.all(promises);

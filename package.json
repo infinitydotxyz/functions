@@ -15,6 +15,7 @@
     "deploy:sales:prod": "npm run build && gcloud app deploy -q --appyaml=./app.sales-sync.prod.yaml --project=nftc-infinity",
     "deploy:orders:dev": "npm run build && gcloud app deploy -q --appyaml=./app.orders-sync.dev.yaml --project=nftc-dev",
     "deploy:orders:prod": "npm run build && gcloud app deploy -q --appyaml=./app.orders-sync.prod.yaml --project=nftc-infinity",
+    "deploy:indexer:prod": "npm run build && gcloud app deploy -q --appyaml=./app.indexer.prod.yaml --project=nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -43,8 +44,8 @@
   },
   "main": "dist/index.js",
   "dependencies": {
-    "@georgeroman/evm-tx-simulator": "^0.0.9",
-    "@infinityxyz/lib": "^1.334.1",
+    "@georgeroman/evm-tx-simulator": "^0.0.17",
+    "@infinityxyz/lib": "^1.335.0",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "0.0.324",
     "@types/node": "^18.11.19",

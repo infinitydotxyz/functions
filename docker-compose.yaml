@@ -5,9 +5,9 @@ services:
     command: sh -c "redis-server"
     networks:
       - local
-    ports: 
+    ports:
       - 6379:6379
 
-networks: 
+networks:
   local:
     driver: bridge

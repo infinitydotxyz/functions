@@ -22,7 +22,11 @@ const getEnvVariable = (key: string, required = true): string => {
 };
 
 const isDev = serviceAccount.project_id === 'nftc-dev';
-const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
+const isDeployed =
+  Number(getEnvVariable('DEPLOYED', false)) === 1 ||
+  !!getEnvVariable('GCLOUD_PROJECT', false) ||
+  !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
+
 const env = `.env.${isDev ? 'development' : 'production'}.${isDeployed ? 'deploy' : 'local'}`;
 console.log('config', `Loading environment variables from ${env}`);
 loadEnv({ path: `.env` });

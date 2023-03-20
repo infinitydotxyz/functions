@@ -11,7 +11,7 @@ import { ProcessOptions } from '@/lib/process/types';
 import { safeWebSocketSubscription } from '@/lib/utils/safe-websocket-subscription';
 
 import { redlock } from '../../app-engine/redis';
-import { AbstractBlockProcessor } from './block-processor.abstract';
+import { AbstractBlockProcessor } from './block-processor/block-processor.abstract';
 
 interface JobData {
   id: string;
@@ -64,7 +64,9 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
             latestBlockNumber: blockNumber,
             finalizedBlockNumber: finalizedBlock.number,
             chainId: this._chainId,
-            httpsProviderUrl: this._httpProvider.connection.url
+            httpsProviderUrl: this._httpProvider.connection.url,
+            address: blockProcessor.address,
+            type: blockProcessor.getKind()
           },
           `chain:${this._chainId}:block:${blockNumber}:finalizedBlock:${finalizedBlock.number}`
         );

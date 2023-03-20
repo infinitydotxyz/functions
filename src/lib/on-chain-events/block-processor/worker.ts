@@ -106,7 +106,12 @@ export default async function (
 
   const config = blockProcessorConfig[blockProcessorType];
   if (!config) {
-    throw new Error(`Invalid block processor type: ${blockProcessorType}`);
+    logger.warn('block-processor', `Unknown block processor type: ${blockProcessorType}`);
+    return {
+      id: job.data.id,
+      blocksProcessed: 0,
+      logsProcessed: 0
+    };
   }
 
   const id = config.id(chainId, address);

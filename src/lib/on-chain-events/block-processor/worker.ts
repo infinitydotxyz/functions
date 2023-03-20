@@ -11,6 +11,7 @@ import { sleep } from '@infinityxyz/lib/utils';
 import { redis, redlock } from '@/app-engine/redis';
 import { getDb } from '@/firestore/db';
 import { logger } from '@/lib/logger';
+import { WithTiming } from '@/lib/process/types';
 
 import { AbstractEvent } from '../event.abstract';
 import { getBlockTimestamp } from '../get-block-timestamp';
@@ -94,7 +95,8 @@ function getEventParams(chainId: ChainId, log: ethers.providers.Log, blockTimest
 
 export default async function (
   job: Job<BlockProcessorJobData, BlockProcessorJobResult, string>
-): Promise<BlockProcessorJobResult> {
+): Promise<WithTiming<BlockProcessorJobResult>> {
+  const start = Date.now();
   const {
     httpsProviderUrl,
     chainId,
@@ -110,7 +112,12 @@ export default async function (
     return {
       id: job.data.id,
       blocksProcessed: 0,
-      logsProcessed: 0
+      logsProcessed: 0,
+      timing: {
+        created: job.timestamp,
+        started: start,
+        completed: Date.now()
+      }
     };
   }
 
@@ -205,7 +212,12 @@ export default async function (
       return {
         id: job.data.id,
         blocksProcessed,
-        logsProcessed
+        logsProcessed,
+        timing: {
+          created: job.timestamp,
+          started: start,
+          completed: Date.now()
+        }
       };
     });
 

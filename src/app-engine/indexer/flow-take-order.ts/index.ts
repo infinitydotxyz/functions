@@ -13,6 +13,6 @@ export interface JobResult {
 
 export class FlowTakeOrderFulfilledEventsQueue extends AbstractSandboxProcess<JobData, JobResult> {
   constructor(db: Redis, options?: ProcessOptions) {
-    super(db, `flow-take-order-fulfilled`, `${__dirname}/worker.js`, options);
+    super(db, `flow-take-order-fulfilled:processor`, `${__dirname}/worker.js`, options);
   }
 }

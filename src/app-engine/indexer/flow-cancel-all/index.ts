@@ -13,6 +13,6 @@ export interface JobResult {
 
 export class FlowCancelAllEventsQueue extends AbstractSandboxProcess<JobData, JobResult> {
   constructor(db: Redis, options?: ProcessOptions) {
-    super(db, `flow-cancel-all`, `${__dirname}/worker.js`, options);
+    super(db, `flow-cancel-all:processor`, `${__dirname}/worker.js`, options);
   }
 }

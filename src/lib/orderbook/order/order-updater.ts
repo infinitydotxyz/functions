@@ -47,11 +47,9 @@ export class OrderUpdater {
   }
 
   setStatus(status: OrderStatus) {
-    if (this._rawOrder.order.status === 'active' || this._rawOrder.order.status === 'inactive' || status === 'filled') {
-      this._rawOrder.order.status = status;
-      this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
-      this._rawOrder.metadata.processed = false;
-    }
+    this._rawOrder.order.status = status;
+    this._rawOrder.order.isValid = status === 'active' || status === 'inactive';
+    this._rawOrder.metadata.processed = false;
 
     if (!this.isSupported() && this._rawOrder.order.status === 'active') {
       this._rawOrder.order.status = 'inactive';

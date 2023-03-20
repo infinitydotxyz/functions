@@ -164,28 +164,32 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     const initialStatus = orderUpdater.rawOrder.order.status;
     for (const item of items) {
       const { data: event, ref } = item;
-
-      switch (event.metadata.eventKind) {
-        case OrderEventKind.Created:
-        case OrderEventKind.BalanceChange:
-        case OrderEventKind.ApprovalChange:
-        case OrderEventKind.Bootstrap:
-        case OrderEventKind.Revalidation:
-        case OrderEventKind.PriceUpdate: // future-todo: handle this differently to support dynamic orders
-        case OrderEventKind.Cancelled:
-        case OrderEventKind.Expired:
-        case OrderEventKind.Sale:
-          orderUpdater.setStatus(event.data.status);
-          break;
-        case OrderEventKind.TokenOwnerUpdate:
-          orderUpdater.setStatus(event.data.status);
-          orderUpdater.setTokenOwner(
-            (event as OrderTokenOwnerUpdate).data.owner,
-            (event as OrderTokenOwnerUpdate).data.token
-          );
-          break;
-        default:
-          throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);
+      if (
+        (orderUpdater.rawOrder.metadata.source === 'flow' && event.metadata.eventSource !== 'reservoir') ||
+        orderUpdater.rawOrder.metadata.source !== 'flow'
+      ) {
+        switch (event.metadata.eventKind) {
+          case OrderEventKind.Created:
+          case OrderEventKind.BalanceChange:
+          case OrderEventKind.ApprovalChange:
+          case OrderEventKind.Bootstrap:
+          case OrderEventKind.Revalidation:
+          case OrderEventKind.PriceUpdate: // future-todo: handle this differently to support dynamic orders
+          case OrderEventKind.Cancelled:
+          case OrderEventKind.Expired:
+          case OrderEventKind.Sale:
+            orderUpdater.setStatus(event.data.status);
+            break;
+          case OrderEventKind.TokenOwnerUpdate:
+            orderUpdater.setStatus(event.data.status);
+            orderUpdater.setTokenOwner(
+              (event as OrderTokenOwnerUpdate).data.owner,
+              (event as OrderTokenOwnerUpdate).data.token
+            );
+            break;
+          default:
+            throw new Error(`Unknown event kind: ${(event?.metadata as unknown as any)?.eventKind}`);
+        }
       }
 
       const metadataUpdate: OrderEventMetadata = {

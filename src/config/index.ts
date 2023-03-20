@@ -24,6 +24,7 @@ const getEnvVariable = (key: string, required = true): string => {
 const isDev = serviceAccount.project_id === 'nftc-dev';
 const isDeployed = !!getEnvVariable('GCLOUD_PROJECT', false) || !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 const env = `.env.${isDev ? 'development' : 'production'}.${isDeployed ? 'deploy' : 'local'}`;
+console.log('config', `Loading environment variables from ${env}`);
 loadEnv({ path: `.env` });
 loadEnv({ path: env, override: true });
 
@@ -160,6 +161,9 @@ export const config = {
     },
     validateOrderbook: {
       enabled: Number(getEnvVariable('VALIDATE_ORDERBOOK', false)) === 1
+    },
+    indexer: {
+      enabled: Number(getEnvVariable('INDEXER', false)) === 1
     },
     api: {
       apiKey: getEnvVariable('API_KEY', false),

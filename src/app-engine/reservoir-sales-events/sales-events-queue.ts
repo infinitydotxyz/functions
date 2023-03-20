@@ -9,27 +9,26 @@ import { DocRef } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions, WithTiming } from '@/lib/process/types';
-import { syncPage } from '@/lib/reservoir/order-events/sync-page';
+import { syncPage } from '@/lib/reservoir/sales/sync-page';
 
-import { config } from '../config';
-import { Reservoir } from '../lib';
-import { JobData } from './queue-of-queues';
-import { redlock } from './redis';
+import { Reservoir } from '../../lib';
+import { JobData } from '../queue-of-queues';
+import { redlock } from '../redis';
 
-export interface OrderJobData {
+export interface SalesJobData {
   id: string;
-  syncMetadata: Reservoir.OrderEvents.Types.SyncMetadata['metadata'];
+  syncMetadata: Reservoir.Sales.Types.SyncMetadata['metadata'];
   syncDocPath: string;
 }
 
-export type OrderJobResult = WithTiming<{
+export type SalesJobResult = WithTiming<{
   id: string;
   status: 'skipped' | 'paused' | 'errored' | 'completed';
-  syncMetadata: Reservoir.OrderEvents.Types.SyncMetadata['metadata'];
+  syncMetadata: Reservoir.Sales.Types.SyncMetadata['metadata'];
   syncDocPath: string;
 }>;
 
-export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResult> {
+export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResult> {
   constructor(
     id: string,
     redis: Redis,
@@ -39,10 +38,10 @@ export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResu
     super(redis, id, options);
   }
 
-  public enqueueOnComplete(queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) {
+  public enqueueOnComplete(queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) {
     this._worker.on('completed', async (job, result) => {
       if (('status' in result && result.status === 'completed') || result.status === 'errored') {
-        const res = result as WithTiming<OrderJobResult>;
+        const res = result as WithTiming<SalesJobResult>;
         try {
           await queue.add({
             id: res.id,
@@ -65,16 +64,14 @@ export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResu
     await super._run();
   }
 
-  async processJob(job: Job<OrderJobData, OrderJobResult, string>): Promise<OrderJobResult> {
+  async processJob(job: Job<SalesJobData, SalesJobResult, string>): Promise<SalesJobResult> {
     const db = getDb();
-    const syncRef = db.doc(job.data.syncDocPath) as DocRef<Reservoir.OrderEvents.Types.SyncMetadata>;
+    const syncRef = db.doc(job.data.syncDocPath) as DocRef<Reservoir.Sales.Types.SyncMetadata>;
     const lockDuration = 5_000;
     const start = Date.now();
+    const id = syncRef.path;
 
     if (job.timestamp < Date.now() - 10 * ONE_MIN) {
-      /**
-       * skip jobs that are more than 10 minutes old
-       */
       return {
         id: job.data.id,
         status: 'skipped',
@@ -89,32 +86,36 @@ export class OrderEventsQueue extends AbstractProcess<OrderJobData, OrderJobResu
     }
 
     try {
-      const id = syncRef.path;
       await redlock.using([id], lockDuration, async (signal) => {
         this.log(`Acquired lock for ${id}`);
         const checkAbort = () => {
-          if (signal.aborted) {
+          const abort = signal.aborted;
+          return { abort };
+        };
+
+        const checkAbortThrow = () => {
+          const { abort } = checkAbort();
+          if (abort) {
             throw new Error('Abort');
           }
         };
 
         const syncSnap = await syncRef.get();
-        checkAbort();
+        checkAbortThrow();
         const sync = syncSnap.data();
         if (!sync) {
           return;
         }
-        const reservoirClient = Reservoir.Api.getClient(sync.metadata.chainId, config.reservoir.apiKey);
 
-        const result = await syncPage(db, reservoirClient, 1000, this._supportedCollections, sync);
-        checkAbort();
+        const result = await syncPage(db, this._supportedCollections, sync, checkAbort);
+        checkAbortThrow();
 
         await syncRef.set(result.sync, { merge: true });
-        checkAbort();
+        checkAbortThrow();
 
-        this.log(`Synced ${result.numEventsSaved} events. Has next page: ${result.hasNextPage ? 'yes' : 'no'}`);
+        this.log(`Synced ${result.numEvents} events. Has next page: ${result.hasNextPage ? 'yes' : 'no'}`);
         if (!result.hasNextPage) {
-          await sleep(5_000);
+          await sleep(10_000);
         }
 
         return;

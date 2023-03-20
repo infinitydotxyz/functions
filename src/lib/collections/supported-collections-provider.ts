@@ -1,4 +1,4 @@
-import { SupportedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId, SupportedCollection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 import { Firestore, Query } from '@/firestore/types';
@@ -8,16 +8,21 @@ export class SupportedCollectionsProvider {
   protected _initialized: boolean;
 
   protected _supportedCollections: Set<string>;
-  constructor(protected _db: Firestore) {
+  constructor(protected _db: Firestore, protected _chainId?: ChainId) {
     this._supportedCollections = new Set();
     this._ready = this._init();
     this._initialized = false;
   }
 
   protected get supportedCollectionsQuery() {
-    return this._db
+    const supportedCollections = this._db
       .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
       .where('isSupported', '==', true) as Query<SupportedCollection>;
+
+    if (this._chainId) {
+      return supportedCollections.where('chainId', '==', this._chainId);
+    }
+    return supportedCollections;
   }
 
   protected _init() {

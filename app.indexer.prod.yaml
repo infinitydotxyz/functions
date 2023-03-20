@@ -1,0 +1,26 @@
+service: indexer
+runtime: nodejs
+env: flex
+entrypoint: npm run start
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 1
+  cool_down_period_sec: 180
+  cpu_utilization:
+    target_utilization: 0.95
+resources:
+  cpu: 8
+  memory_gb: 16
+  disk_size_gb: 10
+readiness_check:
+  app_start_timeout_sec: 1800
+env_variables:
+  SYNC_SALES: 0
+  SYNC_ORDERS: 0
+  SYNC_RESERVOIR_ORDERS_CACHE: 0
+  VALIDATE_ORDERBOOK: 0
+  INDEXER: 1
+beta_settings:
+  cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
+vpc_access_connector:
+  name: projects/nftc-infinity/locations/us-east1/connectors/cloud-sql-vpc-connector

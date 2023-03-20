@@ -22,7 +22,7 @@ import { UnpausedEvent } from '../pauseable/unpaused-event';
 /**
  * The version can be incremented to reset cursor values
  */
-const version = 3;
+const version = 4;
 
 export const blockProcessorConfig = {
   erc20: {

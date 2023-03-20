@@ -1,14 +1,13 @@
 import { ethers } from 'ethers';
 import cron from 'node-cron';
 
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { getExchangeAddress } from '@infinityxyz/lib/utils';
 import { Common } from '@reservoir0x/sdk';
 
 import { config } from '@/config/index';
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
-import { AbstractBlockProcessor } from '@/lib/on-chain-events/block-processor.abstract';
+import { AbstractBlockProcessor } from '@/lib/on-chain-events/block-processor/block-processor.abstract';
 import { BlockScheduler } from '@/lib/on-chain-events/block-scheduler';
 import { Erc20 } from '@/lib/on-chain-events/erc20/erc20';
 import { Erc721 } from '@/lib/on-chain-events/erc721/erc721';
@@ -20,11 +19,6 @@ import { initializeEventProcessors } from './initialize-event-processors';
 
 export async function startIndexer() {
   const promises: Promise<unknown>[] = [];
-  const startBlockNumberByChain: Record<ChainId, number> = {
-    [ChainId.Mainnet]: 16471202,
-    [ChainId.Goerli]: 8329378,
-    [ChainId.Polygon]: 0 // TODO-future
-  };
 
   const db = getDb();
 
@@ -37,20 +31,19 @@ export async function startIndexer() {
   for (const chainId of config.supportedChains) {
     const exchangeAddress = getExchangeAddress(chainId);
     const wethAddress = Common.Addresses.Weth[parseInt(chainId, 10)];
-    const startBlockNumber = startBlockNumberByChain[chainId];
     const provider = getProvider(chainId);
     const wsProvider = new ethers.providers.WebSocketProvider(
       provider.connection.url.replace('https', 'wss'),
       parseInt(chainId, 10)
     );
-    const flowBlockProcessor = new FlowExchange(redis, chainId, exchangeAddress, startBlockNumber, db, provider, {
+    const flowBlockProcessor = new FlowExchange(redis, chainId, exchangeAddress, {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
       attempts: 5
     });
 
-    const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, startBlockNumber, db, provider, {
+    const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
@@ -68,7 +61,7 @@ export async function startIndexer() {
         throw new Error(`ChainId mismatch: ${itemChainId} !== ${chainId}`);
       }
 
-      const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, startBlockNumber, db, provider, {
+      const erc721BlockProcessor = new Erc721(redis, chainId, erc721Address, {
         enableMetrics: false,
         concurrency: 1,
         debug: true,

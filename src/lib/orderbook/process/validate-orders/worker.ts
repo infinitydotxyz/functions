@@ -260,7 +260,7 @@ export default async function (job: Job<JobData, JobResult>) {
     clearInterval(interval);
     logger.log(name, `Finished ${pageQueue.size} pages`);
   } catch (err) {
-    logger.error(name, err);
+    logger.error(name, `${err}`);
   }
   const end = Date.now();
   return {

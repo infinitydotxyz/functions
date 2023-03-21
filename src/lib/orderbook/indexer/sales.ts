@@ -214,6 +214,6 @@ function handleOrderFilled(
       await batch.addAsync(orderEventsRef.doc(orderFilledEvent.metadata.id), orderFilledEvent, { merge: true });
     })
     .catch((err) => {
-      logger.error(err);
+      logger.error('indexer', err);
     });
 }

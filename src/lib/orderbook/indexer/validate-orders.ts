@@ -134,7 +134,7 @@ export async function getOrderStatus(order: Flow.Order | null): Promise<OrderSta
   }
   const provider = getProvider(order.chainId.toString() as ChainId);
   const now = Date.now();
-  const hasStarted = order.startTime * 1000 > now;
+  const hasStarted = order.startTime * 1000 < now;
   const hasEnded = order.endTime * 1000 < now;
   if (!hasStarted) {
     return 'inactive';

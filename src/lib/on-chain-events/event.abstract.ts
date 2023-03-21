@@ -63,20 +63,25 @@ export abstract class AbstractEvent<T> {
       .where('baseParams.address', '==', address)
       .where('baseParams.block', '==', blockNumber);
 
-    if (blockHash) {
-      query = query.where('baseParams.blockHash', '==', blockHash);
-    }
     query = query.orderBy(FieldPath.documentId());
 
     const stream = streamQueryWithRef(query);
 
     for await (const { ref, data } of stream) {
+      let reorged = false;
+
+      if (!blockHash) {
+        reorged = true;
+      } else {
+        reorged = data.baseParams.blockHash !== blockHash;
+      }
+
       const update: ContractEvent<unknown>['metadata'] = {
         eventId: data.metadata.eventId,
         eventKind: data.metadata.eventKind,
         commitment: 'finalized',
         processed: false,
-        reorged: true
+        reorged
       };
       await batch.addAsync(ref, { metadata: update }, { merge: true });
     }

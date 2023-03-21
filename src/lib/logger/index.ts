@@ -1,11 +1,6 @@
 import { Logger, LoggerOptions, createLogger, format, transports } from 'winston';
 
-import { config } from '@/config/index';
-
 const log = (level: 'error' | 'info' | 'warn') => {
-  if (config.isDeployed) {
-    return console[level];
-  }
   const options: LoggerOptions = {
     exitOnError: false,
     format: format.combine(

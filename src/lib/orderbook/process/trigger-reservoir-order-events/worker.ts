@@ -171,7 +171,7 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
       await saveCheckpoint(mostRecentRef);
     }
   } catch (err) {
-    logger.error(name, err);
+    logger.error(name, `${err}`);
   }
 
   clearInterval(interval);

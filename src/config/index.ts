@@ -10,6 +10,7 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
+import { parseSupportedChains } from './parse-supported-chains';
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -119,7 +120,7 @@ const getRedlock = () => {
 export const config = {
   isDev,
   isDeployed,
-  supportedChains: [ChainId.Mainnet, ChainId.Goerli],
+  supportedChains: parseSupportedChains(getEnvVariable('SUPPORTED_CHAINS', false)),
   flow: {
     serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
@@ -166,8 +167,11 @@ export const config = {
     validateOrderbook: {
       enabled: Number(getEnvVariable('VALIDATE_ORDERBOOK', false)) === 1
     },
-    indexer: {
-      enabled: Number(getEnvVariable('INDEXER', false)) === 1
+    indexerEventSyncing: {
+      enabled: Number(getEnvVariable('INDEXER_EVENT_SYNCING', false)) === 1
+    },
+    indexerEventProcessing: {
+      enabled: Number(getEnvVariable('INDEXER_EVENT_PROCESSING', false)) === 1
     },
     api: {
       apiKey: getEnvVariable('API_KEY', false),

@@ -16,5 +16,6 @@ env_variables:
   SYNC_SALES: 1
   SYNC_ORDERS: 1
   DEPLOYED: 1
+  SUPPORTED_CHAINS: 1,5
 readiness_check:
   app_start_timeout_sec: 1800

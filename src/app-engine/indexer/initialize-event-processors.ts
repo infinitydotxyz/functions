@@ -13,7 +13,7 @@ import { FlowCancelMultipleEventsQueue } from './flow-cancel-multiple';
 import { FlowMatchOrderFulfilledEventsQueue } from './flow-match-order.ts';
 import { FlowTakeOrderFulfilledEventsQueue } from './flow-take-order.ts';
 
-export function initializeEventProcessors() {
+export function initializeIndexerEventProcessors() {
   const queues = [
     Erc20ApprovalEventsQueue,
     Erc20TransferEventsQueue,

@@ -1,11 +1,16 @@
 import {
   FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
-  FirestoreOrderItem,
   OBOrderStatus,
   OrderDirection
 } from '@infinityxyz/lib/types/core';
-import { NftDto, OrderItemSnippetDto, OrderStatus, OrdersSnippetDto } from '@infinityxyz/lib/types/dto';
+import {
+  FirestoreOrderItemDto,
+  NftDto,
+  OrderItemSnippetDto,
+  OrderStatus,
+  OrdersSnippetDto
+} from '@infinityxyz/lib/types/dto';
 
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
@@ -116,7 +121,7 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
     item: FirestoreDisplayOrderWithoutError,
     tokenAddress: string,
     tokenId: string
-  ): FirestoreOrderItem {
+  ): FirestoreOrderItemDto {
     const collection =
       item.displayOrder.kind === 'single-collection'
         ? item.displayOrder.item
@@ -142,6 +147,8 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
 
     return {
       id: item.metadata.id,
+      source: item.order.sourceMarketplace,
+      gasUsage: item.order.gasUsageString,
       orderStatus: getStatus[item.order.status],
       chainId: item.metadata.chainId,
       isSellOrder: item.order.isSellOrder,

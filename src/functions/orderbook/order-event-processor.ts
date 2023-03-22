@@ -215,7 +215,10 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     //save order
     let order = orderUpdater.rawOrder;
     let displayOrder = orderUpdater.displayOrder;
-    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+    const gasSimulator = new Orderbook.Orders.GasSimulator(
+      provider,
+      config.orderbook.gasSimulationAccount[order.metadata.chainId]
+    );
     const db = this._getDb();
     const baseOrder = new BaseOrder(
       order.metadata.id,
@@ -228,13 +231,17 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
 
     const statusChanged = initialStatus !== finalStatus;
     const updateGasUsage = statusChanged && finalStatus === 'active';
+    let gasUpdated = false;
     if (updateGasUsage) {
+      const initialGasUsage = order?.order?.gasUsage;
       const gasUsage = await baseOrder.getGasUsage(order);
 
       orderUpdater.setGasUsage(gasUsage);
 
       order = orderUpdater.rawOrder;
       displayOrder = orderUpdater.displayOrder;
+
+      gasUpdated = initialGasUsage !== order.order.gasUsage;
     }
 
     if (statusChanged || (orderCreatedEvent && !orderCreatedEvent.data.metadata.processed)) {
@@ -280,7 +287,11 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       saves.push(saveToFeed);
     }
 
-    if ((orderCreatedEvent != null && orderCreatedEvent.data.metadata.processed === false) || statusChanged) {
+    if (
+      (orderCreatedEvent != null && orderCreatedEvent.data.metadata.processed === false) ||
+      statusChanged ||
+      gasUpdated
+    ) {
       const statusChanged: OrderStatusEvent = {
         id: nanoid(),
         orderId: order.metadata.id,
@@ -390,7 +401,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
     if (!provider) {
       throw new Error('invalid chain id');
     }
-    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount[chainId]);
     const db = this._getDb();
 
     let rawOrder = rawOrderSnap.data();

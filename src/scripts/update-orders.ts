@@ -66,7 +66,10 @@ async function main() {
             const displayOrder = displayOrderSnap.data();
             const provider = getProvider(data.metadata.chainId);
             if (displayOrder) {
-              const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+              const gasSimulator = new Orderbook.Orders.GasSimulator(
+                provider,
+                config.orderbook.gasSimulationAccount[data.metadata.chainId]
+              );
               const baseOrder = new BaseOrder(
                 data.metadata.id,
                 data.metadata.chainId,

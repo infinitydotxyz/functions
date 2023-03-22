@@ -244,7 +244,7 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       gasUpdated = initialGasUsage !== order.order.gasUsage;
     }
 
-    if (statusChanged || (orderCreatedEvent && !orderCreatedEvent.data.metadata.processed)) {
+    if (statusChanged || gasUpdated || (orderCreatedEvent && !orderCreatedEvent.data.metadata.processed)) {
       await saveOrderToPG(order, displayOrder);
     }
 

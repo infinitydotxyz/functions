@@ -117,5 +117,6 @@ export class OrderUpdater {
   setGasUsage(gasUsage: number) {
     this._rawOrder.order.gasUsage = gasUsage;
     this._rawOrder.order.gasUsageString = gasUsage.toString();
+    this._rawOrder.rawOrder.gasUsage = gasUsage.toString();
   }
 }

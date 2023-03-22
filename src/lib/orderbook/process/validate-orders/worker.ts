@@ -20,8 +20,12 @@ import { streamQueryPageWithRef } from '@/firestore/stream-query';
 import { CollRef, DocRef, Query } from '@/firestore/types';
 import { Reservoir } from '@/lib/index';
 import { logger } from '@/lib/logger';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getOrderStatus } from '../../indexer/validate-orders';
+import { GasSimulator } from '../../order';
+import { BaseOrder } from '../../order/base-order';
+import { OrderUpdater } from '../../order/order-updater';
 import { AbstractOrderbookProcessor } from '../orderbook-processor';
 import { JobData, JobResult } from './validate-orders';
 
@@ -231,6 +235,33 @@ export default async function (job: Job<JobData, JobResult>) {
 
                   const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
                   await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                } else if (!updated && item.data?.order?.gasUsage === 0 && item.data.metadata.source !== 'flow') {
+                  try {
+                    const provider = getProvider(item.data.metadata.chainId);
+                    const gasSimulator = new GasSimulator(
+                      provider,
+                      config.orderbook.gasSimulationAccount[item.data.metadata.chainId]
+                    );
+
+                    const baseOrder = new BaseOrder(
+                      item.data.metadata.id,
+                      item.data.metadata.chainId,
+                      item.data.order.isSellOrder,
+                      db,
+                      provider,
+                      gasSimulator
+                    );
+                    const { displayOrder } = await baseOrder.load();
+
+                    const orderUpdater = new OrderUpdater(item.data, displayOrder);
+                    const gasUsage = await baseOrder.getGasUsage(item.data);
+
+                    orderUpdater.setGasUsage(gasUsage);
+
+                    await baseOrder.save(orderUpdater.rawOrder, orderUpdater.displayOrder);
+                  } catch (err) {
+                    logger.error(name, `Failed to update gas usage ${err}`);
+                  }
                 }
                 index += 1;
               }

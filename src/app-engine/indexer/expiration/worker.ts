@@ -25,7 +25,7 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
 
   const key = `order-expiration:lock`;
 
-  await redlock.using([key], 3_000, { retryCount: 3, retryDelay: 1500 }, async () => {
+  await redlock.using([key], 5000, { retryCount: 3, retryDelay: 1500 }, async () => {
     try {
       logger.log(`indexer`, `Acquired lock - Handling expiration events`);
       await markOrdersAsExpired();

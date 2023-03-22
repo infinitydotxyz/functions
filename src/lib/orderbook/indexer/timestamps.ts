@@ -8,7 +8,10 @@ import { CollRef } from '@/firestore/types';
 export async function* iterateExpiredOrders() {
   const db = getDb();
   const ordersRef = db.collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
-  const validExpiredOrders = ordersRef.where('order.isValid', '==', true).where('endTimeMs', '<', Date.now());
+  const validExpiredOrders = ordersRef
+    .where('metadata.source', '==', 'flow')
+    .where('order.isValid', '==', true)
+    .where('order.endTimeMs', '<', Date.now());
 
   const stream = streamQueryWithRef(validExpiredOrders);
 

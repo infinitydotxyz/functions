@@ -399,7 +399,7 @@ function* paginateLogsHelper(
   const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000, blockRange);
 
   let pagesWithoutResults = 0;
-  while (blockRange.from < blockRange.maxBlock) {
+  while (blockRange.from <= blockRange.maxBlock) {
     yield errorHandler(async () => {
       // we can get a max of 2k blocks at once
       blockRange.to = blockRange.from + blockRange.pageSize;

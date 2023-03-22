@@ -19,8 +19,10 @@ env_variables:
   SYNC_ORDERS: 0
   SYNC_RESERVOIR_ORDERS_CACHE: 0
   VALIDATE_ORDERBOOK: 0
-  INDEXER: 1
+  INDEXER_EVENT_SYNCING: 1
+  INDEXER_EVENT_PROCESSING: 1
   DEPLOYED: 1
+  SUPPORTED_CHAINS: 1,5
 beta_settings:
   cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
 vpc_access_connector:

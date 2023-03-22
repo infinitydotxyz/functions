@@ -12,7 +12,8 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 import { config } from '../config';
 import { Reservoir } from '../lib';
 import { start } from './api';
-import { startIndexer } from './indexer';
+import { initializeIndexerEventSyncing } from './indexer';
+import { initializeIndexerEventProcessors } from './indexer/initialize-event-processors';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
@@ -193,9 +194,18 @@ async function main() {
     promises.push(queue.run());
   }
 
-  if (config.components.indexer.enabled) {
-    logger.log('indexer', `Starting indexer!`);
-    promises.push(startIndexer());
+  if (config.components.indexerEventSyncing.enabled) {
+    logger.log('indexer', `Starting indexer event syncing!`);
+    promises.push(initializeIndexerEventSyncing());
+  }
+
+  if (config.components.indexerEventProcessing.enabled) {
+    logger.log('indexer', 'Starting indexer event processing');
+    /**
+     * Initialize on chain event processing - these are not chain specific
+     */
+    const eventProcessorsPromises = initializeIndexerEventProcessors();
+    promises.push(eventProcessorsPromises);
   }
 
   await Promise.all(promises);

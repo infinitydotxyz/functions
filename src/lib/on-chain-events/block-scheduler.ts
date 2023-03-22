@@ -56,7 +56,6 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
       }
 
       const finalizedBlock = await this._httpProvider.getBlock('finalized');
-
       for (const blockProcessor of this._blockProcessors) {
         await blockProcessor.add(
           {
@@ -91,10 +90,10 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
          */
         const iterator = this._blockIterator(30_000);
         for await (const { blockNumber } of iterator) {
-          await callback(blockNumber);
           if (signal.aborted) {
             return;
           }
+          await callback(blockNumber);
         }
       });
     } catch (err) {

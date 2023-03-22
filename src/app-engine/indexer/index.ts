@@ -15,9 +15,8 @@ import { FlowExchange } from '@/lib/on-chain-events/flow-exchange/flow-exchange'
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { redis } from '../redis';
-import { initializeEventProcessors } from './initialize-event-processors';
 
-export async function startIndexer() {
+export async function initializeIndexerEventSyncing() {
   const promises: Promise<unknown>[] = [];
 
   const db = getDb();
@@ -92,10 +91,5 @@ export async function startIndexer() {
     promises.push(blockScheduler.run(), ...blockProcessorPromises);
   }
 
-  /**
-   * Initialize on chain event processing - these are not chain specific
-   */
-  const eventProcessorsPromises = initializeEventProcessors();
-
-  await Promise.all([...promises, ...eventProcessorsPromises]);
+  await Promise.all(promises);
 }

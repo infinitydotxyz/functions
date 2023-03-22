@@ -26,9 +26,18 @@ firestore-data-structure.txt
 firestore.js
 firestore.indexes.json
 .eslintrc.js
+.eslintrc
+firebase.json
 .firebaserc
 tsconfig.json
 tsconfig.tsbuildinfo
+docker-compose.yaml
+jest.config.ts
+.prettoerrc
+README.md
+
+sync/
+src/
 
 # Node.js dependencies:
 node_modules/

@@ -56,7 +56,10 @@ export class ReservoirOrderEventTrigger extends AbstractProcess<JobData, JobResu
         await this._firestore.recursiveDelete(orderRef);
       } else {
         const provider = getProvider(data.metadata.chainId);
-        const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+        const gasSimulator = new Orderbook.Orders.GasSimulator(
+          provider,
+          config.orderbook.gasSimulationAccount[data.metadata.chainId]
+        );
         const baseOrder = new BaseOrder(
           data.metadata.id,
           data.metadata.chainId,

@@ -15,7 +15,7 @@ export class GasSimulator {
     if (value.gt(0)) {
       try {
         const estimate = await this._provider.estimateGas({
-          from: '0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979',
+          from: txnData.from,
           to: txnData.to,
           value,
           data: txnData.data

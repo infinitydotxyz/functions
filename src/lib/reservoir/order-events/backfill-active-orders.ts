@@ -15,7 +15,7 @@ import { AskOrder } from '../api/orders/types';
 export async function backfillActiveListings(chainId: ChainId, collection: string, db: FirebaseFirestore.Firestore) {
   const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
   const provider = getProvider(chainId);
-  const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+  const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount[chainId]);
 
   let continuation: string | undefined = undefined;
 

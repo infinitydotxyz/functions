@@ -429,7 +429,10 @@ export class ReservoirOrderStatusEventProcessor extends FirestoreBatchEventProce
       throw new OrderSideError(metadata.isSellOrder, kind as OrderSource, 'unsupported');
     }
 
-    const gasSimulator = new Orderbook.Orders.GasSimulator(provider, config.orderbook.gasSimulationAccount);
+    const gasSimulator = new Orderbook.Orders.GasSimulator(
+      provider,
+      config.orderbook.gasSimulationAccount[metadata.chainId]
+    );
     const orderId = data.order.id;
 
     const order = new Orderbook.Orders.Order(

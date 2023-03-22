@@ -152,7 +152,11 @@ export const config = {
     [ChainId.Goerli]: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null
   },
   orderbook: {
-    gasSimulationAccount: trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979')
+    gasSimulationAccount: {
+      [ChainId.Mainnet]: trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979'),
+      [ChainId.Goerli]: trimLowerCase('0xbd9573b68297E6F0E01c4D64D6faED7c737024b5'),
+      [ChainId.Polygon]: trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979')
+    }
   },
   components: {
     syncSales: {

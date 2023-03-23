@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import PQueue from 'p-queue';
 
 import {
@@ -150,10 +151,15 @@ export async function updateNonces(
   const usersRef = getDb().collection('users');
 
   for (const { nonce, user, baseParams, metadata } of nonces) {
-    const ordersToCancel = ordersRef
-      .where('metadata.source', '==', 'flow')
-      .where('order.maker', '==', user)
-      .where('order.nonce', queryType === 'max' ? '<' : '==', nonce);
+    let ordersToCancel;
+    if (queryType === 'max') {
+      ordersToCancel = ordersRef.where('metadata.source', '==', 'flow').where('order.maker', '==', user);
+    } else {
+      ordersToCancel = ordersRef
+        .where('metadata.source', '==', 'flow')
+        .where('order.maker', '==', user)
+        .where('order.nonce', '==', nonce);
+    }
 
     const userNoncesRef = usersRef.doc(user).collection('userNonces') as CollRef<UserNonce>;
 
@@ -175,7 +181,17 @@ export async function updateNonces(
         );
         status = await getOrderStatus(flowOrder);
       } else {
-        status = 'cancelled';
+        const orderNonce = BigNumber.from(order.data.order.nonce);
+        if (queryType === 'equal' && orderNonce.eq(nonce)) {
+          status = 'cancelled';
+        } else if (queryType === 'max' && orderNonce.lte(nonce)) {
+          status = 'cancelled';
+        } else {
+          /**
+           * the order is not relevant
+           */
+          continue;
+        }
       }
 
       const orderEvent: OrderCancelledEvent = {

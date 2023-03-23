@@ -43,13 +43,16 @@ export async function* erc20ApprovalChanges() {
   }
 }
 
-export async function handleErc20ApprovalEvents() {
+export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
   const iterator = erc20ApprovalChanges();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const item of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const batch = new BatchHandler();
 
         if (item.data.event.spender === Flow.Addresses.Exchange[parseInt(item.data.baseParams.chainId, 10)]) {
@@ -81,18 +84,25 @@ export async function handleErc20ApprovalEvents() {
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC20 approval event ${err}`);
       });
+
+    if (signal?.abort) {
+      break;
+    }
   }
 
   await queue.onIdle();
 }
 
-export async function handleErc20TransferEvents() {
+export async function handleErc20TransferEvents(signal?: { abort: boolean }) {
   const iterator = erc20Transfers();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const item of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const batch = new BatchHandler();
 
         const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
@@ -129,6 +139,9 @@ export async function handleErc20TransferEvents() {
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC20 transfer event ${err}`);
       });
+    if (signal?.abort) {
+      break;
+    }
   }
 
   await queue.onIdle();

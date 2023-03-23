@@ -15,25 +15,34 @@ export const redis = new Redis(config.redis.connectionUrl, {
 
 export const redlock = new Redlock([redis.duplicate()], { retryCount: 0 });
 
-export const acquireLock = async (name: string, expirationInSeconds: number) => {
+export const getLockKey = (name: string) => `lock:${name}`;
+
+export const acquireLock = async (name: string, expirationInMs: number) => {
   const id = nanoid();
-  const acquired = await redis.set(name, id, 'EX', expirationInSeconds, 'NX');
+  const acquired = await redis.set(getLockKey(name), id, 'PX', expirationInMs, 'NX');
 
   return acquired === 'OK';
 };
 
-export const extendLock = async (name: string, expirationInSeconds: number) => {
+export const extendLock = async (name: string, expirationInMs: number) => {
   const id = nanoid();
-  const extended = await redis.set(name, id, 'EX', expirationInSeconds, 'XX');
+  const extended = await redis.set(getLockKey(name), id, 'PX', expirationInMs, 'XX');
   return extended === 'OK';
 };
 
 export const releaseLock = async (name: string) => {
-  await redis.del(name);
+  await redis.del(getLockKey(name));
 };
 
 export const getLockExpiration = async (name: string) => {
-  return await redis.ttl(name);
+  const ttl = await redis.ttl(getLockKey(name));
+
+  if (ttl === -1) {
+    return 'never' as const;
+  } else if (ttl === -2) {
+    return 'not-found' as const;
+  }
+  return ttl * 1000;
 };
 
 export class ExecutionError extends Error {
@@ -93,10 +102,7 @@ export const useLock = async <T>(
 
       try {
         const result = await fn(signal);
-
-        if (interval) {
-          clearInterval(interval);
-        }
+        await cleanup();
         return result;
       } catch (err) {
         throw new ExecutionError(err as Error);

@@ -58,48 +58,54 @@ export async function handleMatchOrderFilledEvents() {
   const queue = new PQueue({ concurrency: 10 });
   const batch = new BatchHandler();
   for await (const { data, ref } of iterator) {
-    const nonces: {
-      nonce: string;
-      user: string;
-      baseParams: BaseParams;
-      metadata: ContractEvent<unknown>['metadata'];
-    }[] = [
-      {
-        nonce: data.event.buyOrderNonce,
-        user: data.event.buyer,
-        baseParams: data.baseParams,
-        metadata: data.metadata
-      },
-      {
-        nonce: data.event.sellOrderNonce,
-        user: data.event.seller,
-        baseParams: data.baseParams,
-        metadata: data.metadata
-      }
-    ];
+    queue
+      .add(async () => {
+        const nonces: {
+          nonce: string;
+          user: string;
+          baseParams: BaseParams;
+          metadata: ContractEvent<unknown>['metadata'];
+        }[] = [
+          {
+            nonce: data.event.buyOrderNonce,
+            user: data.event.buyer,
+            baseParams: data.baseParams,
+            metadata: data.metadata
+          },
+          {
+            nonce: data.event.sellOrderNonce,
+            user: data.event.seller,
+            baseParams: data.baseParams,
+            metadata: data.metadata
+          }
+        ];
 
-    await updateNonces(queue, batch, nonces, 'equal');
+        await updateNonces(batch, nonces, 'equal');
 
-    const sellOrderData = {
-      orderHash: data.event.sellOrderHash,
-      baseParams: data.baseParams,
-      metadata: data.metadata
-    };
+        const sellOrderData = {
+          orderHash: data.event.sellOrderHash,
+          baseParams: data.baseParams,
+          metadata: data.metadata
+        };
 
-    const buyOrderData = {
-      orderHash: data.event.buyOrderHash,
-      baseParams: data.baseParams,
-      metadata: data.metadata
-    };
-    await handleOrderFilled(batch, sellOrderData);
-    await handleOrderFilled(batch, buyOrderData);
+        const buyOrderData = {
+          orderHash: data.event.buyOrderHash,
+          baseParams: data.baseParams,
+          metadata: data.metadata
+        };
+        await handleOrderFilled(batch, sellOrderData);
+        await handleOrderFilled(batch, buyOrderData);
 
-    const metadataUpdate: ContractEvent<unknown>['metadata'] = {
-      ...data.metadata,
-      processed: true
-    };
+        const metadataUpdate: ContractEvent<unknown>['metadata'] = {
+          ...data.metadata,
+          processed: true
+        };
 
-    await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
+        await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
+      })
+      .catch((err) => {
+        logger.error('sales-handler', `Error processing match order fulfilled events ${err.message}`);
+      });
 
     if (queue.size > 300) {
       await queue.onEmpty();
@@ -116,36 +122,41 @@ export async function handleTakeOrderFilledEvents() {
   const queue = new PQueue({ concurrency: 10 });
   const batch = new BatchHandler();
   for await (const { data, ref } of iterator) {
-    const nonces: {
-      nonce: string;
-      user: string;
-      baseParams: BaseParams;
-      metadata: ContractEvent<unknown>['metadata'];
-    }[] = [
-      {
-        nonce: data.event.nonce,
-        user: data.event.buyer,
-        baseParams: data.baseParams,
-        metadata: data.metadata
-      }
-    ];
+    queue
+      .add(async () => {
+        const nonces: {
+          nonce: string;
+          user: string;
+          baseParams: BaseParams;
+          metadata: ContractEvent<unknown>['metadata'];
+        }[] = [
+          {
+            nonce: data.event.nonce,
+            user: data.event.buyer,
+            baseParams: data.baseParams,
+            metadata: data.metadata
+          }
+        ];
 
-    await updateNonces(queue, batch, nonces, 'equal');
+        await updateNonces(batch, nonces, 'equal');
 
-    const orderData = {
-      orderHash: data.event.orderHash,
-      baseParams: data.baseParams,
-      metadata: data.metadata
-    };
-    await handleOrderFilled(batch, orderData);
+        const orderData = {
+          orderHash: data.event.orderHash,
+          baseParams: data.baseParams,
+          metadata: data.metadata
+        };
+        await handleOrderFilled(batch, orderData);
 
-    const metadataUpdate: ContractEvent<unknown>['metadata'] = {
-      ...data.metadata,
-      processed: true
-    };
+        const metadataUpdate: ContractEvent<unknown>['metadata'] = {
+          ...data.metadata,
+          processed: true
+        };
 
-    await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
-
+        await batch.addAsync(ref, { metadata: metadataUpdate }, { merge: true });
+      })
+      .catch((err) => {
+        logger.error('sales-handler', `Error handling take order filled event: ${err}`);
+      });
     if (queue.size > 300) {
       await queue.onEmpty();
     }

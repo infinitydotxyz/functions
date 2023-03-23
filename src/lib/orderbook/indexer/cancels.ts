@@ -165,7 +165,7 @@ export function updateNonces(
               /**
                * update the order event on reorgs
                */
-              id: `FLOW:CANCELLED_MULTIPLE:${user}:${baseParams.txHash}:${baseParams.logIndex}`,
+              id: `FLOW:CANCELLED:${user}:${baseParams.txHash}:${baseParams.logIndex}`,
               isSellOrder: order.data.order.isSellOrder,
               orderId: order.data.metadata.id,
               chainId: order.data.metadata.chainId,

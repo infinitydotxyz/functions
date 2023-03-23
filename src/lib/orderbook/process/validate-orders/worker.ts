@@ -139,7 +139,8 @@ export default async function (job: Job<JobData, JobResult>) {
               for (const reservoirOrder of orders.data.orders) {
                 const item = itemById.get(reservoirOrder.id);
                 if (!item) {
-                  throw new Error('Could not find item');
+                  logger.warn(name, `Could not find order ${reservoirOrder.id}`);
+                  continue;
                 }
 
                 const status = reservoirOrder.status;
@@ -152,62 +153,72 @@ export default async function (job: Job<JobData, JobResult>) {
                 if (chainId === ChainId.Goerli) {
                   switch (reservoirOrder.kind) {
                     case 'seaport': {
-                      const order = new Seaport.Order(5, reservoirOrder.rawData as Seaport.Types.OrderComponents);
-                      if (!order.params.signature) {
-                        logger.log(name, `${item.data.metadata.id} no signature`);
-                        const orderEvent: OrderRevalidationEvent = {
-                          metadata: {
-                            id: `REVALIDATE:${timestamp}:${index}`,
-                            isSellOrder,
-                            orderId: item.data.metadata.id,
-                            chainId: item.data.metadata.chainId,
-                            processed: false,
-                            migrationId: 1,
-                            eventKind: OrderEventKind.Revalidation,
-                            timestamp,
-                            updatedAt: timestamp,
-                            eventSource: 'infinity-orderbook'
-                          },
-                          data: {
-                            status: 'inactive' as const
-                          }
-                        };
-
-                        const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
-                        await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                      if (item.data.order?.status === 'inactive') {
                         updated = true;
+                      } else {
+                        const order = new Seaport.Order(5, reservoirOrder.rawData as Seaport.Types.OrderComponents);
+                        if (!order.params.signature) {
+                          logger.log(name, `${item.data.metadata.id} no signature`);
+                          const orderEvent: OrderRevalidationEvent = {
+                            metadata: {
+                              id: `REVALIDATE:${timestamp}:${index}`,
+                              isSellOrder,
+                              orderId: item.data.metadata.id,
+                              chainId: item.data.metadata.chainId,
+                              processed: false,
+                              migrationId: 1,
+                              eventKind: OrderEventKind.Revalidation,
+                              timestamp,
+                              updatedAt: timestamp,
+                              eventSource: 'infinity-orderbook'
+                            },
+                            data: {
+                              status: 'inactive' as const
+                            }
+                          };
+
+                          const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
+                          await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                          updated = true;
+                        }
                       }
                       break;
                     }
                     case 'seaport-v1.4': {
-                      const order = new SeaportV14.Order(5, reservoirOrder.rawData as SeaportV14.Types.OrderComponents);
-                      if (!order.params.signature) {
-                        logger.log(name, `${item.data.metadata.id} no signature`);
-                        const orderEvent: OrderRevalidationEvent = {
-                          metadata: {
-                            id: `REVALIDATE:${timestamp}:${index}`,
-                            isSellOrder,
-                            orderId: item.data.metadata.id,
-                            chainId: item.data.metadata.chainId,
-                            processed: false,
-                            migrationId: 1,
-                            eventKind: OrderEventKind.Revalidation,
-                            timestamp,
-                            updatedAt: timestamp,
-                            eventSource: 'infinity-orderbook'
-                          },
-                          data: {
-                            status: 'inactive' as const
-                          }
-                        };
-
-                        const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
-                        await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                      if (item.data.order?.status === 'inactive') {
                         updated = true;
+                      } else {
+                        const order = new SeaportV14.Order(
+                          5,
+                          reservoirOrder.rawData as SeaportV14.Types.OrderComponents
+                        );
+                        if (!order.params.signature) {
+                          logger.log(name, `${item.data.metadata.id} no signature`);
+                          const orderEvent: OrderRevalidationEvent = {
+                            metadata: {
+                              id: `REVALIDATE:${timestamp}:${index}`,
+                              isSellOrder,
+                              orderId: item.data.metadata.id,
+                              chainId: item.data.metadata.chainId,
+                              processed: false,
+                              migrationId: 1,
+                              eventKind: OrderEventKind.Revalidation,
+                              timestamp,
+                              updatedAt: timestamp,
+                              eventSource: 'infinity-orderbook'
+                            },
+                            data: {
+                              status: 'inactive' as const
+                            }
+                          };
+
+                          const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
+                          await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
+                          updated = true;
+                        }
                       }
                       break;
                     }
-
                     default:
                       break;
                   }
@@ -235,7 +246,13 @@ export default async function (job: Job<JobData, JobResult>) {
 
                   const orderEventRef = item.ref.collection('orderEvents').doc(orderEvent.metadata.id);
                   await batchHandler.addAsync(orderEventRef, orderEvent, { merge: false });
-                } else if (!updated && item.data?.order?.gasUsage === 0 && item.data.metadata.source !== 'flow') {
+                } else if (
+                  !updated &&
+                  item.data?.order?.gasUsage === 0 &&
+                  item.data.order.status === 'active' &&
+                  item.data.metadata.source !== 'flow'
+                ) {
+                  logger.log('validate-orders', `validating order: ${item.data.metadata.id}`);
                   try {
                     const provider = getProvider(item.data.metadata.chainId);
                     const gasSimulator = new GasSimulator(

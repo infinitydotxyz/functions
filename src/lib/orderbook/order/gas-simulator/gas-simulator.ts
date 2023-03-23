@@ -12,6 +12,7 @@ export class GasSimulator {
 
   async simulate(txnData: { to: string; data: string; value?: BigNumberish; from: string }) {
     const value = bn(txnData.value ?? '0');
+    let error;
     if (value.gt(0)) {
       try {
         const estimate = await this._provider.estimateGas({
@@ -23,24 +24,29 @@ export class GasSimulator {
 
         return estimate.toString();
       } catch (err) {
-        console.warn(`Failed to estimate gas for txn: ${JSON.stringify(txnData)}. Attempting to use a call trace`, err);
+        error = err;
       }
     }
 
-    const result = await getCallTrace(
-      {
-        ...txnData,
-        gas: 10_000_000,
-        gasPrice: 0,
-        value,
-        balanceOverrides: {
-          [txnData.from]: value
-        }
-      },
-      this._provider
-    );
-    const gasUsed = bn((result as any).gasUsed);
+    try {
+      const result = await getCallTrace(
+        {
+          ...txnData,
+          gas: 10_000_000,
+          gasPrice: 0,
+          value,
+          balanceOverrides: {
+            [txnData.from]: value
+          }
+        },
+        this._provider
+      );
+      const gasUsed = bn((result as any).gasUsed);
 
-    return gasUsed.toString();
+      return gasUsed.toString();
+    } catch (err) {
+      console.warn(`Failed to estimate gas for txn. ${error}`);
+      throw err;
+    }
   }
 }

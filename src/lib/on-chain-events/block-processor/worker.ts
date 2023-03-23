@@ -338,6 +338,7 @@ async function getLogs(
     logger.log('block-processor', `Requesting logs from block ${fromBlock} to ${toBlock}`);
 
     const responses: ethers.providers.Log[] = [];
+
     for (const eventFilter of eventFilters) {
       const res = await provider.getLogs({
         fromBlock,

@@ -22,7 +22,7 @@ env_variables:
   INDEXER_EVENT_SYNCING: 1
   INDEXER_EVENT_PROCESSING: 1
   DEPLOYED: 1
-  SUPPORTED_CHAINS: 5
+  SUPPORTED_CHAINS: 1,5
 beta_settings:
   cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
 vpc_access_connector:

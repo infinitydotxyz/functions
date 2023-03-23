@@ -39,14 +39,14 @@ export async function initializeIndexerEventSyncing() {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
-      attempts: 5
+      attempts: 1
     });
 
     const wethBlockProcessor = new Erc20(redis, chainId, wethAddress, {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
-      attempts: 5
+      attempts: 1
     });
 
     const supportedCollections = new SupportedCollectionsProvider(db, chainId);
@@ -64,7 +64,7 @@ export async function initializeIndexerEventSyncing() {
         enableMetrics: false,
         concurrency: 1,
         debug: true,
-        attempts: 5
+        attempts: 1
       });
 
       blockProcessors.push(erc721BlockProcessor);

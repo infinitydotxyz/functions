@@ -78,7 +78,7 @@ export async function handleMatchOrderFilledEvents() {
       }
     ];
 
-    updateNonces(queue, batch, nonces, 'equal');
+    await updateNonces(queue, batch, nonces, 'equal');
 
     const sellOrderData = {
       orderHash: data.event.sellOrderHash,
@@ -91,8 +91,8 @@ export async function handleMatchOrderFilledEvents() {
       baseParams: data.baseParams,
       metadata: data.metadata
     };
-    handleOrderFilled(queue, batch, sellOrderData);
-    handleOrderFilled(queue, batch, buyOrderData);
+    await handleOrderFilled(batch, sellOrderData);
+    await handleOrderFilled(batch, buyOrderData);
 
     const metadataUpdate: ContractEvent<unknown>['metadata'] = {
       ...data.metadata,
@@ -130,14 +130,14 @@ export async function handleTakeOrderFilledEvents() {
       }
     ];
 
-    updateNonces(queue, batch, nonces, 'equal');
+    await updateNonces(queue, batch, nonces, 'equal');
 
     const orderData = {
       orderHash: data.event.orderHash,
       baseParams: data.baseParams,
       metadata: data.metadata
     };
-    handleOrderFilled(queue, batch, orderData);
+    await handleOrderFilled(batch, orderData);
 
     const metadataUpdate: ContractEvent<unknown>['metadata'] = {
       ...data.metadata,
@@ -154,8 +154,7 @@ export async function handleTakeOrderFilledEvents() {
   await batch.flush();
 }
 
-function handleOrderFilled(
-  queue: PQueue,
+async function handleOrderFilled(
   batch: BatchHandler,
   order: {
     orderHash: string;
@@ -163,57 +162,51 @@ function handleOrderFilled(
     metadata: ContractEvent<unknown>['metadata'];
   }
 ) {
-  queue
-    .add(async () => {
-      const orders = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
-      const orderRef = orders.doc(order.orderHash);
+  const orders = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
+  const orderRef = orders.doc(order.orderHash);
 
-      const orderSnap = await orderRef.get();
+  const orderSnap = await orderRef.get();
 
-      const orderData = orderSnap.data() as RawFirestoreOrderWithoutError;
+  const orderData = orderSnap.data() as RawFirestoreOrderWithoutError;
 
-      if (!orderData || !orderData.rawOrder?.infinityOrder || !orderData.order) {
-        logger.warn('indexer', `Order ${order.orderHash} not found`);
-        return;
-      }
+  if (!orderData || !orderData.rawOrder?.infinityOrder || !orderData.order) {
+    logger.warn('indexer', `Order ${order.orderHash} not found`);
+    return;
+  }
 
-      let status: OrderStatus;
-      if (order.metadata.reorged) {
-        const flowOrder = new Flow.Order(
-          parseInt(orderData.metadata.chainId, 10),
-          orderData.rawOrder.infinityOrder as Flow.Types.SignedOrder
-        );
+  let status: OrderStatus;
+  if (order.metadata.reorged) {
+    const flowOrder = new Flow.Order(
+      parseInt(orderData.metadata.chainId, 10),
+      orderData.rawOrder.infinityOrder as Flow.Types.SignedOrder
+    );
 
-        status = await getOrderStatus(flowOrder);
-      } else {
-        status = 'filled';
-      }
+    status = await getOrderStatus(flowOrder);
+  } else {
+    status = 'filled';
+  }
 
-      const orderEventsRef = orderRef.collection('orderEvents');
+  const orderEventsRef = orderRef.collection('orderEvents');
 
-      const orderFilledEvent: OrderSaleEvent = {
-        metadata: {
-          eventKind: OrderEventKind.Sale,
-          id: `FLOW:FILLED:${order.baseParams.txHash}:${order.baseParams.logIndex}`,
-          isSellOrder: orderData.order.isSellOrder,
-          orderId: order.orderHash,
-          chainId: order.baseParams.chainId,
-          processed: false,
-          migrationId: 1,
-          timestamp: order.baseParams.blockTimestamp * 1000,
-          updatedAt: Date.now(),
-          eventSource: 'infinity-orderbook'
-        },
-        data: {
-          status,
-          txHash: order.baseParams.txHash,
-          txTimestamp: order.baseParams.blockTimestamp
-        }
-      };
+  const orderFilledEvent: OrderSaleEvent = {
+    metadata: {
+      eventKind: OrderEventKind.Sale,
+      id: `FLOW:FILLED:${order.baseParams.txHash}:${order.baseParams.logIndex}`,
+      isSellOrder: orderData.order.isSellOrder,
+      orderId: order.orderHash,
+      chainId: order.baseParams.chainId,
+      processed: false,
+      migrationId: 1,
+      timestamp: order.baseParams.blockTimestamp * 1000,
+      updatedAt: Date.now(),
+      eventSource: 'infinity-orderbook'
+    },
+    data: {
+      status,
+      txHash: order.baseParams.txHash,
+      txTimestamp: order.baseParams.blockTimestamp
+    }
+  };
 
-      await batch.addAsync(orderEventsRef.doc(orderFilledEvent.metadata.id), orderFilledEvent, { merge: true });
-    })
-    .catch((err) => {
-      logger.error('indexer', err);
-    });
+  await batch.addAsync(orderEventsRef.doc(orderFilledEvent.metadata.id), orderFilledEvent, { merge: true });
 }

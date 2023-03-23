@@ -82,6 +82,8 @@ export async function handleErc20ApprovalEvents() {
         logger.error('indexer', `Failed to handle ERC20 approval event ${err}`);
       });
   }
+
+  await queue.onIdle();
 }
 
 export async function handleErc20TransferEvents() {
@@ -128,4 +130,6 @@ export async function handleErc20TransferEvents() {
         logger.error('indexer', `Failed to handle ERC20 transfer event ${err}`);
       });
   }
+
+  await queue.onIdle();
 }

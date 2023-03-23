@@ -111,6 +111,8 @@ export async function handleErc721ApprovalEvents() {
         logger.error('indexer', `Failed to handle ERC721 approval event ${err}`);
       });
   }
+
+  await queue.onIdle();
 }
 
 export async function handleErc721ApprovalForAllEvents() {
@@ -153,6 +155,7 @@ export async function handleErc721ApprovalForAllEvents() {
         logger.error('indexer', `Failed to handle ERC721 approval event ${err}`);
       });
   }
+  await queue.onIdle();
 }
 
 export async function handleErc721TransferEvents() {
@@ -239,4 +242,6 @@ export async function handleErc721TransferEvents() {
         logger.error('indexer', `Failed to handle ERC721 transfer event ${err}`);
       });
   }
+
+  await queue.onIdle();
 }

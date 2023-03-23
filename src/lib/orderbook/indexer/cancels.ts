@@ -14,7 +14,6 @@ import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollRef, DocRef, Query } from '@/firestore/types';
-import { logger } from '@/lib/logger';
 import { CancelAllOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-all-orders';
 import { CancelMultipleOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-multiple-orders';
 import { BaseParams, ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
@@ -107,7 +106,7 @@ async function handleNonces(
     queryType = 'equal';
   }
   const batch = new BatchHandler();
-  updateNonces(queue, batch, nonces, queryType);
+  await updateNonces(queue, batch, nonces, queryType);
 
   /**
    * mark the event as processed
@@ -125,12 +124,13 @@ export function updateNonces(
   batch: BatchHandler,
   nonces: { nonce: string; user: string; baseParams: BaseParams; metadata: ContractEvent<unknown>['metadata'] }[],
   queryType: 'max' | 'equal'
-) {
+): Promise<unknown> {
   const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
   const usersRef = getDb().collection('users');
-  for (const { nonce, user, baseParams, metadata } of nonces) {
-    queue
-      .add(async () => {
+
+  return Promise.all(
+    nonces.map(async ({ nonce, user, baseParams, metadata }) => {
+      await queue.add(async () => {
         const ordersToCancel = ordersRef
           .where('metadata.source', '==', 'flow')
           .where('order.maker', '==', user)
@@ -200,9 +200,7 @@ export function updateNonces(
 
           await batch.addAsync(nonceRef, { fillability }, { merge: true });
         }
-      })
-      .catch((err) => {
-        logger.error('indexer', `Failed to mark orders as cancelled ${err}`);
       });
-  }
+    })
+  );
 }

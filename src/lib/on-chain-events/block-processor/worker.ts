@@ -337,17 +337,25 @@ async function getLogs(
   const logRequest = async (fromBlock: number, toBlock: number) => {
     logger.log('block-processor', `Requesting logs from block ${fromBlock} to ${toBlock}`);
 
-    const responses: ethers.providers.Log[] = [];
+    const address = eventFilters[0].address;
+    const sameAddress = eventFilters.every((filter) => filter.address === address);
 
-    for (const eventFilter of eventFilters) {
-      const res = await provider.getLogs({
-        fromBlock,
-        toBlock,
-        address: eventFilter.address,
-        topics: eventFilter.topics
-      });
-      responses.push(...res);
+    /**
+     * optimize by getting all events from the contract instead of making a getLogs call for
+     * each event filter
+     *
+     * note - this is only possible since the event filters are specific to a single contract
+     */
+    if (!sameAddress) {
+      throw new Error('All event filters must have the same address');
+    } else if (!address) {
+      throw new Error('Event filters must have an address');
     }
+    const responses = await provider.getLogs({
+      fromBlock,
+      toBlock,
+      address: address
+    });
     return responses;
   };
   return paginateLogs(logRequest, provider, { fromBlock, toBlock, returnType: 'generator' });

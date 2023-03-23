@@ -48,7 +48,7 @@ describe('useLock', () => {
   });
 
   it('useLock should acquire and release the lock', async () => {
-    const result = await useLock(lockName, 5000, async (signal) => {
+    const result = await useLock(lockName, 5000, async () => {
       const expiration = await getLockExpiration(lockName);
       if (typeof expiration !== 'number') {
         throw new Error(`expiration should be a number`);

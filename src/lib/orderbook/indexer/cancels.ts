@@ -53,13 +53,16 @@ export async function* iterateCancelMultipleEvents() {
   }
 }
 
-export async function handleCancelMultipleEvents() {
+export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
   const iterator = iterateCancelMultipleEvents();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         await handleNonces(data, ref);
       })
       .catch((err) => {
@@ -68,18 +71,24 @@ export async function handleCancelMultipleEvents() {
     if (queue.size > 300) {
       await queue.onEmpty();
     }
+    if (signal?.abort) {
+      break;
+    }
   }
 
   await queue.onIdle();
 }
 
-export async function handleCancelAllEvents() {
+export async function handleCancelAllEvents(signal?: { abort: boolean }) {
   const iterator = iterateCancelAllEvents();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         await handleNonces(data, ref);
       })
       .catch((err) => {
@@ -87,6 +96,9 @@ export async function handleCancelAllEvents() {
       });
     if (queue.size > 300) {
       await queue.onEmpty();
+    }
+    if (signal?.abort) {
+      break;
     }
   }
 

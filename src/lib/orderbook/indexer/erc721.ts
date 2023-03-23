@@ -69,13 +69,16 @@ export async function* erc721ApprovalForAllEvents() {
   }
 }
 
-export async function handleErc721ApprovalEvents() {
+export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
   const iterator = erc721ApprovalEvents();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const item of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const batch = new BatchHandler();
 
         if (item.data.event.approved === Flow.Addresses.Exchange[parseInt(item.data.baseParams.chainId, 10)]) {
@@ -110,18 +113,25 @@ export async function handleErc721ApprovalEvents() {
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC721 approval event ${err}`);
       });
+
+    if (signal?.abort) {
+      break;
+    }
   }
 
   await queue.onIdle();
 }
 
-export async function handleErc721ApprovalForAllEvents() {
+export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean }) {
   const iterator = erc721ApprovalForAllEvents();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const item of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const batch = new BatchHandler();
 
         if (item.data.event.operator === Flow.Addresses.Exchange[parseInt(item.data.baseParams.chainId, 10)]) {
@@ -154,17 +164,23 @@ export async function handleErc721ApprovalForAllEvents() {
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC721 approval event ${err}`);
       });
+    if (signal?.abort) {
+      break;
+    }
   }
   await queue.onIdle();
 }
 
-export async function handleErc721TransferEvents() {
+export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
   const iterator = erc721TransferEvents();
 
   const queue = new PQueue({ concurrency: 10 });
   for await (const item of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const batch = new BatchHandler();
 
         const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
@@ -241,6 +257,9 @@ export async function handleErc721TransferEvents() {
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC721 transfer event ${err}`);
       });
+    if (signal?.abort) {
+      break;
+    }
   }
 
   await queue.onIdle();

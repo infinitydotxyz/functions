@@ -20,10 +20,13 @@ export async function* iterateExpiredOrders() {
   }
 }
 
-export async function markOrdersAsExpired() {
+export async function markOrdersAsExpired(signal?: { abort: boolean }) {
   const iterator = iterateExpiredOrders();
   const batch = new BatchHandler();
   for await (const { data, ref } of iterator) {
+    if (signal?.abort) {
+      break;
+    }
     const evenTimestamp = Date.now();
     const expiredEvent: OrderExpiredEvent = {
       metadata: {

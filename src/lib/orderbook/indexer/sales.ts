@@ -52,7 +52,7 @@ export async function* iterateTakeOrderFulfilledEvents() {
   }
 }
 
-export async function handleMatchOrderFilledEvents() {
+export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) {
   const iterator = iterateMatchOrderFulfilledEvents();
 
   const queue = new PQueue({ concurrency: 10 });
@@ -60,6 +60,9 @@ export async function handleMatchOrderFilledEvents() {
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const nonces: {
           nonce: string;
           user: string;
@@ -110,13 +113,17 @@ export async function handleMatchOrderFilledEvents() {
     if (queue.size > 300) {
       await queue.onEmpty();
     }
+
+    if (signal?.abort) {
+      break;
+    }
   }
 
   await queue.onIdle();
   await batch.flush();
 }
 
-export async function handleTakeOrderFilledEvents() {
+export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
   const iterator = iterateTakeOrderFulfilledEvents();
 
   const queue = new PQueue({ concurrency: 10 });
@@ -124,6 +131,9 @@ export async function handleTakeOrderFilledEvents() {
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {
+        if (signal?.abort) {
+          return;
+        }
         const nonces: {
           nonce: string;
           user: string;
@@ -159,6 +169,9 @@ export async function handleTakeOrderFilledEvents() {
       });
     if (queue.size > 300) {
       await queue.onEmpty();
+    }
+    if (signal?.abort) {
+      break;
     }
   }
   await queue.onIdle();

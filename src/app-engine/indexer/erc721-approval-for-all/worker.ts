@@ -3,7 +3,7 @@ import 'module-alias/register';
 
 import { ONE_MIN } from '@infinityxyz/lib/utils';
 
-import { redlock } from '@/app-engine/redis';
+import { useLock } from '@/app-engine/redis';
 import { logger } from '@/lib/logger';
 import { handleErc721ApprovalForAllEvents } from '@/lib/orderbook/indexer/erc721';
 import { WithTiming } from '@/lib/process/types';
@@ -25,10 +25,10 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
 
   const key = `erc721-approval-for-all:lock`;
 
-  await redlock.using([key], 3_000, { retryCount: 3, retryDelay: 1500 }, async () => {
+  await useLock(key, 5000, async (signal) => {
     try {
       logger.log(`indexer`, `Acquired lock - Handling erc721 approval for all events`);
-      await handleErc721ApprovalForAllEvents();
+      await handleErc721ApprovalForAllEvents(signal);
     } catch (err) {
       logger.error('indexer', `Failed to handle erc721 approval for all events ${err}`);
     }

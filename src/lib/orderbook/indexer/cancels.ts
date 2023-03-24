@@ -1,6 +1,7 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import PQueue from 'p-queue';
 
+import { FlowExchangeABI } from '@infinityxyz/lib/abi';
 import {
   OrderCancelledEvent,
   OrderEventKind,
@@ -8,7 +9,7 @@ import {
   RawFirestoreOrderWithoutError,
   UserNonce
 } from '@infinityxyz/lib/types/core';
-import { toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
+import { getExchangeAddress, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -19,6 +20,7 @@ import { logger } from '@/lib/logger';
 import { CancelAllOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-all-orders';
 import { CancelMultipleOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-multiple-orders';
 import { BaseParams, ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getOrderStatus } from './validate-orders';
 
@@ -67,7 +69,7 @@ export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
         await handleNonces(data, ref);
       })
       .catch((err) => {
-        logger.error('cancels-handler', `Error handling cancel multiple events: ${err}`);
+        logger.error('cancels-handler', `Error handling cancel multiple events: ${err} ${(err as Error)?.stack}`);
       });
     if (queue.size > 300) {
       await queue.onEmpty();
@@ -226,8 +228,9 @@ export async function updateNonces(
     for await (const { data: nonce, ref: nonceRef } of streamQueryWithRef(noncesToCancel)) {
       let fillability: UserNonce['fillability'];
       if (metadata.reorged) {
-        const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
-        const isValid = await exchange.contract.isNonceValid(nonce.userAddress, nonce.nonce);
+        const exchangeAddress = getExchangeAddress(baseParams.chainId);
+        const contract = new ethers.Contract(exchangeAddress, FlowExchangeABI, getProvider(baseParams.chainId));
+        const isValid = await contract.isNonceValid(nonce.userAddress, nonce.nonce);
         fillability = isValid ? 'fillable' : 'cancelled';
       } else {
         fillability = 'cancelled';

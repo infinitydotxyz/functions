@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger';
 import { CancelAllOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-all-orders';
 import { CancelMultipleOrdersEventData } from '@/lib/on-chain-events/flow-exchange/cancel-multiple-orders';
 import { BaseParams, ContractEvent, ContractEventKind } from '@/lib/on-chain-events/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getOrderStatus } from './validate-orders';
 
@@ -67,7 +68,7 @@ export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
         await handleNonces(data, ref);
       })
       .catch((err) => {
-        logger.error('cancels-handler', `Error handling cancel multiple events: ${err}`);
+        logger.error('cancels-handler', `Error handling cancel multiple events: ${err} ${(err as Error)?.stack}`);
       });
     if (queue.size > 300) {
       await queue.onEmpty();
@@ -227,7 +228,8 @@ export async function updateNonces(
       let fillability: UserNonce['fillability'];
       if (metadata.reorged) {
         const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
-        const isValid = await exchange.contract.isNonceValid(nonce.userAddress, nonce.nonce);
+        const provider = getProvider(baseParams.chainId);
+        const isValid = await exchange.contract.connect(provider).isNonceValid(nonce.userAddress, nonce.nonce);
         fillability = isValid ? 'fillable' : 'cancelled';
       } else {
         fillability = 'cancelled';

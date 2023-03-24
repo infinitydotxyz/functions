@@ -15,7 +15,7 @@ const log = (level: 'error' | 'info' | 'warn') => {
   const logger = createLogger(options);
 
   return (component: string, message: string, ...optionalParams: any[]): Logger => {
-    const m = `${message} ${optionalParams.map((p) => JSON.stringify(p)).join(' ')}`;
+    const m = `${component} ${message} ${optionalParams.map((p) => JSON.stringify(p)).join(' ')}`;
     return logger.log(level, m, {
       component,
       version: process.env.npm_package_version

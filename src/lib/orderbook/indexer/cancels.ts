@@ -1,7 +1,6 @@
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import PQueue from 'p-queue';
 
-import { FlowExchangeABI } from '@infinityxyz/lib/abi';
 import {
   OrderCancelledEvent,
   OrderEventKind,
@@ -9,7 +8,7 @@ import {
   RawFirestoreOrderWithoutError,
   UserNonce
 } from '@infinityxyz/lib/types/core';
-import { getExchangeAddress, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
+import { toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -228,9 +227,9 @@ export async function updateNonces(
     for await (const { data: nonce, ref: nonceRef } of streamQueryWithRef(noncesToCancel)) {
       let fillability: UserNonce['fillability'];
       if (metadata.reorged) {
-        const exchangeAddress = getExchangeAddress(baseParams.chainId);
-        const contract = new ethers.Contract(exchangeAddress, FlowExchangeABI, getProvider(baseParams.chainId));
-        const isValid = await contract.isNonceValid(nonce.userAddress, nonce.nonce);
+        const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
+        const provider = getProvider(baseParams.chainId);
+        const isValid = await exchange.contract.connect(provider).isNonceValid(nonce.userAddress, nonce.nonce);
         fillability = isValid ? 'fillable' : 'cancelled';
       } else {
         fillability = 'cancelled';

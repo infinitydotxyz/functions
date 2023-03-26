@@ -77,6 +77,7 @@ export const useLock = async <T>(
     if (interval) {
       clearInterval(interval);
     }
+    signal.abort = true;
   };
 
   while (!lockAcquired) {

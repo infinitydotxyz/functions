@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  // const key = `order-expiration:lock`;
+  const key = `order-expiration:lock`;
 
-  // await useLock(key, 5000, async (signal) => {
-  try {
-    logger.log(`indexer`, `Acquired lock - Handling expiration events`);
-    await markOrdersAsExpired();
-  } catch (err) {
-    logger.error('indexer', `Failed to handle expiration events ${err}`);
-  }
-  // });
+  await useLock(key, 5000, async (signal) => {
+    try {
+      logger.log(`indexer`, `Acquired lock - Handling expiration events`);
+      await markOrdersAsExpired(signal);
+    } catch (err) {
+      logger.error('indexer', `Failed to handle expiration events ${err}`);
+    }
+  });
 
   return {
     id: job.data.id,

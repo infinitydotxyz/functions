@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  // const key = `erc721-transfer:lock`;
+  const key = `erc721-transfer:lock`;
 
-  // await useLock(key, 5000, async (signal) => {
-  try {
-    logger.log(`indexer`, `Acquired lock - Handling erc721 transfer events`);
-    await handleErc721TransferEvents();
-  } catch (err) {
-    logger.error('indexer', `Failed to handle erc721 transfer events ${err}`);
-  }
-  // });
+  await useLock(key, 5000, async (signal) => {
+    try {
+      logger.log(`indexer`, `Acquired lock - Handling erc721 transfer events`);
+      await handleErc721TransferEvents(signal);
+    } catch (err) {
+      logger.error('indexer', `Failed to handle erc721 transfer events ${err}`);
+    }
+  });
 
   return {
     id: job.data.id,

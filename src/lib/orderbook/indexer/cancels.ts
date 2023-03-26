@@ -129,7 +129,7 @@ async function handleNonces(
     });
     queryType = 'equal';
   }
-  const batch = new BatchHandler();
+  const batch = new BatchHandler(100);
   await updateNonces(batch, nonces, queryType);
 
   /**

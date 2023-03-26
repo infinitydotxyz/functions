@@ -31,7 +31,7 @@ export function initializeIndexerEventProcessors() {
     enableMetrics: false,
     concurrency: 1,
     debug: true,
-    attempts: 3
+    attempts: 1
   };
 
   const promises: Promise<unknown>[] = [];
@@ -44,7 +44,7 @@ export function initializeIndexerEventProcessors() {
         id: nanoid()
       });
     };
-    cron.schedule('*/15 * * * * *', async () => {
+    cron.schedule('*/5 * * * * *', async () => {
       await trigger();
     });
   }

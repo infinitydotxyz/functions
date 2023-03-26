@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  const key = `flow-cancel-multiple:lock`;
+  // const key = `flow-cancel-multiple:lock`;
 
-  await useLock(key, 5000, async (signal) => {
-    try {
-      logger.log(`indexer`, `Acquired lock - Handling cancel multiple events`);
-      await handleCancelMultipleEvents(signal);
-    } catch (err) {
-      logger.error('indexer', `Failed to handle cancel multiple events ${err}`);
-    }
-  });
+  // await useLock(key, 5000, async (signal) => {
+  try {
+    logger.log(`indexer`, `Acquired lock - Handling cancel multiple events`);
+    await handleCancelMultipleEvents();
+  } catch (err) {
+    logger.error('indexer', `Failed to handle cancel multiple events ${err}`);
+  }
+  // });
 
   return {
     id: job.data.id,

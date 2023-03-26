@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  const key = `flow-take-order:lock`;
+  // const key = `flow-take-order:lock`;
 
-  await useLock(key, 5000, async (signal) => {
-    try {
-      logger.log(`indexer`, `Acquired lock - Handling take order events`);
-      await handleTakeOrderFilledEvents(signal);
-    } catch (err) {
-      logger.error('indexer', `Failed to handle take order events ${err}`);
-    }
-  });
+  // await useLock(key, 5000, async (signal) => {
+  try {
+    logger.log(`indexer`, `Acquired lock - Handling take order events`);
+    await handleTakeOrderFilledEvents();
+  } catch (err) {
+    logger.error('indexer', `Failed to handle take order events ${err}`);
+  }
+  // });
 
   return {
     id: job.data.id,

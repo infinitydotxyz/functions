@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  const key = `erc20-approval:lock`;
+  // const key = `erc20-approval:lock`;
 
-  await useLock(key, 5000, async (signal) => {
-    try {
-      logger.log(`indexer`, `Acquired lock - Handling erc20 approval events`);
-      await handleErc20ApprovalEvents(signal);
-    } catch (err) {
-      logger.error('indexer', `Failed to handle erc20 approval events ${err}`);
-    }
-  });
+  // await useLock(key, 5000, async (signal) => {
+  try {
+    logger.log(`indexer`, `Acquired lock - Handling erc20 approval events`);
+    await handleErc20ApprovalEvents();
+  } catch (err) {
+    logger.error('indexer', `Failed to handle erc20 approval events ${err}`);
+  }
+  // });
 
   return {
     id: job.data.id,

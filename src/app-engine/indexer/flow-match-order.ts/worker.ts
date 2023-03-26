@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  // const key = `flow-match-order:lock`;
+  const key = `flow-match-order:lock`;
 
-  // await useLock(key, 5000, async (signal) => {
-  try {
-    logger.log(`indexer`, `Acquired lock - Handling match order events`);
-    await handleMatchOrderFilledEvents();
-  } catch (err) {
-    logger.error('indexer', `Failed to handle match order events ${err}`);
-  }
-  // });
+  await useLock(key, 5000, async (signal) => {
+    try {
+      logger.log(`indexer`, `Acquired lock - Handling match order events`);
+      await handleMatchOrderFilledEvents(signal);
+    } catch (err) {
+      logger.error('indexer', `Failed to handle match order events ${err}`);
+    }
+  });
 
   return {
     id: job.data.id,

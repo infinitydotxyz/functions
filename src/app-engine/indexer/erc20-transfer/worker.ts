@@ -23,16 +23,16 @@ export default async function (job: Job<JobData>): Promise<WithTiming<JobResult>
     };
   }
 
-  // const key = `erc20-transfer:lock`;
+  const key = `erc20-transfer:lock`;
 
-  // await useLock(key, 5000, async (signal) => {
-  try {
-    logger.log(`indexer`, `Acquired lock - Handling erc20 transfer events`);
-    await handleErc20TransferEvents();
-  } catch (err) {
-    logger.error('indexer', `Failed to handle erc20 transfer events ${err}`);
-  }
-  // });
+  await useLock(key, 5000, async (signal) => {
+    try {
+      logger.log(`indexer`, `Acquired lock - Handling erc20 transfer events`);
+      await handleErc20TransferEvents(signal);
+    } catch (err) {
+      logger.error('indexer', `Failed to handle erc20 transfer events ${err}`);
+    }
+  });
 
   return {
     id: job.data.id,

@@ -120,4 +120,6 @@ export const useLock = async <T>(
       throw Error('Failed to acquire lock');
     }
   }
+
+  throw new Error('Failed to acquire lock');
 };

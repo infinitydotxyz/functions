@@ -190,12 +190,21 @@ export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
 
   const queue = new PQueue({ concurrency: 30 });
   const db = getDb();
+  let count = 0;
+  const increment = () => {
+    count += 1;
+    if (count % 500 === 0) {
+      logger.log('indexer', `ERC721 transfers handled ${count} events`);
+    }
+  };
+
   for await (const item of iterator) {
     queue
       .add(async () => {
         if (signal?.abort) {
           return;
         }
+        increment();
 
         const bulkWriter = db.bulkWriter();
         const ordersRef = db.collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;

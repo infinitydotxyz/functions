@@ -198,8 +198,6 @@ export class BaseOrder {
 
       const { gasUsage } = await transformer.estimateGas(this._gasSimulator);
       return gasUsage;
-
-      // return rawOrder.order?.gasUsage ?? config.orderbook.orderDefaultGasUsage;
     } catch (err) {
       console.warn(`Failed to estimate gas`, err);
       return rawOrder.order?.gasUsage ?? 250_000;

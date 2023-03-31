@@ -1,6 +1,7 @@
 import { Job } from 'bullmq';
 import { ethers } from 'ethers';
 import { Redis } from 'ioredis';
+import QuickLRU from 'quick-lru';
 import { ExecutionError } from 'redlock';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
@@ -46,6 +47,13 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
       return { id: job.data.id };
     }
 
+    const jobIdsCache = new QuickLRU({
+      maxSize: 128
+    });
+    const latestBlocksCache = new QuickLRU({
+      maxSize: 128
+    });
+
     let cancel: undefined | (() => void);
     const handler = (signal: AbortSignal) => async (blockNumber: number) => {
       this.log(`Received block ${blockNumber}`);
@@ -56,19 +64,41 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
       }
 
       const finalizedBlock = await this._httpProvider.getBlock('finalized');
-      for (const blockProcessor of this._blockProcessors) {
-        await blockProcessor.add(
-          {
-            id: `${blockNumber}:${finalizedBlock.number}`,
-            latestBlockNumber: blockNumber,
-            finalizedBlockNumber: finalizedBlock.number,
-            chainId: this._chainId,
-            httpsProviderUrl: this._httpProvider.connection.url,
-            address: blockProcessor.address,
-            type: blockProcessor.getKind()
-          },
-          `chain:${this._chainId}:block:${blockNumber}:finalizedBlock:${finalizedBlock.number}`
-        );
+
+      const id = `${blockNumber}:${finalizedBlock.number}`;
+
+      // only trigger processing for each id once
+      if (!jobIdsCache.has(id)) {
+        jobIdsCache.set(id, id);
+
+        // cache logs for the block to reduce get logs requests
+        if (!latestBlocksCache.has(blockNumber)) {
+          latestBlocksCache.set(blockNumber, blockNumber);
+          try {
+            const latestBlockLogs = await this._httpProvider.getLogs({
+              fromBlock: blockNumber,
+              toBlock: blockNumber
+            });
+            await this._db.set(`latest:${blockNumber}:data:logs`, JSON.stringify(latestBlockLogs), 'PX', ONE_MIN);
+          } catch (err) {
+            this.warn(`Failed to cache logs ${err}`);
+          }
+        }
+
+        for (const blockProcessor of this._blockProcessors) {
+          await blockProcessor.add(
+            {
+              id: `${blockNumber}:${finalizedBlock.number}`,
+              latestBlockNumber: blockNumber,
+              finalizedBlockNumber: finalizedBlock.number,
+              chainId: this._chainId,
+              httpsProviderUrl: this._httpProvider.connection.url,
+              address: blockProcessor.address,
+              type: blockProcessor.getKind()
+            },
+            `chain:${this._chainId}:block:${blockNumber}:finalizedBlock:${finalizedBlock.number}`
+          );
+        }
       }
     };
 

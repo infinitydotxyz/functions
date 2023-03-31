@@ -2,10 +2,9 @@ import { constants } from 'ethers';
 import PQueue from 'p-queue';
 
 import { OrderEventKind, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
-import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollRef, Query } from '@/firestore/types';
@@ -72,14 +71,15 @@ export async function* erc721ApprovalForAllEvents() {
 export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
   const iterator = erc721ApprovalEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
+  const db = getDb();
   for await (const item of iterator) {
     queue
       .add(async () => {
         if (signal?.abort) {
           return;
         }
-        const batch = new BatchHandler();
+        const bulkWriter = db.bulkWriter();
 
         if (item.data.event.approved === Flow.Addresses.Exchange[parseInt(item.data.baseParams.chainId, 10)]) {
           const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
@@ -99,16 +99,16 @@ export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
           /**
            * validate every impacted order
            */
-          await validateOrders(impactedOrdersQuery, item.data, OrderEventKind.ApprovalChange, batch);
+          await validateOrders(impactedOrdersQuery, item.data, OrderEventKind.ApprovalChange, bulkWriter);
         }
         const contractEventMetadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...item.data.metadata,
           processed: true
         };
 
-        await batch.addAsync(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
+        await bulkWriter.set(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
 
-        await batch.flush();
+        await bulkWriter.close();
       })
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC721 approval event ${err}`);
@@ -116,6 +116,12 @@ export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
 
     if (signal?.abort) {
       break;
+    }
+
+    if (queue.size > 500) {
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 
@@ -125,17 +131,19 @@ export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
 export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean }) {
   const iterator = erc721ApprovalForAllEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
+  const db = getDb();
   for await (const item of iterator) {
     queue
       .add(async () => {
         if (signal?.abort) {
           return;
         }
-        const batch = new BatchHandler();
+
+        const bulkWriter = db.bulkWriter();
 
         if (item.data.event.operator === Flow.Addresses.Exchange[parseInt(item.data.baseParams.chainId, 10)]) {
-          const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
+          const ordersRef = db.collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
 
           /**
            * ERC721 approvals are required for asks
@@ -150,22 +158,28 @@ export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean
           /**
            * validate every impacted order
            */
-          await validateOrders(impactedOrdersQuery, item.data, OrderEventKind.ApprovalChange, batch);
+          await validateOrders(impactedOrdersQuery, item.data, OrderEventKind.ApprovalChange, bulkWriter);
         }
         const contractEventMetadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...item.data.metadata,
           processed: true
         };
 
-        await batch.addAsync(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
+        await bulkWriter.set(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
 
-        await batch.flush();
+        await bulkWriter.close();
       })
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC721 approval event ${err}`);
       });
     if (signal?.abort) {
       break;
+    }
+
+    if (queue.size > 500) {
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
   await queue.onIdle();
@@ -174,16 +188,26 @@ export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean
 export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
   const iterator = erc721TransferEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
+  const db = getDb();
+  let count = 0;
+  const increment = () => {
+    count += 1;
+    if (count % 500 === 0) {
+      logger.log('indexer', `ERC721 transfers handled ${count} events`);
+    }
+  };
+
   for await (const item of iterator) {
     queue
       .add(async () => {
         if (signal?.abort) {
           return;
         }
-        const batch = new BatchHandler();
+        increment();
 
-        const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
+        const bulkWriter = db.bulkWriter();
+        const ordersRef = db.collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
 
         /**
          * ERC721 transfers are required for asks
@@ -207,8 +231,8 @@ export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
         /**
          * validate every impacted order
          */
-        await validateOrders(fromOrdersQuery, item.data, OrderEventKind.TokenOwnerUpdate, batch);
-        await validateOrders(toOrdersQuery, item.data, OrderEventKind.TokenOwnerUpdate, batch);
+        await validateOrders(fromOrdersQuery, item.data, OrderEventKind.TokenOwnerUpdate, bulkWriter);
+        await validateOrders(toOrdersQuery, item.data, OrderEventKind.TokenOwnerUpdate, bulkWriter);
         const contractEventMetadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...item.data.metadata,
           processed: true
@@ -249,16 +273,25 @@ export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
           .doc(item.data.event.tokenId);
 
         const transferRef = tokenRef.collection('nftTransferEvents').doc(id);
-        await batch.addAsync(transferRef, transferEvent, { merge: true });
-        await batch.addAsync(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
 
-        await batch.flush();
+        const promises = [];
+        promises.push(bulkWriter.set(transferRef, transferEvent, { merge: true }));
+        promises.push(bulkWriter.set(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true }));
+
+        await bulkWriter.close();
+        await Promise.all(promises);
       })
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC721 transfer event ${err}`);
       });
     if (signal?.abort) {
       break;
+    }
+
+    if (queue.size > 1000) {
+      while (queue.size > 200) {
+        await sleep(200);
+      }
     }
   }
 

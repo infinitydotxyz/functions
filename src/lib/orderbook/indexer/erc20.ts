@@ -1,6 +1,7 @@
 import PQueue from 'p-queue';
 
 import { OrderEventKind, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { sleep } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { getDb } from '@/firestore/db';
@@ -87,9 +88,10 @@ export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
     if (signal?.abort) {
       break;
     }
-
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 
@@ -148,7 +150,9 @@ export async function handleErc20TransferEvents(signal?: { abort: boolean }) {
     }
 
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 

@@ -2,7 +2,7 @@ import { constants } from 'ethers';
 import PQueue from 'p-queue';
 
 import { OrderEventKind, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { getDb } from '@/firestore/db';
@@ -119,7 +119,9 @@ export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
     }
 
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 
@@ -175,7 +177,9 @@ export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean
     }
 
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
   await queue.onIdle();
@@ -275,8 +279,10 @@ export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
       break;
     }
 
-    if (queue.size > 500) {
-      await queue.onEmpty();
+    if (queue.size > 1000) {
+      while (queue.size > 200) {
+        await sleep(200);
+      }
     }
   }
 

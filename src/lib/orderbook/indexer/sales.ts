@@ -6,6 +6,7 @@ import {
   OrderStatus,
   RawFirestoreOrderWithoutError
 } from '@infinityxyz/lib/types/core';
+import { sleep } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -114,7 +115,9 @@ export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) 
       break;
     }
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 
@@ -169,8 +172,10 @@ export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
     if (signal?.abort) {
       break;
     }
-    if (queue.size > 300) {
-      await queue.onEmpty();
+    if (queue.size > 500) {
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
   await queue.onIdle();

@@ -8,7 +8,7 @@ import {
   RawFirestoreOrderWithoutError,
   UserNonce
 } from '@infinityxyz/lib/types/core';
-import { toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
+import { sleep, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -74,7 +74,9 @@ export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
       break;
     }
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 
@@ -96,15 +98,14 @@ export async function handleCancelAllEvents(signal?: { abort: boolean }) {
       .catch((err) => {
         logger.error('cancels-handler', `Error handling cancel all events: ${err}`);
       });
-    if (queue.size > 300) {
-      await queue.onEmpty();
-    }
     if (signal?.abort) {
       break;
     }
 
     if (queue.size > 500) {
-      await queue.onEmpty();
+      while (queue.size > 100) {
+        await sleep(200);
+      }
     }
   }
 

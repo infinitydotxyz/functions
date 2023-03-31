@@ -71,7 +71,7 @@ export async function* erc721ApprovalForAllEvents() {
 export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
   const iterator = erc721ApprovalEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const db = getDb();
   for await (const item of iterator) {
     queue
@@ -117,6 +117,10 @@ export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
     if (signal?.abort) {
       break;
     }
+
+    if (queue.size > 500) {
+      await queue.onEmpty();
+    }
   }
 
   await queue.onIdle();
@@ -125,7 +129,7 @@ export async function handleErc721ApprovalEvents(signal?: { abort: boolean }) {
 export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean }) {
   const iterator = erc721ApprovalForAllEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const db = getDb();
   for await (const item of iterator) {
     queue
@@ -169,6 +173,10 @@ export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean
     if (signal?.abort) {
       break;
     }
+
+    if (queue.size > 500) {
+      await queue.onEmpty();
+    }
   }
   await queue.onIdle();
 }
@@ -176,7 +184,7 @@ export async function handleErc721ApprovalForAllEvents(signal?: { abort: boolean
 export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
   const iterator = erc721TransferEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const db = getDb();
   for await (const item of iterator) {
     queue
@@ -265,6 +273,10 @@ export async function handleErc721TransferEvents(signal?: { abort: boolean }) {
       });
     if (signal?.abort) {
       break;
+    }
+
+    if (queue.size > 500) {
+      await queue.onEmpty();
     }
   }
 

@@ -9,7 +9,8 @@ import Redlock from 'redlock';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
+import * as serviceAccountDev from '../creds/nftc-dev-firebase-creds.json';
+import * as serviceAccountProd from '../creds/nftc-infinity-firebase-creds.json';
 import { parseSupportedChains } from './parse-supported-chains';
 
 const getEnvVariable = (key: string, required = true): string => {
@@ -22,13 +23,14 @@ const getEnvVariable = (key: string, required = true): string => {
   return '';
 };
 
-const isDev = serviceAccount.project_id === 'nftc-dev';
+const isProd = getEnvVariable('INFINITY_NODE_ENV', false) !== 'dev';
+const serviceAccount = (isProd ? serviceAccountProd : serviceAccountDev) as ServiceAccount;
 const isDeployed =
   Number(getEnvVariable('DEPLOYED', false)) === 1 ||
   !!getEnvVariable('GCLOUD_PROJECT', false) ||
   !!getEnvVariable('GOOGLE_CLOUD_PROJECT', false);
 
-const env = `.env.${isDev ? 'development' : 'production'}.${isDeployed ? 'deploy' : 'local'}`;
+const env = `.env.${isProd ? 'production' : 'development'}.${isDeployed ? 'deploy' : 'local'}`;
 console.log('config', `Loading environment variables from ${env}`);
 loadEnv({ path: `.env` });
 loadEnv({ path: env, override: true });
@@ -118,17 +120,17 @@ const getRedlock = () => {
 };
 
 export const config = {
-  isDev,
+  isDev: !isProd,
   isDeployed,
   supportedChains: parseSupportedChains(getEnvVariable('SUPPORTED_CHAINS', false)),
   flow: {
-    serverBaseUrl: isDev ? DEV_SERVER_BASE_URL : PROD_SERVER_BASE_URL,
+    serverBaseUrl: isProd ? PROD_SERVER_BASE_URL : DEV_SERVER_BASE_URL,
     apiKey: getEnvVariable('FLOW_API_KEY', false)
   },
   firebase: {
-    serviceAccount: serviceAccount as ServiceAccount,
+    serviceAccount,
     region: 'us-east1',
-    snapshotBucket: isDev ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+    snapshotBucket: isProd ? 'infinity-orderbook-snapshots' : 'orderbook-snapshots'
   },
   redis: {
     connectionUrl: redisConnectionUrl,

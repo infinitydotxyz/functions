@@ -55,7 +55,7 @@ export async function* iterateTakeOrderFulfilledEvents() {
 export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) {
   const iterator = iterateMatchOrderFulfilledEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const batch = new BatchHandler(100);
   for await (const { data, ref } of iterator) {
     queue
@@ -110,12 +110,11 @@ export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) 
         logger.error('sales-handler', `Error processing match order fulfilled events ${err.message}`);
       });
 
-    if (queue.size > 300) {
-      await queue.onEmpty();
-    }
-
     if (signal?.abort) {
       break;
+    }
+    if (queue.size > 500) {
+      await queue.onEmpty();
     }
   }
 
@@ -126,7 +125,7 @@ export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) 
 export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
   const iterator = iterateTakeOrderFulfilledEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const batch = new BatchHandler();
   for await (const { data, ref } of iterator) {
     queue
@@ -167,11 +166,11 @@ export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
       .catch((err) => {
         logger.error('sales-handler', `Error handling take order filled event: ${err}`);
       });
-    if (queue.size > 300) {
-      await queue.onEmpty();
-    }
     if (signal?.abort) {
       break;
+    }
+    if (queue.size > 300) {
+      await queue.onEmpty();
     }
   }
   await queue.onIdle();

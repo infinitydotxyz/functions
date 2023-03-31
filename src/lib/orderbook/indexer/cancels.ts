@@ -58,7 +58,7 @@ export async function* iterateCancelMultipleEvents() {
 export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
   const iterator = iterateCancelMultipleEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {
@@ -70,11 +70,11 @@ export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
       .catch((err) => {
         logger.error('cancels-handler', `Error handling cancel multiple events: ${err} ${(err as Error)?.stack}`);
       });
-    if (queue.size > 300) {
-      await queue.onEmpty();
-    }
     if (signal?.abort) {
       break;
+    }
+    if (queue.size > 500) {
+      await queue.onEmpty();
     }
   }
 
@@ -84,7 +84,7 @@ export async function handleCancelMultipleEvents(signal?: { abort: boolean }) {
 export async function handleCancelAllEvents(signal?: { abort: boolean }) {
   const iterator = iterateCancelAllEvents();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {
@@ -101,6 +101,10 @@ export async function handleCancelAllEvents(signal?: { abort: boolean }) {
     }
     if (signal?.abort) {
       break;
+    }
+
+    if (queue.size > 500) {
+      await queue.onEmpty();
     }
   }
 

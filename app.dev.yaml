@@ -17,5 +17,6 @@ env_variables:
   SYNC_ORDERS: 1
   DEPLOYED: 1
   SUPPORTED_CHAINS: 1,5
+  INFINITY_NODE_ENV: dev
 readiness_check:
   app_start_timeout_sec: 1800

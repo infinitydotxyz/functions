@@ -45,7 +45,7 @@ export async function* erc20ApprovalChanges() {
 export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
   const iterator = erc20ApprovalChanges();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const db = getDb();
   for await (const item of iterator) {
     queue
@@ -87,6 +87,10 @@ export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
     if (signal?.abort) {
       break;
     }
+
+    if (queue.size > 500) {
+      await queue.onEmpty();
+    }
   }
 
   await queue.onIdle();
@@ -95,7 +99,7 @@ export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
 export async function handleErc20TransferEvents(signal?: { abort: boolean }) {
   const iterator = erc20Transfers();
 
-  const queue = new PQueue({ concurrency: 10 });
+  const queue = new PQueue({ concurrency: 30 });
   const db = getDb();
   for await (const item of iterator) {
     queue
@@ -141,6 +145,10 @@ export async function handleErc20TransferEvents(signal?: { abort: boolean }) {
       });
     if (signal?.abort) {
       break;
+    }
+
+    if (queue.size > 500) {
+      await queue.onEmpty();
     }
   }
 

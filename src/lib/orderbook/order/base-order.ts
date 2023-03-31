@@ -196,18 +196,13 @@ export class BaseOrder {
         rawData: rawOrder.rawOrder.rawOrder
       });
 
-      const transformationResult = await transformer.transform();
-      if (!transformationResult.isNative) {
-        const gasUsageString = await this._gasSimulator.simulate(
-          await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount)
-        );
-        return parseInt(gasUsageString, 10);
-      }
+      const { gasUsage } = await transformer.estimateGas(this._gasSimulator);
+      return gasUsage;
 
-      return rawOrder.order?.gasUsage ?? 0;
+      // return rawOrder.order?.gasUsage ?? config.orderbook.orderDefaultGasUsage;
     } catch (err) {
       console.warn(`Failed to estimate gas`, err);
-      return rawOrder.order?.gasUsage ?? 0;
+      return rawOrder.order?.gasUsage ?? 250_000;
     }
   }
 

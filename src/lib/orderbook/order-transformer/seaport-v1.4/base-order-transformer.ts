@@ -4,11 +4,14 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { Flow, SeaportV14 } from '@reservoir0x/sdk';
 
 import { Reservoir } from '@/lib/index';
+import { logger } from '@/lib/logger';
 import { bn } from '@/lib/utils';
 
 import { ErrorCode } from '../../errors/error-code';
 import { OrderCurrencyError, OrderDynamicError, OrderError, OrderKindError } from '../../errors/order.error';
+import { GasSimulator } from '../../order/gas-simulator/gas-simulator';
 import { OrderTransformer } from '../order-transformer.abstract';
+import { NonNativeTransformationResult } from '../types';
 
 export abstract class SeaportV14OrderTransformer extends OrderTransformer<SeaportV14.Order> {
   readonly source: 'seaport';
@@ -200,5 +203,24 @@ export abstract class SeaportV14OrderTransformer extends OrderTransformer<Seapor
     });
 
     return orderItems;
+  }
+
+  public async estimateGas(gasSimulator: GasSimulator): Promise<{ gasUsage: number }> {
+    if (!this._order.params.signature) {
+      return {
+        gasUsage: 250_000
+      };
+    }
+    try {
+      const transformed = (await this.transform()) as NonNativeTransformationResult<SeaportV14.Order>;
+      const txn = await transformed.getSourceTxn(Date.now(), gasSimulator.simulationAccount);
+      const gasUsage = await gasSimulator.simulate(txn);
+      return { gasUsage: parseInt(gasUsage, 10) };
+    } catch (err) {
+      logger.warn(`order-transformer`, `Failed to estimate gas for ${this.source} order ${this._order.hash()} ${err}`);
+      return {
+        gasUsage: 250_000
+      };
+    }
   }
 }

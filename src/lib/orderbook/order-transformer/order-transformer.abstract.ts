@@ -6,6 +6,7 @@ import * as Sdk from '@reservoir0x/sdk';
 import { Reservoir } from '../..';
 import { ErrorCode } from '../errors/error-code';
 import { OrderCurrencyError, OrderDynamicError, OrderError, OrderSideError } from '../errors/order.error';
+import { GasSimulator } from '../order/gas-simulator/gas-simulator';
 import { TransformationResult } from './types';
 
 export abstract class OrderTransformer<SourceOrder = never> {
@@ -47,6 +48,8 @@ export abstract class OrderTransformer<SourceOrder = never> {
 
   protected abstract _checkValid(): void;
   public abstract transform(): Promise<TransformationResult<SourceOrder>>;
+
+  public abstract estimateGas(gasSimulator: GasSimulator): Promise<{ gasUsage: number }>;
 
   get isSellOrder() {
     return this._reservoirOrder.side === 'sell';

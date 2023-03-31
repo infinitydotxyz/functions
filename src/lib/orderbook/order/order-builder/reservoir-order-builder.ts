@@ -5,14 +5,7 @@ import { config } from '@/config/index';
 import { Orderbook, Reservoir } from '@/lib/index';
 import { AskOrder, BidOrder } from '@/lib/reservoir/api/orders/types';
 
-import {
-  ErrorCode,
-  FailedToGetReservoirOrderError,
-  NotFoundError,
-  OrderError,
-  UnexpectedOrderError
-} from '../../errors';
-import { TransformationResult } from '../../order-transformer/types';
+import { FailedToGetReservoirOrderError, NotFoundError, OrderError, UnexpectedOrderError } from '../../errors';
 import { OrderBuilder } from './order-builder.abstract';
 
 export class ReservoirOrderBuilder extends OrderBuilder {
@@ -50,9 +43,11 @@ export class ReservoirOrderBuilder extends OrderBuilder {
       let gasUsage = '0';
       let initialStatus: 'active' | 'inactive' = 'active';
       try {
-        gasUsage = await this._getGasUsage(result, reservoirOrder.kind, reservoirOrder.id);
+        const result = await transformer.estimateGas(this._gasSimulator);
+        gasUsage = result.gasUsage.toString();
       } catch (err) {
         initialStatus = 'inactive';
+        gasUsage = `${250_000}`;
       }
 
       const flowOrder = result.isNative ? result.order : result.flowOrder;
@@ -162,29 +157,5 @@ export class ReservoirOrderBuilder extends OrderBuilder {
     const order = response.data.orders[0];
 
     return order;
-  }
-
-  protected async _getGasUsage(
-    transformationResult: TransformationResult<unknown>,
-    orderKind: Reservoir.Api.Orders.Types.OrderKind,
-    orderId: string
-  ) {
-    let gasUsage = '0';
-    if (!transformationResult.isNative) {
-      try {
-        const sourceTxn = await transformationResult.getSourceTxn(Date.now(), this._gasSimulator.simulationAccount);
-        gasUsage = await this._gasSimulator.simulate(sourceTxn);
-      } catch (err) {
-        throw new OrderError(
-          `failed to simulate gas usage for order ${orderId}`,
-          ErrorCode.GasUsage,
-          `${err?.toString?.()}`,
-          orderKind,
-          'unexpected'
-        );
-      }
-    }
-
-    return gasUsage;
   }
 }

@@ -109,4 +109,8 @@ export abstract class FlowOrderTransformer extends OrderTransformer<Flow.Order> 
     this.checkValid();
     return this._order;
   }
+
+  public async estimateGas(): Promise<{ gasUsage: number }> {
+    return await Promise.resolve({ gasUsage: 0 });
+  }
 }

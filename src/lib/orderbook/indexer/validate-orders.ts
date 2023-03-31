@@ -1,3 +1,5 @@
+import { BulkWriter } from 'firebase-admin/firestore';
+
 import {
   ChainId,
   OrderApprovalChangeEvent,
@@ -11,7 +13,6 @@ import {
 import { UserProfileDto } from '@infinityxyz/lib/types/dto';
 import { Common, Flow } from '@reservoir0x/sdk';
 
-import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { Query } from '@/firestore/types';
@@ -34,10 +35,11 @@ export async function validateOrders(
     | ContractEvent<Erc721ApprovalForAllEventData>
     | ContractEvent<Erc721TransferEventData>,
   type: OrderEventKind.BalanceChange | OrderEventKind.ApprovalChange | OrderEventKind.TokenOwnerUpdate,
-  batch: BatchHandler
+  bulkWriter: BulkWriter
 ) {
   const stream = streamQueryWithRef(query);
 
+  const promises: Promise<boolean>[] = [];
   for await (const { data: orderData, ref: orderRef } of stream) {
     const provider = getProvider(orderData.metadata.chainId);
     const timestamp = Date.now();
@@ -124,7 +126,30 @@ export async function validateOrders(
     );
 
     const statusEventRef = orderRef.collection('orderEvents').doc(statusEvent.metadata.id);
-    await batch.addAsync(statusEventRef, statusEvent, { merge: true });
+
+    promises.push(
+      new Promise<boolean>((resolve) => {
+        bulkWriter
+          .set(statusEventRef, statusEvent, { merge: true })
+          .then(() => {
+            resolve(true);
+          })
+          .catch((err) => {
+            logger.log(
+              'indexer',
+              `Failed to write status event for order ${orderData.metadata.id} - Status ${statusEvent.data.status} Error ${err}`
+            );
+            resolve(false);
+          });
+      })
+    );
+  }
+
+  await bulkWriter.flush();
+  const successful = (await Promise.all(promises)).every((result) => result === true);
+
+  if (!successful) {
+    throw new Error(`Failed to validate orders - Error while writing status events`);
   }
 }
 

@@ -3,7 +3,6 @@ import PQueue from 'p-queue';
 import { OrderEventKind, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { Flow } from '@reservoir0x/sdk';
 
-import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
 import { CollRef, Query } from '@/firestore/types';
@@ -47,16 +46,17 @@ export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
   const iterator = erc20ApprovalChanges();
 
   const queue = new PQueue({ concurrency: 10 });
+  const db = getDb();
   for await (const item of iterator) {
     queue
       .add(async () => {
         if (signal?.abort) {
           return;
         }
-        const batch = new BatchHandler();
+        const bulkWriter = db.bulkWriter();
 
         if (item.data.event.spender === Flow.Addresses.Exchange[parseInt(item.data.baseParams.chainId, 10)]) {
-          const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
+          const ordersRef = db.collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
 
           /**
            * WETH approvals are required for bids only
@@ -70,16 +70,15 @@ export async function handleErc20ApprovalEvents(signal?: { abort: boolean }) {
           /**
            * validate every impacted order
            */
-          await validateOrders(impactedOrdersQuery, item.data, OrderEventKind.ApprovalChange, batch);
+          await validateOrders(impactedOrdersQuery, item.data, OrderEventKind.ApprovalChange, bulkWriter);
         }
         const contractEventMetadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...item.data.metadata,
           processed: true
         };
 
-        await batch.addAsync(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
-
-        await batch.flush();
+        await bulkWriter.set(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
+        await bulkWriter.close();
       })
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC20 approval event ${err}`);
@@ -97,15 +96,17 @@ export async function handleErc20TransferEvents(signal?: { abort: boolean }) {
   const iterator = erc20Transfers();
 
   const queue = new PQueue({ concurrency: 10 });
+  const db = getDb();
   for await (const item of iterator) {
     queue
       .add(async () => {
         if (signal?.abort) {
           return;
         }
-        const batch = new BatchHandler();
 
-        const ordersRef = getDb().collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
+        const bulkWriter = db.bulkWriter();
+
+        const ordersRef = db.collection('ordersV2') as CollRef<RawFirestoreOrderWithoutError>;
 
         /**
          * WETH balances are required for bids only
@@ -125,16 +126,15 @@ export async function handleErc20TransferEvents(signal?: { abort: boolean }) {
         /**
          * validate bids placed by the users involved
          */
-        await validateOrders(fromOrdersQuery, item.data, OrderEventKind.BalanceChange, batch);
-        await validateOrders(toOrdersQuery, item.data, OrderEventKind.BalanceChange, batch);
+        await validateOrders(fromOrdersQuery, item.data, OrderEventKind.BalanceChange, bulkWriter);
+        await validateOrders(toOrdersQuery, item.data, OrderEventKind.BalanceChange, bulkWriter);
         const contractEventMetadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...item.data.metadata,
           processed: true
         };
 
-        await batch.addAsync(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
-
-        await batch.flush();
+        await bulkWriter.set(item.ref, { metadata: contractEventMetadataUpdate }, { merge: true });
+        await bulkWriter.close();
       })
       .catch((err) => {
         logger.error('indexer', `Failed to handle ERC20 transfer event ${err}`);

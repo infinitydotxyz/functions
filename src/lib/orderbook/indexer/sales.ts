@@ -56,7 +56,7 @@ export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) 
   const iterator = iterateMatchOrderFulfilledEvents();
 
   const queue = new PQueue({ concurrency: 10 });
-  const batch = new BatchHandler();
+  const batch = new BatchHandler(100);
   for await (const { data, ref } of iterator) {
     queue
       .add(async () => {

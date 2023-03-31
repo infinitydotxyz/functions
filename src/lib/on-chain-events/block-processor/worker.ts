@@ -335,6 +335,25 @@ async function getLogs(
     } else if (!address) {
       throw new Error('Event filters must have an address');
     }
+
+    if (fromBlock === toBlock) {
+      try {
+        const logs = await redis.get(`latest:${fromBlock}:data:logs`);
+        if (logs) {
+          const blockLogs = JSON.parse(logs) as ethers.providers.Log[];
+          if (blockLogs && Array.isArray(blockLogs)) {
+            logger.log('block-processor', `Block ${fromBlock} logs cache HIT`);
+            return blockLogs.filter((log) => {
+              return log.address.toLowerCase() === address;
+            });
+          }
+        }
+        logger.log('block-processor', `Block ${fromBlock} logs cache MISS`);
+      } catch (err) {
+        logger.log('block-processor', `Block ${fromBlock} logs cache MISS`);
+      }
+    }
+
     const responses = await provider.getLogs({
       fromBlock,
       toBlock,

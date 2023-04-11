@@ -25,8 +25,8 @@ export class ReferralsProcessor extends FirestoreBatchEventProcessor<Referral> {
     ) => (string | number | FirebaseFirestore.DocumentReference<Referral>)[];
   } {
     const q = query
-      .where('metadata.createdAt', '<', timestamp)
-      .orderBy('metadata.createdAt', 'asc')
+      .where('createdAt', '<', timestamp)
+      .orderBy('createdAt', 'asc')
       .orderBy(FieldPath.documentId(), 'asc');
 
     const getStartAfterField = (item: Referral, ref: DocRef<Referral>) => {

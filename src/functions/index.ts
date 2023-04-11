@@ -1,5 +1,6 @@
 export * from './aggregate-sales-stats';
 // export * from './aggregate-user-rewards';
+export * from './beta';
 // export * from './on-order-change';
 // export * from './on-order-trigger';
 // export * from './on-staker-event';

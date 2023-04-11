@@ -18,7 +18,7 @@
     "node": true,
     "jest": true
   },
-  "ignorePatterns": [".eslintrc.js", "jest.config.ts", "**/*.spec"],
+  "ignorePatterns": [".eslintrc.js", "jest.config.ts", "**/*.spec", "src/scripts/**/*"],
   "rules": {
     "@typescript-eslint/no-unsafe-assignment": "off",
     "@typescript-eslint/no-unsafe-argument": "off",

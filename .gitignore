@@ -3,6 +3,8 @@
 .env.development.deploy
 .env.production.deploy
 .env.production.local
+.env.nftc-dev
+.env.nftc-infinity
 
 wallets/**/*
 

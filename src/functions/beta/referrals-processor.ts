@@ -45,7 +45,7 @@ export class ReferralsProcessor extends FirestoreBatchEventProcessor<Referral> {
      * Count the number of referrals for the user
      */
 
-    const referralRef = eventsRef.parent?.parent as DocRef<ReferralCode> | undefined;
+    const referralRef = eventsRef.parent as DocRef<ReferralCode> | undefined;
 
     if (!referralRef) {
       throw new Error(`Failed to get parent ref for ${eventsRef.path}`);

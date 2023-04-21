@@ -40,6 +40,12 @@ export const safeWebSocketSubscription = (
     if (pingTimeout) {
       clearTimeout(pingTimeout);
     }
+    try {
+      webSocketProvider.websocket.close();
+    } catch (err) {
+      logger.error('websocket-provider', `WebSocket closing failed: ${err}`);
+    }
+    logger.error('websocket-provider', `WebSocket subscription closed. Reconnecting...`);
     safeWebSocketSubscription(providerUrl, callback);
   });
 

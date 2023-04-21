@@ -5,9 +5,13 @@ import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 
-export function getProvider(chainId: string) {
-  const provider = config.providers[chainId as keyof typeof config.providers];
-  if (provider == null) {
+export function getProvider(chainId: string, component: 'default' | 'indexer' = 'default') {
+  const comp = config.providers[component];
+  if (comp == null) {
+    throw new Error(`No provider for component ${component}`);
+  }
+  const provider = comp[chainId as keyof typeof comp];
+  if (provider === null) {
     throw new Error(`No provider for chainId ${chainId}`);
   }
   return provider;

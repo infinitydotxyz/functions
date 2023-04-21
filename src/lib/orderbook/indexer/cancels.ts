@@ -233,7 +233,7 @@ export async function updateNonces(
       let fillability: UserNonce['fillability'];
       if (metadata.reorged) {
         const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
-        const provider = getProvider(baseParams.chainId);
+        const provider = getProvider(baseParams.chainId, 'indexer');
         const isValid = await exchange.contract.connect(provider).isNonceValid(nonce.userAddress, nonce.nonce);
         fillability = isValid ? 'fillable' : 'cancelled';
       } else {

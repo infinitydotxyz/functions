@@ -30,7 +30,7 @@ export async function initializeIndexerEventSyncing() {
   for (const chainId of config.supportedChains) {
     const exchangeAddress = getExchangeAddress(chainId);
     const wethAddress = Common.Addresses.Weth[parseInt(chainId, 10)];
-    const provider = getProvider(chainId);
+    const provider = getProvider(chainId, 'indexer');
     const wsProvider = new ethers.providers.WebSocketProvider(
       provider.connection.url.replace('https', 'wss'),
       parseInt(chainId, 10)

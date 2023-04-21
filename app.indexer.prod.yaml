@@ -9,7 +9,7 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.95
 resources:
-  cpu: 4
+  cpu: 6
   memory_gb: 20
   disk_size_gb: 10
 readiness_check:

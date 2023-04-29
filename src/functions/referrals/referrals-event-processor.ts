@@ -113,12 +113,14 @@ export class ReferralsEventProcessor extends FirestoreBatchEventProcessor<Referr
     }
     const user = await getUserDisplayData(userRef as DocRef<UserProfileDto>);
     const totals = {
+      referralLink: '',
       referrer: user,
       metadata: {
         chainId,
         updatedAt: 0
       },
       stats: {
+        numReferrals: 0,
         numReferralSales: 0,
         totalFeesGenerated: getDefaultFeesGenerated()
       }

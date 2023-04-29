@@ -41,7 +41,7 @@ export async function validateOrders(
 
   const promises: Promise<boolean>[] = [];
   for await (const { data: orderData, ref: orderRef } of stream) {
-    const provider = getProvider(orderData.metadata.chainId);
+    const provider = getProvider(orderData.metadata.chainId, 'indexer');
     const timestamp = Date.now();
     const getMetadata = <T extends OrderEventKind>(type: T) => {
       return {
@@ -157,7 +157,7 @@ export async function getOrderStatus(order: Flow.Order | null): Promise<OrderSta
   if (!order) {
     return 'expired';
   }
-  const provider = getProvider(order.chainId.toString() as ChainId);
+  const provider = getProvider(order.chainId.toString() as ChainId, 'indexer');
   const now = Date.now();
   const hasStarted = order.startTime * 1000 < now;
   const hasEnded = order.endTime * 1000 < now;

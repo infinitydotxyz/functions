@@ -9,8 +9,8 @@
     "serve": "npm run build && firebase emulators:start --only functions --project nftc-dev",
     "shell": "npm run build && firebase functions:shell",
     "start:shell": "npm run shell",
-    "deploy:dev": "firebase deploy --only functions --set-env-vars INFINITY_NODE_ENV=dev --project nftc-dev",
-    "deploy:prod": "firebase deploy --only functions --set-env-vars INFINITY_NODE_ENV=prod --project nftc-infinity",
+    "deploy:dev": "firebase deploy --only functions --project nftc-dev",
+    "deploy:prod": "firebase deploy --only functions --project nftc-infinity",
     "deploy:orderbook:dev": "npm run build && gcloud app deploy -q --appyaml=./app.orderbook-sync.dev.yaml --project=nftc-dev",
     "deploy:orderbook:prod": "npm run build && gcloud app deploy -q --appyaml=./app.orderbook-sync.prod.yaml --project=nftc-infinity",
     "deploy:indexer:prod": "npm run build && gcloud app deploy -q --appyaml=./app.indexer.prod.yaml --project=nftc-infinity",
@@ -32,6 +32,7 @@
     "backfill-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-supported-collections.ts",
     "check-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-supported-collections.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
+    "airdrop": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/airdrop-balances.ts",
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
     "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
     "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",
@@ -43,7 +44,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.17",
-    "@infinityxyz/lib": "^1.337.0",
+    "@infinityxyz/lib": "^1.341.1",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "0.0.324",
     "@types/node": "^18.11.19",
@@ -88,7 +89,8 @@
     "ts-jest": "^28.0.2",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.1",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "ws": "^8.13.0"
   },
   "private": true,
   "_moduleAliases": {

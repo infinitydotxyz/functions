@@ -16,6 +16,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { NftDto } from '@infinityxyz/lib/types/dto';
 import {
+  PROTOCOL_FEE_BPS,
   firestoreConstants,
   formatEth,
   getCollectionDocId,
@@ -250,7 +251,6 @@ const batchSaveToFirestore = async (
     };
 
     if (item.marketplace === 'flow') {
-      const PROTOCOL_FEE_BPS = 50;
       const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
       const protocolFeeEth = formatEth(protocolFeeWei.toString());
       return {

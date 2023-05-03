@@ -2,11 +2,12 @@ import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { readFile, writeFile } from 'fs/promises';
 import 'module-alias/register';
+import PQueue from 'p-queue';
 import { join } from 'path';
 
 import { InfinityStakerABI, ERC20ABI } from '@infinityxyz/lib/abi';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
@@ -46,21 +47,52 @@ export async function getFlurBalances() {
 
   let balances: { [address: string]: BigNumberish } = {};
   let cmDistributor = '0xf1000a7467e9d67f53e44ab30562800b6e38f616';
-  const adi = '0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979';
+  const adi = trimLowerCase('0xDBd8277e2E16aa40f0e5D3f21ffe600Ad706D979');
   const uniswapV3Staker = trimLowerCase('0xe34139463bA50bD61336E0c446Bd8C0867c6fE65');
   const uniswapV3Flur = trimLowerCase('0x4EE0E3e9DED1EEA97e91490a12FeC39fe99C102f');
   let totalSupply = BigNumber.from(0);
+  let totalSupplyIncluded = BigNumber.from(0);
+
+  const queue = new PQueue({ concurrency: 10 });
   for (const address of uniqueAddresses) {
-    if (address === cmDistributor || address === adi || address === uniswapV3Staker || address === uniswapV3Flur) {
-      let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
-      totalSupply = totalSupply.add(balanceAtBlock);
-    } else if (address !== ethers.constants.AddressZero) {
-      let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
-      console.log(`User ${address} has ${balanceAtBlock} FLUR`);
-      balances[address] = balanceAtBlock;
-      totalSupply = totalSupply.add(balanceAtBlock);
-    }
+    queue
+      .add(async () => {
+        let attempts = 0;
+        while (true) {
+          attempts += 1;
+          try {
+            if (
+              address === cmDistributor ||
+              address === adi ||
+              address === uniswapV3Staker ||
+              address === uniswapV3Flur
+            ) {
+              let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
+              totalSupply = totalSupply.add(balanceAtBlock);
+            } else if (address !== ethers.constants.AddressZero) {
+              let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
+              console.log(`User ${address} has ${balanceAtBlock} FLUR`);
+              balances[address] = balanceAtBlock;
+              totalSupply = totalSupply.add(balanceAtBlock);
+              totalSupplyIncluded = totalSupplyIncluded.add(balanceAtBlock);
+            }
+            return;
+          } catch (err) {
+            if (attempts > 3) {
+              throw err;
+            }
+
+            await sleep(1000);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        process.exit(1);
+      });
   }
+
+  await queue.onIdle();
 
   let topBalances = Object.entries(balances)
     .sort(([addrA, balanceA], [addrB, balanceB]) => (BigNumber.from(balanceB).sub(balanceA).gt(0) ? 1 : -1))
@@ -71,7 +103,8 @@ export async function getFlurBalances() {
 
   return {
     balances,
-    totalSupply
+    totalSupply,
+    totalSupplyIncluded
   };
 }
 
@@ -112,19 +145,44 @@ export async function getINFTBalances() {
   let cmDistributor = '0xbada55c9c42e573047c76eb65e29d853f7b77b9c';
 
   let totalSupply = BigNumber.from(0);
+  let totalSupplyIncluded = BigNumber.from(0);
+  const queue = new PQueue({ concurrency: 10 });
   for (const address of uniqueAddresses) {
-    if (address === multiSig || address === cmDistributor) {
-      let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
-      let amountStakedAtBlock = await stakerContract.getUserTotalStaked(address, { blockTag: block });
-      totalSupply = totalSupply.add(balanceAtBlock).add(amountStakedAtBlock);
-    } else if (address !== ethers.constants.AddressZero && address !== stakerAddress) {
-      let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
-      let amountStakedAtBlock = await stakerContract.getUserTotalStaked(address, { blockTag: block });
-      console.log(`User ${address} has ${balanceAtBlock} INFT and ${amountStakedAtBlock} staked`);
-      balances[address] = BigNumber.from(balanceAtBlock).add(amountStakedAtBlock);
-      totalSupply = totalSupply.add(balanceAtBlock).add(amountStakedAtBlock);
-    }
+    queue
+      .add(async () => {
+        let attempts = 0;
+        while (true) {
+          attempts += 1;
+          try {
+            if (address === multiSig || address === cmDistributor) {
+              let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
+              let amountStakedAtBlock = await stakerContract.getUserTotalStaked(address, { blockTag: block });
+              totalSupply = totalSupply.add(balanceAtBlock).add(amountStakedAtBlock);
+            } else if (address !== ethers.constants.AddressZero && address !== stakerAddress) {
+              let balanceAtBlock = await contract.balanceOf(address, { blockTag: block });
+              let amountStakedAtBlock = await stakerContract.getUserTotalStaked(address, { blockTag: block });
+              console.log(`User ${address} has ${balanceAtBlock} INFT and ${amountStakedAtBlock} staked`);
+              balances[address] = BigNumber.from(balanceAtBlock).add(amountStakedAtBlock);
+              totalSupply = totalSupply.add(balanceAtBlock).add(amountStakedAtBlock);
+              totalSupplyIncluded = totalSupplyIncluded.add(balanceAtBlock).add(amountStakedAtBlock);
+            }
+            return;
+          } catch (err) {
+            if (attempts > 3) {
+              throw err;
+            }
+
+            await sleep(1000);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        process.exit(1);
+      });
   }
+
+  await queue.onIdle();
 
   let topBalances = Object.entries(balances)
     .sort(([addrA, balanceA], [addrB, balanceB]) => (BigNumber.from(balanceB).sub(balanceA).gt(0) ? 1 : -1))
@@ -135,7 +193,8 @@ export async function getINFTBalances() {
 
   return {
     balances,
-    totalSupply
+    totalSupply,
+    totalSupplyIncluded
   };
 }
 
@@ -183,6 +242,9 @@ async function main() {
     console.log(`FLUR total supply: ${flurBalances.totalSupply} ${Object.keys(flurBalances.balances).length} owners`);
     console.log(`INFT total supply: ${inftBalances.totalSupply} ${Object.keys(inftBalances.balances).length} owners`);
 
+    console.log(`FLUR total supply included: ${flurBalances.totalSupplyIncluded.toString()}`);
+    console.log(`INFT total supply included: ${inftBalances.totalSupplyIncluded.toString()}`);
+
     const addresses = new Set<string>();
     for (const address of Object.keys(buyers)) {
       addresses.add(address);
@@ -195,7 +257,7 @@ async function main() {
     }
     console.log(`Found ${addresses.size} unique addresses`);
 
-    let totalXflInftTokenRewards = Object.values(flurBalances.balances).reduce(
+    let totalXflInftTokenRewards = Object.values(inftBalances.balances).reduce(
       (acc: BigNumber, cur) => acc.add(BigNumber.from(cur).mul(5)),
       BigNumber.from(0)
     );
@@ -212,6 +274,7 @@ async function main() {
     const airdropTokensRemainingBeforeVolume = BigNumber.from(airdropTokens).sub(xflRewardsExcludingVolume);
 
     console.log(`Total XFL Tokens ${airdropTokens.toString()}`);
+
     console.log(`Total XFL Tokens Excluding Volume ${xflRewardsExcludingVolume.toString()}`);
     console.log(`Total XFL Tokens Remaining Before Volume ${airdropTokensRemainingBeforeVolume.toString()}`);
 

@@ -7,7 +7,7 @@ import {
   RawFirestoreOrderWithoutError,
   UserDisplayData
 } from '@infinityxyz/lib/types/core';
-import { Seaport } from '@reservoir0x/sdk';
+import { SeaportBase } from '@reservoir0x/sdk';
 
 import { OrderStatus } from '@/lib/reservoir/api/orders/types';
 
@@ -65,8 +65,9 @@ export class OrderUpdater {
     if (this.rawOrder.metadata.chainId !== ChainId.Mainnet) {
       switch (this.rawOrder.metadata.source) {
         case 'seaport':
-        case 'seaport-v1.4': {
-          if (!(this.rawOrder?.rawOrder?.rawOrder as Seaport.Types.OrderComponents)?.signature) {
+        case 'seaport-v1.4':
+        case 'seaport-v1.5': {
+          if (!(this.rawOrder?.rawOrder?.rawOrder as SeaportBase.Types.OrderComponents)?.signature) {
             return false;
           }
         }

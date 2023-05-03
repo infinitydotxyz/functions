@@ -3,7 +3,7 @@ import { ReservoirOrderStatusEventProcessor } from 'functions/reservoir/reservoi
 import { ChainId, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { RawFirestoreOrder } from '@infinityxyz/lib/types/core';
 import { ONE_MIN } from '@infinityxyz/lib/utils';
-import { Flow, SeaportV14 } from '@reservoir0x/sdk';
+import { Flow, SeaportBase, SeaportV14 } from '@reservoir0x/sdk';
 
 import { getDb } from '@/firestore/db';
 import { CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
@@ -76,11 +76,11 @@ async function main() {
   const rawOrder = orderData?.rawOrder.rawOrder;
   // const order = new Flow.Order(parseInt(chainId, 10), rawOrder as Flow.Types.SignedOrder);
 
-  const order = new SeaportV14.Order(chainIdInt, rawOrder as SeaportV14.Types.OrderComponents);
+  const order = new SeaportV14.Order(chainIdInt, rawOrder as SeaportBase.Types.OrderComponents);
   const exchange = new SeaportV14.Exchange(chainIdInt);
   const taker = '0xbd9573b68297E6F0E01c4D64D6faED7c737024b5';
 
-  const builder = new SeaportV14.Builders.SingleToken(chainIdInt);
+  const builder = new SeaportBase.Builders.SingleToken(chainIdInt);
   const matchParams = builder.buildMatching(order);
 
   const tx = await exchange.fillOrderTx(taker, order, matchParams);

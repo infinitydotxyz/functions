@@ -32,7 +32,7 @@
     "backfill-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-supported-collections.ts",
     "check-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-supported-collections.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
-    "airdrop": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/airdrop-balances.ts",
+    "airdrop": "npm run clean && npm run build && node --max-old-space-size=4096 -r dotenv/config ./dist/scripts/airdrop-balances.js",
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
     "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
     "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",

@@ -8,6 +8,7 @@ import { InfinityStakerABI, ERC20ABI } from '@infinityxyz/lib/abi';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
+import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { Erc20TransferEvent } from '@/lib/on-chain-events/erc20/erc20-transfer';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -171,109 +172,120 @@ async function getOpenSeaAndBlurBuyers() {
 }
 
 async function main() {
-  let [buyers, flurBalances, inftBalances] = await Promise.all([
-    getOpenSeaAndBlurBuyers(),
-    getFlurBalances(),
-    getINFTBalances()
-  ]);
+  try {
+    let [buyers, flurBalances, inftBalances] = await Promise.all([
+      getOpenSeaAndBlurBuyers(),
+      getFlurBalances(),
+      getINFTBalances()
+    ]);
 
-  console.log(`Found ${Object.keys(buyers).length} OpenSea/Blur buyers`);
-  console.log(`FLUR total supply: ${flurBalances.totalSupply} ${Object.keys(flurBalances.balances).length} owners`);
-  console.log(`INFT total supply: ${inftBalances.totalSupply} ${Object.keys(inftBalances.balances).length} owners`);
+    console.log(`Found ${Object.keys(buyers).length} OpenSea/Blur buyers`);
+    console.log(`FLUR total supply: ${flurBalances.totalSupply} ${Object.keys(flurBalances.balances).length} owners`);
+    console.log(`INFT total supply: ${inftBalances.totalSupply} ${Object.keys(inftBalances.balances).length} owners`);
 
-  const addresses = new Set<string>();
-  for (const address of Object.keys(buyers)) {
-    addresses.add(address);
-  }
-  for (const address of Object.keys(flurBalances.balances)) {
-    addresses.add(address);
-  }
-  for (const address of Object.keys(inftBalances.balances)) {
-    addresses.add(address);
-  }
-  console.log(`Found ${addresses.size} unique addresses`);
+    const addresses = new Set<string>();
+    for (const address of Object.keys(buyers)) {
+      addresses.add(address);
+    }
+    for (const address of Object.keys(flurBalances.balances)) {
+      addresses.add(address);
+    }
+    for (const address of Object.keys(inftBalances.balances)) {
+      addresses.add(address);
+    }
+    console.log(`Found ${addresses.size} unique addresses`);
 
-  let totalXflInftTokenRewards = Object.values(flurBalances.balances).reduce(
-    (acc: BigNumber, cur) => acc.add(BigNumber.from(cur).mul(5)),
-    BigNumber.from(0)
-  );
+    let totalXflInftTokenRewards = Object.values(flurBalances.balances).reduce(
+      (acc: BigNumber, cur) => acc.add(BigNumber.from(cur).mul(5)),
+      BigNumber.from(0)
+    );
 
-  let totalXflFlurTokenRewards = Object.values(flurBalances.balances).reduce(
-    (acc: BigNumber, cur) => acc.add(cur),
-    BigNumber.from(0)
-  );
+    let totalXflFlurTokenRewards = Object.values(flurBalances.balances).reduce(
+      (acc: BigNumber, cur) => acc.add(cur),
+      BigNumber.from(0)
+    );
 
-  const xflRewardsExcludingVolume = totalXflInftTokenRewards.add(totalXflFlurTokenRewards);
+    const xflRewardsExcludingVolume = totalXflInftTokenRewards.add(totalXflFlurTokenRewards);
 
-  const airdropTokens = parseEther(`${800_000_000}`);
+    const airdropTokens = parseEther(`${800_000_000}`);
 
-  const airdropTokensRemainingBeforeVolume = BigNumber.from(airdropTokens).sub(xflRewardsExcludingVolume);
+    const airdropTokensRemainingBeforeVolume = BigNumber.from(airdropTokens).sub(xflRewardsExcludingVolume);
 
-  console.log(`Total XFL Tokens ${airdropTokens.toString()}`);
-  console.log(`Total XFL Tokens Excluding Volume ${xflRewardsExcludingVolume.toString()}`);
-  console.log(`Total XFL Tokens Remaining Before Volume ${airdropTokensRemainingBeforeVolume.toString()}`);
+    console.log(`Total XFL Tokens ${airdropTokens.toString()}`);
+    console.log(`Total XFL Tokens Excluding Volume ${xflRewardsExcludingVolume.toString()}`);
+    console.log(`Total XFL Tokens Remaining Before Volume ${airdropTokensRemainingBeforeVolume.toString()}`);
 
-  const totalVolumeUSD = Object.values(buyers).reduce(
-    (acc, cur) => acc.add(Math.floor(cur.volumeUSD)),
-    BigNumber.from(0)
-  );
-  let precision = 100_000;
+    const totalVolumeUSD = Object.values(buyers).reduce(
+      (acc, cur) => acc.add(Math.floor(cur.volumeUSD)),
+      BigNumber.from(0)
+    );
 
-  const calculateAirdrop = (flurBalance: BigNumberish, inftBalance: BigNumberish, volumeUSD: number): BigNumberish => {
-    const inftXfl = BigNumber.from(inftBalance).mul(5);
-    const flurXfl = BigNumber.from(flurBalance).mul(1);
+    console.log(`Total Volume USD ${totalVolumeUSD.toString()}`);
+    let precision = BigNumber.from(10).pow(18);
 
-    const volumePortion = BigNumber.from(volumeUSD).mul(precision).div(totalVolumeUSD);
-    const volumeXfl = airdropTokensRemainingBeforeVolume.mul(volumePortion).div(precision);
+    const calculateAirdrop = (
+      flurBalance: BigNumberish,
+      inftBalance: BigNumberish,
+      volumeUSD: number
+    ): BigNumberish => {
+      const inftXfl = BigNumber.from(inftBalance).mul(5);
+      const flurXfl = BigNumber.from(flurBalance).mul(1);
 
-    const totalXfl = inftXfl.add(flurXfl).add(volumeXfl);
+      const volumePortion = BigNumber.from(volumeUSD).mul(precision).div(totalVolumeUSD);
+      const volumeXfl = airdropTokensRemainingBeforeVolume.mul(volumePortion).div(precision);
 
-    return totalXfl;
-  };
+      const totalXfl = inftXfl.add(flurXfl).add(volumeXfl);
 
-  const airdrop: {
-    [address: string]: {
-      volumeUSD: number;
-      flurBalance: BigNumberish;
-      inftBalance: BigNumberish;
-      xflAirdrop: BigNumberish;
-    };
-  } = {};
-
-  for (const address of addresses) {
-    const flurBalance = flurBalances.balances[address] ?? 0;
-    const inftBalance = inftBalances.balances[address] ?? 0;
-
-    const volumeUSD = buyers[address]?.volumeUSD ?? 0;
-    const xflAirdrop = calculateAirdrop(flurBalance, inftBalance, volumeUSD);
-
-    airdrop[address] = {
-      volumeUSD: volumeUSD,
-      flurBalance: flurBalance.toString(),
-      inftBalance: inftBalance.toString(),
-      xflAirdrop: xflAirdrop.toString()
+      return totalXfl;
     };
 
-    if (BigNumber.from(volumeUSD).gt(0) && BigNumber.from(flurBalance).gt(0)) {
-      console.log(`Address ${address} has ${volumeUSD} volume and ${flurBalance.toString()} FLUR`);
+    const airdrop: {
+      [address: string]: {
+        volumeUSD: number;
+        flurBalance: BigNumberish;
+        inftBalance: BigNumberish;
+        xflAirdrop: BigNumberish;
+      };
+    } = {};
+
+    for (const address of addresses) {
+      const flurBalance = flurBalances.balances[address] ?? 0;
+      const inftBalance = inftBalances.balances[address] ?? 0;
+
+      const volumeUSD = buyers[address]?.volumeUSD ?? 0;
+      const xflAirdrop = calculateAirdrop(flurBalance, inftBalance, volumeUSD);
+
+      airdrop[address] = {
+        volumeUSD: volumeUSD,
+        flurBalance: flurBalance.toString(),
+        inftBalance: inftBalance.toString(),
+        xflAirdrop: xflAirdrop.toString()
+      };
+
+      if (BigNumber.from(volumeUSD).gt(0) && BigNumber.from(flurBalance).gt(0)) {
+        console.log(`Address ${address} has ${volumeUSD} volume and ${flurBalance.toString()} FLUR`);
+      }
     }
-  }
 
-  await writeFile('./airdrop.json', JSON.stringify(airdrop, null, 2), 'utf-8');
+    await writeFile('./airdrop.json', JSON.stringify(airdrop, null, 2), 'utf-8');
 
-  const db = await getDb();
-  let index = 0;
-  for (const [address, balances] of Object.entries(airdrop)) {
-    index += 1;
-    await db.collection('xflAirdrop').doc(address).set(balances);
+    const db = await getDb();
+    let index = 0;
+    let batch = new BatchHandler();
+    for (const [address, balances] of Object.entries(airdrop)) {
+      index += 1;
+      await batch.addAsync(db.collection('xflAirdrop').doc(address), balances, { merge: true });
 
-    if (index % 1000 === 0) {
-      console.log(`Uploaded ${index} balances`);
+      if (index % 1000 === 0) {
+        console.log(`Uploaded ${index} balances`);
+      }
     }
+    await batch.flush();
+
+    console.log(`Complete!`);
+  } catch (err) {
+    console.error(err);
   }
-
-  console.log(`Complete!`);
-
   process.exit(1);
 }
 

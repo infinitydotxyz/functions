@@ -6,17 +6,19 @@ import { config } from '@/config/index';
 import { AbstractSandboxProcess } from '@/lib/process/sandbox-process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 
-export type SearchCollections = {
+export interface SearchCollections {
   id: string;
   type: 'search-collections';
-};
+}
 
-export type PurgeCollection = {
+export interface PurgeCollection {
   id: string;
   type: 'purge-collection';
   chainId: ChainId;
   address: string;
-};
+}
+
+// TODO Feed
 
 export type JobData = SearchCollections | PurgeCollection;
 export type JobResult = void;

@@ -18,9 +18,14 @@ export interface PurgeCollection {
   address: string;
 }
 
+export interface PurgeOrderSnapshots {
+  id: string;
+  type: 'purge-order-snapshots';
+}
+
 // TODO Feed
 
-export type JobData = SearchCollections | PurgeCollection;
+export type JobData = SearchCollections | PurgeCollection | PurgeOrderSnapshots;
 export type JobResult = void;
 
 export class FirestoreDeletionProcess extends AbstractSandboxProcess<JobData, JobResult> {

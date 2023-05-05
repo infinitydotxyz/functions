@@ -36,7 +36,7 @@
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
     "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
     "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",
-    "purge-firestore": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/purge-firestore/index.js"
+    "purge-firestore": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js"
   },
   "engines": {
     "node": "16"

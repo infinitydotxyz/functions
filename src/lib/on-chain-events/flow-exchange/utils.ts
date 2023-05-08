@@ -2,7 +2,8 @@ import { BigNumber, BigNumberish } from 'ethers';
 import { Interface } from 'ethers/lib/utils';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Flow } from '@reservoir0x/sdk';
+
+import * as Flow from '../../flow';
 
 export type ArrayifiedFlowOrder = [
   boolean,

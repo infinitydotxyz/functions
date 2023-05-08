@@ -145,7 +145,7 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
         /**
          * poll in-case the websocket connection fails
          */
-        const iterator = this._blockIterator(30_000);
+        const iterator = this._blockIterator(2_000);
         for await (const { blockNumber } of iterator) {
           if (signal.aborted) {
             return;

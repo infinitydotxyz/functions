@@ -37,7 +37,9 @@ export const getOrderItem = (firestoreOrderItem: Partial<FirestoreOrderItem>) =>
     tokenSlug: firestoreOrderItem.tokenSlug ?? '',
     numTokens: firestoreOrderItem.numTokens ?? 1,
     complicationAddress: firestoreOrderItem.complicationAddress ?? getOBComplicationAddress(chainId),
-    attributes: firestoreOrderItem.attributes ?? []
+    attributes: firestoreOrderItem.attributes ?? [],
+    source: 'wyvern-v2',
+    gasUsage: ''
   };
   const db = getDb();
   const orderItem = new OrderItem(item, db);

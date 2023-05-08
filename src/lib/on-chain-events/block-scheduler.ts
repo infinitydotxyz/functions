@@ -11,6 +11,7 @@ import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 
 import { redlock } from '../../app-engine/redis';
+import { getBlockProvider } from '../utils/safe-websocket-subscription';
 import { AbstractBlockProcessor } from './block-processor/block-processor.abstract';
 
 interface JobData {
@@ -101,51 +102,22 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
       }
     };
 
+    const blockProvider = getBlockProvider(this._wsProvider.connection.url);
+    let cancelBlockSubscription: undefined | (() => void);
     try {
       await redlock.using([lockKey], lockDuration, async (signal) => {
         this.log(`Acquired lock!`);
         const callback = handler(signal);
-        // /**
-        //  * use web sockets to attempt to get block numbers
-        //  * right await
-        //  */
-        // safeWebSocketSubscription(this._wsProvider.connection.url, async (provider) => {
-        //   provider.on('block', callback);
 
-        //   return new Promise((resolve) => {
-        //     // in the case that the signal is aborted, unsubscribe from block events
-        //     const abortHandler = () => {
-        //       this.log(`Received abort signal, unsubscribed from block events`);
-        //       provider.removeAllListeners();
-        //       signal.removeEventListener('abort', abortHandler);
-        //       provider
-        //         .destroy()
-        //         .then(() => {
-        //           resolve();
-        //         })
-        //         .catch((err) => {
-        //           this.error(`Failed to destroy provider ${err}`);
-        //           resolve();
-        //         });
-        //     };
-        //     signal.addEventListener('abort', abortHandler);
+        blockProvider.on('block', callback);
 
-        //     // in the case that the provider is disconnected, resolve the promise and unsubscribe from signal events
-        //     const disconnectHandler = () => {
-        //       this.log(`Provider disconnected, unsubscribed from block events`);
-        //       signal.removeEventListener('abort', abortHandler);
-        //       resolve();
-        //     };
-        //     provider._websocket.on('close', disconnectHandler);
-        //   });
-        // }).catch((err) => {
-        //   this.error(`Unexpected error! Safe WebSocket Subscription Failed. ${err}`);
-        // });
-
+        cancelBlockSubscription = () => {
+          blockProvider.off('block', callback);
+        };
         /**
          * poll in-case the websocket connection fails
          */
-        const iterator = this._blockIterator(2_000);
+        const iterator = this._blockIterator(3_000);
         for await (const { blockNumber } of iterator) {
           if (signal.aborted) {
             return;
@@ -158,6 +130,7 @@ export class BlockScheduler extends AbstractProcess<JobData, JobResult> {
         }
       });
     } catch (err) {
+      cancelBlockSubscription?.();
       if (err instanceof ExecutionError) {
         this.warn(`Failed to acquire lock`);
         await sleep(3000);

@@ -1,4 +1,4 @@
-import { SeaportV14 } from '@reservoir0x/sdk';
+import { SeaportBase, SeaportV14 } from '@reservoir0x/sdk';
 
 import { ErrorCode } from '../../errors/error-code';
 import { OrderError } from '../../errors/order.error';
@@ -25,7 +25,7 @@ export class SingleTokenOrderTransformer extends SeaportV14OrderTransformer {
       flowOrder: this.getFlowOrder(),
       getSourceTxn: async (timestamp: number, from: string) => {
         const seaport = new SeaportV14.Exchange(this.chainId);
-        const builder = new SeaportV14.Builders.SingleToken(this.chainId);
+        const builder = new SeaportBase.Builders.SingleToken(this.chainId);
         const matchParams = builder.buildMatching(this._order);
         const data = await seaport.fillOrderTx(from, this._order, matchParams);
         return data;

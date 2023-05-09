@@ -49,6 +49,22 @@ const seaportV14Config = {
   }
 };
 
+const seaportV15Config = {
+  'single-token': {
+    enabled: true,
+    transformer: Transformers.SeaportV15.SingleToken
+  },
+  'bundle-ask': {
+    enabled: false
+  },
+  'contract-wide': {
+    enabled: false
+  },
+  'token-list': {
+    enabled: false
+  }
+};
+
 export const config = {
   infinity: {
     source: 'infinity',
@@ -68,6 +84,11 @@ export const config = {
     source: 'seaport-v1.4',
     enabled: true,
     kinds: seaportV14Config
+  },
+  'seaport-v1.5': {
+    source: 'seaport-v1.5',
+    enabled: true,
+    kinds: seaportV15Config
   },
   'wyvern-v2': {
     source: 'wyvern-v2',

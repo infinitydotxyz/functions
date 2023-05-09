@@ -10,7 +10,7 @@ import {
   RawOrderWithoutError
 } from '@infinityxyz/lib/types/core';
 import { ONE_HOUR, firestoreConstants } from '@infinityxyz/lib/utils';
-import { Flow, Seaport, SeaportV14 } from '@reservoir0x/sdk';
+import { Flow, SeaportBase, SeaportV11, SeaportV14 } from '@reservoir0x/sdk';
 
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
@@ -156,7 +156,10 @@ export default async function (job: Job<JobData, JobResult>) {
                       if (item.data.order?.status === 'inactive') {
                         updated = true;
                       } else {
-                        const order = new Seaport.Order(5, reservoirOrder.rawData as Seaport.Types.OrderComponents);
+                        const order = new SeaportV11.Order(
+                          5,
+                          reservoirOrder.rawData as SeaportBase.Types.OrderComponents
+                        );
                         if (!order.params.signature) {
                           logger.log(name, `${item.data.metadata.id} no signature`);
                           const orderEvent: OrderRevalidationEvent = {
@@ -190,7 +193,7 @@ export default async function (job: Job<JobData, JobResult>) {
                       } else {
                         const order = new SeaportV14.Order(
                           5,
-                          reservoirOrder.rawData as SeaportV14.Types.OrderComponents
+                          reservoirOrder.rawData as SeaportBase.Types.OrderComponents
                         );
                         if (!order.params.signature) {
                           logger.log(name, `${item.data.metadata.id} no signature`);

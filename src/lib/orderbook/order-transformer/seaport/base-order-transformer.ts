@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Flow, Seaport } from '@reservoir0x/sdk';
+import { Flow, SeaportBase, SeaportV11 } from '@reservoir0x/sdk';
 
 import { Reservoir } from '@/lib/index';
 import { logger } from '@/lib/logger';
@@ -13,12 +13,12 @@ import { GasSimulator } from '../../order/gas-simulator/gas-simulator';
 import { OrderTransformer } from '../order-transformer.abstract';
 import { NonNativeTransformationResult } from '../types';
 
-export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.Order> {
+export abstract class SeaportOrderTransformer extends OrderTransformer<SeaportV11.Order> {
   readonly source: 'seaport';
 
-  protected _order: Seaport.Order;
+  protected _order: SeaportV11.Order;
 
-  protected _components: Seaport.Types.OrderComponents;
+  protected _components: SeaportBase.Types.OrderComponents;
 
   /**
    * perform order kind specific checks on the order
@@ -31,8 +31,8 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
     _provider: ethers.providers.StaticJsonRpcProvider
   ) {
     super(_chainId, _reservoirOrder, _provider);
-    this._components = this._reservoirOrder.rawData as Seaport.Types.OrderComponents;
-    this._order = new Seaport.Order(this.chainId, this._components);
+    this._components = this._reservoirOrder.rawData as SeaportBase.Types.OrderComponents;
+    this._order = new SeaportV11.Order(this.chainId, this._components);
   }
 
   public get kind() {
@@ -92,12 +92,12 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
       throw new OrderError('No signature on non-mainnet order', ErrorCode.NotSigned, '', this.source, 'unsupported');
     }
 
-    const zones = [ethers.constants.AddressZero, Seaport.Addresses.PausableZone[this.chainId]];
+    const zones = [ethers.constants.AddressZero, SeaportV11.Addresses.PausableZone[this.chainId]];
     if (!zones.includes(this._components.zone)) {
       throw new OrderError('unknown zone', ErrorCode.SeaportZone, this._components.zone, this.source, 'unsupported');
     }
 
-    if (this._components.conduitKey !== Seaport.Addresses.OpenseaConduitKey[this.chainId]) {
+    if (this._components.conduitKey !== SeaportBase.Addresses.OpenseaConduitKey[this.chainId]) {
       throw new OrderError(
         `invalid conduitKey`,
         ErrorCode.SeaportConduitKey,
@@ -112,7 +112,7 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
 
   public get isERC721(): boolean {
     const items = this.isSellOrder ? this._components.offer : this._components.consideration;
-    const erc721ItemTypes = new Set([Seaport.Types.ItemType.ERC721]); // don't include ERC721 with criteria
+    const erc721ItemTypes = new Set([SeaportBase.Types.ItemType.ERC721]); // don't include ERC721 with criteria
     return items.every((offerItem) => {
       return erc721ItemTypes.has(offerItem.itemType);
     });
@@ -156,7 +156,7 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
       if (item.startAmount !== item.endAmount) {
         throw new OrderDynamicError(this.source);
       }
-      if (item.itemType !== Seaport.Types.ItemType.ERC721) {
+      if (item.itemType !== SeaportBase.Types.ItemType.ERC721) {
         throw new OrderError('non-erc721 order', ErrorCode.OrderTokenStandard, `true`, this.source);
       }
 
@@ -212,7 +212,7 @@ export abstract class SeaportOrderTransformer extends OrderTransformer<Seaport.O
       };
     }
     try {
-      const transformed = (await this.transform()) as NonNativeTransformationResult<Seaport.Order>;
+      const transformed = (await this.transform()) as NonNativeTransformationResult<SeaportV11.Order>;
       const txn = await transformed.getSourceTxn(Date.now(), gasSimulator.simulationAccount);
       const gasUsage = await gasSimulator.simulate(txn);
       return { gasUsage: parseInt(gasUsage, 10) };

@@ -18,7 +18,7 @@ export abstract class FlowOrderTransformer extends OrderTransformer<Flow.Order> 
    */
   protected abstract _checkOrderKindValid(): void;
 
-  readonly source: 'flow';
+  readonly source = 'flow';
 
   constructor(
     chainId: ChainId,

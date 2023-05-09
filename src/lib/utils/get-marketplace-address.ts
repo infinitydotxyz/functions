@@ -17,14 +17,8 @@ export const getMarketplaceAddress = (chainId: ChainId, orderKind?: OrderSource)
     case 'flow':
       return Sdk.Flow.Addresses.Exchange[chainIdInt];
 
-    case 'forward':
-      return Sdk.Forward.Addresses.Exchange[chainIdInt];
-
     case 'foundation':
       return Sdk.Foundation.Addresses.Exchange[chainIdInt];
-
-    case 'infinity':
-      return Sdk.Infinity.Addresses.Exchange[chainIdInt];
 
     case 'looks-rare':
       return Sdk.LooksRare.Addresses.Exchange[chainIdInt];
@@ -48,10 +42,13 @@ export const getMarketplaceAddress = (chainId: ChainId, orderKind?: OrderSource)
       return Sdk.Rarible.Addresses.Exchange[chainIdInt];
 
     case 'seaport':
-      return Sdk.Seaport.Addresses.Exchange[chainIdInt];
+      return Sdk.SeaportV11.Addresses.Exchange[chainIdInt];
 
     case 'seaport-v1.4':
       return Sdk.SeaportV14.Addresses.Exchange[chainIdInt];
+
+    case 'seaport-v1.5':
+      return Sdk.SeaportV15.Addresses.Exchange[chainIdInt];
 
     case 'sudoswap':
       return Sdk.Sudoswap.Addresses.PairFactory[chainIdInt];

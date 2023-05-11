@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, EventType } from '@infinityxyz/lib/types/core';
 
 import { config } from '@/config/index';
 import { AbstractSandboxProcess } from '@/lib/process/sandbox-process.abstract';
@@ -23,9 +23,44 @@ export interface PurgeOrderSnapshots {
   type: 'purge-order-snapshots';
 }
 
-// TODO Feed
+export interface TriggerPurgeContractEvents {
+  id: string;
+  type: 'trigger-purge-contract-events';
+}
 
-export type JobData = SearchCollections | PurgeCollection | PurgeOrderSnapshots;
+export interface PurgeContractEvents {
+  id: string;
+  type: 'purge-contract-events';
+  chainId: ChainId;
+  address: string;
+}
+
+export interface PurgeFeedEvents {
+  id: string;
+  type: 'purge-feed-events';
+  eventType: EventType;
+}
+
+export interface TriggerPurgeOrders {
+  id: string;
+  type: 'trigger-purge-orders';
+}
+
+export interface PurgeOrder {
+  id: string;
+  type: 'purge-order';
+  orderId: string;
+}
+
+export type JobData =
+  | SearchCollections
+  | PurgeCollection
+  | PurgeOrderSnapshots
+  | TriggerPurgeContractEvents
+  | PurgeContractEvents
+  | PurgeFeedEvents
+  | TriggerPurgeOrders
+  | PurgeOrder;
 export type JobResult = void;
 
 export class FirestoreDeletionProcess extends AbstractSandboxProcess<JobData, JobResult> {

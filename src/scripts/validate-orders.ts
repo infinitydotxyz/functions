@@ -13,7 +13,7 @@ async function main() {
   const id = `validate-orders:${isSellOrder}:`;
   const processor = new ValidateOrdersProcessor(id, redis, getDb(), {
     enableMetrics: false,
-    concurrency: 2,
+    concurrency: 1,
     debug: true,
     attempts: 1
   });
@@ -25,8 +25,8 @@ async function main() {
       id: `${queryNum}`,
       queryNum,
       isSellOrder,
-      concurrentReservoirRequests: 2,
-      chainId: ChainId.Goerli,
+      concurrentReservoirRequests: 1,
+      chainId: ChainId.Mainnet,
       numQueries,
       executionId
     };

@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import cron from 'node-cron';
 
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, EventType } from '@infinityxyz/lib/types/core';
 
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
@@ -15,6 +15,7 @@ import { start } from './api';
 import { initializeIndexerEventSyncing } from './indexer';
 import { initializeIndexerEventProcessors } from './indexer/initialize-event-processors';
 import { OrderEventsQueue, OrderJobData, OrderJobResult } from './order-events/order-events-queue';
+import { FirestoreDeletionProcess } from './purge-firestore-v2/process';
 import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
@@ -206,6 +207,37 @@ async function main() {
      */
     const eventProcessorsPromises = initializeIndexerEventProcessors();
     promises.push(eventProcessorsPromises);
+  }
+
+  if (config.components.purgeFirestore.enabled) {
+    logger.log('purge', 'Starting purge process');
+    const queue = new FirestoreDeletionProcess(redis, {
+      enableMetrics: false,
+      concurrency: config.components.purgeFirestore.concurrency,
+      debug: true,
+      attempts: 3
+    });
+
+    const trigger = async () => {
+      await queue.add({ id: 'search-collections', type: 'search-collections' });
+      await queue.add({ id: 'purge-order-snapshots', type: 'purge-order-snapshots' });
+      await queue.add({ id: 'trigger-purge-contract-events', type: 'trigger-purge-contract-events' });
+      await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftSale });
+      await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftListing });
+      await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftOffer });
+      await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftTransfer });
+      await queue.add({ id: 'trigger-purge-orders', type: 'trigger-purge-orders' });
+    };
+
+    /// once per day
+    cron.schedule('0 0 * * *', async () => {
+      await trigger();
+    });
+
+    if (config.components.purgeFirestore.runOnStartup) {
+      await trigger();
+    }
+    promises.push(queue.run());
   }
 
   await Promise.all(promises);

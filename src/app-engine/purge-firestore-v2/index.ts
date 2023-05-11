@@ -2,15 +2,16 @@ import 'module-alias/register';
 
 import { EventType } from '@infinityxyz/lib/types/core';
 
-import { FirestoreDeletionProcess } from '@/app-engine/purge-firestore-v2/process';
 import { redis } from '@/app-engine/redis';
 import { config } from '@/config/index';
+
+import { FirestoreDeletionProcess } from './process';
 
 async function main() {
   console.log(`IsDev ${config.isDev}`);
   const queue = new FirestoreDeletionProcess(redis, {
     enableMetrics: false,
-    concurrency: 64,
+    concurrency: 16,
     debug: false,
     attempts: 3
   });

@@ -13,7 +13,7 @@ import {
   RawFirestoreOrder
 } from '@infinityxyz/lib/types/core';
 import { CollectionDto } from '@infinityxyz/lib/types/dto';
-import { ONE_DAY, firestoreConstants, getExchangeAddress, sleep } from '@infinityxyz/lib/utils';
+import { ONE_DAY, firestoreConstants, getExchangeAddress } from '@infinityxyz/lib/utils';
 
 import { redis } from '@/app-engine/redis';
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -93,6 +93,7 @@ async function purgeCollection(logger: Logger, collection: { address: string; ch
   const db = getDb();
   try {
     let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       attempt += 1;
       try {
@@ -158,15 +159,16 @@ async function findCollectionsToPurge(logger: Logger, queue: Queue<JobData, With
     loadedAt = Date.now();
     totalDocuments = documents.length;
 
-    const pqueue = new PQueue({ concurrency: 50 });
+    const pqueue = new PQueue({ concurrency: 64 });
     for (const document of documents) {
       pqueue
         .add(async () => {
           let documentAttempts = 0;
+          // eslint-disable-next-line no-constant-condition
           while (true) {
             documentAttempts += 1;
             try {
-              let [chainId, address] = document.id.split(':');
+              const [chainId, address] = document.id.split(':');
               if (supportedCollections.has(document.id)) {
                 // skip supported collections
                 documentsProcessed += 1;
@@ -210,7 +212,7 @@ async function purgeOrderSnapshots(logger: Logger) {
     const orderSnapshotsRef = db.collection('orderSnapshots') as CollRef<SnapshotMetadata>;
     const expiredTimestamp = Date.now() - 32 * ONE_DAY;
     const expiredSnapshots = await orderSnapshotsRef.where('timestamp', '<', expiredTimestamp).get();
-    let batch = new BatchHandler(100);
+    const batch = new BatchHandler(100);
     for (const item of expiredSnapshots.docs) {
       logger.log(`Deleting snapshot ${item.id}`);
       await batch.deleteAsync(item.ref);
@@ -278,7 +280,7 @@ async function purgeContractEvents(logger: Logger, contract: { address: string; 
 
   const batch = new BatchHandler(100);
   let count = 0;
-  for await (const { data, ref } of stream) {
+  for await (const { ref } of stream) {
     count += 1;
     await batch.deleteAsync(ref);
     if (count % 100 === 0) {
@@ -305,7 +307,7 @@ async function purgeFeedEvents(logger: Logger, eventType: EventType) {
 
   const batch = new BatchHandler(100);
   let count = 0;
-  for await (const { data, ref } of eventsStream) {
+  for await (const { ref } of eventsStream) {
     count += 1;
     await batch.deleteAsync(ref);
     if (count % 100 === 0) {
@@ -318,30 +320,38 @@ async function purgeFeedEvents(logger: Logger, eventType: EventType) {
   logger.log(`Completed! Deleted ${count} ${eventType} from feed`);
 }
 
-async function* streamOrders() {
+async function* streamOrders(logger: Logger) {
   const db = getDb();
+  // this collection only contains a single document so we don't need to filter duplicates
   const reservoirOrderEventsTrigger = db.collectionGroup('_reservoirOrderEvents') as CollGroupRef<unknown>;
 
-  const handledOrders = new Set<string>();
+  let lastPathProcessed = '';
 
-  for await (const item of reservoirOrderEventsTrigger.stream()) {
-    const snap = item as unknown as DocSnap<unknown>;
-    const orderRef = snap.ref.parent.parent as DocRef<RawFirestoreOrder>;
-    if (orderRef && !handledOrders.has(orderRef.path)) {
-      yield { orderRef };
+  while (true) {
+    const query = lastPathProcessed
+      ? reservoirOrderEventsTrigger.orderBy(FieldPath.documentId()).startAfter(lastPathProcessed)
+      : reservoirOrderEventsTrigger.orderBy(FieldPath.documentId());
+
+    try {
+      for await (const item of query.stream()) {
+        const snap = item as unknown as DocSnap<unknown>;
+        const orderRef = snap.ref.parent.parent as DocRef<RawFirestoreOrder>;
+        lastPathProcessed = snap.ref.path;
+        if (orderRef) {
+          yield { orderRef };
+        }
+      }
+      /// completed
+      logger.log(`Completed streaming orders!`);
+      return;
+    } catch (err) {
+      logger.warn(`Received error while streaming orders. Continuing from last successful item. Error: ${err}`);
     }
   }
 }
 
 async function triggerPurgeOrders(logger: Logger, queue: Queue<JobData>) {
-  const db = getDb();
-
-  let start = Date.now();
-  const loadInterval = setInterval(() => {
-    const seconds = (Date.now() - start) / 1000;
-    const min = Math.floor((seconds / 60) * 100) / 100;
-    logger.log(`Getting orders... ${min}min`);
-  }, 10_000);
+  const start = Date.now();
 
   let processInterval: NodeJS.Timer | null = null;
   const expiredTimestamp = Date.now() - 31 * ONE_DAY;
@@ -354,10 +364,12 @@ async function triggerPurgeOrders(logger: Logger, queue: Queue<JobData>) {
     processInterval = setInterval(() => {
       const seconds = (Date.now() - processingStart) / 1000;
       const min = Math.floor((seconds / 60) * 100) / 100;
-      logger.log(`Processed ${documentsProcessed}/${documents} orders... ${min}min`);
+      logger.log(
+        `Processed ${documentsProcessed}/${documents} orders... ${min}min. Flow Orders: ${flowOrders} Triggered: ${ordersTriggered}`
+      );
     }, 10_000);
 
-    const pqueue = new PQueue({ concurrency: 30 });
+    const pqueue = new PQueue({ concurrency: 64 });
 
     const checkShouldPurge = async (orderRef: DocRef<RawFirestoreOrder>) => {
       const orderEventsRef = orderRef.collection('orderEvents') as CollRef<OrderEvents>;
@@ -404,7 +416,7 @@ async function triggerPurgeOrders(logger: Logger, queue: Queue<JobData>) {
       return true;
     };
 
-    const stream = streamOrders();
+    const stream = streamOrders(logger);
 
     for await (const { orderRef } of stream) {
       const document = orderRef;
@@ -459,10 +471,6 @@ async function triggerPurgeOrders(logger: Logger, queue: Queue<JobData>) {
         .catch((err) => {
           logger.error(`Failed to process order ${document.id} ${err}`);
         });
-
-      while (pqueue.size > 1000) {
-        await sleep(1000);
-      }
     }
 
     await pqueue.onIdle();
@@ -471,9 +479,6 @@ async function triggerPurgeOrders(logger: Logger, queue: Queue<JobData>) {
   } catch (err) {
     if (processInterval) {
       clearInterval(processInterval);
-    }
-    if (loadInterval) {
-      clearInterval(loadInterval);
     }
     logger.error(`Unexpected error ${err}`);
   }

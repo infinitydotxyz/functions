@@ -22,7 +22,7 @@ async function main() {
   await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftListing });
   await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftOffer });
   await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftTransfer });
-  await queue.add({ id: 'trigger-purge-orders', type: 'trigger-purge-orders' });
+  await queue.add({ id: 'trigger-purge-orders', type: 'trigger-check-orders' });
 
   await queue.run();
 }

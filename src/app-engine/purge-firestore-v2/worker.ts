@@ -1,6 +1,7 @@
 import { Job, Queue } from 'bullmq';
 import { FieldPath } from 'firebase-admin/firestore';
 import 'module-alias/register';
+import { nanoid } from 'nanoid';
 import PQueue from 'p-queue';
 
 import {
@@ -67,8 +68,13 @@ export default async function (job: Job<JobData>) {
       break;
     }
 
-    case 'trigger-purge-orders': {
-      await triggerPurgeOrders(logger, process.queue);
+    case 'trigger-check-orders': {
+      await triggerCheckOrders(logger, process.queue);
+      break;
+    }
+
+    case 'check-order-batch': {
+      await checkOrderBatch(logger, process.queue, job.data.orders);
       break;
     }
 
@@ -350,132 +356,164 @@ async function* streamOrders(logger: Logger) {
   }
 }
 
-async function triggerPurgeOrders(logger: Logger, queue: Queue<JobData>) {
+async function checkOrderBatch(logger: Logger, queue: Queue<JobData>, orders: string[]) {
   const start = Date.now();
-
-  let processInterval: NodeJS.Timer | null = null;
+  const db = getDb();
   const expiredTimestamp = Date.now() - 31 * ONE_DAY;
-  try {
-    const processingStart = Date.now();
-    let documents = 0;
-    let documentsProcessed = 0;
-    let ordersTriggered = 0;
-    let flowOrders = 0;
-    processInterval = setInterval(() => {
-      const seconds = (Date.now() - processingStart) / 1000;
-      const min = Math.floor((seconds / 60) * 100) / 100;
-      logger.log(
-        `Processed ${documentsProcessed}/${documents} orders... ${min}min. Flow Orders: ${flowOrders} Triggered: ${ordersTriggered}`
-      );
-    }, 10_000);
 
-    const pqueue = new PQueue({ concurrency: 64 });
+  const ordersCollectionRef = db.collection('ordersV2') as CollRef<RawFirestoreOrder>;
+  const orderRefs = orders.map((orderId) => ordersCollectionRef.doc(orderId));
+  const orderSnaps = await db.getAll(...orderRefs);
 
-    const checkShouldPurge = async (orderRef: DocRef<RawFirestoreOrder>) => {
-      const orderEventsRef = orderRef.collection('orderEvents') as CollRef<OrderEvents>;
-      const recentOrderEventsSnap = await orderEventsRef
-        .orderBy('metadata.timestamp', 'desc')
-        .orderBy('metadata.id', 'desc')
-        .limit(1)
-        .get();
-      const mostRecentOrderEventSnap = recentOrderEventsSnap.docs?.[0];
+  let ordersTriggered = 0;
+  let flowOrders = 0;
+  const checkShouldPurge = async (orderRef: DocRef<RawFirestoreOrder>) => {
+    const orderEventsRef = orderRef.collection('orderEvents') as CollRef<OrderEvents>;
+    const recentOrderEventsSnap = await orderEventsRef
+      .orderBy('metadata.timestamp', 'desc')
+      .orderBy('metadata.id', 'desc')
+      .limit(1)
+      .get();
+    const mostRecentOrderEventSnap = recentOrderEventsSnap.docs?.[0];
 
-      if (mostRecentOrderEventSnap && mostRecentOrderEventSnap.exists) {
-        const mostRecentOrderEvent = mostRecentOrderEventSnap.data();
-        if (mostRecentOrderEvent && mostRecentOrderEvent.metadata.timestamp < expiredTimestamp) {
-          return (
-            mostRecentOrderEvent.data.status === 'expired' ||
-            mostRecentOrderEvent.data.status === 'cancelled' ||
-            mostRecentOrderEvent.data.status === 'filled'
-          );
-        }
-        return false;
+    if (mostRecentOrderEventSnap && mostRecentOrderEventSnap.exists) {
+      const mostRecentOrderEvent = mostRecentOrderEventSnap.data();
+      if (mostRecentOrderEvent && mostRecentOrderEvent.metadata.timestamp < expiredTimestamp) {
+        return (
+          mostRecentOrderEvent.data.status === 'expired' ||
+          mostRecentOrderEvent.data.status === 'cancelled' ||
+          mostRecentOrderEvent.data.status === 'filled'
+        );
       }
+      return false;
+    }
+    const reservoirOrderEventsRef = orderRef.collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
 
-      const reservoirOrderEventsRef = orderRef.collection('reservoirOrderEvents') as CollRef<ReservoirOrderEvent>;
+    const mostRecentReservoirOrderEventsSnap = await reservoirOrderEventsRef
+      .orderBy('metadata.id', 'desc')
+      .limit(1)
+      .get();
+    const mostRecentReservoirOrderEventSnap = mostRecentReservoirOrderEventsSnap.docs?.[0];
 
-      const mostRecentReservoirOrderEventsSnap = await reservoirOrderEventsRef
-        .orderBy('metadata.id', 'desc')
-        .limit(1)
-        .get();
-      const mostRecentReservoirOrderEventSnap = mostRecentReservoirOrderEventsSnap.docs?.[0];
-
-      if (mostRecentReservoirOrderEventSnap && mostRecentReservoirOrderEventSnap.exists) {
-        const mostRecentOrderEvent = mostRecentReservoirOrderEventSnap.data();
-        if (mostRecentOrderEvent && mostRecentOrderEvent.metadata.updatedAt < expiredTimestamp) {
-          return (
-            mostRecentOrderEvent.data.order.status === 'expired' ||
-            mostRecentOrderEvent.data.order.status === 'cancelled' ||
-            mostRecentOrderEvent.data.order.status === 'filled'
-          );
-        }
-        return false;
+    if (mostRecentReservoirOrderEventSnap && mostRecentReservoirOrderEventSnap.exists) {
+      const mostRecentOrderEvent = mostRecentReservoirOrderEventSnap.data();
+      if (mostRecentOrderEvent && mostRecentOrderEvent.metadata.updatedAt < expiredTimestamp) {
+        return (
+          mostRecentOrderEvent.metadata.status === 'expired' ||
+          mostRecentOrderEvent.metadata.status === 'cancelled' ||
+          mostRecentOrderEvent.metadata.status === 'filled'
+        );
       }
+      return false;
+    }
 
-      logger.log(`No order events found for ${orderRef.path}`);
-      return true;
-    };
+    logger.log(`No order events found for ${orderRef.path}`);
+    return true;
+  };
 
-    const stream = streamOrders(logger);
-
-    for await (const { orderRef } of stream) {
-      const document = orderRef;
-      documents += 1;
-      pqueue
-        .add(async () => {
-          documentsProcessed += 1;
-          const snap = await document.get();
-          const order = snap.data();
-          if (!snap.exists || !order) {
-            const shouldPurge = await checkShouldPurge(document);
-            if (shouldPurge) {
+  const pqueue = new PQueue({ concurrency: 20 });
+  for (const snap of orderSnaps) {
+    pqueue
+      .add(async () => {
+        const order = snap.data();
+        if (!snap.exists || !order) {
+          const shouldPurge = await checkShouldPurge(snap.ref as DocRef<RawFirestoreOrder>);
+          if (shouldPurge) {
+            /// purge
+            await queue.add(`${snap.ref.path}`, {
+              id: `${snap.ref.path}`,
+              type: 'purge-order',
+              orderId: snap.ref.id
+            });
+            ordersTriggered += 1;
+          }
+        } else if (order.metadata.source !== 'flow') {
+          if ('order' in order && order?.order) {
+            const isValid = order.order.isValid;
+            const updatedAt = order.metadata.updatedAt;
+            const isExpired = updatedAt < expiredTimestamp;
+            if (!isValid && isExpired) {
               /// purge
-              await queue.add(`${document.path}`, {
-                id: `${document.path}`,
+              await queue.add(`${snap.ref.path}`, {
+                id: `${snap.ref.path}`,
                 type: 'purge-order',
-                orderId: document.id
+                orderId: order.metadata.id
               });
               ordersTriggered += 1;
             }
-          } else if (order.metadata.source !== 'flow') {
-            if ('order' in order && order.order) {
-              const isValid = order.order.isValid;
-              const updatedAt = order.metadata.updatedAt;
-              const isExpired = updatedAt < expiredTimestamp;
-              if (!isValid && isExpired) {
-                /// purge
-                await queue.add(`${document.path}`, {
-                  id: `${document.path}`,
-                  type: 'purge-order',
-                  orderId: order.metadata.id
-                });
-                ordersTriggered += 1;
-              }
-            } else {
-              const shouldPurge = await checkShouldPurge(document);
-              if (shouldPurge) {
-                /// purge
-                await queue.add(`${document.path}`, {
-                  id: `${document.path}`,
-                  type: 'purge-order',
-                  orderId: document.id
-                });
-                ordersTriggered += 1;
-              }
-            }
           } else {
-            /// skip flow orders
-            flowOrders += 1;
+            const shouldPurge = await checkShouldPurge(snap.ref as DocRef<RawFirestoreOrder>);
+            if (shouldPurge) {
+              /// purge
+              await queue.add(`${snap.ref.path}`, {
+                id: `${snap.ref.path}`,
+                type: 'purge-order',
+                orderId: snap.ref.id
+              });
+              ordersTriggered += 1;
+            }
           }
-        })
-        .catch((err) => {
-          logger.error(`Failed to process order ${document.id} ${err}`);
+        } else {
+          /// skip flow orders
+          flowOrders += 1;
+        }
+      })
+      .catch((err) => {
+        logger.error(`Error while checking order ${snap.ref.path}. Error: ${err}`);
+      });
+  }
+
+  await pqueue.onIdle();
+  const duration = Date.now() - start;
+  const seconds = Math.floor(duration / 10) / 100;
+  logger.log(
+    `Triggered ${ordersTriggered} orders of ${orders.length}. Found ${flowOrders} flow orders. Duration: ${seconds}sec`
+  );
+}
+
+async function triggerCheckOrders(logger: Logger, queue: Queue<JobData>) {
+  let processInterval: NodeJS.Timer | null = null;
+  try {
+    const processingStart = Date.now();
+    let documents = 0;
+    processInterval = setInterval(() => {
+      const seconds = (Date.now() - processingStart) / 1000;
+      const min = Math.floor((seconds / 60) * 100) / 100;
+      logger.log(`Processed ${documents} orders... ${min}min`);
+    }, 10_000);
+
+    const stream = streamOrders(logger);
+
+    let batch: string[] = [];
+
+    for await (const { orderRef } of stream) {
+      documents += 1;
+      batch.push(orderRef.id);
+
+      if (batch.length >= 200) {
+        const id = nanoid();
+        await queue.add(`${id}`, {
+          id: `${id}`,
+          type: 'check-order-batch',
+          orders: batch
         });
+        batch = [];
+      }
     }
 
-    await pqueue.onIdle();
+    if (batch.length > 0) {
+      const id = nanoid();
+      await queue.add(`${id}`, {
+        id: `${id}`,
+        type: 'check-order-batch',
+        orders: batch
+      });
+    }
 
     clearInterval(processInterval);
+    const seconds = (Date.now() - processingStart) / 1000;
+    const min = Math.floor((seconds / 60) * 100) / 100;
+    logger.log(`Processed ${documents} orders. ${min}min`);
   } catch (err) {
     if (processInterval) {
       clearInterval(processInterval);

@@ -41,9 +41,15 @@ export interface PurgeFeedEvents {
   eventType: EventType;
 }
 
-export interface TriggerPurgeOrders {
+export interface TriggerCheckOrders {
   id: string;
-  type: 'trigger-purge-orders';
+  type: 'trigger-check-orders';
+}
+
+export interface CheckOrderBatch {
+  id: string;
+  type: 'check-order-batch';
+  orders: string[];
 }
 
 export interface PurgeOrder {
@@ -59,12 +65,13 @@ export type JobData =
   | TriggerPurgeContractEvents
   | PurgeContractEvents
   | PurgeFeedEvents
-  | TriggerPurgeOrders
+  | TriggerCheckOrders
+  | CheckOrderBatch
   | PurgeOrder;
 export type JobResult = void;
 
 export class FirestoreDeletionProcess extends AbstractSandboxProcess<JobData, JobResult> {
   constructor(db: Redis, options?: ProcessOptions) {
-    super(db, `firestore-deletion-process:${config.isDev ? 'dev' : 'prod'}`, `${__dirname}/worker.js`, options);
+    super(db, `firestore-purge-process:${config.isDev ? 'dev' : 'prod'}`, `${__dirname}/worker.js`, options);
   }
 }

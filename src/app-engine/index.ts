@@ -61,7 +61,7 @@ async function main() {
       await queue.add(jobs);
     };
 
-    cron.schedule('0 2 * * *', async () => {
+    cron.schedule('0 0 2 * * *', async () => {
       await trigger();
     });
     await trigger();
@@ -226,11 +226,12 @@ async function main() {
       await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftListing });
       await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftOffer });
       await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftTransfer });
-      await queue.add({ id: 'trigger-purge-orders', type: 'trigger-purge-orders' });
+      await queue.add({ id: 'trigger-purge-orders', type: 'trigger-check-orders' });
     };
 
     /// once per day
-    cron.schedule('0 0 * * *', async () => {
+    cron.schedule('0 0 0 * * *', async () => {
+      logger.log('purge', 'Triggering purge process');
       await trigger();
     });
 

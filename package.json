@@ -15,6 +15,7 @@
     "deploy:orderbook:prod": "npm run build && gcloud app deploy -q --appyaml=./app.orderbook-sync.prod.yaml --project=nftc-infinity",
     "deploy:indexer:prod": "npm run build && gcloud app deploy -q --appyaml=./app.indexer.prod.yaml --project=nftc-infinity",
     "deploy:purge:prod": "npm run build && gcloud app deploy -q --appyaml=./app.purge.yaml --project=nftc-infinity",
+    "deploy:purge-worker:prod": "npm run build && gcloud app deploy -q --appyaml=./app.purge-worker.yaml --project=nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",

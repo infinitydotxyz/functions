@@ -78,8 +78,8 @@ export default async function (job: Job<JobData>) {
       break;
     }
 
-    case 'purge-order': {
-      await purgeOrder(logger, job.data.orderId);
+    case 'purge-order-batch': {
+      await purgeOrderBatch(logger, job.data.orderIds);
       break;
     }
   }
@@ -365,7 +365,7 @@ async function checkOrderBatch(logger: Logger, queue: Queue<JobData>, orders: st
   const orderRefs = orders.map((orderId) => ordersCollectionRef.doc(orderId));
   const orderSnaps = await db.getAll(...orderRefs);
 
-  let ordersTriggered = 0;
+  const itemsToPurge: string[] = [];
   let flowOrders = 0;
   const checkShouldPurge = async (orderRef: DocRef<RawFirestoreOrder>) => {
     const orderEventsRef = orderRef.collection('orderEvents') as CollRef<OrderEvents>;
@@ -411,7 +411,8 @@ async function checkOrderBatch(logger: Logger, queue: Queue<JobData>, orders: st
     return true;
   };
 
-  const pqueue = new PQueue({ concurrency: 20 });
+  const pqueue = new PQueue({ concurrency: 32 });
+
   for (const snap of orderSnaps) {
     pqueue
       .add(async () => {
@@ -419,13 +420,8 @@ async function checkOrderBatch(logger: Logger, queue: Queue<JobData>, orders: st
         if (!snap.exists || !order) {
           const shouldPurge = await checkShouldPurge(snap.ref as DocRef<RawFirestoreOrder>);
           if (shouldPurge) {
-            /// purge
-            await queue.add(`${snap.ref.path}`, {
-              id: `${snap.ref.path}`,
-              type: 'purge-order',
-              orderId: snap.ref.id
-            });
-            ordersTriggered += 1;
+            // purge
+            itemsToPurge.push(snap.ref.id);
           }
         } else if (order.metadata.source !== 'flow') {
           if ('order' in order && order?.order) {
@@ -433,24 +429,14 @@ async function checkOrderBatch(logger: Logger, queue: Queue<JobData>, orders: st
             const updatedAt = order.metadata.updatedAt;
             const isExpired = updatedAt < expiredTimestamp;
             if (!isValid && isExpired) {
-              /// purge
-              await queue.add(`${snap.ref.path}`, {
-                id: `${snap.ref.path}`,
-                type: 'purge-order',
-                orderId: order.metadata.id
-              });
-              ordersTriggered += 1;
+              // purge
+              itemsToPurge.push(snap.ref.id);
             }
           } else {
             const shouldPurge = await checkShouldPurge(snap.ref as DocRef<RawFirestoreOrder>);
             if (shouldPurge) {
-              /// purge
-              await queue.add(`${snap.ref.path}`, {
-                id: `${snap.ref.path}`,
-                type: 'purge-order',
-                orderId: snap.ref.id
-              });
-              ordersTriggered += 1;
+              // purge
+              itemsToPurge.push(snap.ref.id);
             }
           }
         } else {
@@ -464,10 +450,19 @@ async function checkOrderBatch(logger: Logger, queue: Queue<JobData>, orders: st
   }
 
   await pqueue.onIdle();
+
+  if (itemsToPurge.length > 0) {
+    const id = nanoid();
+    await queue.add(id, {
+      id: id,
+      type: 'purge-order-batch',
+      orderIds: itemsToPurge
+    });
+  }
   const duration = Date.now() - start;
   const seconds = Math.floor(duration / 10) / 100;
   logger.log(
-    `Triggered ${ordersTriggered} orders of ${orders.length}. Found ${flowOrders} flow orders. Duration: ${seconds}sec`
+    `Triggered ${itemsToPurge.length} orders of ${orders.length}. Found ${flowOrders} flow orders. Duration: ${seconds}sec`
   );
 }
 
@@ -522,49 +517,64 @@ async function triggerCheckOrders(logger: Logger, queue: Queue<JobData>) {
   }
 }
 
-async function purgeOrder(logger: Logger, orderId: string) {
+async function purgeOrderBatch(logger: Logger, orderIds: string[]) {
   const db = getDb();
+  const firstOrder = orderIds[0];
+  const lastOrder = orderIds[orderIds.length - 1];
+  logger.log(`Purging orders ${firstOrder}...${lastOrder}`);
 
-  logger.log(`Purging order ${orderId}...`);
+  const queue = new PQueue({ concurrency: 32 });
+  const orderRefs = orderIds.map((item) => {
+    return db.collection('ordersV2').doc(item) as DocRef<RawFirestoreOrder>;
+  });
+  const orderSnaps = await db.getAll(...orderRefs);
 
-  try {
-    const orderRef = db.collection('ordersV2').doc(orderId) as DocRef<RawFirestoreOrder>;
+  for (const orderSnap of orderSnaps) {
+    queue
+      .add(async () => {
+        try {
+          const order = orderSnap.data();
 
-    const orderSnap = await orderRef.get();
-    const order = orderSnap.data();
+          const batch = new BatchHandler(100);
 
-    const batch = new BatchHandler(100);
+          if (orderSnap.exists && order) {
+            const chainOrderRef = db
+              .collection('ordersV2ByChain')
+              .doc(order.metadata.chainId)
+              .collection('chainV2Orders')
+              .doc(orderSnap.ref.id) as DocRef<FirestoreDisplayOrder>;
 
-    if (orderSnap.exists && order) {
-      const chainOrderRef = db
-        .collection('ordersV2ByChain')
-        .doc(order.metadata.chainId)
-        .collection('chainV2Orders')
-        .doc(orderId) as DocRef<FirestoreDisplayOrder>;
+            const displayOrderSnap = await chainOrderRef.get();
+            const displayOrder = displayOrderSnap.data();
 
-      const displayOrderSnap = await chainOrderRef.get();
-      const displayOrder = displayOrderSnap.data();
+            if (displayOrder) {
+              const displayRefs = getDisplayOrderRefs(
+                db,
+                displayOrder,
+                orderSnap.ref.id,
+                order.metadata.chainId,
+                order.metadata.source
+              );
+              for (const ref of displayRefs) {
+                await batch.deleteAsync(ref);
+              }
+            }
+          }
 
-      if (displayOrder) {
-        const displayRefs = getDisplayOrderRefs(
-          db,
-          displayOrder,
-          orderId,
-          order.metadata.chainId,
-          order.metadata.source
-        );
-        for (const ref of displayRefs) {
-          await batch.deleteAsync(ref);
+          await batch.flush();
+          await db.recursiveDelete(orderSnap.ref);
+          // logger.log(`Purged order ${orderSnap.ref.id}`);
+        } catch (err) {
+          logger.error(`Failed to purge order ${orderSnap.ref.id} ${err}`);
         }
-      }
-    }
-
-    await batch.flush();
-    await db.recursiveDelete(orderRef);
-    logger.log(`Purged order ${orderId}`);
-  } catch (err) {
-    logger.error(`Failed to purge order ${orderId} ${err}`);
+      })
+      .catch((err) => {
+        logger.error(`Failed to purge order ${orderSnap.ref.id} ${err}`);
+      });
   }
+
+  await queue.onIdle();
+  logger.log(`Purged orders ${firstOrder}...${lastOrder}`);
 }
 
 function getDisplayOrderRefs(

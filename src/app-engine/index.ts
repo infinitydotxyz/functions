@@ -214,7 +214,7 @@ async function main() {
     const queue = new FirestoreDeletionProcess(redis, {
       enableMetrics: false,
       concurrency: config.components.purgeFirestore.concurrency,
-      debug: true,
+      debug: false,
       attempts: 3
     });
 
@@ -228,12 +228,6 @@ async function main() {
       await queue.add({ id: 'purge-feed-events', type: 'purge-feed-events', eventType: EventType.NftTransfer });
       await queue.add({ id: 'trigger-purge-orders', type: 'trigger-check-orders' });
     };
-
-    /// once per day
-    cron.schedule('0 0 0 * * *', async () => {
-      logger.log('purge', 'Triggering purge process');
-      await trigger();
-    });
 
     if (config.components.purgeFirestore.runOnStartup) {
       await trigger();

@@ -52,10 +52,10 @@ export interface CheckOrderBatch {
   orders: string[];
 }
 
-export interface PurgeOrder {
+export interface PurgeOrderBatch {
   id: string;
-  type: 'purge-order';
-  orderId: string;
+  type: 'purge-order-batch';
+  orderIds: string[];
 }
 
 export type JobData =
@@ -67,7 +67,7 @@ export type JobData =
   | PurgeFeedEvents
   | TriggerCheckOrders
   | CheckOrderBatch
-  | PurgeOrder;
+  | PurgeOrderBatch;
 export type JobResult = void;
 
 export class FirestoreDeletionProcess extends AbstractSandboxProcess<JobData, JobResult> {

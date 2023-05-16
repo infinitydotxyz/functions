@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Flow, SeaportBase, SeaportV15 } from '@reservoir0x/sdk';
+import { Flow, SeaportBase, SeaportV11, SeaportV15 } from '@reservoir0x/sdk';
 
 import { Reservoir } from '@/lib/index';
 import { logger } from '@/lib/logger';
@@ -92,7 +92,11 @@ export abstract class SeaportV15OrderTransformer extends OrderTransformer<Seapor
       throw new OrderError('No signature on non-mainnet order', ErrorCode.NotSigned, '', this.source, 'unsupported');
     }
 
-    const zones = [ethers.constants.AddressZero, SeaportV15.Addresses.OpenSeaProtectedOffersZone[this.chainId]];
+    const zones = [
+      ethers.constants.AddressZero,
+      SeaportV15.Addresses.OpenSeaProtectedOffersZone[this.chainId],
+      SeaportV11.Addresses.PausableZone[this.chainId]
+    ];
     if (!zones.includes(this._components.zone)) {
       throw new OrderError('unknown zone', ErrorCode.SeaportZone, this._components.zone, this.source, 'unsupported');
     }

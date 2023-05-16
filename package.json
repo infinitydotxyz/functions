@@ -14,6 +14,7 @@
     "deploy:orderbook:dev": "npm run build && gcloud app deploy -q --appyaml=./app.orderbook-sync.dev.yaml --project=nftc-dev",
     "deploy:orderbook:prod": "npm run build && gcloud app deploy -q --appyaml=./app.orderbook-sync.prod.yaml --project=nftc-infinity",
     "deploy:indexer:prod": "npm run build && gcloud app deploy -q --appyaml=./app.indexer.prod.yaml --project=nftc-infinity",
+    "deploy:purge:prod": "npm run build && gcloud app deploy -q --appyaml=./app.purge.yaml --project=nftc-infinity",
     "logs": "firebase functions:log",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "backfill-orders": "npx cross-env NODE_PATH=./src ts-node ./src/scripts/backfill-orders-to-nfts.ts",
@@ -36,7 +37,8 @@
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
     "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
     "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",
-    "purge-firestore": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/purge-firestore/index.js"
+    "purge-firestore": "npm run clean && npm run build && INFINITY_NODE_ENV=prod node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js",
+    "purge-firestore:dev": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=dev node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js"
   },
   "engines": {
     "node": "16"

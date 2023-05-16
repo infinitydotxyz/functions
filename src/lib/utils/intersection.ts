@@ -2,11 +2,11 @@ import { ethers } from 'ethers';
 
 import { getOBOrderPrice } from '@infinityxyz/lib/utils';
 
-import { OrderItemPrice } from '../matching-engine/orders/orders.types';
 import {
   GetPriceAtTimeForEquation,
   LineSegment,
   LineSegmentEquation,
+  OrderItemPrice,
   OrderPriceIntersection,
   Point
 } from './intersection.types';

@@ -38,7 +38,7 @@ export abstract class AbstractSandboxProcess<T extends { id: string }, U> extend
         : options?.enableMetrics;
 
     this._queue = new Queue(this.queueName, {
-      connection: this._db.duplicate(),
+      connection: this._db,
       defaultJobOptions: {
         attempts: options?.attempts ?? 5,
         backoff: {

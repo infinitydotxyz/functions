@@ -1,6 +1,6 @@
-import { OrderItemPrice } from '../matching-engine/orders/orders.types';
 import { getOneToManyOrderIntersection } from './intersection';
 import { testOrderIntersection } from './intersection.spec';
+import { OrderItemPrice } from './intersection.types';
 
 const OFFER = false;
 const LISTING = true;

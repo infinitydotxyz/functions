@@ -1,6 +1,5 @@
-import { OrderItemPrice } from '../matching-engine/orders/orders.types';
 import { getOrderIntersection } from './intersection';
-import { OrderPriceIntersection } from './intersection.types';
+import { OrderItemPrice, OrderPriceIntersection } from './intersection.types';
 
 export const testOrderIntersection = (
   fn: (one: OrderItemPrice, two: OrderItemPrice) => OrderPriceIntersection | null

@@ -192,6 +192,11 @@ export const config = {
     indexerEventProcessing: {
       enabled: Number(getEnvVariable('INDEXER_EVENT_PROCESSING', false)) === 1
     },
+    purgeFirestore: {
+      enabled: Number(getEnvVariable('PURGE_FIRESTORE', false)) === 1,
+      runOnStartup: Number(getEnvVariable('PURGE_FIRESTORE_ON_STARTUP', false)) === 1,
+      concurrency: Number(getEnvVariable('PURGE_FIRESTORE_CONCURRENCY', false)) || 16
+    },
     api: {
       apiKey: getEnvVariable('API_KEY', false),
       port: Number(getEnvVariable('PORT', false) || 8080)

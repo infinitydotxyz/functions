@@ -1,12 +1,15 @@
+import { BigNumber } from 'ethers';
 import PQueue from 'p-queue';
 
 import {
+  NftSale,
   OrderEventKind,
   OrderSaleEvent,
   OrderStatus,
-  RawFirestoreOrderWithoutError
+  RawFirestoreOrderWithoutError,
+  TokenStandard
 } from '@infinityxyz/lib/types/core';
-import { sleep } from '@infinityxyz/lib/utils';
+import { PROTOCOL_FEE_BPS, formatEth, sleep } from '@infinityxyz/lib/utils';
 import { Flow } from '@reservoir0x/sdk';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -99,6 +102,7 @@ export async function handleMatchOrderFilledEvents(signal?: { abort: boolean }) 
         };
         await handleOrderFilled(batch, sellOrderData);
         await handleOrderFilled(batch, buyOrderData);
+        await saveSales(data);
 
         const metadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...data.metadata,
@@ -158,6 +162,7 @@ export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
           metadata: data.metadata
         };
         await handleOrderFilled(batch, orderData);
+        await saveSales(data);
 
         const metadataUpdate: ContractEvent<unknown>['metadata'] = {
           ...data.metadata,
@@ -180,6 +185,73 @@ export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
   }
   await queue.onIdle();
   await batch.flush();
+}
+
+async function saveSales(
+  data: ContractEvent<MatchOrderFulfilledEventData> | ContractEvent<TakeOrderFulfilledEventData>
+) {
+  if (data.metadata.commitment !== 'finalized') {
+    // skip until the sale has been finalized
+    return;
+  }
+  const db = getDb();
+  const salesColl = db.collection('sales') as CollRef<NftSale>;
+  await db.runTransaction(async (txn) => {
+    const txnSalesQuery = salesColl.where('txHash', '==', data.baseParams.txHash).where('source', '==', 'flow');
+    const txnSalesSnap = await txn.get(txnSalesQuery);
+
+    if (!txnSalesSnap.empty) {
+      // already saved (scraped from reservoir)
+      return;
+    }
+
+    const nfts = data.event.nfts.flatMap(({ collection, tokens }) => {
+      return tokens.map(({ tokenId, numTokens }) => {
+        return {
+          collection,
+          tokenId,
+          numTokens
+        };
+      });
+    });
+    const pricePerTokenWei = BigNumber.from(data.event.amount).div(nfts.length);
+    const pricePerTokenEth = formatEth(pricePerTokenWei.toString());
+    const sales = nfts.map((nft, index) => {
+      const id = `${data.baseParams.txHash}:${data.baseParams.logIndex}:${index}`;
+      const protocolFeeWei = BigNumber.from(pricePerTokenWei).div(nfts.length).mul(PROTOCOL_FEE_BPS).div(10000);
+      const protocolFeeEth = formatEth(protocolFeeWei.toString());
+      const sale: NftSale = {
+        chainId: data.baseParams.chainId,
+        txHash: data.baseParams.txHash,
+        blockNumber: data.baseParams.block,
+        timestamp: data.baseParams.blockTimestamp * 1000,
+        collectionAddress: nft.collection,
+        tokenId: nft.tokenId,
+        price: pricePerTokenEth,
+        paymentToken: data.event.currency,
+        buyer: data.event.buyer,
+        seller: data.event.seller,
+        quantity: nft.numTokens,
+        source: 'flow',
+        isAggregated: false,
+        isDeleted: false,
+        isFeedUpdated: true,
+        tokenStandard: TokenStandard.ERC721,
+        protocolFeeBPS: PROTOCOL_FEE_BPS,
+        protocolFee: protocolFeeEth,
+        protocolFeeWei: protocolFeeWei.toString()
+      };
+
+      return {
+        sale,
+        id
+      };
+    });
+
+    for (const { sale, id } of sales) {
+      txn.set(salesColl.doc(id), sale);
+    }
+  });
 }
 
 async function handleOrderFilled(

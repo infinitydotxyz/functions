@@ -3,6 +3,7 @@ import { BigNumber, BigNumberish, Contract } from 'ethers';
 import { Log } from '@ethersproject/abstract-provider';
 import { searchForCall } from '@georgeroman/evm-tx-simulator';
 import { ChainId, ChainNFTs } from '@infinityxyz/lib/types/core';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { logger } from '@/lib/logger';
 
@@ -19,6 +20,7 @@ export interface TakeOrderFulfilledEventData {
   amount: string;
   nfts: ChainNFTs[];
   nonce: string;
+  taker: string;
 }
 
 export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEventData> {
@@ -62,18 +64,20 @@ export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEve
       };
     });
 
-    const { nonce } = await this.getOrderNonceFromTrace(orderHash, event.baseParams);
+    const { nonce, caller } = await this.getOrderNonceFromTrace(orderHash, event.baseParams);
     if (!nonce) {
       throw new Error(`Failed to get nonce for ${orderHash}`);
+    } else if (!caller) {
+      throw new Error(`Failed to get caller for ${orderHash}`);
     }
 
-    return { orderHash, seller, buyer, complication, currency, amount, nfts, nonce };
+    return { orderHash, seller, buyer, complication, currency, amount, nfts, nonce, taker: caller };
   }
 
   protected async getOrderNonceFromTrace(
     orderHash: string,
     params: { txHash: string }
-  ): Promise<{ nonce: string | null }> {
+  ): Promise<{ nonce: string | null; caller: string | null }> {
     const txTrace = await this.getCallTrace(params);
     const trace = searchForCall(txTrace, {
       to: this._contract.address,
@@ -92,7 +96,7 @@ export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEve
           const result = method.decodeInput(input, this._contract.interface, this._chainId);
           const order = result.find((item) => item.hash() === orderHash);
           if (order) {
-            return { nonce: order.nonce };
+            return { nonce: order.nonce, caller: trimLowerCase(trace.from) };
           }
         } catch (err) {
           logger.error('take-order-fulfilled', `Failed to decode input for ${this._eventKind} ${err}`);
@@ -100,6 +104,6 @@ export class TakeOrderFulfilledEvent extends AbstractEvent<TakeOrderFulfilledEve
       }
     }
 
-    return { nonce: null };
+    return { nonce: null, caller: null };
   }
 }

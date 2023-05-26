@@ -247,24 +247,25 @@ export async function updateNonces(
     } else {
       const nonceRef = noncesToCancel;
       const snap = await nonceRef.get();
-      let nonce = snap.data() ?? {
+      let item = snap.data() ?? {
         nonce: formattedNonce,
         userAddress: user,
         chainId: baseParams.chainId,
-        contractAddress: baseParams.address
+        contractAddress: baseParams.address,
+        fillability: 'filled'
       };
-      if (metadata.reorged || !('fillability' in nonce)) {
+      if (metadata.reorged) {
         const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
         const provider = getProvider(baseParams.chainId, 'indexer');
-        const isValid = await exchange.contract.connect(provider).isNonceValid(nonce.userAddress, nonce.nonce);
-        nonce = {
-          ...nonce,
+        const isValid = await exchange.contract.connect(provider).isNonceValid(item.userAddress, nonce);
+        item = {
+          ...item,
           fillability: isValid ? 'fillable' : 'cancelled'
         };
       } else {
-        nonce.fillability = 'cancelled';
+        item.fillability = 'cancelled';
       }
-      await batch.addAsync(nonceRef, nonce, { merge: true });
+      await batch.addAsync(nonceRef, item, { merge: true });
     }
   }
   await batch.flush();

@@ -49,7 +49,7 @@ export const blockProcessorConfig = {
   },
   flowExchange: {
     id: (chainId: ChainId, address: string) =>
-      `block-processor:chain:${chainId}:type:flow-exchange:address:${address}:version:${version}`,
+      `block-processor:chain:${chainId}:type:flow-exchange:address:${address}:version:${version + 1}`,
     events: [
       CancelAllOrdersEvent,
       CancelMultipleOrdersEvent,

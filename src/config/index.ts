@@ -42,7 +42,6 @@ const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false)
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
 
 const mainnetIndexerProviderUrl = getEnvVariable('INDEXER_JSON_RPC_ETH_MAINNET', false) || mainnetProviderUrl;
-const goerliIndexerProviderUrl = getEnvVariable('INDEXER_JSON_RPC_ETH_GOERLI', false) || goerliProviderUrl;
 
 const user = getEnvVariable('DB_USER', false);
 const password = getEnvVariable('DB_PASS', false);
@@ -161,9 +160,7 @@ export const config = {
       [ChainId.Mainnet]: mainnetProviderUrl
         ? new ethers.providers.StaticJsonRpcProvider(mainnetIndexerProviderUrl, 1)
         : null,
-      [ChainId.Goerli]: goerliProviderUrl
-        ? new ethers.providers.StaticJsonRpcProvider(goerliIndexerProviderUrl, 5)
-        : null
+      [ChainId.Goerli]: null
     }
   },
   orderbook: {

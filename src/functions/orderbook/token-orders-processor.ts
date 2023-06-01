@@ -1,19 +1,11 @@
-import {
-  FirestoreDisplayOrder,
-  FirestoreDisplayOrderWithoutError,
-  OBOrderStatus,
-  OrderDirection
-} from '@infinityxyz/lib/types/core';
-import {
-  FirestoreOrderItemDto,
-  NftDto,
-  OrderItemSnippetDto,
-  OrderStatus,
-  OrdersSnippetDto
-} from '@infinityxyz/lib/types/dto';
+import { FirestoreDisplayOrder, FirestoreDisplayOrderWithoutError, OBOrderStatus, OrderDirection, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { FirestoreOrderItemDto, NftDto, OrderItemSnippetDto, OrderStatus, OrdersSnippetDto } from '@infinityxyz/lib/types/dto';
+
+
 
 import { FirestoreBatchEventProcessor } from '@/firestore/event-processors/firestore-batch-event-processor';
 import { CollGroupRef, CollRef, DocRef, Query, QuerySnap } from '@/firestore/types';
+
 
 export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<FirestoreDisplayOrder> {
   protected _isEventProcessed(event: FirestoreDisplayOrder): boolean {
@@ -80,6 +72,7 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
     }
 
     const offerSnippet: OrderItemSnippetDto = {
+      signedOrder: (bestOffer as any as RawFirestoreOrderWithoutError)?.rawOrder,
       hasOrder: !!bestOffer,
       orderItemId: bestOffer?.metadata.id || (null as any),
       orderItem: bestOffer
@@ -88,6 +81,7 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
     };
 
     const listingSnippet: OrderItemSnippetDto = {
+      signedOrder: (bestListing as any as RawFirestoreOrderWithoutError)?.rawOrder,
       hasOrder: !!bestListing,
       orderItemId: bestListing?.metadata.id || (null as any),
       orderItem: bestListing
@@ -173,7 +167,9 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
       hasBlueCheck: collection.hasBlueCheck,
       tokenSlug: token.name,
       complicationAddress: item.order.complication,
-      attributes: []
+      attributes: [],
+      gasCostEth: 0,
+      feeCostEth: 0
     };
   }
 }

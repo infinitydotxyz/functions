@@ -170,9 +170,11 @@ export async function updateNonces(
     const userNoncesRef = usersRef.doc(user).collection('userNonces') as CollRef<UserNonce>;
 
     const formattedNonce = toNumericallySortedLexicographicStr(nonce, 256);
-    const noncesToCancel = userNoncesRef
-      .where('contractAddress', '==', baseParams.address)
-      .where('nonce', queryType === 'max' ? '<' : '==', formattedNonce);
+    const noncesToCancel =
+      queryType === 'max'
+        ? userNoncesRef.where('contractAddress', '==', baseParams.address).where('nonce', '<', formattedNonce)
+        : userNoncesRef.doc(`${nonce}:${baseParams.chainId}:${baseParams.address}`);
+
     const eventTimestamp = Date.now();
 
     /**
@@ -226,21 +228,44 @@ export async function updateNonces(
       await batch.addAsync(orderEventRef, orderEvent, { merge: false });
     }
 
-    /**
-     * update all nonces with the correct fillability state
-     */
-    for await (const { data: nonce, ref: nonceRef } of streamQueryWithRef(noncesToCancel)) {
-      let fillability: UserNonce['fillability'];
+    if ('count' in noncesToCancel) {
+      /**
+       * update all nonces with the correct fillability state
+       */
+      for await (const { data: nonce, ref: nonceRef } of streamQueryWithRef(noncesToCancel)) {
+        let fillability: UserNonce['fillability'];
+        if (metadata.reorged) {
+          const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
+          const provider = getProvider(baseParams.chainId, 'indexer');
+          const isValid = await exchange.contract.connect(provider).isNonceValid(nonce.userAddress, nonce.nonce);
+          fillability = isValid ? 'fillable' : 'cancelled';
+        } else {
+          fillability = 'cancelled';
+        }
+        await batch.addAsync(nonceRef, { fillability }, { merge: true });
+      }
+    } else {
+      const nonceRef = noncesToCancel;
+      const snap = await nonceRef.get();
+      let item = snap.data() ?? {
+        nonce: formattedNonce,
+        userAddress: user,
+        chainId: baseParams.chainId,
+        contractAddress: baseParams.address,
+        fillability: 'filled'
+      };
       if (metadata.reorged) {
         const exchange = new Flow.Exchange(parseInt(baseParams.chainId, 10));
         const provider = getProvider(baseParams.chainId, 'indexer');
-        const isValid = await exchange.contract.connect(provider).isNonceValid(nonce.userAddress, nonce.nonce);
-        fillability = isValid ? 'fillable' : 'cancelled';
+        const isValid = await exchange.contract.connect(provider).isNonceValid(item.userAddress, nonce);
+        item = {
+          ...item,
+          fillability: isValid ? 'fillable' : 'cancelled'
+        };
       } else {
-        fillability = 'cancelled';
+        item.fillability = 'cancelled';
       }
-
-      await batch.addAsync(nonceRef, { fillability }, { merge: true });
+      await batch.addAsync(nonceRef, item, { merge: true });
     }
   }
   await batch.flush();

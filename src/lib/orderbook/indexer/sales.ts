@@ -140,6 +140,8 @@ export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
         if (signal?.abort) {
           return;
         }
+
+        const maker = data.event.taker === data.event.buyer ? data.event.seller : data.event.buyer;
         const nonces: {
           nonce: string;
           user: string;
@@ -148,7 +150,7 @@ export async function handleTakeOrderFilledEvents(signal?: { abort: boolean }) {
         }[] = [
           {
             nonce: data.event.nonce,
-            user: data.event.buyer,
+            user: maker,
             baseParams: data.baseParams,
             metadata: data.metadata
           }

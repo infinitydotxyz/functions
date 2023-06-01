@@ -1,3 +1,22 @@
+# Functions 
+* Contains a few services
+    * indexer
+    * orderbook-sync
+    * firebase functions
+* Env files are automatically selected based on dev/prod and local/deploy
+
+## Deploying
+
+* Indexer
+    * Prod `npm run deploy:indexer:prod`
+    * Dev not configured
+* Orderbook sync
+    * Prod `npm run deploy:orderbook:prod`
+    * Dev `npm run deploy:orderbook:dev`
+* Firebase functions 
+    * Prod `npm run deploy:prod`
+    * Dev `npm run deploy:dev`
+
 ## Adding support for a new marketplace 
 
 ### Supporting scraping orders

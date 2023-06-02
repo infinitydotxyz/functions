@@ -62,9 +62,9 @@ export class BaseOrder {
       .filter((item) => !!item)
       .flatMap((item) => {
         const collectionRef = this._db.collection('collections').doc(`${this._chainId}:${item.address}`);
-        const collectionOrderRef = collectionRef
-          .collection('collectionV2Orders')
-          .doc(this._id) as DocRef<FirestoreDisplayOrder>;
+        const collectionOrderRef = collectionRef.collection('collectionV2Orders').doc(this._id) as DocRef<
+          FirestoreDisplayOrder | RawFirestoreOrder
+        >;
 
         switch (item.kind) {
           case 'single-token': {
@@ -72,7 +72,7 @@ export class BaseOrder {
               .collection('nfts')
               .doc(item.token.tokenId)
               .collection('tokenV2Orders')
-              .doc(this._id) as DocRef<FirestoreDisplayOrder>;
+              .doc(this._id) as DocRef<FirestoreDisplayOrder | RawFirestoreOrder>;
             return [collectionOrderRef, tokenRef];
           }
           case 'token-list': {
@@ -81,16 +81,16 @@ export class BaseOrder {
                 .collection('nfts')
                 .doc(token.tokenId)
                 .collection('tokenV2Orders')
-                .doc(this._id) as DocRef<FirestoreDisplayOrder>;
+                .doc(this._id) as DocRef<FirestoreDisplayOrder | RawFirestoreOrder>;
               return tokenRef;
             });
 
             return [collectionOrderRef, ...tokenRefs];
           }
           case 'collection-wide': {
-            const collectionWideOrderRef = collectionRef
-              .collection('collectionWideV2Orders')
-              .doc(this._id) as DocRef<FirestoreDisplayOrder>;
+            const collectionWideOrderRef = collectionRef.collection('collectionWideV2Orders').doc(this._id) as DocRef<
+              FirestoreDisplayOrder | RawFirestoreOrder
+            >;
             return [collectionOrderRef, collectionWideOrderRef];
           }
           default: {
@@ -216,6 +216,7 @@ export class BaseOrder {
       for (const ref of refs) {
         if (ref) {
           txn.set(ref, displayOrder);
+          txn.set(ref, { rawOrder: rawOrder?.rawOrder }, { merge: true });
         }
       }
     } else {
@@ -223,7 +224,7 @@ export class BaseOrder {
       await batch.addAsync(this.rawRef, rawOrder, { merge: true });
       for (const ref of refs) {
         if (ref) {
-          await batch.addAsync(ref, displayOrder, { merge: true });
+          await batch.addAsync(ref, { displayOrder, rawOrder: rawOrder?.rawOrder }, { merge: true });
         }
       }
       await batch.flush();

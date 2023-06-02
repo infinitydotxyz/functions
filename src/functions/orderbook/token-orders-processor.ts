@@ -1,4 +1,4 @@
-import { FirestoreDisplayOrder, FirestoreDisplayOrderWithoutError, OBOrderStatus, OrderDirection, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { FirestoreDisplayOrder, FirestoreDisplayOrderWithoutError, OBOrderStatus, OrderDirection } from '@infinityxyz/lib/types/core';
 import { FirestoreOrderItemDto, NftDto, OrderItemSnippetDto, OrderStatus, OrdersSnippetDto } from '@infinityxyz/lib/types/dto';
 
 
@@ -72,7 +72,6 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
     }
 
     const offerSnippet: OrderItemSnippetDto = {
-      signedOrder: (bestOffer as any as RawFirestoreOrderWithoutError)?.rawOrder,
       hasOrder: !!bestOffer,
       orderItemId: bestOffer?.metadata.id || (null as any),
       orderItem: bestOffer
@@ -81,7 +80,6 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
     };
 
     const listingSnippet: OrderItemSnippetDto = {
-      signedOrder: (bestListing as any as RawFirestoreOrderWithoutError)?.rawOrder,
       hasOrder: !!bestListing,
       orderItemId: bestListing?.metadata.id || (null as any),
       orderItem: bestListing

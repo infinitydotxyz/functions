@@ -103,6 +103,7 @@ export class TokenOrdersProcessor extends FirestoreBatchEventProcessor<Firestore
       offer: offerSnippet
     };
 
+    txn.set(tokenRef, { ordersSnippet: {} }, { merge: true });
     txn.set(tokenRef, { ordersSnippet: orderSnippet }, { merge: true });
 
     for (const eventSnap of events.docs) {

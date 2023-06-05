@@ -19,7 +19,7 @@ async function main() {
   const supportedCollections = new SupportedCollectionsProvider(db);
   await supportedCollections.init();
 
-  const batchHandler = new BatchHandler(50);
+  const batchHandler = new BatchHandler(100);
   const startAfterColl = '0xfe8c6d19365453d26af321d0e8c910428c23873f';
   for (const item of supportedCollections.values()) {
     const [chainId, collectionAddress] = item.split(':');
@@ -48,7 +48,7 @@ async function backfillOrdersToNFTs(
   if (startAfterDoc) {
     ordersV2Query = ordersV2Query.startAfter(startAfterDoc);
   }
-  ordersV2Query = ordersV2Query.limit(100);
+  ordersV2Query = ordersV2Query.limit(200);
 
   const data = await ordersV2Query.get();
   if (data.docs.length === 0) {

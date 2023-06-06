@@ -7,22 +7,27 @@ import { SupportedCollectionsProvider } from '@/lib/collections/supported-collec
 
 async function main() {
   const db = getDb();
-
-  const supportedCollections = new SupportedCollectionsProvider(db);
-  await supportedCollections.init();
-
   const batchHandler = new BatchHandler(100);
-  const startAfterColl = '';
-  for (const item of supportedCollections.values()) {
-    const [chainId, collectionAddress] = item.split(':');
-    if (collectionAddress.toLowerCase() <= startAfterColl) {
-      continue;
+
+  if (process.argv.length === 3) {
+    const chainId = process.argv[2].split(':')[0];
+    const collectionAddress = process.argv[2].split(':')[1].toLowerCase();
+    await backfillOrdersToNFTs(chainId, trimLowerCase(collectionAddress), db, batchHandler);
+  } else {
+    const supportedCollections = new SupportedCollectionsProvider(db);
+    await supportedCollections.init();
+
+    const startAfterColl = '0xfe8c6d19365453d26af321d0e8c910428c23873f';
+    for (const item of supportedCollections.values()) {
+      const [chainId, collectionAddress] = item.split(':');
+      if (collectionAddress.toLowerCase() <= startAfterColl) {
+        continue;
+      }
+      console.log('Backfilling', chainId, collectionAddress);
+      await backfillOrdersToNFTs(chainId as ChainId, trimLowerCase(collectionAddress), db, batchHandler);
     }
-    console.log('Backfilling', chainId, collectionAddress);
-    await backfillOrdersToNFTs(chainId as ChainId, trimLowerCase(collectionAddress), db, batchHandler);
   }
 
-  // await backfillOrdersToNFTs('1', trimLowerCase('0xba627f3d081cc97ac0edc40591eda7053ac63532'), db, batchHandler);
   await batchHandler.flush();
   console.log('Done!');
 }

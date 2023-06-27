@@ -1,17 +1,12 @@
 import { start } from 'repl';
 
-
-
 import { ChainId, ChainNFTs, ChainOBOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-
-
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { backfillActiveListings } from '@/lib/reservoir/order-events/backfill-active-orders';
-
 
 async function main() {
   const db = getDb();
@@ -83,10 +78,10 @@ async function backfillOrdersToNFTs(
 
         const data = {
           metadata: {
-            processed: false,
+            processed: false
           },
-          rawOrder: order.rawOrder,
-        }
+          rawOrder: order.rawOrder
+        };
         batchHandler.addAsync(docRef, data, { merge: true });
       }
     }

@@ -1,22 +1,3 @@
-# Functions 
-* Contains a few services
-    * indexer
-    * orderbook-sync
-    * firebase functions
-* Env files are automatically selected based on dev/prod and local/deploy
-
-## Deploying
-
-* Indexer
-    * Prod `npm run deploy:indexer:prod`
-    * Dev not configured
-* Orderbook sync
-    * Prod `npm run deploy:orderbook:prod`
-    * Dev `npm run deploy:orderbook:dev`
-* Firebase functions 
-    * Prod `npm run deploy:prod`
-    * Dev `npm run deploy:dev`
-
 ## Adding support for a new marketplace 
 
 ### Supporting scraping orders
@@ -28,3 +9,7 @@
 4. Update get marketplace address `src/lib/utils/get-marketplace-address.ts` 
 5. There tend to be breaking changes in the reservoir sdk, fix anything that's now broken
 6. Update the matching engine so it can execute these new orders (see the matching engine README.md)
+
+## Purging Data
+* Deploy the purge application `deploy:purge:prod`
+* This application doesn't automatically shutdown, it currently requires you to check if purging has completed by checking if it's emitting logs and manually shutting it down.

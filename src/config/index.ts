@@ -36,7 +36,7 @@ loadEnv({ path: `.env` });
 loadEnv({ path: env, override: true });
 
 const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
-const PROD_SERVER_BASE_URL = 'https://sv.flow.so/';
+const PROD_SERVER_BASE_URL = 'https://sv.pixelpack.io/';
 
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);

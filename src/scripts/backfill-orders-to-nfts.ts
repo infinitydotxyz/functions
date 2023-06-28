@@ -1,9 +1,10 @@
-import { ChainId, ChainNFTs, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
+import { ChainId, ChainNFTs, ChainOBOrder, RawFirestoreOrderWithoutError } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
+import { backfillActiveListings } from '@/lib/reservoir/order-events/backfill-active-orders';
 
 async function main() {
   const db = getDb();

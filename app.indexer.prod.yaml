@@ -15,7 +15,7 @@ resources:
 readiness_check:
   app_start_timeout_sec: 1800
 env_variables:
-  SYNC_SALES: 0
+  SYNC_SALES: 1
   SYNC_ORDERS: 0
   SYNC_RESERVOIR_ORDERS_CACHE: 0
   VALIDATE_ORDERBOOK: 0

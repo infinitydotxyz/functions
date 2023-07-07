@@ -37,7 +37,7 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
   });
 
   const sales = (response.data.sales ?? []).map((sale) => {
-    const amount = sale.price?.netAmount ?? sale.price?.amount;
+    const amount = sale.price?.amount ?? sale.price?.netAmount;
 
     if (!amount) {
       console.error(`Failed to find price data for sale ${sale.id}`);

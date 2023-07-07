@@ -3,15 +3,10 @@ import { Firestore } from 'firebase-admin/firestore';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
 import {
-  InfinityLinkType,
   ChainId,
-  EtherscanLinkType,
-  EventType,
   FlattenedPostgresNFTSale,
   NftSale,
-  NftSaleEvent,
   OrderSource,
-  SaleSource,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
 import { NftDto } from '@infinityxyz/lib/types/dto';
@@ -19,9 +14,6 @@ import {
   PROTOCOL_FEE_BPS,
   firestoreConstants,
   formatEth,
-  getCollectionDocId,
-  getEtherscanLink,
-  getInfinityLink,
   sleep
 } from '@infinityxyz/lib/utils';
 
@@ -169,38 +161,6 @@ const batchSaveToFirestore = async (
   data: { pgSale: FlattenedPostgresNFTSale; token: Partial<NftDto>; chainId: ChainId }[]
 ) => {
   const nftSales = data.map(({ pgSale: item, token, chainId }) => {
-    const feedEvent: NftSaleEvent = {
-      type: EventType.NftSale,
-      buyer: item.buyer,
-      seller: item.seller,
-      price: item.sale_price_eth,
-      paymentToken: item.sale_currency_address,
-      source: item.marketplace as SaleSource,
-      tokenStandard: TokenStandard.ERC721,
-      txHash: item.txhash,
-      quantity: parseInt(item.quantity, 10),
-      externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txhash }, chainId),
-      likes: 0,
-      comments: 0,
-      timestamp: item.sale_timestamp,
-      chainId,
-      collectionAddress: item.collection_address,
-      collectionName: token?.collectionName ?? '',
-      collectionSlug: token?.collectionSlug ?? '',
-      collectionProfileImage: '',
-      hasBlueCheck: token?.hasBlueCheck ?? false,
-      internalUrl: getInfinityLink({
-        type: InfinityLinkType.Collection,
-        addressOrSlug: item.collection_address,
-        chainId: chainId
-      }),
-      tokenId: item.token_id,
-      image: item.token_image,
-      nftName: token?.metadata?.name ?? '',
-      nftSlug: token?.slug ?? '',
-      usersInvolved: [item.buyer, item.seller]
-    };
-
     const base: NftSale = {
       chainId: chainId,
       txHash: item.txhash,
@@ -260,14 +220,12 @@ const batchSaveToFirestore = async (
           protocolFee: protocolFeeEth,
           protocolFeeWei: protocolFeeWei.toString()
         },
-        feedEvent,
         pgSale: item,
         saleV2: nftSaleEventV2
       };
     }
     return {
       sale: base,
-      feedEvent,
       pgSale: item,
       saleV2: nftSaleEventV2
     };
@@ -275,21 +233,10 @@ const batchSaveToFirestore = async (
 
   const batchHandler = new BatchHandler();
   const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
-  const feedCollectionRef = db.collection(firestoreConstants.FEED_COLL);
-  for (const { sale, saleV2, pgSale, feedEvent } of nftSales) {
+  for (const { sale, saleV2, pgSale } of nftSales) {
     const id = `${pgSale.txhash}:${pgSale.log_index}:${pgSale.bundle_index}`;
     const saleDocRef = salesCollectionRef.doc(id);
-    const feedDocRef = feedCollectionRef.doc(id);
     await batchHandler.addAsync(saleDocRef, sale, { merge: true });
-
-    // only save to feed if coll is supported
-    const collId = getCollectionDocId({
-      collectionAddress: feedEvent.collectionAddress,
-      chainId: feedEvent.chainId
-    });
-    if (supportedCollections.has(collId)) {
-      await batchHandler.addAsync(feedDocRef, feedEvent, { merge: true });
-    }
 
     const saleEventV2Ref = db
       .collection(firestoreConstants.COLLECTIONS_COLL)

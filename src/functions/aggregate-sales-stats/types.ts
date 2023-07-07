@@ -1,4 +1,4 @@
-import { ChainId, OrderSource } from '@infinityxyz/lib/types/core';
+import { ChainId } from '@infinityxyz/lib/types/core';
 
 export interface NftSaleEventV2 {
   data: {
@@ -7,7 +7,7 @@ export interface NftSaleEventV2 {
     logIndex: number;
     bundleIndex: number;
     blockNumber: number;
-    marketplace: OrderSource;
+    marketplace: string;
     marketplaceAddress: string;
     seller: string;
     buyer: string;

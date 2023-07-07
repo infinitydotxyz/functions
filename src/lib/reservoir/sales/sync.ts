@@ -1,11 +1,10 @@
-import { BigNumber } from 'ethers';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
 
 
-import { ChainId, NftSale, OrderSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ChainId, NftSale, TokenStandard } from '@infinityxyz/lib/types/core';
 import { NftDto } from '@infinityxyz/lib/types/dto';
-import { PROTOCOL_FEE_BPS, firestoreConstants, formatEth, sleep } from '@infinityxyz/lib/utils';
+import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 
 
 
@@ -105,7 +104,7 @@ const batchSaveToFirestore = async (
       buyer: item.buyer,
       seller: item.seller,
       quantity: parseInt(item.quantity ?? '1', 10),
-      source: item.marketplace as OrderSource,
+      source: item.marketplace,
       isAggregated: false,
       isDeleted: false,
       isFeedUpdated: true,
@@ -129,7 +128,7 @@ const batchSaveToFirestore = async (
         saleCurrencySymbol: item.sale_currency_symbol ?? '',
         seller: item.seller ?? '',
         buyer: item.buyer ?? '',
-        marketplace: item.marketplace as OrderSource,
+        marketplace: item.marketplace ?? '',
         marketplaceAddress: item.marketplace_address ?? '',
         bundleIndex: item.bundle_index ?? 0,
         logIndex: item.log_index ?? 0,
@@ -142,20 +141,6 @@ const batchSaveToFirestore = async (
       }
     };
 
-    if (item.marketplace === 'flow') {
-      const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
-      const protocolFeeEth = formatEth(protocolFeeWei.toString());
-      return {
-        sale: {
-          ...base,
-          protocolFeeBPS: PROTOCOL_FEE_BPS,
-          protocolFee: protocolFeeEth,
-          protocolFeeWei: protocolFeeWei.toString()
-        },
-        saleV2: nftSaleEventV2,
-        id: item.id
-      };
-    }
     return {
       sale: base,
       id: item.id,

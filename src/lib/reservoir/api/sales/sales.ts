@@ -49,7 +49,7 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
       log_index: sale.logIndex,
       bundle_index: sale.batchIndex,
       block_number: sale.block,
-      marketplace: sale.orderKind,
+      marketplace: sale.orderSource,
       marketplace_address: getMarketplaceAddress(response.chainId as ChainId, sale.orderKind as OrderSource),
       seller: sale.from,
       buyer: sale.to,

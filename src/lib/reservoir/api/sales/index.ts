@@ -1,4 +1,4 @@
 import { SaleOptions, getSales } from './sales';
-import { FlattenedPostgresNFTSale } from './types';
+import { FlattenedNFTSale } from './types';
 
-export { SaleOptions, getSales, FlattenedPostgresNFTSale };
+export { SaleOptions, getSales, FlattenedNFTSale };

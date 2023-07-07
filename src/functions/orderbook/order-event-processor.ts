@@ -31,8 +31,6 @@ import { BaseOrder } from '@/lib/orderbook/order/base-order';
 import { OrderUpdater } from '@/lib/orderbook/order/order-updater';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
-import { saveOrderToPG } from './save-order-to-pg';
-
 export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<OrderEvents> {
   protected _applyOrderBy<Events extends { metadata: { timestamp: number; id: string } } = OrderEvents>(
     query: CollRef<Events> | Query<Events>,
@@ -242,10 +240,6 @@ export class OrderEventProcessor extends FirestoreInOrderBatchEventProcessor<Ord
       displayOrder = orderUpdater.displayOrder;
 
       gasUpdated = initialGasUsage !== order.order.gasUsage;
-    }
-
-    if (statusChanged || gasUpdated || (orderCreatedEvent && !orderCreatedEvent.data.metadata.processed)) {
-      await saveOrderToPG(order, displayOrder);
     }
 
     /**

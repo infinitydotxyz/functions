@@ -6,7 +6,7 @@ import { ChainId, OrderSource } from '@infinityxyz/lib/types/core';
 import { getMarketplaceAddress } from '@/lib/utils/get-marketplace-address';
 
 import { ReservoirClient } from '../get-client';
-import { FlattenedPostgresNFTSaleWithId } from './types';
+import { FlattenedNFTSale } from './types';
 
 export interface SaleOptions {
   contract?: string[];
@@ -43,7 +43,7 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
       console.error(`Failed to find price data for sale ${sale.id}`);
     }
 
-    const pgSale: Partial<FlattenedPostgresNFTSaleWithId> = {
+    const saleData: Partial<FlattenedNFTSale> = {
       id: sale.id,
       txhash: sale.txHash,
       log_index: sale.logIndex,
@@ -66,7 +66,7 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
       sale_currency_symbol: sale?.price?.currency?.symbol
     };
 
-    return pgSale;
+    return saleData;
   });
 
   return {

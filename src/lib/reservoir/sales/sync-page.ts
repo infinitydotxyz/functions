@@ -1,39 +1,25 @@
-import { BigNumber } from 'ethers';
 import { Firestore } from 'firebase-admin/firestore';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
-import {
-  InfinityLinkType,
-  ChainId,
-  EtherscanLinkType,
-  EventType,
-  FlattenedPostgresNFTSale,
-  NftSale,
-  NftSaleEvent,
-  OrderSource,
-  SaleSource,
-  TokenStandard
-} from '@infinityxyz/lib/types/core';
-import { NftDto } from '@infinityxyz/lib/types/dto';
-import {
-  PROTOCOL_FEE_BPS,
-  firestoreConstants,
-  formatEth,
-  getCollectionDocId,
-  getEtherscanLink,
-  getInfinityLink,
-  sleep
-} from '@infinityxyz/lib/utils';
+
+
+import { ChainId, CollectionStats, StatsPeriod, Token } from '@infinityxyz/lib/types/core';
+import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
+
+
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
-import { DocRef, DocSnap } from '@/firestore/types';
+import { DocRef } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 
+
+
 import { Reservoir } from '../..';
-import { FlattenedPostgresNFTSaleWithId } from '../api/sales/types';
+import { FlattenedNFTSale } from '../api/sales/types';
 import { SyncMetadata } from './types';
+
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
@@ -78,13 +64,13 @@ export async function* getSales(
   const method = Reservoir.Api.Sales.getSales;
   let continuation: string | undefined;
   let attempts = 0;
-  let firstItem: FlattenedPostgresNFTSaleWithId | undefined;
+  let firstItem: Partial<FlattenedNFTSale> | undefined;
   const collection = _syncData.collection ? { collection: _syncData.collection } : {};
   const pageSize = 1000;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
-      const pageSales: FlattenedPostgresNFTSaleWithId[] = [];
+      const pageSales: Partial<FlattenedNFTSale>[] = [];
       const page = await method(client, {
         ...collection,
         continuation,
@@ -99,7 +85,7 @@ export async function* getSales(
 
       for (const item of page.data) {
         if (!firstItem) {
-          firstItem = item as FlattenedPostgresNFTSaleWithId;
+          firstItem = item;
         }
 
         if (item.id === _syncData.lastIdProcessed) {
@@ -112,7 +98,7 @@ export async function* getSales(
           };
           return;
         }
-        pageSales.push(item as FlattenedPostgresNFTSaleWithId);
+        pageSales.push(item);
       }
 
       if (pageSales.length < pageSize) {
@@ -141,164 +127,104 @@ export async function* getSales(
   }
 }
 
-const batchSaveToPostgres = async (data: FlattenedPostgresNFTSale[]) => {
-  const pg = config.pg.getPG();
-  if (pg) {
-    // support development env where we don't have a postgres connection
-    const { pgDB, pgp } = pg;
-    const table = 'eth_nft_sales';
-
-    const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
-    const insert = pgp.helpers.insert(data, columnSet);
-    const updateColumns = Object.keys(data[0])
-      .map((col) => `${col} = EXCLUDED.${col}`)
-      .join(', ');
-    const query = `${insert} ON CONFLICT ON CONSTRAINT eth_nft_sales_pkey DO UPDATE SET ${updateColumns}`;
-
-    // const columnSet = new pgp.helpers.ColumnSet(Object.keys(data[0]), { table });
-    // const query =
-    //   pgp.helpers.insert(data, columnSet) +
-    //   ` ON CONFLICT DO NOTHING`;
-    await pgDB.none(query);
-  }
-};
-
 const batchSaveToFirestore = async (
   db: Firestore,
   supportedCollections: SupportedCollectionsProvider,
-  data: { pgSale: FlattenedPostgresNFTSale; token: Partial<NftDto>; chainId: ChainId }[]
+  data: { saleData: Partial<FlattenedNFTSale>; chainId: ChainId }[]
 ) => {
-  const nftSales = data.map(({ pgSale: item, token, chainId }) => {
-    const feedEvent: NftSaleEvent = {
-      type: EventType.NftSale,
-      buyer: item.buyer,
-      seller: item.seller,
-      price: item.sale_price_eth,
-      paymentToken: item.sale_currency_address,
-      source: item.marketplace as SaleSource,
-      tokenStandard: TokenStandard.ERC721,
-      txHash: item.txhash,
-      quantity: parseInt(item.quantity, 10),
-      externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txhash }, chainId),
-      likes: 0,
-      comments: 0,
-      timestamp: item.sale_timestamp,
-      chainId,
-      collectionAddress: item.collection_address,
-      collectionName: token?.collectionName ?? '',
-      collectionSlug: token?.collectionSlug ?? '',
-      collectionProfileImage: '',
-      hasBlueCheck: token?.hasBlueCheck ?? false,
-      internalUrl: getInfinityLink({
-        type: InfinityLinkType.Collection,
-        addressOrSlug: item.collection_address,
-        chainId: chainId
-      }),
-      tokenId: item.token_id,
-      image: item.token_image,
-      nftName: token?.metadata?.name ?? '',
-      nftSlug: token?.slug ?? '',
-      usersInvolved: [item.buyer, item.seller]
-    };
-
-    const base: NftSale = {
-      chainId: chainId,
-      txHash: item.txhash,
-      blockNumber: item.block_number,
-      timestamp: item.sale_timestamp,
-      collectionAddress: item.collection_address,
-      tokenId: item.token_id,
-      price: item.sale_price_eth,
-      paymentToken: item.sale_currency_address,
-      buyer: item.buyer,
-      seller: item.seller,
-      quantity: parseInt(item.quantity, 10),
-      source: item.marketplace as OrderSource,
-      isAggregated: false,
-      isDeleted: false,
-      isFeedUpdated: true,
-      tokenStandard: TokenStandard.ERC721
-    };
-
+  const nftSales = data.map(({ saleData: item, chainId }) => {
     const nftSaleEventV2: NftSaleEventV2 = {
       data: {
         chainId: chainId,
-        txHash: item.txhash,
-        blockNumber: item.block_number,
-        collectionAddress: item.collection_address,
-        collectionName: token?.collectionName ?? '',
-        tokenId: item.token_id,
-        tokenImage: item.token_image,
-        saleTimestamp: item.sale_timestamp,
-        salePrice: item.sale_price,
-        salePriceEth: item.sale_price_eth,
-        saleCurrencyAddress: item.sale_currency_address,
-        saleCurrencyDecimals: item.sale_currency_decimals,
-        saleCurrencySymbol: item.sale_currency_symbol,
-        seller: item.seller,
-        buyer: item.buyer,
-        marketplace: item.marketplace as OrderSource,
-        marketplaceAddress: item.marketplace_address,
-        bundleIndex: item.bundle_index,
-        logIndex: item.log_index,
-        quantity: item.quantity
+        txHash: item.txhash ?? '',
+        blockNumber: item.block_number ?? 0,
+        collectionAddress: item.collection_address ?? '',
+        collectionName: item.collection_name ?? '',
+        tokenId: item.token_id ?? '',
+        tokenImage: item.token_image ?? '',
+        saleTimestamp: item.sale_timestamp ?? 0,
+        salePrice: item.sale_price ?? '',
+        salePriceEth: item.sale_price_eth ?? 0,
+        saleCurrencyAddress: item.sale_currency_address ?? '',
+        saleCurrencyDecimals: item.sale_currency_decimals ?? 0,
+        saleCurrencySymbol: item.sale_currency_symbol ?? '',
+        seller: item.seller ?? '',
+        buyer: item.buyer ?? '',
+        marketplace: item.marketplace ?? '',
+        marketplaceAddress: item.marketplace_address ?? '',
+        bundleIndex: item.bundle_index ?? 0,
+        logIndex: item.log_index ?? 0,
+        quantity: item.quantity ?? '1'
       },
       metadata: {
-        timestamp: item.sale_timestamp,
+        timestamp: item.sale_timestamp ?? 0,
         updatedAt: Date.now(),
-        processed: false
+        processed: true
       }
     };
 
-    if (item.marketplace === 'flow') {
-      const protocolFeeWei = BigNumber.from(item.sale_price).mul(PROTOCOL_FEE_BPS).div(10000);
-      const protocolFeeEth = formatEth(protocolFeeWei.toString());
-      return {
-        sale: {
-          ...base,
-          protocolFeeBPS: PROTOCOL_FEE_BPS,
-          protocolFee: protocolFeeEth,
-          protocolFeeWei: protocolFeeWei.toString()
-        },
-        feedEvent,
-        pgSale: item,
-        saleV2: nftSaleEventV2
-      };
-    }
     return {
-      sale: base,
-      feedEvent,
-      pgSale: item,
-      saleV2: nftSaleEventV2
+      saleV2: nftSaleEventV2,
+      id: item.id
     };
   });
 
   const batchHandler = new BatchHandler();
   const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
-  const feedCollectionRef = db.collection(firestoreConstants.FEED_COLL);
-  for (const { sale, saleV2, pgSale, feedEvent } of nftSales) {
-    const id = `${pgSale.txhash}:${pgSale.log_index}:${pgSale.bundle_index}`;
-    const saleDocRef = salesCollectionRef.doc(id);
-    const feedDocRef = feedCollectionRef.doc(id);
-    await batchHandler.addAsync(saleDocRef, sale, { merge: true });
-
-    // only save to feed if coll is supported
-    const collId = getCollectionDocId({
-      collectionAddress: feedEvent.collectionAddress,
-      chainId: feedEvent.chainId
-    });
-    if (supportedCollections.has(collId)) {
-      await batchHandler.addAsync(feedDocRef, feedEvent, { merge: true });
+  for (const { saleV2, id } of nftSales) {
+    if (!id) {
+      continue;
     }
 
-    const saleEventV2Ref = db
+    // write to sales collection
+    const saleDocRef = salesCollectionRef.doc(id);
+    await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
+
+    // update collectionStats
+    const collectionStatsRef = db
       .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(`${sale.chainId}:${saleV2.data.collectionAddress}`)
+      .doc(`${saleV2.data.chainId}:${saleV2.data.collectionAddress}`)
+      .collection(firestoreConstants.COLLECTION_STATS_COLL)
+      .doc(StatsPeriod.All) as DocRef<CollectionStats>;
+    const statsData = (await collectionStatsRef.get()).data();
+    if (statsData) {
+      const dataToStore: Partial<CollectionStats> = {
+        floorPrice: saleV2.data.salePriceEth < statsData.floorPrice ? saleV2.data.salePriceEth : statsData.floorPrice,
+        numSales: statsData.numSales + (parseInt(saleV2.data.quantity) ?? 1),
+        volume: statsData.volume + saleV2.data.salePriceEth,
+        updatedAt: Date.now()
+      };
+      await batchHandler.addAsync(collectionStatsRef, dataToStore, { merge: true });
+    }
+
+    // update nft lastsaleprice and timestamp
+    const tokenDocRef = db
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(`${saleV2.data.chainId}:${saleV2.data.collectionAddress}`)
       .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-      .doc(saleV2.data.tokenId)
-      .collection('nftSaleEvents')
-      .doc(id);
-    await batchHandler.addAsync(saleEventV2Ref, saleV2, { merge: true });
+      .doc(saleV2.data.tokenId);
+    const dataToStore: Partial<Token> = {
+      lastSalePriceEth: saleV2.data.salePriceEth,
+      lastSaleTimestamp: saleV2.data.saleTimestamp
+    };
+    await batchHandler.addAsync(tokenDocRef, dataToStore, { merge: true });
+
+    // write sale to users involved if source is pixelpack
+    if (saleV2.data.marketplace === 'pixelpack.io' && saleV2.data.buyer && saleV2.data.seller) {
+      const buyerSalesDocRef = db
+        .collection(firestoreConstants.USERS_COLL)
+        .doc(trimLowerCase(saleV2.data.buyer))
+        .collection(firestoreConstants.SALES_COLL)
+        .doc(id);
+      await batchHandler.addAsync(buyerSalesDocRef, saleV2, { merge: true });
+      const sellerSalesDocRef = db
+        .collection(firestoreConstants.USERS_COLL)
+        .doc(trimLowerCase(saleV2.data.seller))
+        .collection(firestoreConstants.SALES_COLL)
+        .doc(id);
+      await batchHandler.addAsync(sellerSalesDocRef, saleV2, { merge: true });
+    }
+
   }
 
   await batchHandler.flush();
@@ -322,57 +248,18 @@ const processSales = async (
   );
   for await (const page of iterator) {
     logger.log('sync-sale-events', `Sync - processing page with ${page.sales.length} sales`);
-    const tokensRefsMaps = new Map<string, DocRef<NftDto>>();
-    page.sales.forEach((item) => {
-      if (item.token_id) {
-        const ref = db
-          .collection(firestoreConstants.COLLECTIONS_COLL)
-          .doc(`${currentSync.data.metadata.chainId}:${item.collection_address}`)
-          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-          .doc(item.token_id) as DocRef<NftDto>;
-        tokensRefsMaps.set(ref.path, ref);
-      }
+
+    const data = page.sales.map((item) => {
+      return { saleData: item, chainId: currentSync.data.metadata.chainId };
     });
-
-    const tokensRefs = [...tokensRefsMaps.values()];
-    if (tokensRefs.length > 0) {
-      const tokensSnap = await db.getAll(...tokensRefs);
-      const tokensMap = new Map<string, DocSnap<NftDto>>();
-      tokensSnap.forEach((snap) => {
-        tokensMap.set(snap.ref.path, snap as DocSnap<NftDto>);
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const data = page.sales.map(({ id, ...item }) => {
-        const ref = db
-          .collection(firestoreConstants.COLLECTIONS_COLL)
-          .doc(`${currentSync.data.metadata.chainId}:${item.collection_address}`)
-          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-          .doc(item.token_id ?? '') as DocRef<NftDto>;
-        const snap = tokensMap.get(ref.path);
-        const token = snap?.data();
-        return {
-          pgSale: {
-            ...item,
-            collection_name: snap?.get('collectionName') ?? item.collection_name ?? '',
-            token_image:
-              token?.image?.url || token?.alchemyCachedImage || item.token_image || token?.image?.originalUrl || ''
-          },
-          token: token ?? {},
-          chainId: currentSync.data.metadata.chainId
-        };
-      });
-      const firstSaleBlockNumber = data[0].pgSale.block_number;
-      const lastSaleBlockNumber = data[data.length - 1].pgSale.block_number;
-      logger.log(
-        'sync-sale-events',
-        `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
-      );
-      await batchSaveToPostgres(data.map((item) => item.pgSale));
-      logger.log('sync-sale-events', 'Saved to postgres');
-      await batchSaveToFirestore(db, supportedCollections, data);
-      logger.log('sync-sale-events', 'Saved to firestore');
-    }
+    const firstSaleBlockNumber = data[0].saleData.block_number;
+    const lastSaleBlockNumber = data[data.length - 1].saleData.block_number;
+    logger.log(
+      'sync-sale-events',
+      `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
+    );
+    await batchSaveToFirestore(db, supportedCollections, data);
+    logger.log('sync-sale-events', 'Saved to firestore');
 
     numSales += page.sales.length;
     if (page.complete) {

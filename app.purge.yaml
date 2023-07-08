@@ -27,7 +27,3 @@ env_variables:
   DEPLOYED: 1
   SUPPORTED_CHAINS: 1,5
   INFINITY_NODE_ENV: prod
-beta_settings:
-  cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
-vpc_access_connector:
-  name: projects/nftc-infinity/locations/us-east1/connectors/cloud-sql-vpc-connector

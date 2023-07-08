@@ -29,7 +29,6 @@
     "update-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/update-orders.ts",
     "start:dev": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=dev node --max-old-space-size=4096 -r dotenv/config ./dist/app-engine/bootstrap.js",
     "start": "node --max-old-space-size=4096 -r dotenv/config ./dist/app-engine/bootstrap.js",
-    "backfill-pg-orders": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-orders-to-pg.ts",
     "backfill-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/backfill-supported-collections.ts",
     "check-supported-collections": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/check-supported-collections.ts",
     "dev": "npx cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/scripts/dev.ts",
@@ -46,7 +45,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@georgeroman/evm-tx-simulator": "^0.0.17",
-    "@infinityxyz/lib": "^1.348.0",
+    "@infinityxyz/lib": "^1.349.12",
     "@reservoir0x/reservoir-kit-client": "^0.2.5",
     "@reservoir0x/sdk": "0.0.332",
     "@types/node": "^18.11.19",

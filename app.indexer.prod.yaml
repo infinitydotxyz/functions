@@ -9,22 +9,18 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.95
 resources:
-  cpu: 6
-  memory_gb: 20
+  cpu: 2
+  memory_gb: 8
   disk_size_gb: 10
 readiness_check:
   app_start_timeout_sec: 1800
 env_variables:
-  SYNC_SALES: 0
+  SYNC_SALES: 1
   SYNC_ORDERS: 0
   SYNC_RESERVOIR_ORDERS_CACHE: 0
   VALIDATE_ORDERBOOK: 0
-  INDEXER_EVENT_SYNCING: 1
-  INDEXER_EVENT_PROCESSING: 1
+  INDEXER_EVENT_SYNCING: 0
+  INDEXER_EVENT_PROCESSING: 0
   DEPLOYED: 1
   SUPPORTED_CHAINS: 1,5
   INFINITY_NODE_ENV: prod
-beta_settings:
-  cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
-vpc_access_connector:
-  name: projects/nftc-infinity/locations/us-east1/connectors/cloud-sql-vpc-connector

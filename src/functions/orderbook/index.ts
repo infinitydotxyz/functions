@@ -48,21 +48,11 @@ const scheduleBuilder = scheduleSettings.pubsub.schedule;
 export const onProcessOrderEvent = processor.onEvent(documentBuilder);
 export const onProcessOrderEventBackup = processor.scheduledBackupEvents(scheduleBuilder);
 
-const vpc = config.pg.vpcConnector
-  ? {
-      vpcConnector: config.pg.vpcConnector,
-      vpcConnectorEgressSettings: 'PRIVATE_RANGES_ONLY'
-    }
-  : {};
 export const onProcessOrderEventProcess = processor.process(
   functions.region(config.firebase.region).runWith({
     timeoutSeconds: 60,
     maxInstances: 5_000,
-    minInstances: 1,
-    ...(vpc as {
-      vpcConnector: string;
-      vpcConnectorEgressSettings: functions.RuntimeOptions['vpcConnectorEgressSettings'];
-    })
+    minInstances: 1
   }).firestore.document
 );
 export const onProcessOrderEventProcessBackup = processor.scheduledBackupTrigger(scheduleBuilder);

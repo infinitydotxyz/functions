@@ -4,7 +4,7 @@
 // export * from './on-staker-event';
 // export * from './orderbook';
 // export * from './tokens';
-export * from './sync-nft-collection-data';
+// export * from './sync-nft-collection-data';
 // export * from './raffle';
 // export * from './referrals';
 // export * from './reservoir';

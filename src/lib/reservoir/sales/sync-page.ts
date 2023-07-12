@@ -3,7 +3,7 @@ import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
 
 
-import { ChainId, Token } from '@infinityxyz/lib/types/core';
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
 

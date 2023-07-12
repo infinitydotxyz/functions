@@ -3,14 +3,13 @@ import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
 
 
-import { ChainId, CollectionStats, StatsPeriod, Token } from '@infinityxyz/lib/types/core';
+import { ChainId, Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
 
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
-import { DocRef } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 
@@ -179,35 +178,6 @@ const batchSaveToFirestore = async (
     // write to sales collection
     const saleDocRef = salesCollectionRef.doc(id);
     await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
-
-    // update collectionStats
-    const collectionStatsRef = db
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(`${saleV2.data.chainId}:${saleV2.data.collectionAddress}`)
-      .collection(firestoreConstants.COLLECTION_STATS_COLL)
-      .doc(StatsPeriod.All) as DocRef<CollectionStats>;
-    const statsData = (await collectionStatsRef.get()).data();
-    if (statsData) {
-      const dataToStore: Partial<CollectionStats> = {
-        floorPrice: saleV2.data.salePriceEth < statsData.floorPrice ? saleV2.data.salePriceEth : statsData.floorPrice,
-        numSales: statsData.numSales + (parseInt(saleV2.data.quantity) ?? 1),
-        volume: statsData.volume + saleV2.data.salePriceEth,
-        updatedAt: Date.now()
-      };
-      await batchHandler.addAsync(collectionStatsRef, dataToStore, { merge: true });
-    }
-
-    // update nft lastsaleprice and timestamp
-    const tokenDocRef = db
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(`${saleV2.data.chainId}:${saleV2.data.collectionAddress}`)
-      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-      .doc(saleV2.data.tokenId);
-    const dataToStore: Partial<Token> = {
-      lastSalePriceEth: saleV2.data.salePriceEth,
-      lastSaleTimestamp: saleV2.data.saleTimestamp
-    };
-    await batchHandler.addAsync(tokenDocRef, dataToStore, { merge: true });
 
     // write sale to users involved if source is pixelpack
     if (saleV2.data.marketplace === 'pixelpack.io' && saleV2.data.buyer && saleV2.data.seller) {

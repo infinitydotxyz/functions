@@ -1,24 +1,17 @@
 import { Firestore } from 'firebase-admin/firestore';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
-
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
-
-
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 
-
-
 import { Reservoir } from '../..';
 import { FlattenedNFTSale } from '../api/sales/types';
 import { SyncMetadata } from './types';
-
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
@@ -180,7 +173,7 @@ const batchSaveToFirestore = async (
     await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
 
     // write sale to users involved if source is pixelpack
-    if (saleV2.data.marketplace === 'pixelpack.io' && saleV2.data.buyer && saleV2.data.seller) {
+    if (saleV2.data.marketplace === 'pixl.so' && saleV2.data.buyer && saleV2.data.seller) {
       const buyerSalesDocRef = db
         .collection(firestoreConstants.USERS_COLL)
         .doc(trimLowerCase(saleV2.data.buyer))
@@ -194,7 +187,6 @@ const batchSaveToFirestore = async (
         .doc(id);
       await batchHandler.addAsync(sellerSalesDocRef, saleV2, { merge: true });
     }
-
   }
 
   await batchHandler.flush();

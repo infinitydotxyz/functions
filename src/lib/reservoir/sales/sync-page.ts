@@ -172,7 +172,7 @@ const batchSaveToFirestore = async (
     const saleDocRef = salesCollectionRef.doc(id);
     await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
 
-    // write sale to users involved if source is pixelpack
+    // write sale to users involved if source is pixl
     if (saleV2.data.marketplace === 'pixl.so' && saleV2.data.buyer && saleV2.data.seller) {
       const buyerSalesDocRef = db
         .collection(firestoreConstants.USERS_COLL)

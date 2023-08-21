@@ -1,3 +1,5 @@
+import { BigNumber, BigNumberish } from "ethers";
+
 export const BonusMultiplier = {
   LevelZero: {
     minBalance: 0,
@@ -17,11 +19,14 @@ export const BonusMultiplier = {
   }
 }
 
-export const getBonusLevel = (balance: bigint) => {
+export const getBonusLevel = (balance: BigNumberish) => {
+  balance = BigNumber.from(balance).toBigInt();
   const levels = Object.values(BonusMultiplier).sort((a, b) => b.minBalance - a.minBalance);
-
   const level = levels.find(level => balance >= BigInt(level.minBalance));
   console.assert(!!level, `Failed to find bonus for balance ${balance}`);
 
-  return level;
+  return level ?? {
+    minBalance: 0,
+    multiplier: 1,
+  };
 }

@@ -16,7 +16,7 @@ export interface ReferralEvent {
   processed: boolean,
 }
 
-export interface RewardEvent {
+export interface UserRewardEvent {
   user: string,
   kind: 'referral' | 'airdrop' | 'listing' | 'buy',
   blockNumber: number,
@@ -26,6 +26,16 @@ export interface RewardEvent {
   totalPoints: number,
   timestamp: number,
   processed: boolean,
+}
+
+export type UserRewards = {
+  referralPoints: number,
+  listingPoints: number,
+  airdropPoints: number,
+  buyPoints: number,
+  totalPoints: number,
+  updatedAt: number;
+  user: string;
 }
 
 export interface Referral {
@@ -64,15 +74,10 @@ export const saveReferrals = (firestore: FirebaseFirestore.Firestore, referrals:
   });
 }
 
-export const saveRewards = (firestore: FirebaseFirestore.Firestore, rewards: RewardEvent[], batch: FirebaseFirestore.WriteBatch) => {
+export const saveUserRewardEvents = (firestore: FirebaseFirestore.Firestore, rewards: UserRewardEvent[], batch: FirebaseFirestore.WriteBatch) => {
   for (const reward of rewards) {
-    const kinds = [reward.kind, 'totals'];
-    const docId = firestore.collection('none').doc().id;
-    for (const kind of kinds) {
-      const kindSpecificRewards = firestore.collection("pixl").doc("pixlRewards").collection(`pixl:${kind}:rewards`).doc(reward.user).collection(`pixl:${kind}:rewards:events`) as FirebaseFirestore.CollectionReference<RewardEvent>;
-      const doc = kindSpecificRewards.doc(docId);
-      batch.set(doc, reward);
-    }
+    const rewardRef = firestore.collection("pixl").doc("pixlRewards").collection("pixlUserRewards").doc(reward.user).collection('pixlUserRewardsEvents');
+    batch.set(rewardRef.doc(), reward);
   }
 }
 
@@ -96,4 +101,30 @@ export const getUserReferrers = async (firestore: FirebaseFirestore.Firestore, u
     secondary: null,
     tertiary: null,
   });
+}
+
+
+export const saveUserRewards = (firestore: FirebaseFirestore.Firestore, rewards: UserRewards, batch: FirebaseFirestore.WriteBatch) => {
+  const userRewardsRef = firestore.collection("pixl").doc("pixlRewards").collection("pixlUserRewards").doc(rewards.user) as FirebaseFirestore.DocumentReference<UserRewards>;
+
+  batch.set(userRewardsRef, rewards, { merge: true });
+}
+
+export const getUserRewards = async (firestore: FirebaseFirestore.Firestore, user: string) => {
+  const userRewardsRef = firestore.collection("pixl").doc("pixlRewards").collection("pixlUserRewards").doc(user) as FirebaseFirestore.DocumentReference<UserRewards>;
+
+  const userRewardsSnap = await userRewardsRef.get();
+  const userRewards = userRewardsSnap.data();
+  if (!userRewards) {
+    return {
+      referralPoints: 0,
+      listingPoints: 0,
+      airdropPoints: 0,
+      buyPoints: 0,
+      totalPoints: 0,
+      updatedAt: Date.now(),
+      user,
+    }
+  }
+  return userRewards;
 }

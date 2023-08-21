@@ -1,5 +1,5 @@
 import { getDb } from "@/firestore/db";
-import { CollRef, DocRef } from "@/firestore/types";
+import { DocRef } from "@/firestore/types";
 import { getProvider } from "@/lib/utils/ethersUtils";
 import { ERC20ABI } from "@infinityxyz/lib/abi";
 import { ChainId } from "@infinityxyz/lib/types/core";
@@ -8,7 +8,7 @@ import { Contract } from "ethers";
 import { getBonusLevel } from "../bonus";
 import { ReferralEvent, RewardsV2Events } from "../events";
 import { calcReferralPoints, getReferralPoints } from "../referrals/points";
-import { getUserReferrers, Referral, RewardEvent, saveReferrals, saveRewards } from "../referrals/sdk";
+import { getUserReferrers, Referral, saveReferrals, saveUserRewardEvents, UserRewardEvent } from "../referrals/sdk";
 
 export const handleReferral = async (event: ReferralEvent) => {
   const firestore = getDb();
@@ -79,7 +79,7 @@ export const handleReferral = async (event: ReferralEvent) => {
     const bonus = getBonusLevel(item.referrerXFLBalance);
     const preBonusPoints = calcReferralPoints(referralPoints);
     const totalPoints = bonus.multiplier * preBonusPoints;
-    const reward: RewardEvent = {
+    const reward: UserRewardEvent = {
       user: item.referrer,
       kind: 'referral',
       blockNumber: item.blockNumber,
@@ -93,7 +93,7 @@ export const handleReferral = async (event: ReferralEvent) => {
     return reward;
   });
   saveReferrals(firestore, referrals, batch);
-  saveRewards(firestore, rewards, batch);
+  saveUserRewardEvents(firestore, rewards, batch);
   await batch.commit();
 }
 

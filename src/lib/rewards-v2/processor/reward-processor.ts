@@ -1,14 +1,24 @@
-import { getDb } from "@/firestore/db";
-import { DocRef } from "@/firestore/types";
-import { getProvider } from "@/lib/utils/ethersUtils";
-import { ERC20ABI } from "@infinityxyz/lib/abi";
-import { ChainId } from "@infinityxyz/lib/types/core";
-import { getTokenAddress } from "@infinityxyz/lib/utils";
-import { Contract } from "ethers";
-import { getBonusLevel } from "../bonus";
-import { ReferralEvent } from "../events";
-import { calcReferralPoints, getReferralPoints } from "../referrals/points";
-import { getUserReferrers, Referral, RewardsEvent, saveReferrals, saveUserRewardEvents, UserRewardEvent } from "../referrals/sdk";
+import { Contract } from 'ethers';
+
+import { ERC20ABI } from '@infinityxyz/lib/abi';
+import { ChainId } from '@infinityxyz/lib/types/core';
+import { getTokenAddress } from '@infinityxyz/lib/utils';
+
+import { getDb } from '@/firestore/db';
+import { DocRef } from '@/firestore/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
+
+import { getBonusLevel } from '../bonus';
+import { ReferralEvent } from '../events';
+import { calcReferralPoints, getReferralPoints } from '../referrals/points';
+import {
+  Referral,
+  RewardsEvent,
+  UserRewardEvent,
+  getUserReferrers,
+  saveReferrals,
+  saveUserRewardEvents
+} from '../referrals/sdk';
 
 export const handleReferral = async (event: ReferralEvent) => {
   const firestore = getDb();
@@ -29,10 +39,10 @@ export const handleReferral = async (event: ReferralEvent) => {
   const primaryReferral: Referral = {
     user: event.referree,
     referrer: primaryReferrer,
-    referrerXFLBalance: "0",
-    kind: "primary",
+    referrerXFLBalance: '0',
+    kind: 'primary',
     blockNumber: event.blockNumber,
-    timestamp: event.timestamp,
+    timestamp: event.timestamp
   };
   referrals.push(primaryReferral);
 
@@ -40,10 +50,10 @@ export const handleReferral = async (event: ReferralEvent) => {
     const secondaryReferral: Referral = {
       user: event.referree,
       referrer: secondaryReferrer,
-      referrerXFLBalance: "0",
-      kind: "secondary",
+      referrerXFLBalance: '0',
+      kind: 'secondary',
       blockNumber: event.blockNumber,
-      timestamp: event.timestamp,
+      timestamp: event.timestamp
     };
     referrals.push(secondaryReferral);
   }
@@ -52,26 +62,27 @@ export const handleReferral = async (event: ReferralEvent) => {
     const tertiaryReferral: Referral = {
       user: event.referree,
       referrer: tertiaryReferrer,
-      referrerXFLBalance: "0",
-      kind: "tertiary",
+      referrerXFLBalance: '0',
+      kind: 'tertiary',
       blockNumber: event.blockNumber,
-      timestamp: event.timestamp,
+      timestamp: event.timestamp
     };
     referrals.push(tertiaryReferral);
   }
 
-
   const provider = getProvider(ChainId.Mainnet);
   const contractAddress = getTokenAddress(ChainId.Mainnet);
   const contract = new Contract(contractAddress, ERC20ABI as any, provider);
-  referrals = await Promise.all(referrals.map(async (referral) => {
-    const balance = await contract.balanceOf(referral.referrer, { blockTag: referral.blockNumber });
-    const ref: Referral = {
-      ...referral,
-      referrerXFLBalance: balance.toString(),
-    };
-    return ref;
-  }));
+  referrals = await Promise.all(
+    referrals.map(async (referral) => {
+      const balance = await contract.balanceOf(referral.referrer, { blockTag: referral.blockNumber });
+      const ref: Referral = {
+        ...referral,
+        referrerXFLBalance: balance.toString()
+      };
+      return ref;
+    })
+  );
   const batch = firestore.batch();
 
   const rewards = referrals.map((item) => {
@@ -88,26 +99,26 @@ export const handleReferral = async (event: ReferralEvent) => {
       preBonusPoints,
       totalPoints,
       timestamp: Date.now(),
-      processed: false,
+      processed: false
     };
     return reward;
   });
   saveReferrals(firestore, referrals, batch);
   saveUserRewardEvents(firestore, rewards, batch);
   await batch.commit();
-}
+};
 
-export async function* process(stream: AsyncGenerator<{ data: RewardsEvent, ref: DocRef<RewardsEvent> }>) {
-  let numProcessed = 0;
+export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
+  const numProcessed = 0;
   for await (const { data: event, ref } of stream) {
     try {
       switch (event.kind) {
-        case "REFERRAL": {
+        case 'REFERRAL': {
           await handleReferral(event);
           break;
         }
         default: {
-          throw new Error(`Unknown event kind ${event.kind}`)
+          throw new Error(`Unknown event kind ${event.kind}`);
         }
       }
       await ref.update({ processed: true });

@@ -32,7 +32,6 @@ const getSupportedCollectionsProvider = async () => {
   return _supportedCollectionsProvider;
 };
 
-
 async function main() {
   const db = getDb();
   const promises = [];
@@ -233,13 +232,13 @@ async function main() {
     const trigger = async () => {
       const id = nanoid();
       const jobData = {
-        id: id,
+        id: id
       };
       await queue.add(jobData);
     };
 
     cron.schedule('*/15 * * * * *', async () => {
-      logger.log('rewards', `Triggering rewards event processing!`)
+      logger.log('rewards', `Triggering rewards event processing!`);
       await trigger();
     });
     await trigger();
@@ -272,7 +271,7 @@ async function main() {
     promises.push(queue.run());
   }
 
-  console.log(`Starting ${promises.length} items`)
+  console.log(`Starting ${promises.length} items`);
   await Promise.all(promises);
 }
 void main();

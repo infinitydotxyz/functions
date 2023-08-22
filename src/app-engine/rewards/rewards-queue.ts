@@ -1,15 +1,18 @@
-import { getDb } from "@/firestore/db";
-import { streamQueryWithRef } from "@/firestore/stream-query";
-import { CollRef } from "@/firestore/types";
-import { AbstractProcess } from "@/lib/process/process.abstract";
-import { ProcessOptions } from "@/lib/process/types";
-import { processRewardEvents } from "@/lib/rewards-v2";
-import { RewardsEvent } from "@/lib/rewards-v2/referrals/sdk";
-import { ONE_MIN } from "@infinityxyz/lib/utils";
-import { Job } from "bullmq";
-import { FieldPath } from "firebase-admin/firestore";
-import Redis from "ioredis";
-import { ExecutionError, redlock } from "../redis";
+import { Job } from 'bullmq';
+import { FieldPath } from 'firebase-admin/firestore';
+import Redis from 'ioredis';
+
+import { ONE_MIN } from '@infinityxyz/lib/utils';
+
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { CollRef } from '@/firestore/types';
+import { AbstractProcess } from '@/lib/process/process.abstract';
+import { ProcessOptions } from '@/lib/process/types';
+import { processRewardEvents } from '@/lib/rewards-v2';
+import { RewardsEvent } from '@/lib/rewards-v2/referrals/sdk';
+
+import { ExecutionError, redlock } from '../redis';
 
 export interface RewardJobData {
   id: string;
@@ -17,16 +20,11 @@ export interface RewardJobData {
 
 export interface RewardJobResult {
   id: string;
-  status: "completed" | "errored" | "skipped";
+  status: 'completed' | 'errored' | 'skipped';
 }
 
 export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobResult> {
-
-  constructor(
-    id: string,
-    redis: Redis,
-    options?: ProcessOptions
-  ) {
+  constructor(id: string, redis: Redis, options?: ProcessOptions) {
     super(redis, id, options);
   }
 
@@ -41,8 +39,8 @@ export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobR
     if (job.timestamp < Date.now() - 10 * ONE_MIN) {
       return {
         id: job.data.id,
-        status: "skipped",
-      }
+        status: 'skipped'
+      };
     }
 
     const id = `rewards:events:lock`;
@@ -55,8 +53,14 @@ export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobR
           }
         };
 
-        const rewardEventsRef = db.collection("pixl").doc("pixlRewards").collection("pixlRewardEvents") as CollRef<RewardsEvent>;
-        const query = rewardEventsRef.where("processed", "==", false).orderBy("timestamp", "asc").orderBy(FieldPath.documentId());
+        const rewardEventsRef = db
+          .collection('pixl')
+          .doc('pixlRewards')
+          .collection('pixlRewardEvents') as CollRef<RewardsEvent>;
+        const query = rewardEventsRef
+          .where('processed', '==', false)
+          .orderBy('timestamp', 'asc')
+          .orderBy(FieldPath.documentId());
 
         const stream = streamQueryWithRef<RewardsEvent>(query, (item, ref) => [item.timestamp, ref.path]);
         for await (const { numProcessed } of processRewardEvents(stream)) {
@@ -65,10 +69,9 @@ export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobR
         }
       });
 
-
       return {
         id: job.data.id,
-        status: 'completed',
+        status: 'completed'
       };
     } catch (err) {
       if (err instanceof ExecutionError) {
@@ -79,7 +82,7 @@ export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobR
 
       return {
         id: job.data.id,
-        status: 'errored',
+        status: 'errored'
       };
     }
   }

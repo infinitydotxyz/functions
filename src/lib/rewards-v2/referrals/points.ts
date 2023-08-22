@@ -1,4 +1,4 @@
-import { ReferralLevel } from "./types";
+import { ReferralLevel } from './types';
 
 const BasePoints = 100; // TODO UPDATE THIS
 
@@ -15,12 +15,12 @@ export const ReferralPoints = {
     base: BasePoints,
     multiplier: 1
   }
-}
+};
 
 export const getReferralPoints = (referralKind: ReferralLevel) => {
   return ReferralPoints[referralKind];
-}
+};
 
-export const calcReferralPoints = (config: { base: number, multiplier: number }) => {
+export const calcReferralPoints = (config: { base: number; multiplier: number }) => {
   return Math.round(config.base * config.multiplier);
-}
+};

@@ -1,1 +1,1 @@
-export { ReferralEvent } from "../referrals/sdk"
+export { ReferralEvent } from '../referrals/sdk';

@@ -20,12 +20,21 @@ import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
+import { RewardEventsQueue } from './rewards/rewards-queue';
+
+let _supportedCollectionsProvider: SupportedCollectionsProvider;
+const getSupportedCollectionsProvider = async () => {
+  if (!_supportedCollectionsProvider) {
+    const db = getDb();
+    _supportedCollectionsProvider = new SupportedCollectionsProvider(db);
+    await _supportedCollectionsProvider.init();
+  }
+  return _supportedCollectionsProvider;
+};
+
 
 async function main() {
   const db = getDb();
-  const supportedCollections = new SupportedCollectionsProvider(db);
-  await supportedCollections.init();
-
   const promises = [];
 
   if (config.components.validateOrderbook.enabled) {
@@ -70,6 +79,7 @@ async function main() {
 
   if (config.components.cacheReservoirOrders.enabled) {
     const supportedChains = [ChainId.Mainnet, ChainId.Goerli];
+    const supportedCollections = await getSupportedCollectionsProvider();
     for (const chainId of supportedChains) {
       const bidCacheQueue = new ReservoirOrderCacheQueue(
         `reservoir-order-cache:chain:${chainId}:type:bid`,
@@ -102,6 +112,7 @@ async function main() {
   }
 
   if (config.components.syncOrders.enabled) {
+    const supportedCollections = await getSupportedCollectionsProvider();
     const initQueue = (id: string, queue: AbstractProcess<JobData<OrderJobData>, { id: string }>) => {
       const orderEventsQueue = new OrderEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
@@ -149,6 +160,7 @@ async function main() {
   }
 
   if (config.components.syncSales.enabled) {
+    const supportedCollections = await getSupportedCollectionsProvider();
     const initQueue = (id: string, queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) => {
       const salesEventsQueue = new SalesEventsQueue(id, redis, supportedCollections, {
         enableMetrics: false,
@@ -209,6 +221,31 @@ async function main() {
     promises.push(eventProcessorsPromises);
   }
 
+  if (config.components.rewards.enabled) {
+    logger.log('rewards', `Starting rewards event processing!`);
+    const queue = new RewardEventsQueue('reward-events-queue', redis, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+
+    const trigger = async () => {
+      const id = nanoid();
+      const jobData = {
+        id: id,
+      };
+      await queue.add(jobData);
+    };
+
+    cron.schedule('*/15 * * * * *', async () => {
+      logger.log('rewards', `Triggering rewards event processing!`)
+      await trigger();
+    });
+    await trigger();
+    promises.push(queue.run());
+  }
+
   if (config.components.purgeFirestore.enabled) {
     logger.log('purge', 'Starting purge process');
     const queue = new FirestoreDeletionProcess(redis, {
@@ -235,7 +272,7 @@ async function main() {
     promises.push(queue.run());
   }
 
+  console.log(`Starting ${promises.length} items`)
   await Promise.all(promises);
 }
-
 void main();

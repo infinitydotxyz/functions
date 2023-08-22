@@ -113,6 +113,9 @@ export const config = {
     syncSales: {
       enabled: Number(getEnvVariable('SYNC_SALES', false)) === 1
     },
+    rewards: {
+      enabled: Number(getEnvVariable('PROCESS_REWARDS', false)) === 1
+    },
     syncOrders: {
       enabled: Number(getEnvVariable('SYNC_ORDERS', false)) === 1
     },

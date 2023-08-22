@@ -6,9 +6,9 @@ import { ChainId } from "@infinityxyz/lib/types/core";
 import { getTokenAddress } from "@infinityxyz/lib/utils";
 import { Contract } from "ethers";
 import { getBonusLevel } from "../bonus";
-import { ReferralEvent, RewardsV2Events } from "../events";
+import { ReferralEvent } from "../events";
 import { calcReferralPoints, getReferralPoints } from "../referrals/points";
-import { getUserReferrers, Referral, saveReferrals, saveUserRewardEvents, UserRewardEvent } from "../referrals/sdk";
+import { getUserReferrers, Referral, RewardsEvent, saveReferrals, saveUserRewardEvents, UserRewardEvent } from "../referrals/sdk";
 
 export const handleReferral = async (event: ReferralEvent) => {
   const firestore = getDb();
@@ -97,8 +97,9 @@ export const handleReferral = async (event: ReferralEvent) => {
   await batch.commit();
 }
 
-export const process = async (stream: AsyncGenerator<{ event: RewardsV2Events, ref: DocRef<RewardsV2Events> }>) => {
-  for await (const { event, ref } of stream) {
+export async function* process(stream: AsyncGenerator<{ data: RewardsEvent, ref: DocRef<RewardsEvent> }>) {
+  let numProcessed = 0;
+  for await (const { data: event, ref } of stream) {
     try {
       switch (event.kind) {
         case "REFERRAL": {
@@ -110,6 +111,7 @@ export const process = async (stream: AsyncGenerator<{ event: RewardsV2Events, r
         }
       }
       await ref.update({ processed: true });
+      yield { numProcessed };
     } catch (err) {
       console.error(err);
     }

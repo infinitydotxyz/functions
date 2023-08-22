@@ -16,6 +16,8 @@ export interface ReferralEvent {
   processed: boolean,
 }
 
+export type RewardsEvent = ReferralEvent;
+
 export interface UserRewardEvent {
   user: string,
   kind: 'referral' | 'airdrop' | 'listing' | 'buy',
@@ -62,7 +64,7 @@ export const getUserByReferralCode = async (firestore: FirebaseFirestore.Firesto
 }
 
 
-export const saveReferralEvent = async (firestore: FirebaseFirestore.Firestore, event: ReferralEvent) => {
+export const saveRewardsEvent = async (firestore: FirebaseFirestore.Firestore, event: RewardsEvent) => {
   await firestore.collection("pixl").doc("pixlRewards").collection("pixlRewardEvents").doc().set(event);
 }
 

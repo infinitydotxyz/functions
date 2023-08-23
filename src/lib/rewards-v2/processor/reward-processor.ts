@@ -1,4 +1,5 @@
 import { Contract } from 'ethers';
+import PQueue from 'p-queue';
 
 import { ERC20ABI } from '@infinityxyz/lib/abi';
 import { ChainId } from '@infinityxyz/lib/types/core';
@@ -10,95 +11,78 @@ import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getBonusLevel } from '../bonus';
 import { ReferralEvent } from '../events';
-import { calcReferralPoints, getReferralPoints } from '../referrals/points';
+import { getReferralPoints } from '../referrals/points';
 import {
+  AirdropEvent,
   Referral,
   RewardsEvent,
+  UserAirdropRewardEvent,
   UserRewardEvent,
   getUserReferrers,
   saveReferrals,
-  saveUserRewardEvents,
-  AirdropEvent,
-  UserAirdropRewardEvent
+  saveUserRewardEvents
 } from '../referrals/sdk';
 
 export const handleReferral = async (event: ReferralEvent) => {
   const firestore = getDb();
 
-  const existingReferrers = await getUserReferrers(firestore, event.referree);
-  if (existingReferrers.primary) {
+  const existingReferrers = await getUserReferrers(firestore, event.referree, 1);
+  if (existingReferrers.length > 0) {
     // the user already has a referrer
     return;
   }
 
-  const primaryReferrer = event.referrer.address;
-  const primaryReferrerReferrers = await getUserReferrers(firestore, primaryReferrer);
-  const secondaryReferrer = primaryReferrerReferrers.primary;
-  const tertiaryReferrer = primaryReferrerReferrers.secondary;
+  const initialReferrer = event.referrer.address;
+  const referrers = await getUserReferrers(firestore, initialReferrer, 99);
+  let referrals: Referral[] = referrers.map((item) => {
+    return {
+      user: event.referree,
+      referrer: item.user,
+      referrerXFLBalance: '0',
+      index: item.index + 1, // initial referrer + 1 level
+      blockNumber: event.blockNumber,
+      timestamp: event.timestamp
+    };
+  });
 
-  let referrals: Referral[] = [];
-
-  const primaryReferral: Referral = {
+  referrals.unshift({
     user: event.referree,
-    referrer: primaryReferrer,
+    referrer: initialReferrer,
     referrerXFLBalance: '0',
-    kind: 'primary',
+    index: 0,
     blockNumber: event.blockNumber,
     timestamp: event.timestamp
-  };
-  referrals.push(primaryReferral);
-
-  if (secondaryReferrer) {
-    const secondaryReferral: Referral = {
-      user: event.referree,
-      referrer: secondaryReferrer,
-      referrerXFLBalance: '0',
-      kind: 'secondary',
-      blockNumber: event.blockNumber,
-      timestamp: event.timestamp
-    };
-    referrals.push(secondaryReferral);
-  }
-
-  if (tertiaryReferrer) {
-    const tertiaryReferral: Referral = {
-      user: event.referree,
-      referrer: tertiaryReferrer,
-      referrerXFLBalance: '0',
-      kind: 'tertiary',
-      blockNumber: event.blockNumber,
-      timestamp: event.timestamp
-    };
-    referrals.push(tertiaryReferral);
-  }
+  });
 
   const provider = getProvider(ChainId.Mainnet);
   const contractAddress = getTokenAddress(ChainId.Mainnet);
   const contract = new Contract(contractAddress, ERC20ABI as any, provider);
+  const pqueue = new PQueue({ concurrency: 5 });
   referrals = await Promise.all(
     referrals.map(async (referral) => {
-      const balance = await contract.balanceOf(referral.referrer, { blockTag: referral.blockNumber });
-      const ref: Referral = {
-        ...referral,
-        referrerXFLBalance: balance.toString()
-      };
-      return ref;
+      return await pqueue.add(async () => {
+        const balance = await contract.balanceOf(referral.referrer, { blockTag: referral.blockNumber });
+        const ref: Referral = {
+          ...referral,
+          referrerXFLBalance: balance.toString()
+        };
+        return ref;
+      });
     })
   );
   const batch = firestore.batch();
 
   const rewards = referrals.map((item) => {
-    const referralPoints = getReferralPoints(item.kind);
+    const referralPoints = getReferralPoints(item.index);
     const bonus = getBonusLevel(item.referrerXFLBalance);
-    const preBonusPoints = calcReferralPoints(referralPoints);
-    const totalPoints = bonus.multiplier * preBonusPoints;
+    const totalPoints = bonus.multiplier * referralPoints;
     const reward: UserRewardEvent = {
       user: item.referrer,
       kind: 'referral',
       blockNumber: item.blockNumber,
       balance: item.referrerXFLBalance,
       bonusMultiplier: bonus.multiplier,
-      preBonusPoints,
+      preBonusPoints: referralPoints,
       totalPoints,
       timestamp: Date.now(),
       processed: false
@@ -119,12 +103,12 @@ const handleAirdrop = async (event: AirdropEvent) => {
     kind: 'airdrop',
     tier: event.tier,
     timestamp: Date.now(),
-    processed: false,
-  }
+    processed: false
+  };
 
   saveUserRewardEvents(firestore, [reward], batch);
   await batch.commit();
-}
+};
 
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
   let numProcessed = 0;

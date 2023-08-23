@@ -1,6 +1,7 @@
-import { AirdropTier } from '@/lib/rewards-v2/referrals/sdk';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
+
+import { AirdropTier } from '@/lib/rewards-v2/referrals/sdk';
 
 async function main() {
   const airdropFile = 'airdrop.csv';

@@ -93,8 +93,7 @@ export class UserRewardsEventsQueue extends AbstractProcess<UserRewardsJobData, 
             }
             txn.set(item.ref, { processed: true }, { merge: true });
           }
-          userRewards.totalPoints =
-            userRewards.referralPoints + userRewards.listingPoints + userRewards.buyPoints;
+          userRewards.totalPoints = userRewards.referralPoints + userRewards.listingPoints + userRewards.buyPoints;
           txn.set(userRewardsRef, userRewards, { merge: true });
         });
       });

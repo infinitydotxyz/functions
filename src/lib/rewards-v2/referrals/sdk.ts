@@ -16,18 +16,17 @@ export interface ReferralEvent {
   processed: boolean;
 }
 
-export type AirdropTier = "PLATINUM" | "GOLD" | "SILVER" | "BRONZE" | "NONE";
+export type AirdropTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
 
 export interface AirdropEvent {
-  kind: "AIRDROP",
-  user: string,
-  tier: AirdropTier,
-  timestamp: number,
-  processed: boolean,
+  kind: 'AIRDROP';
+  user: string;
+  tier: AirdropTier;
+  timestamp: number;
+  processed: boolean;
 }
 
 export type RewardsEvent = ReferralEvent | AirdropEvent;
-
 
 export interface UserReferralRewardEvent {
   user: string;
@@ -65,7 +64,8 @@ export interface Referral {
   user: string;
   referrer: string;
   referrerXFLBalance: string;
-  kind: 'primary' | 'secondary' | 'tertiary';
+  // the referral index (i.e. referral depth)
+  index: number;
   blockNumber: number;
   timestamp: number;
 }
@@ -122,33 +122,15 @@ export const saveUserRewardEvents = (
   }
 };
 
-export const getUserReferrers = async (firestore: FirebaseFirestore.Firestore, user: string) => {
+export const getUserReferrers = async (firestore: FirebaseFirestore.Firestore, user: string, limit: number) => {
   const userReferralsRef = firestore
     .collection('pixl')
     .doc('pixlReferrals')
     .collection('pixlUserReferrals') as FirebaseFirestore.CollectionReference<Referral>;
-  const referrersQuery = userReferralsRef.where('user', '==', user);
+  const referrersQuery = userReferralsRef.where('user', '==', user).orderBy('index', 'asc').limit(limit);
   const referrersSnap = await referrersQuery.get();
 
-  return referrersSnap.docs
-    .map((doc) => doc.data())
-    .reduce(
-      (acc: Record<Referral['kind'], string | null>, curr) => {
-        switch (curr.kind) {
-          case 'primary':
-            return { ...acc, primary: curr.referrer };
-          case 'secondary':
-            return { ...acc, secondary: curr.referrer };
-          case 'tertiary':
-            return { ...acc, tertiary: curr.referrer };
-        }
-      },
-      {
-        primary: null,
-        secondary: null,
-        tertiary: null
-      }
-    );
+  return referrersSnap.docs.map((doc) => doc.data()).sort((a, b) => a.index - b.index);
 };
 
 export const saveUserRewards = (

@@ -96,7 +96,6 @@ export const handleReferral = async (event: ReferralEvent) => {
 
 const handleAirdrop = async (event: AirdropEvent) => {
   const firestore = getDb();
-  const batch = firestore.batch();
 
   const reward: UserAirdropRewardEvent = {
     user: event.user,
@@ -106,12 +105,16 @@ const handleAirdrop = async (event: AirdropEvent) => {
     processed: false
   };
 
-  saveUserRewardEvents(firestore, [reward], batch);
-  await batch.commit();
+  return (batch: FirebaseFirestore.WriteBatch) => {
+    saveUserRewardEvents(firestore, [reward], batch);
+  }
 };
 
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
   let numProcessed = 0;
+  const db = getDb();
+  let batch = db.batch();
+  let saves = [];
   for await (const { data: event, ref } of stream) {
     try {
       switch (event.kind) {
@@ -120,18 +123,36 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
           break;
         }
         case 'AIRDROP': {
-          await handleAirdrop(event);
+          const save = await handleAirdrop(event);
+          saves.push(save);
           break;
         }
+
         default: {
           throw new Error(`Unknown event kind ${(event as { kind: string }).kind} `);
         }
       }
-      await ref.update({ processed: true });
+      batch.update(ref, { processed: true });
       numProcessed += 1;
+
+      if (saves.length > 300) {
+        for (const save of saves) {
+          save(batch);
+        }
+        await batch.commit();
+        saves = [];
+        batch = db.batch();
+      }
       yield { numProcessed };
     } catch (err) {
       console.error(err);
     }
+  }
+
+  if (saves.length > 0) {
+    for (const save of saves) {
+      save(batch);
+    }
+    await batch.commit();
   }
 }

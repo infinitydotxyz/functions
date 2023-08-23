@@ -144,25 +144,32 @@ export const saveUserRewards = (
   batch.set(userRewardsRef, rewards, { merge: true });
 };
 
-export const getUserRewards = async (firestore: FirebaseFirestore.Firestore, user: string) => {
+export const getUserRewards = async (
+  firestore: FirebaseFirestore.Firestore,
+  user: string,
+  txn?: FirebaseFirestore.Transaction
+) => {
   const userRewardsRef = firestore
     .collection('pixl')
     .doc('pixlRewards')
     .collection('pixlUserRewards')
     .doc(user) as FirebaseFirestore.DocumentReference<UserRewards>;
 
-  const userRewardsSnap = await userRewardsRef.get();
+  const userRewardsSnap = txn ? await txn.get(userRewardsRef) : await userRewardsRef.get();
   const userRewards = userRewardsSnap.data();
   if (!userRewards) {
     return {
-      referralPoints: 0,
-      listingPoints: 0,
-      airdropPoints: 0,
-      buyPoints: 0,
-      totalPoints: 0,
-      updatedAt: Date.now(),
-      user
+      data: {
+        referralPoints: 0,
+        listingPoints: 0,
+        airdropPoints: 0,
+        buyPoints: 0,
+        totalPoints: 0,
+        updatedAt: Date.now(),
+        user
+      },
+      ref: userRewardsRef
     };
   }
-  return userRewards;
+  return { ref: userRewardsRef, data: userRewards };
 };

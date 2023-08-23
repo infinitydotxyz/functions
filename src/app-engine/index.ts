@@ -21,6 +21,8 @@ import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
 import { RewardEventsQueue } from './rewards/rewards-queue';
+import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
+import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
 
 let _supportedCollectionsProvider: SupportedCollectionsProvider;
 const getSupportedCollectionsProvider = async () => {
@@ -222,7 +224,21 @@ async function main() {
 
   if (config.components.rewards.enabled) {
     logger.log('rewards', `Starting rewards event processing!`);
-    const queue = new RewardEventsQueue('reward-events-queue', redis, {
+    const rewardEventsQueue = new RewardEventsQueue('reward-events-queue', redis, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+
+    const userRewardsQueue = new UserRewardsEventsQueue('user-rewards-events-queue', redis, {
+      enableMetrics: false,
+      concurrency: 4,
+      debug: true,
+      attempts: 1
+    });
+
+    const userRewardsTriggerQueue = new UserRewardsTriggerQueue('user-rewards-trigger-queue', redis, userRewardsQueue, {
       enableMetrics: false,
       concurrency: 1,
       debug: true,
@@ -230,11 +246,13 @@ async function main() {
     });
 
     const trigger = async () => {
-      const id = nanoid();
-      const jobData = {
-        id: id
-      };
-      await queue.add(jobData);
+      const rewardEventsQueuePromise = rewardEventsQueue.add({
+        id: nanoid()
+      });
+      const userRewardsTriggerQueuePromise = userRewardsTriggerQueue.add({
+        id: nanoid()
+      });
+      await Promise.allSettled([rewardEventsQueuePromise, userRewardsTriggerQueuePromise]);
     };
 
     cron.schedule('*/15 * * * * *', async () => {
@@ -242,7 +260,7 @@ async function main() {
       await trigger();
     });
     await trigger();
-    promises.push(queue.run());
+    promises.push(rewardEventsQueue.run(), userRewardsTriggerQueue.run(), userRewardsQueue.run());
   }
 
   if (config.components.purgeFirestore.enabled) {
@@ -271,7 +289,7 @@ async function main() {
     promises.push(queue.run());
   }
 
-  console.log(`Starting ${promises.length} items`);
+  logger.log('process', `Starting ${promises.length} items`);
   await Promise.all(promises);
 }
 void main();

@@ -70,7 +70,7 @@ export class UserRewardsTriggerQueue extends AbstractProcess<UserRewardsTriggerJ
           .orderBy('timestamp', 'asc')
           .orderBy(FieldPath.documentId());
         const users = new Set();
-        for await (const { data, ref } of streamQueryWithRef(query)) {
+        for await (const { data, ref } of streamQueryWithRef(query, (data, ref) => [data.timestamp, ref.path])) {
           checkAbort();
           const { user } = data;
 

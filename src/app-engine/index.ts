@@ -233,7 +233,7 @@ async function main() {
 
     const userRewardsQueue = new UserRewardsEventsQueue('user-rewards-events-queue', redis, {
       enableMetrics: false,
-      concurrency: 4,
+      concurrency: 8,
       debug: true,
       attempts: 1
     });

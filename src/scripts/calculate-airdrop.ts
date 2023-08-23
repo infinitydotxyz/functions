@@ -1,3 +1,4 @@
+import { AirdropTier } from '@/lib/rewards-v2/referrals/sdk';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -175,17 +176,18 @@ async function main() {
     bronze: 0
   };
   const accountsWithTiers = accountsWithScorePercentiles.map((item) => {
-    let tier = 'bronze';
+    let tier: AirdropTier = 'NONE';
     if (item.scorePercentile <= tiers.platinum) {
-      tier = 'platinum';
+      tier = 'PLATINUM';
       totalByTier['platinum'] += 1;
     } else if (item.scorePercentile <= tiers.gold) {
-      tier = 'gold';
+      tier = 'GOLD';
       totalByTier['gold'] += 1;
     } else if (item.scorePercentile <= tiers.silver) {
-      tier = 'silver';
+      tier = 'SILVER';
       totalByTier['silver'] += 1;
     } else {
+      tier = 'BRONZE';
       totalByTier['bronze'] += 1;
     }
 

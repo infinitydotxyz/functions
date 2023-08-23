@@ -62,7 +62,7 @@ export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobR
           .orderBy('timestamp', 'asc')
           .orderBy(FieldPath.documentId());
 
-        const stream = streamQueryWithRef<RewardsEvent>(query, (item, ref) => [item.timestamp, ref.path]);
+        const stream = streamQueryWithRef<RewardsEvent>(query, (item, ref) => [item.timestamp, ref.id]);
         for await (const { numProcessed } of processRewardEvents(stream)) {
           this.log(`Processed ${numProcessed} reward events`);
           checkAbort();

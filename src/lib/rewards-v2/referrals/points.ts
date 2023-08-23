@@ -1,6 +1,6 @@
 import { ReferralLevel } from './types';
 
-const BasePoints = 100; // TODO UPDATE THIS
+const BasePoints = 10000 / 3;
 
 export const ReferralPoints = {
   primary: {

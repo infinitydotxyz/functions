@@ -255,10 +255,10 @@ async function main() {
       await Promise.allSettled([rewardEventsQueuePromise, userRewardsTriggerQueuePromise]);
     };
 
-    // cron.schedule('*/15 * * * * *', async () => {
-    //   logger.log('rewards', `Triggering rewards event processing!`);
-    //   await trigger();
-    // });
+    cron.schedule('*/15 * * * * *', async () => {
+      logger.log('rewards', `Triggering rewards event processing!`);
+      await trigger();
+    });
     await trigger();
     promises.push(rewardEventsQueue.run(), userRewardsTriggerQueue.run(), userRewardsQueue.run());
   }

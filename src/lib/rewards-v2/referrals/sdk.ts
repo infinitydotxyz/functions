@@ -16,11 +16,22 @@ export interface ReferralEvent {
   processed: boolean;
 }
 
-export type RewardsEvent = ReferralEvent;
+export type AirdropTier = "PLATINUM" | "GOLD" | "SILVER" | "BRONZE" | "NONE";
 
-export interface UserRewardEvent {
+export interface AirdropEvent {
+  kind: "AIRDROP",
+  user: string,
+  tier: AirdropTier,
+  timestamp: number,
+  processed: boolean,
+}
+
+export type RewardsEvent = ReferralEvent | AirdropEvent;
+
+
+export interface UserReferralRewardEvent {
   user: string;
-  kind: 'referral' | 'airdrop' | 'listing' | 'buy';
+  kind: 'referral';
   blockNumber: number;
   balance: string;
   bonusMultiplier: number;
@@ -30,10 +41,20 @@ export interface UserRewardEvent {
   processed: boolean;
 }
 
+export interface UserAirdropRewardEvent {
+  user: string;
+  kind: 'airdrop';
+  tier: AirdropTier;
+  timestamp: number;
+  processed: boolean;
+}
+
+export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent;
+
 export type UserRewards = {
   referralPoints: number;
   listingPoints: number;
-  airdropPoints: number;
+  airdropTier: AirdropTier;
   buyPoints: number;
   totalPoints: number;
   updatedAt: number;
@@ -162,7 +183,7 @@ export const getUserRewards = async (
       data: {
         referralPoints: 0,
         listingPoints: 0,
-        airdropPoints: 0,
+        airdropTier: 'NONE',
         buyPoints: 0,
         totalPoints: 0,
         updatedAt: Date.now(),

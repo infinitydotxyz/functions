@@ -74,27 +74,27 @@ export class UserRewardsEventsQueue extends AbstractProcess<UserRewardsJobData, 
                 userRewards.referralPoints += event.totalPoints;
                 break;
               }
-              case 'listing': {
-                // listing events contain the total points for the user
-                userRewards.listingPoints = event.totalPoints;
-                break;
-              }
-              case 'buy': {
-                userRewards.buyPoints += event.totalPoints;
-                break;
-              }
+              // case 'listing': {
+              //   // listing events contain the total points for the user
+              //   userRewards.listingPoints = event.totalPoints;
+              //   break;
+              // }
+              // case 'buy': {
+              //   userRewards.buyPoints += event.totalPoints;
+              //   break;
+              // }
               case 'airdrop': {
-                userRewards.airdropPoints += event.totalPoints;
+                userRewards.airdropTier = event.tier;
                 break;
               }
               default: {
-                throw new Error(`Unknown event kind: ${event.kind}`);
+                throw new Error(`Unknown event kind: ${(event as { kind: string }).kind}`);
               }
             }
             txn.set(item.ref, { processed: true }, { merge: true });
           }
           userRewards.totalPoints =
-            userRewards.referralPoints + userRewards.listingPoints + userRewards.buyPoints + userRewards.airdropPoints;
+            userRewards.referralPoints + userRewards.listingPoints + userRewards.buyPoints;
           txn.set(userRewardsRef, userRewards, { merge: true });
         });
       });

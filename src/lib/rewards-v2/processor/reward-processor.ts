@@ -17,7 +17,9 @@ import {
   UserRewardEvent,
   getUserReferrers,
   saveReferrals,
-  saveUserRewardEvents
+  saveUserRewardEvents,
+  AirdropEvent,
+  UserAirdropRewardEvent
 } from '../referrals/sdk';
 
 export const handleReferral = async (event: ReferralEvent) => {
@@ -108,6 +110,22 @@ export const handleReferral = async (event: ReferralEvent) => {
   await batch.commit();
 };
 
+const handleAirdrop = async (event: AirdropEvent) => {
+  const firestore = getDb();
+  const batch = firestore.batch();
+
+  const reward: UserAirdropRewardEvent = {
+    user: event.user,
+    kind: 'airdrop',
+    tier: event.tier,
+    timestamp: Date.now(),
+    processed: false,
+  }
+
+  saveUserRewardEvents(firestore, [reward], batch);
+  await batch.commit();
+}
+
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
   let numProcessed = 0;
   for await (const { data: event, ref } of stream) {
@@ -117,8 +135,12 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
           await handleReferral(event);
           break;
         }
+        case 'AIRDROP': {
+          await handleAirdrop(event);
+          break;
+        }
         default: {
-          throw new Error(`Unknown event kind ${event.kind}`);
+          throw new Error(`Unknown event kind ${(event as { kind: string }).kind} `);
         }
       }
       await ref.update({ processed: true });

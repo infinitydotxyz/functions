@@ -109,7 +109,7 @@ export const handleReferral = async (event: ReferralEvent) => {
 };
 
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
-  const numProcessed = 0;
+  let numProcessed = 0;
   for await (const { data: event, ref } of stream) {
     try {
       switch (event.kind) {
@@ -122,6 +122,7 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
         }
       }
       await ref.update({ processed: true });
+      numProcessed += 1;
       yield { numProcessed };
     } catch (err) {
       console.error(err);

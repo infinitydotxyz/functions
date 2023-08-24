@@ -64,7 +64,9 @@ export class RewardEventsQueue extends AbstractProcess<RewardJobData, RewardJobR
 
         const stream = streamQueryWithRef<RewardsEvent>(query, (item, ref) => [item.timestamp, ref.id]);
         for await (const { numProcessed } of processRewardEvents(stream)) {
-          this.log(`Processed ${numProcessed} reward events`);
+          if (numProcessed % 100 === 0) {
+            this.log(`Processed ${numProcessed} reward events`);
+          }
           checkAbort();
         }
       });

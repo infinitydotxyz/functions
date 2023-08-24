@@ -69,8 +69,10 @@ export class UserRewardsTriggerQueue extends AbstractProcess<UserRewardsTriggerJ
           .where('processed', '==', false)
           .orderBy('timestamp', 'asc')
           .orderBy(FieldPath.documentId());
+
         const users = new Set();
-        for await (const { data, ref } of streamQueryWithRef(query, (data, ref) => [data.timestamp, ref.path])) {
+        for await (const { data, ref } of streamQueryWithRef(query, (data, ref) => [data.timestamp, ref])) {
+          console.log(ref.path);
           checkAbort();
           const { user } = data;
 
@@ -81,6 +83,9 @@ export class UserRewardsTriggerQueue extends AbstractProcess<UserRewardsTriggerJ
           await this._userRewardsEventsQueue.add({ id: ref.id, user });
           users.add(user);
           numTriggered += 1;
+          if (numTriggered % 100 === 0) {
+            this.log(`Triggered ${numTriggered} user reward events`)
+          }
         }
       });
 
@@ -93,7 +98,7 @@ export class UserRewardsTriggerQueue extends AbstractProcess<UserRewardsTriggerJ
       if (err instanceof ExecutionError) {
         this.warn(`Failed to acquire lock for ${id}`);
       } else {
-        this.error(`${err}`);
+        this.error(`${err} `);
       }
 
       return {

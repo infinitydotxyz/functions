@@ -1,4 +1,5 @@
-import { SaleOptions, getSales } from './sales';
+import { getReservoirSales } from './sales';
+import { SaleOptions } from './types';
 import { FlattenedNFTSale } from './types';
 
-export { SaleOptions, getSales, FlattenedNFTSale };
+export { SaleOptions, getReservoirSales, FlattenedNFTSale };

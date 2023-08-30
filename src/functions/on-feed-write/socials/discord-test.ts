@@ -38,7 +38,7 @@ const dummyEvents = [
     image:
       'https://lh3.googleusercontent.com/jsS5SZwOwLoBLUUoDTp9pFofgNVXkt_tlkr_L6NrIyJ2IlcjwAGPrP_976FYk_CJS7-9UlfHQl4xCFFJX9CFLvZz6N5BdA2r98RVDA',
     timestamp: 1666881035000,
-    internalUrl: 'https://pixelpack.io/asset/1/0x8b19a0b00eadb34ade0803062fee1e96e13a2dfd/505',
+    internalUrl: 'https://pixl.so/asset/1/0x8b19a0b00eadb34ade0803062fee1e96e13a2dfd/505',
     externalUrl: 'https://etherscan.io/tx/0x10bf752036fb177195252fb78c8b223445ce8c19f4f4b513fd14cd95a35bd96e'
   } as NftSaleEvent,
   {
@@ -69,7 +69,7 @@ const dummyEvents = [
     image:
       'https://lh3.googleusercontent.com/jsS5SZwOwLoBLUUoDTp9pFofgNVXkt_tlkr_L6NrIyJ2IlcjwAGPrP_976FYk_CJS7-9UlfHQl4xCFFJX9CFLvZz6N5BdA2r98RVDA',
     timestamp: 1666881035000,
-    internalUrl: 'https://pixelpack.io/asset/1/0x8b19a0b00eadb34ade0803062fee1e96e13a2dfd/505',
+    internalUrl: 'https://pixl.so/asset/1/0x8b19a0b00eadb34ade0803062fee1e96e13a2dfd/505',
     externalUrl: 'https://etherscan.io/tx/0x10bf752036fb177195252fb78c8b223445ce8c19f4f4b513fd14cd95a35bd96e',
     startPriceEth: 1.337,
     endPriceEth: 6.69,
@@ -111,7 +111,7 @@ const dummyEvents = [
     image:
       'https://lh3.googleusercontent.com/jsS5SZwOwLoBLUUoDTp9pFofgNVXkt_tlkr_L6NrIyJ2IlcjwAGPrP_976FYk_CJS7-9UlfHQl4xCFFJX9CFLvZz6N5BdA2r98RVDA',
     timestamp: 1666881035000,
-    internalUrl: 'https://pixelpack.io/asset/1/0x8b19a0b00eadb34ade0803062fee1e96e13a2dfd/505',
+    internalUrl: 'https://pixl.so/asset/1/0x8b19a0b00eadb34ade0803062fee1e96e13a2dfd/505',
     externalUrl: 'https://etherscan.io/tx/0x10bf752036fb177195252fb78c8b223445ce8c19f4f4b513fd14cd95a35bd96e',
     startPriceEth: 1.337,
     endPriceEth: 6.69,

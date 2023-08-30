@@ -8,14 +8,13 @@ import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils
 
 
 
-import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 
 
 
-import { Reservoir } from '../..';
+import { getReservoirSales } from '../api/sales/sales';
 import { FlattenedNFTSale } from '../api/sales/types';
 import { SyncMetadata } from './types';
 
@@ -59,8 +58,6 @@ export async function* getSales(
   chainId: ChainId,
   checkAbort: () => { abort: boolean }
 ) {
-  const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
-  const method = Reservoir.Api.Sales.getSales;
   let continuation: string | undefined;
   let attempts = 0;
   let firstItem: Partial<FlattenedNFTSale> | undefined;
@@ -70,7 +67,7 @@ export async function* getSales(
   while (true) {
     try {
       const pageSales: Partial<FlattenedNFTSale>[] = [];
-      const page = await method(client, {
+      const page = await getReservoirSales(chainId, {
         ...collection,
         continuation,
         startTimestamp: Math.floor(_syncData.startTimestamp / 1000),
@@ -82,7 +79,7 @@ export async function* getSales(
         throw new Error('Abort');
       }
 
-      for (const item of page.data) {
+      for (const item of page?.data ?? []) {
         if (!firstItem) {
           firstItem = item;
         }
@@ -104,7 +101,7 @@ export async function* getSales(
         logger.log('sync-sale-events', `Page size less than max. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, firstItemId: firstItem?.id ?? '', complete: true };
         return;
-      } else if (!page.continuation) {
+      } else if (!page?.continuation) {
         logger.log('sync-sale-events', `No continuation. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, complete: true, firstItemId: firstItem?.id ?? '' };
         return;
@@ -179,8 +176,8 @@ const batchSaveToFirestore = async (
     const saleDocRef = salesCollectionRef.doc(id);
     await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
 
-    // write sale to users involved if source is pixelpack
-    if (saleV2.data.marketplace === 'pixelpack.io' && saleV2.data.buyer && saleV2.data.seller) {
+    // write sale to users involved if source is pixl
+    if (saleV2.data.marketplace === 'pixl.so' && saleV2.data.buyer && saleV2.data.seller) {
       const buyerSalesDocRef = db
         .collection(firestoreConstants.USERS_COLL)
         .doc(trimLowerCase(saleV2.data.buyer))
@@ -194,7 +191,6 @@ const batchSaveToFirestore = async (
         .doc(id);
       await batchHandler.addAsync(sellerSalesDocRef, saleV2, { merge: true });
     }
-
   }
 
   await batchHandler.flush();

@@ -35,7 +35,7 @@ export async function getReservoirSales(
       log_index: sale.logIndex,
       bundle_index: sale.batchIndex,
       block_number: sale.block,
-      washTradingScore: sale.washTradingScore,
+      wash_trading_score: sale.washTradingScore,
       fill_source: sale.fillSource,
       marketplace: sale.orderSource,
       marketplace_address: getMarketplaceAddress(chainId, sale.orderKind as OrderSource),

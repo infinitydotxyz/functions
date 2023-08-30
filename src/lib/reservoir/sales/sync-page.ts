@@ -146,6 +146,8 @@ const batchSaveToFirestore = async (
         saleCurrencySymbol: item.sale_currency_symbol ?? '',
         seller: item.seller ?? '',
         buyer: item.buyer ?? '',
+        fillSource: item.fill_source ?? '',
+        washTradingScore: item.wash_trading_score ?? 0,
         marketplace: item.marketplace ?? '',
         marketplaceAddress: item.marketplace_address ?? '',
         bundleIndex: item.bundle_index ?? 0,

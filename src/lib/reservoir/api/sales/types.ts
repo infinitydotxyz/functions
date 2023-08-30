@@ -71,7 +71,7 @@ export interface FlattenedNFTSale {
   log_index: number;
   bundle_index: number;
   block_number: number;
-  washTradingScore: number;
+  wash_trading_score: number;
   fill_source: string;
   marketplace: string;
   marketplace_address: string;

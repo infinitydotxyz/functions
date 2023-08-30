@@ -7,6 +7,8 @@ export interface NftSaleEventV2 {
     logIndex: number;
     bundleIndex: number;
     blockNumber: number;
+    fillSource: string;
+    washTradingScore: number;
     marketplace: string;
     marketplaceAddress: string;
     seller: string;

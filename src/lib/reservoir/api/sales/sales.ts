@@ -5,38 +5,24 @@ import { ChainId, OrderSource } from '@infinityxyz/lib/types/core';
 
 import { getMarketplaceAddress } from '@/lib/utils/get-marketplace-address';
 
-import { ReservoirClient } from '../get-client';
-import { FlattenedNFTSale } from './types';
+import { fetchSalesFromReservoir } from '../reservoir';
+import { FlattenedNFTSale, SaleOptions } from './types';
 
-export interface SaleOptions {
-  contract?: string[];
-  token?: string;
-  includeTokenMetadata?: boolean;
-  collection?: string;
-  attributes?: string;
-  txHash?: string;
-  startTimestamp?: number;
-  endTimestamp?: number;
-  limit: number;
-  continuation?: string;
-}
-
-export async function getSales(client: ReservoirClient, _options: Partial<SaleOptions>) {
+export async function getReservoirSales(
+  chainId: ChainId,
+  _options: Partial<SaleOptions>
+): Promise<{ data: Partial<FlattenedNFTSale>[]; continuation: string } | undefined> {
   const options: SaleOptions = {
     limit: 100,
     ..._options
   };
 
-  const response = await client(
-    '/sales/v4',
-    'get'
-  )({
-    query: {
-      ...options
-    }
-  });
+  const response = await fetchSalesFromReservoir(chainId, options);
+  if (!response) {
+    return undefined;
+  }
 
-  const sales = (response.data.sales ?? []).map((sale) => {
+  const sales = (response.sales ?? []).map((sale) => {
     const amount = sale.price?.amount ?? sale.price?.netAmount;
 
     if (!amount) {
@@ -49,8 +35,10 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
       log_index: sale.logIndex,
       bundle_index: sale.batchIndex,
       block_number: sale.block,
+      washTradingScore: sale.washTradingScore,
+      fill_source: sale.fillSource,
       marketplace: sale.orderSource,
-      marketplace_address: getMarketplaceAddress(response.chainId as ChainId, sale.orderKind as OrderSource),
+      marketplace_address: getMarketplaceAddress(chainId, sale.orderKind as OrderSource),
       seller: sale.from,
       buyer: sale.to,
       quantity: sale.amount,
@@ -71,6 +59,6 @@ export async function getSales(client: ReservoirClient, _options: Partial<SaleOp
 
   return {
     data: sales,
-    continuation: response.data.continuation
+    continuation: response.continuation
   };
 }

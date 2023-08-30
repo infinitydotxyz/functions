@@ -1,17 +1,23 @@
 import { Firestore } from 'firebase-admin/firestore';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
+
+
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
-import { config } from '@/config/index';
+
+
 import { BatchHandler } from '@/firestore/batch-handler';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 
-import { Reservoir } from '../..';
+
+
+import { getReservoirSales } from '../api/sales/sales';
 import { FlattenedNFTSale } from '../api/sales/types';
 import { SyncMetadata } from './types';
+
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
@@ -52,8 +58,6 @@ export async function* getSales(
   chainId: ChainId,
   checkAbort: () => { abort: boolean }
 ) {
-  const client = Reservoir.Api.getClient(chainId, config.reservoir.apiKey);
-  const method = Reservoir.Api.Sales.getSales;
   let continuation: string | undefined;
   let attempts = 0;
   let firstItem: Partial<FlattenedNFTSale> | undefined;
@@ -63,7 +67,7 @@ export async function* getSales(
   while (true) {
     try {
       const pageSales: Partial<FlattenedNFTSale>[] = [];
-      const page = await method(client, {
+      const page = await getReservoirSales(chainId, {
         ...collection,
         continuation,
         startTimestamp: Math.floor(_syncData.startTimestamp / 1000),
@@ -75,7 +79,7 @@ export async function* getSales(
         throw new Error('Abort');
       }
 
-      for (const item of page.data) {
+      for (const item of page?.data ?? []) {
         if (!firstItem) {
           firstItem = item;
         }
@@ -97,7 +101,7 @@ export async function* getSales(
         logger.log('sync-sale-events', `Page size less than max. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, firstItemId: firstItem?.id ?? '', complete: true };
         return;
-      } else if (!page.continuation) {
+      } else if (!page?.continuation) {
         logger.log('sync-sale-events', `No continuation. id ${firstItem?.id ?? ''}`);
         yield { sales: pageSales, complete: true, firstItemId: firstItem?.id ?? '' };
         return;

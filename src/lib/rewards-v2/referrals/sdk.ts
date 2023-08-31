@@ -16,6 +16,13 @@ export interface ReferralEvent {
   processed: boolean;
 }
 
+export interface AirdropBoostEvent {
+  kind: 'AIRDROP_BOOST';
+  user: string;
+  timestamp: number;
+  processed: boolean;
+}
+
 export type AirdropTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
 
 export interface AirdropEvent {
@@ -26,7 +33,7 @@ export interface AirdropEvent {
   processed: boolean;
 }
 
-export type RewardsEvent = ReferralEvent | AirdropEvent;
+export type RewardsEvent = ReferralEvent | AirdropEvent | AirdropBoostEvent;
 
 export interface UserReferralRewardEvent {
   user: string;
@@ -48,7 +55,14 @@ export interface UserAirdropRewardEvent {
   processed: boolean;
 }
 
-export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent;
+export interface UserAirdropBoostEvent {
+  user: string;
+  kind: 'airdrop_boost';
+  timestamp: number;
+  processed: boolean;
+}
+
+export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent | UserAirdropBoostEvent;
 
 export type UserRewards = {
   referralPoints: number;
@@ -58,6 +72,7 @@ export type UserRewards = {
   totalPoints: number;
   updatedAt: number;
   user: string;
+  airdropBoosted: boolean;
 };
 
 export interface Referral {
@@ -151,7 +166,7 @@ export const getUserRewards = async (
   firestore: FirebaseFirestore.Firestore,
   user: string,
   txn?: FirebaseFirestore.Transaction
-) => {
+): Promise<{ data: UserRewards; ref: FirebaseFirestore.DocumentReference<UserRewards> }> => {
   const userRewardsRef = firestore
     .collection('pixl')
     .doc('pixlRewards')
@@ -169,10 +184,35 @@ export const getUserRewards = async (
         buyPoints: 0,
         totalPoints: 0,
         updatedAt: Date.now(),
-        user
+        user,
+        airdropBoosted: false
       },
       ref: userRewardsRef
     };
   }
-  return { ref: userRewardsRef, data: userRewards };
+  return {
+    ref: userRewardsRef,
+    data: {
+      ...userRewards,
+      airdropBoosted: userRewards.airdropBoosted || false
+    }
+  };
+};
+
+export const getAirdropTier = (base: AirdropTier, isBoosted: boolean): AirdropTier => {
+  if (!isBoosted) {
+    return base;
+  }
+  switch (base) {
+    case 'NONE':
+      return 'BRONZE';
+    case 'BRONZE':
+      return 'SILVER';
+    case 'SILVER':
+      return 'GOLD';
+    case 'GOLD':
+      return 'PLATINUM';
+    case 'PLATINUM':
+      return 'PLATINUM';
+  }
 };

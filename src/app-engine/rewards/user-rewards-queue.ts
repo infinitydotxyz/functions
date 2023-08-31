@@ -3,13 +3,13 @@ import { FieldPath } from 'firebase-admin/firestore';
 import Redis from 'ioredis';
 
 import { getDb } from '@/firestore/db';
+import { streamQueryPageWithRef } from '@/firestore/stream-query';
 import { CollRef } from '@/firestore/types';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 import { UserRewardEvent, getUserRewards } from '@/lib/rewards-v2/referrals/sdk';
 
 import { ExecutionError, redlock } from '../redis';
-import { streamQueryPageWithRef } from '@/firestore/stream-query';
 
 export interface UserRewardsJobData {
   id: string;
@@ -55,7 +55,7 @@ export class UserRewardsEventsQueue extends AbstractProcess<UserRewardsJobData, 
           .where('processed', '==', false)
           .orderBy('timestamp', 'asc')
           .orderBy(FieldPath.documentId());
-        const stream = streamQueryPageWithRef(query, (item, ref) => [item.timestamp, ref], { pageSize: 100 })
+        const stream = streamQueryPageWithRef(query, (item, ref) => [item.timestamp, ref], { pageSize: 100 });
         const { data: userRewards, ref: userRewardsRef } = await getUserRewards(db, job.data.user);
         for await (const page of stream) {
           const batch = db.batch();
@@ -77,6 +77,10 @@ export class UserRewardsEventsQueue extends AbstractProcess<UserRewardsJobData, 
               // }
               case 'airdrop': {
                 userRewards.airdropTier = event.tier;
+                break;
+              }
+              case 'airdrop_boost': {
+                userRewards.airdropBoosted = true;
                 break;
               }
               default: {

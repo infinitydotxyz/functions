@@ -16,6 +16,7 @@ import {
   AirdropEvent,
   Referral,
   RewardsEvent,
+  UserAirdropBoostEvent,
   UserAirdropRewardEvent,
   UserRewardEvent,
   getUserReferrers,
@@ -94,7 +95,7 @@ export const handleReferral = async (event: ReferralEvent) => {
   await batch.commit();
 };
 
-const handleAirdrop = async (event: AirdropEvent) => {
+const handleAirdrop = (event: AirdropEvent) => {
   const firestore = getDb();
 
   const reward: UserAirdropRewardEvent = {
@@ -107,7 +108,7 @@ const handleAirdrop = async (event: AirdropEvent) => {
 
   return (batch: FirebaseFirestore.WriteBatch) => {
     saveUserRewardEvents(firestore, [reward], batch);
-  }
+  };
 };
 
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
@@ -123,7 +124,20 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
           break;
         }
         case 'AIRDROP': {
-          const save = await handleAirdrop(event);
+          const save = handleAirdrop(event);
+          saves.push(save);
+          break;
+        }
+        case 'AIRDROP_BOOST': {
+          const reward: UserAirdropBoostEvent = {
+            user: event.user,
+            kind: 'airdrop_boost',
+            timestamp: Date.now(),
+            processed: false
+          };
+          const save = (batch: FirebaseFirestore.WriteBatch) => {
+            saveUserRewardEvents(db, [reward], batch);
+          };
           saves.push(save);
           break;
         }

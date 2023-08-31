@@ -84,7 +84,7 @@ export class UserRewardsTriggerQueue extends AbstractProcess<UserRewardsTriggerJ
           users.add(user);
           numTriggered += 1;
           if (numTriggered % 100 === 0) {
-            this.log(`Triggered ${numTriggered} user reward events`)
+            this.log(`Triggered ${numTriggered} user reward events`);
           }
         }
       });

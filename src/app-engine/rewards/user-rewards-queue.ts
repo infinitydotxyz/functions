@@ -64,6 +64,7 @@ export class UserRewardsEventsQueue extends AbstractProcess<UserRewardsJobData, 
             switch (event.kind) {
               case 'referral': {
                 userRewards.referralPoints += event.totalPoints;
+                userRewards.numReferrals += 1;
                 break;
               }
               // case 'listing': {

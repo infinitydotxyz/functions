@@ -73,6 +73,7 @@ export type UserRewards = {
   updatedAt: number;
   user: string;
   airdropBoosted: boolean;
+  numReferrals: number;
 };
 
 export interface Referral {
@@ -179,6 +180,7 @@ export const getUserRewards = async (
     return {
       data: {
         referralPoints: 0,
+        numReferrals: 0,
         listingPoints: 0,
         airdropTier: 'NONE',
         buyPoints: 0,
@@ -194,7 +196,8 @@ export const getUserRewards = async (
     ref: userRewardsRef,
     data: {
       ...userRewards,
-      airdropBoosted: userRewards.airdropBoosted || false
+      airdropBoosted: userRewards.airdropBoosted || false,
+      numReferrals: userRewards.numReferrals || 0
     }
   };
 };

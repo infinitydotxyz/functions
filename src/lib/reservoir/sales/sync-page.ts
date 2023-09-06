@@ -17,7 +17,6 @@ import { SyncMetadata } from './types';
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
-  supportedCollections: SupportedCollectionsProvider,
   sync: SyncMetadata,
   checkAbort: () => { abort: boolean }
 ) {
@@ -27,7 +26,6 @@ export async function syncPage(
 
   const { lastItemProcessed, numSales, lastItemProcessedTimestamp } = await processSales(
     db,
-    supportedCollections,
     { data: sync },
     checkAbort
   );
@@ -121,7 +119,6 @@ export async function* getSales(
 
 const batchSaveToFirestore = async (
   db: Firestore,
-  supportedCollections: SupportedCollectionsProvider,
   data: { saleData: Partial<FlattenedNFTSale>; chainId: ChainId }[]
 ) => {
   const nftSales = data.map(({ saleData: item, chainId }) => {
@@ -249,7 +246,6 @@ const batchSaveToFirestore = async (
 
 const processSales = async (
   db: Firestore,
-  supportedCollections: SupportedCollectionsProvider,
   currentSync: { data: SyncMetadata },
   checkAbort: () => { abort: boolean }
 ) => {
@@ -275,7 +271,7 @@ const processSales = async (
       'sync-sale-events',
       `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
     );
-    await batchSaveToFirestore(db, supportedCollections, data);
+    await batchSaveToFirestore(db, data);
     logger.log('sync-sale-events', 'Saved to firestore');
 
     numSales += page.sales.length;

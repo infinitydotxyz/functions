@@ -20,10 +20,10 @@ import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
+import { AggregateBuysQueue } from './rewards/aggregate-buys-queue';
 import { RewardEventsQueue } from './rewards/rewards-queue';
 import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
 import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
-import { AggregateBuysQueue } from './rewards/aggregate-buys-queue';
 
 let _supportedCollectionsProvider: SupportedCollectionsProvider;
 const getSupportedCollectionsProvider = async () => {
@@ -162,9 +162,8 @@ async function main() {
   }
 
   if (config.components.syncSales.enabled) {
-    const supportedCollections = await getSupportedCollectionsProvider();
     const initQueue = (id: string, queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) => {
-      const salesEventsQueue = new SalesEventsQueue(id, redis, supportedCollections, {
+      const salesEventsQueue = new SalesEventsQueue(id, redis, {
         enableMetrics: false,
         concurrency: 1,
         debug: true,
@@ -262,7 +261,7 @@ async function main() {
       });
       const aggregateBuysPromise = aggregateBuysQueue.add({
         id: nanoid()
-      })
+      });
       await Promise.allSettled([rewardEventsQueuePromise, userRewardsTriggerQueuePromise, aggregateBuysPromise]);
     };
 
@@ -271,7 +270,12 @@ async function main() {
       await trigger();
     });
     await trigger();
-    promises.push(rewardEventsQueue.run(), userRewardsTriggerQueue.run(), userRewardsQueue.run(), aggregateBuysQueue.run());
+    promises.push(
+      rewardEventsQueue.run(),
+      userRewardsTriggerQueue.run(),
+      userRewardsQueue.run(),
+      aggregateBuysQueue.run()
+    );
   }
 
   if (config.components.purgeFirestore.enabled) {

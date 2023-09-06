@@ -11,6 +11,9 @@ import { logger } from '@/lib/logger';
 import { getReservoirSales } from '../api/sales/sales';
 import { FlattenedNFTSale } from '../api/sales/types';
 import { SyncMetadata } from './types';
+import { BuyEvent } from '@/lib/rewards-v2/referrals/sdk';
+import { CollRef } from '@/firestore/types';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
@@ -162,6 +165,10 @@ const batchSaveToFirestore = async (
 
   const batchHandler = new BatchHandler();
   const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
+
+  // currentEthBlockNumber is lazily set below
+  let currentEthBlockNumber: null | number = null;
+
   for (const { saleV2, id } of nftSales) {
     if (!id) {
       continue;
@@ -172,7 +179,9 @@ const batchSaveToFirestore = async (
     await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
 
     // write sale to users involved if source is pixl
-    if (saleV2.data.marketplace === 'pixl.so' && saleV2.data.buyer && saleV2.data.seller) {
+    const isNativeBuy = saleV2.data.marketplace === 'pixl.so';
+    const isNativeFill = saleV2.data.fillSource === 'pixl.so';
+    if (isNativeBuy && saleV2.data.buyer && saleV2.data.seller) {
       const buyerSalesDocRef = db
         .collection(firestoreConstants.USERS_COLL)
         .doc(trimLowerCase(saleV2.data.buyer))
@@ -185,6 +194,53 @@ const batchSaveToFirestore = async (
         .collection(firestoreConstants.SALES_COLL)
         .doc(id);
       await batchHandler.addAsync(sellerSalesDocRef, saleV2, { merge: true });
+    }
+
+
+    if (isNativeBuy || isNativeFill) {
+      if (currentEthBlockNumber == null) {
+        const provider = getProvider(ChainId.Mainnet);
+        const blockNumber = await provider.getBlockNumber();
+        currentEthBlockNumber = blockNumber;
+      }
+      // save to stats and rewards if the sale is filled or from pixl.so
+      const buyEvent: BuyEvent = {
+        kind: "BUY",
+        isNativeBuy,
+        isNativeFill,
+        user: saleV2.data.buyer,
+        chainId: saleV2.data.chainId,
+        blockNumber: currentEthBlockNumber,
+        sale: {
+          blockNumber: saleV2.data.blockNumber,
+          buyer: saleV2.data.buyer,
+          seller: saleV2.data.seller,
+          txHash: saleV2.data.txHash,
+          logIndex: saleV2.data.logIndex,
+          bundleIndex: saleV2.data.bundleIndex,
+          fillSource: saleV2.data.fillSource,
+          washTradingScore: saleV2.data.washTradingScore,
+          marketplace: saleV2.data.marketplace,
+          marketplaceAddress: saleV2.data.marketplaceAddress,
+          quantity: saleV2.data.quantity,
+          collectionAddress: saleV2.data.collectionAddress,
+          tokenId: saleV2.data.tokenId,
+          saleTimestamp: saleV2.data.saleTimestamp,
+          salePrice: saleV2.data.salePrice,
+        },
+        processed: false,
+        timestamp: saleV2.metadata.timestamp,
+      };
+
+      const statsCollRef = db.collection('pixl').doc("salesCollections").collection("salesEvents") as CollRef<BuyEvent>;
+      const rewardRef = db
+        .collection('pixl')
+        .doc('pixlRewards')
+        .collection('pixlUserRewards')
+        .doc(buyEvent.user)
+        .collection('pixlUserRewardsEvents');
+      await batchHandler.addAsync(statsCollRef.doc(id), buyEvent, { merge: true });
+      await batchHandler.addAsync(rewardRef.doc(id), buyEvent, { merge: true });
     }
   }
 

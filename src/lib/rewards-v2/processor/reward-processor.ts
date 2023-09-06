@@ -1,4 +1,4 @@
-import { Contract } from 'ethers';
+import { BigNumber, Contract } from 'ethers';
 import PQueue from 'p-queue';
 
 import { ERC20ABI } from '@infinityxyz/lib/abi';
@@ -21,12 +21,24 @@ import {
   UserRewardEvent,
   getUserReferrers,
   saveReferrals,
-  saveUserRewardEvents
+  saveUserRewardEvents,
+  BuyEvent,
+  UserBuyRewardEvent
 } from '../referrals/sdk';
 
-export const handleReferral = async (event: ReferralEvent) => {
-  const firestore = getDb();
+const getXFLContract = () => {
+  const provider = getProvider(ChainId.Mainnet);
+  const contractAddress = getTokenAddress(ChainId.Mainnet);
+  const contract = new Contract(contractAddress, ERC20ABI as any, provider);
+  return contract;
+}
 
+const getBalance = async (contract: Contract, user: string, options: { blockTag: number }) => {
+  const balance = await contract.balanceOf(user, { blockTag: options.blockTag });
+  return BigNumber.from(balance)
+}
+
+export const handleReferral = async (firestore: FirebaseFirestore.Firestore, event: ReferralEvent) => {
   const existingReferrers = await getUserReferrers(firestore, event.referree, 1);
   if (existingReferrers.length > 0) {
     // the user already has a referrer
@@ -54,15 +66,12 @@ export const handleReferral = async (event: ReferralEvent) => {
     blockNumber: event.blockNumber,
     timestamp: event.timestamp
   });
-
-  const provider = getProvider(ChainId.Mainnet);
-  const contractAddress = getTokenAddress(ChainId.Mainnet);
-  const contract = new Contract(contractAddress, ERC20ABI as any, provider);
+  const contract = getXFLContract();
   const pqueue = new PQueue({ concurrency: 5 });
   referrals = await Promise.all(
     referrals.map(async (referral) => {
       return await pqueue.add(async () => {
-        const balance = await contract.balanceOf(referral.referrer, { blockTag: referral.blockNumber });
+        const balance = await getBalance(contract, referral.referrer, { blockTag: referral.blockNumber });
         const ref: Referral = {
           ...referral,
           referrerXFLBalance: balance.toString()
@@ -95,13 +104,54 @@ export const handleReferral = async (event: ReferralEvent) => {
   await batch.commit();
 };
 
-const handleAirdrop = (event: AirdropEvent) => {
-  const firestore = getDb();
-
+const handleAirdrop = (firestore: FirebaseFirestore.Firestore, event: AirdropEvent) => {
   const reward: UserAirdropRewardEvent = {
     user: event.user,
     kind: 'airdrop',
     tier: event.tier,
+    timestamp: Date.now(),
+    processed: false
+  };
+
+  return (batch: FirebaseFirestore.WriteBatch) => {
+    saveUserRewardEvents(firestore, [reward], batch);
+  };
+};
+
+const handleBuy = async (firestore: FirebaseFirestore.Firestore, event: BuyEvent) => {
+  const contract = getXFLContract();
+  const xflBalance = await getBalance(contract, event.user, { blockTag: event.blockNumber });
+  const bonus = getBonusLevel(xflBalance);
+  const buyPoints = 0; // TODO: get base points
+  const totalPoints = bonus.multiplier * buyPoints;
+  const reward: UserBuyRewardEvent = {
+    user: event.user,
+    chainId: event.chainId,
+    isNativeBuy: event.isNativeBuy,
+    isNativeFill: event.isNativeFill,
+    sale: {
+      blockNumber: event.sale.blockNumber,
+      buyer: event.sale.buyer,
+      seller: event.sale.seller,
+      txHash: event.sale.txHash,
+      logIndex: event.sale.logIndex,
+      bundleIndex: event.sale.bundleIndex,
+      fillSource: event.sale.fillSource,
+      washTradingScore: event.sale.washTradingScore,
+      marketplace: event.sale.marketplace,
+      marketplaceAddress: event.sale.marketplaceAddress,
+      quantity: event.sale.quantity,
+      collectionAddress: event.sale.collectionAddress,
+      tokenId: event.sale.tokenId,
+      saleTimestamp: event.sale.saleTimestamp,
+      salePrice: event.sale.salePrice,
+    },
+    kind: 'buy',
+    blockNumber: event.blockNumber,
+    balance: xflBalance.toString(),
+    bonusMultiplier: bonus.multiplier,
+    preBonusPoints: buyPoints,
+    totalPoints,
     timestamp: Date.now(),
     processed: false
   };
@@ -120,11 +170,11 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
     try {
       switch (event.kind) {
         case 'REFERRAL': {
-          await handleReferral(event);
+          await handleReferral(db, event);
           break;
         }
         case 'AIRDROP': {
-          const save = handleAirdrop(event);
+          const save = handleAirdrop(db, event);
           saves.push(save);
           break;
         }
@@ -138,6 +188,11 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
           const save = (batch: FirebaseFirestore.WriteBatch) => {
             saveUserRewardEvents(db, [reward], batch);
           };
+          saves.push(save);
+          break;
+        }
+        case 'BUY': {
+          const save = await handleBuy(db, event);
           saves.push(save);
           break;
         }

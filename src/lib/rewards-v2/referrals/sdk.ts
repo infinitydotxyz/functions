@@ -33,7 +33,80 @@ export interface AirdropEvent {
   processed: boolean;
 }
 
-export type RewardsEvent = ReferralEvent | AirdropEvent | AirdropBoostEvent;
+export const isNativeBuy = (sale: { marketplace: string, fillSource: string }) => {
+  return sale.marketplace === 'pixl.so';
+};
+
+export const isNativeFill = (sale: { marketplace: string, fillSource: string }) => {
+  return sale.fillSource === 'pixl.so';
+};
+
+export interface BuyEvent {
+  kind: 'BUY';
+  isNativeBuy: boolean;
+  isNativeFill: boolean;
+  user: string;
+  // ethereum block number
+  blockNumber: number;
+  chainId: string;
+  sale: {
+    // block number of the sale chain
+    blockNumber: number;
+    buyer: string;
+    seller: string;
+    txHash: string;
+    logIndex: number;
+    bundleIndex: number;
+    fillSource: string;
+    washTradingScore: number;
+    marketplace: string;
+    marketplaceAddress: string;
+    quantity: string;
+    collectionAddress: string;
+    tokenId: string;
+    saleTimestamp: number;
+    salePrice: string;
+  }
+  processed: boolean;
+  timestamp: number;
+}
+
+
+export type RewardsEvent = BuyEvent | ReferralEvent | AirdropEvent | AirdropBoostEvent;
+
+export interface UserBuyRewardEvent {
+  user: string;
+  chainId: string;
+  isNativeBuy: boolean;
+  isNativeFill: boolean;
+  sale: {
+    // block number of the sale chain
+    blockNumber: number;
+    buyer: string;
+    seller: string;
+    txHash: string;
+    logIndex: number;
+    bundleIndex: number;
+    fillSource: string;
+    washTradingScore: number;
+    marketplace: string;
+    marketplaceAddress: string;
+    quantity: string;
+    collectionAddress: string;
+    tokenId: string;
+    saleTimestamp: number;
+    salePrice: string;
+  },
+  kind: 'buy';
+  // ethereum block number
+  blockNumber: number;
+  balance: string;
+  bonusMultiplier: number;
+  preBonusPoints: number;
+  totalPoints: number;
+  timestamp: number;
+  processed: boolean;
+}
 
 export interface UserReferralRewardEvent {
   user: string;
@@ -62,7 +135,7 @@ export interface UserAirdropBoostEvent {
   processed: boolean;
 }
 
-export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent | UserAirdropBoostEvent;
+export type UserRewardEvent = UserBuyRewardEvent | UserReferralRewardEvent | UserAirdropRewardEvent | UserAirdropBoostEvent;
 
 export type UserRewards = {
   referralPoints: number;

@@ -122,7 +122,8 @@ const handleBuy = async (firestore: FirebaseFirestore.Firestore, event: BuyEvent
   const contract = getXFLContract();
   const xflBalance = await getBalance(contract, event.user, { blockTag: event.blockNumber });
   const bonus = getBonusLevel(xflBalance);
-  const buyPoints = 0; // TODO: get base points
+  const nativeMultiplier = event.isNativeBuy ? 100 : 1;
+  const buyPoints = event.sale.salePriceUsd * nativeMultiplier;
   const totalPoints = bonus.multiplier * buyPoints;
   const reward: UserBuyRewardEvent = {
     user: event.user,

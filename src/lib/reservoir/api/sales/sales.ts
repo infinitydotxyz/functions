@@ -51,7 +51,8 @@ export async function getReservoirSales(
       sale_price_eth: parseFloat(formatUnits(amount?.raw ?? '0', sale?.price?.currency?.decimals)),
       sale_currency_address: sale?.price?.currency?.contract ?? ethers.constants.AddressZero,
       sale_currency_decimals: sale?.price?.currency?.decimals,
-      sale_currency_symbol: sale?.price?.currency?.symbol
+      sale_currency_symbol: sale?.price?.currency?.symbol,
+      sale_price_usd: amount?.usd ?? 0
     };
 
     return saleData;

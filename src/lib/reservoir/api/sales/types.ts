@@ -84,6 +84,7 @@ export interface FlattenedNFTSale {
   token_image: string;
   sale_timestamp: number;
   sale_price: string;
+  sale_price_usd: number;
   sale_price_eth: number;
   sale_currency_address: string;
   sale_currency_decimals: number;

@@ -5,15 +5,15 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
+import { CollRef } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
+import { BuyEvent } from '@/lib/rewards-v2/referrals/sdk';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getReservoirSales } from '../api/sales/sales';
 import { FlattenedNFTSale } from '../api/sales/types';
 import { SyncMetadata } from './types';
-import { BuyEvent } from '@/lib/rewards-v2/referrals/sdk';
-import { CollRef } from '@/firestore/types';
-import { getProvider } from '@/lib/utils/ethersUtils';
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
@@ -148,7 +148,8 @@ const batchSaveToFirestore = async (
         marketplaceAddress: item.marketplace_address ?? '',
         bundleIndex: item.bundle_index ?? 0,
         logIndex: item.log_index ?? 0,
-        quantity: item.quantity ?? '1'
+        quantity: item.quantity ?? '1',
+        salePriceUsd: item.sale_price_usd ?? 0
       },
       metadata: {
         timestamp: item.sale_timestamp ?? 0,
@@ -196,7 +197,6 @@ const batchSaveToFirestore = async (
       await batchHandler.addAsync(sellerSalesDocRef, saleV2, { merge: true });
     }
 
-
     if (isNativeBuy || isNativeFill) {
       if (currentEthBlockNumber == null) {
         const provider = getProvider(ChainId.Mainnet);
@@ -205,7 +205,7 @@ const batchSaveToFirestore = async (
       }
       // save to stats and rewards if the sale is filled or from pixl.so
       const buyEvent: BuyEvent = {
-        kind: "BUY",
+        kind: 'BUY',
         isNativeBuy,
         isNativeFill,
         user: saleV2.data.buyer,
@@ -226,13 +226,13 @@ const batchSaveToFirestore = async (
           collectionAddress: saleV2.data.collectionAddress,
           tokenId: saleV2.data.tokenId,
           saleTimestamp: saleV2.data.saleTimestamp,
-          salePrice: saleV2.data.salePrice,
+          salePriceUsd: saleV2.data.salePriceUsd
         },
         processed: false,
-        timestamp: saleV2.metadata.timestamp,
+        timestamp: saleV2.metadata.timestamp
       };
 
-      const statsCollRef = db.collection('pixl').doc("salesCollections").collection("salesEvents") as CollRef<BuyEvent>;
+      const statsCollRef = db.collection('pixl').doc('salesCollections').collection('salesEvents') as CollRef<BuyEvent>;
       const rewardRef = db
         .collection('pixl')
         .doc('pixlRewards')

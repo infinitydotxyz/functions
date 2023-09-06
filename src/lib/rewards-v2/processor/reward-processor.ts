@@ -14,16 +14,16 @@ import { ReferralEvent } from '../events';
 import { getReferralPoints } from '../referrals/points';
 import {
   AirdropEvent,
+  BuyEvent,
   Referral,
   RewardsEvent,
   UserAirdropBoostEvent,
   UserAirdropRewardEvent,
+  UserBuyRewardEvent,
   UserRewardEvent,
   getUserReferrers,
   saveReferrals,
-  saveUserRewardEvents,
-  BuyEvent,
-  UserBuyRewardEvent
+  saveUserRewardEvents
 } from '../referrals/sdk';
 
 const getXFLContract = () => {
@@ -31,12 +31,12 @@ const getXFLContract = () => {
   const contractAddress = getTokenAddress(ChainId.Mainnet);
   const contract = new Contract(contractAddress, ERC20ABI as any, provider);
   return contract;
-}
+};
 
 const getBalance = async (contract: Contract, user: string, options: { blockTag: number }) => {
   const balance = await contract.balanceOf(user, { blockTag: options.blockTag });
-  return BigNumber.from(balance)
-}
+  return BigNumber.from(balance);
+};
 
 export const handleReferral = async (firestore: FirebaseFirestore.Firestore, event: ReferralEvent) => {
   const existingReferrers = await getUserReferrers(firestore, event.referree, 1);
@@ -144,7 +144,7 @@ const handleBuy = async (firestore: FirebaseFirestore.Firestore, event: BuyEvent
       collectionAddress: event.sale.collectionAddress,
       tokenId: event.sale.tokenId,
       saleTimestamp: event.sale.saleTimestamp,
-      salePrice: event.sale.salePrice,
+      salePriceUsd: event.sale.salePriceUsd
     },
     kind: 'buy',
     blockNumber: event.blockNumber,

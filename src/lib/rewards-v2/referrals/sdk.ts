@@ -33,11 +33,11 @@ export interface AirdropEvent {
   processed: boolean;
 }
 
-export const isNativeBuy = (sale: { marketplace: string, fillSource: string }) => {
+export const isNativeBuy = (sale: { marketplace: string; fillSource: string }) => {
   return sale.marketplace === 'pixl.so';
 };
 
-export const isNativeFill = (sale: { marketplace: string, fillSource: string }) => {
+export const isNativeFill = (sale: { marketplace: string; fillSource: string }) => {
   return sale.fillSource === 'pixl.so';
 };
 
@@ -65,12 +65,11 @@ export interface BuyEvent {
     collectionAddress: string;
     tokenId: string;
     saleTimestamp: number;
-    salePrice: string;
-  }
+    salePriceUsd: number;
+  };
   processed: boolean;
   timestamp: number;
 }
-
 
 export type RewardsEvent = BuyEvent | ReferralEvent | AirdropEvent | AirdropBoostEvent;
 
@@ -95,8 +94,8 @@ export interface UserBuyRewardEvent {
     collectionAddress: string;
     tokenId: string;
     saleTimestamp: number;
-    salePrice: string;
-  },
+    salePriceUsd: number;
+  };
   kind: 'buy';
   // ethereum block number
   blockNumber: number;
@@ -135,7 +134,11 @@ export interface UserAirdropBoostEvent {
   processed: boolean;
 }
 
-export type UserRewardEvent = UserBuyRewardEvent | UserReferralRewardEvent | UserAirdropRewardEvent | UserAirdropBoostEvent;
+export type UserRewardEvent =
+  | UserBuyRewardEvent
+  | UserReferralRewardEvent
+  | UserAirdropRewardEvent
+  | UserAirdropBoostEvent;
 
 export type UserRewards = {
   referralPoints: number;
@@ -291,4 +294,167 @@ export const getAirdropTier = (base: AirdropTier, isBoosted: boolean): AirdropTi
     case 'PLATINUM':
       return 'PLATINUM';
   }
+};
+
+export function formatDay(date: Date | number): string {
+  date = typeof date === 'number' ? new Date(date) : date;
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function parseDay(day: string) {
+  const [year, month, date] = day.split('-');
+  return new Date(parseInt(year), parseInt(month) - 1, parseInt(date)).getTime();
+}
+
+export type SalesStatsKind = 'USER' | 'CHAIN_USER' | 'CHAIN' | 'TOTAL';
+
+interface SaleStats {
+  numBuys: number;
+  numNativeBuys: number;
+  volume: number;
+  nativeVolume: number;
+}
+
+export interface ChainStats extends SaleStats {
+  kind: 'CHAIN';
+  chainId: string;
+}
+
+export interface UserStats extends SaleStats {
+  kind: 'USER';
+  user: string;
+}
+
+export interface ChainUserStats extends SaleStats {
+  kind: 'CHAIN_USER';
+  user: string;
+  chainId: string;
+}
+
+export interface TotalStats extends SaleStats {
+  kind: 'TOTAL';
+}
+
+export interface DailyChainStats extends ChainStats {
+  day: string;
+  timestamp: number;
+}
+
+export interface DailyUserStats extends UserStats {
+  day: string;
+  timestamp: number;
+}
+
+export interface DailyChainUserStats extends ChainUserStats {
+  day: string;
+  timestamp: number;
+}
+
+export interface DailyTotalStats extends TotalStats {
+  day: string;
+  timestamp: number;
+}
+
+export type DailyStats = DailyChainStats | DailyUserStats | DailyChainUserStats | DailyTotalStats;
+
+export type SalesStats = ChainStats | UserStats | ChainUserStats | TotalStats | DailyStats;
+
+export function isDaily(item: SalesStats): item is DailyStats {
+  return 'day' in item;
+}
+
+export const getDefaultTotalStats = (): TotalStats => ({
+  kind: 'TOTAL',
+  numBuys: 0,
+  numNativeBuys: 0,
+  volume: 0,
+  nativeVolume: 0
+});
+
+export const getDefaultChainStats = (chainId: string): ChainStats => ({
+  kind: 'CHAIN',
+  chainId,
+  numBuys: 0,
+  numNativeBuys: 0,
+  volume: 0,
+  nativeVolume: 0
+});
+
+export const getDefaultUserStats = (user: string): UserStats => ({
+  kind: 'USER',
+  user,
+  numBuys: 0,
+  numNativeBuys: 0,
+  volume: 0,
+  nativeVolume: 0
+});
+
+export const getDefaultChainUserStats = (data: { user: string; chainId: string }): ChainUserStats => ({
+  kind: 'CHAIN_USER',
+  user: data.user,
+  chainId: data.chainId,
+  numBuys: 0,
+  numNativeBuys: 0,
+  volume: 0,
+  nativeVolume: 0
+});
+
+export const toDaily = <T extends ChainStats | UserStats | ChainUserStats | TotalStats>(
+  timestamp: number,
+  stats: T
+): T & { day: string; timestamp: number } => {
+  const day = formatDay(new Date(timestamp));
+  const dayTimestamp = parseDay(day);
+
+  return {
+    ...stats,
+    day,
+    timestamp: dayTimestamp
+  };
+};
+
+export const getSaleRefs = (
+  db: FirebaseFirestore.Firestore,
+  sale: { buyer: string; chainId: string; timestamp: number }
+) => {
+  const totalSales = db.collection('pixl').doc('salesCollections') as FirebaseFirestore.DocumentReference<TotalStats>;
+  const chainSales = totalSales
+    .collection('salesByChain')
+    .doc(sale.chainId) as FirebaseFirestore.DocumentReference<ChainStats>;
+  const userSales = totalSales
+    .collection('salesByUser')
+    .doc(sale.buyer) as FirebaseFirestore.DocumentReference<UserStats>;
+  const chainUserSales = totalSales
+    .collection('salesByChainUser')
+    .doc(`${sale.chainId}:${sale.buyer}`) as FirebaseFirestore.DocumentReference<ChainUserStats>;
+  const salesByDayRef = totalSales.collection('salesByDay') as FirebaseFirestore.CollectionReference<DailyStats>;
+
+  const day = formatDay(new Date(sale.timestamp));
+  const dailyChainSales = salesByDayRef.doc(
+    `CHAIN:${sale.chainId}:date:${day}`
+  ) as FirebaseFirestore.DocumentReference<DailyChainStats>;
+  const dailyUserSales = salesByDayRef.doc(
+    `USER:${sale.buyer}:date:${day}`
+  ) as FirebaseFirestore.DocumentReference<DailyUserStats>;
+  const dailyChainUserSales = salesByDayRef.doc(
+    `CHAIN_USER:${sale.chainId}:${sale.buyer}:date:${day}`
+  ) as FirebaseFirestore.DocumentReference<DailyChainUserStats>;
+  const dailyTotalSales = salesByDayRef.doc(
+    `TOTAL:date:${day}`
+  ) as FirebaseFirestore.DocumentReference<DailyTotalStats>;
+
+  return {
+    chainSales,
+    userSales,
+    chainUserSales,
+    totalSales,
+
+    dailyChainSales,
+    dailyChainUserSales,
+    dailyTotalSales,
+    dailyUserSales
+  };
 };

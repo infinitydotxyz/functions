@@ -6,15 +6,15 @@ export const BonusMultiplier = {
     multiplier: 1
   },
   LevelOne: {
-    minBalance: 100_000,
+    minBalance: 1_000_000,
     multiplier: 2
   },
   LevelTwo: {
-    minBalance: 500_000,
+    minBalance: 5_000_000,
     multiplier: 5
   },
   LevelThree: {
-    minBalance: 1_000_000,
+    minBalance: 10_000_000,
     multiplier: 10
   }
 };

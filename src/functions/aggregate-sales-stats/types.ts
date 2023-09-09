@@ -24,6 +24,7 @@ export interface NftSaleEventV2 {
     saleCurrencyAddress: string;
     saleCurrencyDecimals: number;
     saleCurrencySymbol: string;
+    salePriceUsd: number;
   };
   metadata: {
     timestamp: number;

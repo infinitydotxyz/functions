@@ -5,8 +5,11 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
+import { CollRef } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
+import { BuyEvent } from '@/lib/rewards-v2/referrals/sdk';
+import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getReservoirSales } from '../api/sales/sales';
 import { FlattenedNFTSale } from '../api/sales/types';
@@ -14,7 +17,6 @@ import { SyncMetadata } from './types';
 
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
-  supportedCollections: SupportedCollectionsProvider,
   sync: SyncMetadata,
   checkAbort: () => { abort: boolean }
 ) {
@@ -24,7 +26,6 @@ export async function syncPage(
 
   const { lastItemProcessed, numSales, lastItemProcessedTimestamp } = await processSales(
     db,
-    supportedCollections,
     { data: sync },
     checkAbort
   );
@@ -118,7 +119,6 @@ export async function* getSales(
 
 const batchSaveToFirestore = async (
   db: Firestore,
-  supportedCollections: SupportedCollectionsProvider,
   data: { saleData: Partial<FlattenedNFTSale>; chainId: ChainId }[]
 ) => {
   const nftSales = data.map(({ saleData: item, chainId }) => {
@@ -145,7 +145,8 @@ const batchSaveToFirestore = async (
         marketplaceAddress: item.marketplace_address ?? '',
         bundleIndex: item.bundle_index ?? 0,
         logIndex: item.log_index ?? 0,
-        quantity: item.quantity ?? '1'
+        quantity: item.quantity ?? '1',
+        salePriceUsd: item.sale_price_usd ?? 0
       },
       metadata: {
         timestamp: item.sale_timestamp ?? 0,
@@ -162,6 +163,10 @@ const batchSaveToFirestore = async (
 
   const batchHandler = new BatchHandler();
   const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
+
+  // currentEthBlockNumber is lazily set below
+  let currentEthBlockNumber: null | number = null;
+
   for (const { saleV2, id } of nftSales) {
     if (!id) {
       continue;
@@ -172,7 +177,9 @@ const batchSaveToFirestore = async (
     await batchHandler.addAsync(saleDocRef, saleV2, { merge: true });
 
     // write sale to users involved if source is pixl
-    if (saleV2.data.marketplace === 'pixl.so' && saleV2.data.buyer && saleV2.data.seller) {
+    const isNativeBuy = saleV2.data.marketplace === 'pixl.so';
+    const isNativeFill = saleV2.data.fillSource === 'pixl.so';
+    if (isNativeBuy && saleV2.data.buyer && saleV2.data.seller) {
       const buyerSalesDocRef = db
         .collection(firestoreConstants.USERS_COLL)
         .doc(trimLowerCase(saleV2.data.buyer))
@@ -186,6 +193,52 @@ const batchSaveToFirestore = async (
         .doc(id);
       await batchHandler.addAsync(sellerSalesDocRef, saleV2, { merge: true });
     }
+
+    if (isNativeBuy || isNativeFill) {
+      if (currentEthBlockNumber == null) {
+        const provider = getProvider(ChainId.Mainnet);
+        const blockNumber = await provider.getBlockNumber();
+        currentEthBlockNumber = blockNumber;
+      }
+      // save to stats and rewards if the sale is filled or from pixl.so
+      const buyEvent: BuyEvent = {
+        kind: 'BUY',
+        isNativeBuy,
+        isNativeFill,
+        user: saleV2.data.buyer,
+        chainId: saleV2.data.chainId,
+        blockNumber: currentEthBlockNumber,
+        sale: {
+          blockNumber: saleV2.data.blockNumber,
+          buyer: saleV2.data.buyer,
+          seller: saleV2.data.seller,
+          txHash: saleV2.data.txHash,
+          logIndex: saleV2.data.logIndex,
+          bundleIndex: saleV2.data.bundleIndex,
+          fillSource: saleV2.data.fillSource,
+          washTradingScore: saleV2.data.washTradingScore,
+          marketplace: saleV2.data.marketplace,
+          marketplaceAddress: saleV2.data.marketplaceAddress,
+          quantity: saleV2.data.quantity,
+          collectionAddress: saleV2.data.collectionAddress,
+          tokenId: saleV2.data.tokenId,
+          saleTimestamp: saleV2.data.saleTimestamp,
+          salePriceUsd: saleV2.data.salePriceUsd
+        },
+        processed: false,
+        timestamp: saleV2.metadata.timestamp
+      };
+
+      const statsCollRef = db.collection('pixl').doc('salesCollections').collection('salesEvents') as CollRef<BuyEvent>;
+      const rewardRef = db
+        .collection('pixl')
+        .doc('pixlRewards')
+        .collection('pixlUserRewards')
+        .doc(buyEvent.user)
+        .collection('pixlUserRewardsEvents');
+      await batchHandler.addAsync(statsCollRef.doc(id), buyEvent, { merge: true });
+      await batchHandler.addAsync(rewardRef.doc(id), buyEvent, { merge: true });
+    }
   }
 
   await batchHandler.flush();
@@ -193,7 +246,6 @@ const batchSaveToFirestore = async (
 
 const processSales = async (
   db: Firestore,
-  supportedCollections: SupportedCollectionsProvider,
   currentSync: { data: SyncMetadata },
   checkAbort: () => { abort: boolean }
 ) => {
@@ -219,7 +271,7 @@ const processSales = async (
       'sync-sale-events',
       `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
     );
-    await batchSaveToFirestore(db, supportedCollections, data);
+    await batchSaveToFirestore(db, data);
     logger.log('sync-sale-events', 'Saved to firestore');
 
     numSales += page.sales.length;

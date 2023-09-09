@@ -65,6 +65,16 @@ export const handleReferral = async (firestore: FirebaseFirestore.Firestore, eve
     index: 0,
     blockNumber: event.blockNumber,
     timestamp: event.timestamp
+  })
+
+  // generate at most one referral for each user
+  const users = new Set();
+  referrals = referrals.filter((item) => {
+    if (users.has(item.user)) {
+      return false;
+    }
+    users.add(item.user);
+    return true;
   });
   const contract = getXFLContract();
   const pqueue = new PQueue({ concurrency: 5 });

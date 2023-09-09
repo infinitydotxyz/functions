@@ -1,5 +1,5 @@
-import { getDb } from "@/firestore/db";
-import { streamQueryWithRef } from "@/firestore/stream-query";
+import { getDb } from "../firestore/db";
+import { streamQueryWithRef } from "../firestore/stream-query";
 import { config } from "../config";
 
 async function main() {

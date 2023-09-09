@@ -6,7 +6,6 @@ import { ONE_MIN, sleep } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { DocRef } from '@/firestore/types';
-import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions, WithTiming } from '@/lib/process/types';
 import { syncPage } from '@/lib/reservoir/sales/sync-page';
@@ -29,12 +28,7 @@ export type SalesJobResult = WithTiming<{
 }>;
 
 export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResult> {
-  constructor(
-    id: string,
-    redis: Redis,
-    protected _supportedCollections: SupportedCollectionsProvider,
-    options?: ProcessOptions
-  ) {
+  constructor(id: string, redis: Redis, options?: ProcessOptions) {
     super(redis, id, options);
   }
 
@@ -107,7 +101,7 @@ export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResu
           return;
         }
 
-        const result = await syncPage(db, this._supportedCollections, sync, checkAbort);
+        const result = await syncPage(db, sync, checkAbort);
         checkAbortThrow();
 
         await syncRef.set(result.sync, { merge: true });

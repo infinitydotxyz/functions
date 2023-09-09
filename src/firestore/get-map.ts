@@ -37,7 +37,6 @@ export async function getMap<T = unknown>(
 
   const save = (batch: FirebaseFirestore.WriteBatch) => {
     for (const [, item] of resultMap) {
-      console.log(`Saving item - ${item.ref.path}`, item.data);
       batch.set(item.ref, item.data, { merge: true });
     }
   };

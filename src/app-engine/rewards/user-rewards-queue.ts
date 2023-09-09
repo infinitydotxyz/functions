@@ -73,8 +73,7 @@ export class UserRewardsEventsQueue extends AbstractProcess<UserRewardsJobData, 
               //   break;
               // }
               //
-              case 'buy':
-              case 'BUY': {
+              case 'buy': {
                 userRewards.buyPoints += event.totalPoints;
                 break;
               }

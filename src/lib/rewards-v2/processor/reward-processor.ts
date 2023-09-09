@@ -65,7 +65,7 @@ export const handleReferral = async (firestore: FirebaseFirestore.Firestore, eve
     index: 0,
     blockNumber: event.blockNumber,
     timestamp: event.timestamp
-  })
+  });
 
   // generate at most one referral for each user
   const users = new Set();

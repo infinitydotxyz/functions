@@ -229,10 +229,7 @@ const batchSaveToFirestore = async (
       };
 
       const statsCollRef = db.collection('pixl').doc('salesCollections').collection('salesEvents') as CollRef<BuyEvent>;
-      const rewardRef = db
-        .collection('pixl')
-        .doc('pixlRewards')
-        .collection('pixlRewardEvents');
+      const rewardRef = db.collection('pixl').doc('pixlRewards').collection('pixlRewardEvents');
       await batchHandler.addAsync(statsCollRef.doc(id), buyEvent, { merge: true });
       await batchHandler.addAsync(rewardRef.doc(id), buyEvent, { merge: true });
     }

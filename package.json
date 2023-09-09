@@ -35,6 +35,7 @@
     "airdrop": "npm run clean && npm run build && node --max-old-space-size=4096 -r dotenv/config ./dist/scripts/airdrop-balances.js",
     "trigger-order-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/trigger-order-events.js",
     "validate-orders": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/validate-orders.js",
+    "merge-sales": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=prod node -r dotenv/config ./dist/scripts/merge-sales.js",
     "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",
     "purge-firestore": "npm run clean && npm run build && INFINITY_NODE_ENV=prod node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js",
     "purge-firestore:dev": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=dev node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js"

@@ -6,7 +6,6 @@ import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef } from '@/firestore/types';
-import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 import { BuyEvent } from '@/lib/rewards-v2/referrals/sdk';
 import { getProvider } from '@/lib/utils/ethersUtils';
@@ -230,12 +229,7 @@ const batchSaveToFirestore = async (
       };
 
       const statsCollRef = db.collection('pixl').doc('salesCollections').collection('salesEvents') as CollRef<BuyEvent>;
-      const rewardRef = db
-        .collection('pixl')
-        .doc('pixlRewards')
-        .collection('pixlUserRewards')
-        .doc(buyEvent.user)
-        .collection('pixlUserRewardsEvents');
+      const rewardRef = db.collection('pixl').doc('pixlRewards').collection('pixlRewardEvents');
       await batchHandler.addAsync(statsCollRef.doc(id), buyEvent, { merge: true });
       await batchHandler.addAsync(rewardRef.doc(id), buyEvent, { merge: true });
     }

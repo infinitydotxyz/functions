@@ -26,14 +26,24 @@ export async function getMap<T = unknown>(
     return item.data as U | null;
   };
 
+  const set = <U extends T>(id: string, data: U): U => {
+    const item = resultMap.get(id);
+    if (!item) {
+      throw new Error(`Invalid set operation. Failed to find item with id ${id}`);
+    }
+    item.data = data;
+    return item.data as U;
+  };
+
   const save = (batch: FirebaseFirestore.WriteBatch) => {
     for (const [, item] of resultMap) {
-      batch.set(item.ref, item.data);
+      batch.set(item.ref, item.data, { merge: true });
     }
   };
 
   return {
     get,
+    set,
     save
   };
 }

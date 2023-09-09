@@ -82,6 +82,9 @@ export class AggregateBuysQueue extends AbstractProcess<AggregateBuysJobData, Ag
 
         const stream = streamQueryPageWithRef(query, (item, ref) => [item.timestamp, ref]);
         for await (const page of stream) {
+          if (page.length === 0) {
+            return;
+          }
           checkAbort();
           const refs = new Map<string, FirebaseFirestore.DocumentReference<SalesStats>>();
           for (const { data } of page) {
@@ -97,7 +100,7 @@ export class AggregateBuysQueue extends AbstractProcess<AggregateBuysJobData, Ag
             }
           }
 
-          const { get, save: saveStats } = await getMap(db, refs);
+          const { get, set, save: saveStats } = await getMap(db, refs);
 
           const batch = db.batch();
           for (const { data, ref } of page) {
@@ -107,27 +110,39 @@ export class AggregateBuysQueue extends AbstractProcess<AggregateBuysJobData, Ag
               timestamp: data.sale.saleTimestamp
             });
 
-            const totalSales: TotalStats = get(saleRefs.totalSales.path) || getDefaultTotalStats();
-            const chainSales: ChainStats = get(saleRefs.chainSales.path) || getDefaultChainStats(data.chainId);
-            const userSales: UserStats = get(saleRefs.userSales.path) || getDefaultUserStats(data.sale.buyer);
+            const totalSales: TotalStats =
+              get(saleRefs.totalSales.path) ?? set(saleRefs.totalSales.path, getDefaultTotalStats());
+            const chainSales: ChainStats =
+              get(saleRefs.chainSales.path) ?? set(saleRefs.chainSales.path, getDefaultChainStats(data.chainId));
+            const userSales: UserStats =
+              get(saleRefs.userSales.path) ?? set(saleRefs.userSales.path, getDefaultUserStats(data.sale.buyer));
             const chainUserSales: ChainUserStats =
-              get(saleRefs.chainUserSales.path) ||
-              getDefaultChainUserStats({ user: data.sale.buyer, chainId: data.chainId });
-
-            const dailyChainSales: DailyChainStats =
-              get(saleRefs.dailyChainSales.path) ||
-              toDaily(data.sale.saleTimestamp, getDefaultChainStats(data.chainId));
-            const dailyUserSales: DailyUserStats =
-              get(saleRefs.dailyUserSales.path) ||
-              toDaily(data.sale.saleTimestamp, getDefaultUserStats(data.sale.buyer));
-            const dailyChainUserSales: DailyChainUserStats =
-              get(saleRefs.dailyChainUserSales.path) ||
-              toDaily(
-                data.sale.saleTimestamp,
+              get(saleRefs.chainUserSales.path) ??
+              set(
+                saleRefs.chainUserSales.path,
                 getDefaultChainUserStats({ user: data.sale.buyer, chainId: data.chainId })
               );
+
+            const dailyChainSales: DailyChainStats =
+              get(saleRefs.dailyChainSales.path) ??
+              set(saleRefs.dailyChainSales.path, toDaily(data.sale.saleTimestamp, getDefaultChainStats(data.chainId)));
+
+            const dailyUserSales: DailyUserStats =
+              get(saleRefs.dailyUserSales.path) ??
+              set(saleRefs.dailyUserSales.path, toDaily(data.sale.saleTimestamp, getDefaultUserStats(data.sale.buyer)));
+
+            const dailyChainUserSales: DailyChainUserStats =
+              get(saleRefs.dailyChainUserSales.path) ??
+              set(
+                saleRefs.dailyChainUserSales.path,
+                toDaily(
+                  data.sale.saleTimestamp,
+                  getDefaultChainUserStats({ user: data.sale.buyer, chainId: data.chainId })
+                )
+              );
             const dailyTotalSales: DailyTotalStats =
-              get(saleRefs.dailyTotalSales.path) || toDaily(data.sale.saleTimestamp, getDefaultTotalStats());
+              get(saleRefs.dailyTotalSales.path) ??
+              set(saleRefs.dailyTotalSales.path, toDaily(data.sale.saleTimestamp, getDefaultTotalStats()));
 
             const stats = [
               totalSales,
@@ -151,7 +166,7 @@ export class AggregateBuysQueue extends AbstractProcess<AggregateBuysJobData, Ag
               }
             }
             // mark the sale as processed
-            batch.update(ref, { processed: true });
+            batch.set(ref, { processed: true }, { merge: true });
           }
           // update the stats
           saveStats(batch);

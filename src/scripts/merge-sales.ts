@@ -16,7 +16,7 @@ async function main() {
 
     if (!snap.exists) {
       console.log(`Merging sale event ${ref.id}`);
-      await rewardSaleEventRef.create(sale);
+      await rewardSaleEventRef.create({ ...sale, processed: false });
     } else {
       console.log(`Skipping sale event ${ref.id}`);
     }

@@ -53,7 +53,6 @@ export class UserRewardsTriggerQueue extends AbstractProcess<UserRewardsTriggerJ
     }
 
     const id = `user:rewards:trigger:lock`;
-
     let numTriggered = 0;
     try {
       await redlock.using([id], lockDuration, async (signal) => {

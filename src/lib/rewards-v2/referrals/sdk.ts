@@ -1,3 +1,5 @@
+import { OrderRewardEvent } from "../orders/types";
+
 interface ReferralCode {
   code: string;
   address: string;
@@ -71,7 +73,26 @@ export interface BuyEvent {
   timestamp: number;
 }
 
-export type RewardsEvent = BuyEvent | ReferralEvent | AirdropEvent | AirdropBoostEvent;
+export interface ListingEvent {
+  kind: 'LISTING';
+  user: string;
+  chain: string;
+  // ethereum block number
+  blockNumber: number;
+  listing: {
+    id: string;
+    interval: {
+      from: number;
+      to: number;
+    };
+    priceUsd: number;
+    floorPriceUsd: number;
+  };
+  processed: boolean;
+  timestamp: number;
+}
+
+export type RewardsEvent = BuyEvent | ReferralEvent | AirdropEvent | AirdropBoostEvent | OrderRewardEvent;
 
 export interface UserBuyRewardEvent {
   user: string;
@@ -119,6 +140,34 @@ export interface UserReferralRewardEvent {
   processed: boolean;
 }
 
+export interface UserOrderRewardEvent {
+  user: string;
+  kind: "order";
+  order: {
+    chainId: string;
+    orderId: string;
+    start: {
+      priceUsd: number;
+      blockNumber: number;
+      timestamp: number;
+      floorPriceUsd: number;
+    };
+    end: {
+      priceUsd: number;
+      blockNumber: number;
+      timestamp: number;
+      floorPriceUsd: number;
+    };
+  }
+  blockNumber: number;
+  balance: string;
+  bonusMultiplier: number;
+  preBonusPoints: number;
+  totalPoints: number;
+  timestamp: number;
+  processed: boolean;
+}
+
 export interface UserAirdropRewardEvent {
   user: string;
   kind: 'airdrop';
@@ -138,7 +187,8 @@ export type UserRewardEvent =
   | UserBuyRewardEvent
   | UserReferralRewardEvent
   | UserAirdropRewardEvent
-  | UserAirdropBoostEvent;
+  | UserAirdropBoostEvent
+  | UserOrderRewardEvent;
 
 export type UserRewards = {
   referralPoints: number;
@@ -362,6 +412,59 @@ export type DailyStats = DailyChainStats | DailyUserStats | DailyChainUserStats 
 
 export type SalesStats = ChainStats | UserStats | ChainUserStats | TotalStats | DailyStats;
 
+interface OrderStats {
+  numListings: number;
+  numListingsBelowFloor: number;
+  numListingsNearFloor: number;
+
+  numActiveListings: number;
+  numActiveListingsBelowFloor: number;
+  numActiveListingsNearFloor: number;
+
+  numBids: number;
+  numBidsBelowFloor: number;
+  numBidsNearFloor: number;
+
+  numActiveBids: number;
+  numActiveBidsBelowFloor: number;
+  numActiveBidsNearFloor: number;
+
+  numCollectionBids: number;
+  numCollectionBidsNearFloor: number;
+  numCollectionBidsBelowFloor: number;
+
+  numActiveCollectionBids: number;
+  numActiveCollectionBidsBelowFloor: number;
+  numActiveCollectionBidsNearFloor: number;
+
+  numCancelledListings: number;
+  numCancelledBids: number;
+  numCancelledCollectionBids: number;
+  numCancelledOrders: number;
+}
+
+export interface ChainOrderStats extends OrderStats {
+  kind: 'CHAIN';
+  chainId: string;
+}
+
+export interface UserOrderStats extends OrderStats {
+  kind: 'USER';
+  user: string;
+}
+
+export interface ChainUserOrderStats extends OrderStats {
+  kind: 'CHAIN_USER';
+  user: string;
+  chainId: string;
+}
+
+export interface TotalOrderStats extends OrderStats {
+  kind: 'TOTAL';
+}
+
+export type OrdersStats = ChainOrderStats | UserOrderStats | ChainUserOrderStats | TotalOrderStats;
+
 export function isDaily(item: SalesStats): item is DailyStats {
   return 'day' in item;
 }
@@ -374,6 +477,38 @@ export const getDefaultTotalStats = (): TotalStats => ({
   nativeVolume: 0
 });
 
+export const getDefaultTotalOrderStats = (): TotalOrderStats => ({
+  kind: 'TOTAL',
+  numListings: 0,
+  numListingsBelowFloor: 0,
+  numListingsNearFloor: 0,
+  numCancelledListings: 0,
+
+  numActiveListings: 0,
+  numActiveListingsBelowFloor: 0,
+  numActiveListingsNearFloor: 0,
+
+  numBids: 0,
+  numBidsBelowFloor: 0,
+  numBidsNearFloor: 0,
+  numCancelledBids: 0,
+
+  numActiveBids: 0,
+  numActiveBidsBelowFloor: 0,
+  numActiveBidsNearFloor: 0,
+
+  numCollectionBids: 0,
+  numCollectionBidsNearFloor: 0,
+  numCollectionBidsBelowFloor: 0,
+  numCancelledCollectionBids: 0,
+
+  numActiveCollectionBids: 0,
+  numActiveCollectionBidsBelowFloor: 0,
+  numActiveCollectionBidsNearFloor: 0,
+
+  numCancelledOrders: 0
+});
+
 export const getDefaultChainStats = (chainId: string): ChainStats => ({
   kind: 'CHAIN',
   chainId,
@@ -383,6 +518,12 @@ export const getDefaultChainStats = (chainId: string): ChainStats => ({
   nativeVolume: 0
 });
 
+export const getDefaultChainOrderStats = (chainId: string): ChainOrderStats => ({
+  ...getDefaultTotalOrderStats(),
+  kind: 'CHAIN',
+  chainId
+});
+
 export const getDefaultUserStats = (user: string): UserStats => ({
   kind: 'USER',
   user,
@@ -390,6 +531,12 @@ export const getDefaultUserStats = (user: string): UserStats => ({
   numNativeBuys: 0,
   volume: 0,
   nativeVolume: 0
+});
+
+export const getDefaultUserOrderStats = (user: string): UserOrderStats => ({
+  ...getDefaultTotalOrderStats(),
+  kind: 'USER',
+  user
 });
 
 export const getDefaultChainUserStats = (data: { user: string; chainId: string }): ChainUserStats => ({
@@ -402,7 +549,24 @@ export const getDefaultChainUserStats = (data: { user: string; chainId: string }
   nativeVolume: 0
 });
 
-export const toDaily = <T extends ChainStats | UserStats | ChainUserStats | TotalStats>(
+export const getDefaultChainUserOrderStats = (data: { user: string; chainId: string }): ChainUserOrderStats => ({
+  ...getDefaultTotalOrderStats(),
+  kind: 'CHAIN_USER',
+  user: data.user,
+  chainId: data.chainId
+});
+
+export const toDaily = <
+  T extends
+  | ChainStats
+  | UserStats
+  | ChainUserStats
+  | TotalStats
+  | ChainOrderStats
+  | UserOrderStats
+  | ChainUserOrderStats
+  | TotalOrderStats
+>(
   timestamp: number,
   stats: T
 ): T & { day: string; timestamp: number } => {
@@ -456,5 +620,30 @@ export const getSaleRefs = (
     dailyChainUserSales,
     dailyTotalSales,
     dailyUserSales
+  };
+};
+
+export const getOrderRefs = (
+  db: FirebaseFirestore.Firestore,
+  order: { user: string; chainId: string; timestamp: number }
+) => {
+  const totalOrders = db
+    .collection('pixl')
+    .doc('orderCollections') as FirebaseFirestore.DocumentReference<TotalOrderStats>;
+  const chainOrders = totalOrders
+    .collection('ordersByChain')
+    .doc(order.chainId) as FirebaseFirestore.DocumentReference<ChainOrderStats>;
+  const userOrders = totalOrders
+    .collection('ordersByUser')
+    .doc(order.user) as FirebaseFirestore.DocumentReference<UserOrderStats>;
+  const chainUserOrders = totalOrders
+    .collection('ordersByChainUser')
+    .doc(`${order.chainId}:${order.user}`) as FirebaseFirestore.DocumentReference<ChainUserOrderStats>;
+
+  return {
+    chainOrders,
+    userOrders,
+    chainUserOrders,
+    totalOrders
   };
 };

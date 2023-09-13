@@ -3,19 +3,19 @@ import PQueue from 'p-queue';
 
 import { ERC20ABI } from '@infinityxyz/lib/abi';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { getTokenAddress } from '@infinityxyz/lib/utils';
+import { getTokenAddress, ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { DocRef } from '@/firestore/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getBonusLevel } from '../bonus';
-import { ReferralEvent } from '../events';
 import { getReferralPoints } from '../referrals/points';
 import {
   AirdropEvent,
   BuyEvent,
   Referral,
+  ReferralEvent,
   RewardsEvent,
   UserAirdropBoostEvent,
   UserAirdropRewardEvent,
@@ -23,8 +23,10 @@ import {
   UserRewardEvent,
   getUserReferrers,
   saveReferrals,
-  saveUserRewardEvents
+  saveUserRewardEvents,
+  UserOrderRewardEvent
 } from '../referrals/sdk';
+import { OrderRewardEvent } from '../orders/types';
 
 const getXFLContract = () => {
   const provider = getProvider(ChainId.Mainnet);
@@ -133,7 +135,7 @@ const handleBuy = async (firestore: FirebaseFirestore.Firestore, event: BuyEvent
   const xflBalance = await getBalance(contract, event.user, { blockTag: event.blockNumber });
   const bonus = getBonusLevel(xflBalance);
   const nativeMultiplier = event.isNativeBuy ? 100 : 1;
-  const buyPoints = event.sale.salePriceUsd * nativeMultiplier;
+  const buyPoints = Math.floor(event.sale.salePriceUsd * nativeMultiplier);
   const totalPoints = bonus.multiplier * buyPoints;
   const reward: UserBuyRewardEvent = {
     user: event.user,
@@ -172,6 +174,40 @@ const handleBuy = async (firestore: FirebaseFirestore.Firestore, event: BuyEvent
   };
 };
 
+const handleOrderReward = async (firestore: FirebaseFirestore.Firestore, event: OrderRewardEvent) => {
+  const contract = getXFLContract();
+  const blockNumber = event.start.blockNumber;
+  const xflBalance = await getBalance(contract, event.user, { blockTag: blockNumber });
+  const bonus = getBonusLevel(xflBalance);
+  const minutesActive = (event.end.timestamp - event.start.timestamp) / ONE_MIN;
+  const avgPrice = (event.start.priceUsd + event.end.priceUsd) / 2;
+  const basePoints = event.start.priceUsd <= event.start.floorPriceUsd ? Math.floor(avgPrice * minutesActive) : 0;
+  // TODO finalize point calculation
+  const totalPoints = bonus.multiplier * basePoints;
+
+  const reward: UserOrderRewardEvent = {
+    user: event.user,
+    kind: 'order',
+    order: {
+      chainId: event.chainId,
+      orderId: event.orderId,
+      start: event.start,
+      end: event.end,
+    },
+    blockNumber,
+    balance: xflBalance.toString(),
+    bonusMultiplier: bonus.multiplier,
+    preBonusPoints: basePoints,
+    totalPoints,
+    timestamp: Date.now(),
+    processed: false,
+  };
+
+  return (batch: FirebaseFirestore.WriteBatch) => {
+    saveUserRewardEvents(firestore, [reward], batch);
+  };
+}
+
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
   let numProcessed = 0;
   const db = getDb();
@@ -204,6 +240,12 @@ export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref:
         }
         case 'BUY': {
           const save = await handleBuy(db, event);
+          saves.push(save);
+          break;
+        }
+
+        case 'ORDER_REWARD': {
+          const save = await handleOrderReward(db, event);
           saves.push(save);
           break;
         }

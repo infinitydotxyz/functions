@@ -2,7 +2,6 @@ import got, { Method } from 'got';
 import { join, normalize } from 'path';
 import qs from 'qs';
 
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { paths } from '@reservoir0x/reservoir-kit-client';
 
 import { config } from '@/config/index';
@@ -34,8 +33,8 @@ export type ReservoirClient = <P extends Paths, M extends Methods<P>>(
   method: M
 ) => (params: Parameters<P, M>) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: string }>;
 
-export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => {
-  const baseUrl = config.reservoir.baseUrls[chainId];
+export const getClient = (chainId: string, apiKey: string): ReservoirClient => {
+  const baseUrl = config.reservoir.baseUrls[chainId as keyof typeof config.reservoir.baseUrls];
 
   if (!baseUrl) {
     throw new Error(`Unsupported chainId ${chainId}`);
@@ -46,13 +45,13 @@ export const getClient = (chainId: ChainId, apiKey: string): ReservoirClient => 
     method: M
   ): ((
     params: Parameters<P, M>
-  ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: ChainId }>) => {
+  ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: string }>) => {
     const _url = normalize(join(baseUrl, endpoint));
     const url = new URL(_url);
 
     const execute: (
       params: Parameters<P, M>
-    ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: ChainId }> = async (params) => {
+    ) => Promise<{ data: Response<P, M>; statusCode: StatusCodes<P, M>; chainId: string }> = async (params) => {
       const response = await got(url.toString(), {
         method: method as Method,
         headers: {

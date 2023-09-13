@@ -35,7 +35,7 @@ export interface OrderActiveEvent {
 }
 
 export interface UpdateOrderRewardsEvent {
-  kind: "UPDATE_ORDER_REWARDS",
+  kind: 'UPDATE_ORDER_REWARDS';
   id: string; // set to the order id of the most recent event + 1
 
   mostRecentEventId: string;
@@ -43,7 +43,6 @@ export interface UpdateOrderRewardsEvent {
   timestamp: number;
   processed: boolean;
 }
-
 
 export type OrderEvents = OrderActiveEvent | OrderInactiveEvent | UpdateOrderRewardsEvent;
 

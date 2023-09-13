@@ -1,27 +1,28 @@
-import { getDb } from "@/firestore/db";
-import { streamQueryWithRef } from "@/firestore/stream-query";
-import { CollRef } from "@/firestore/types";
-import { AbstractProcess } from "@/lib/process/process.abstract";
-import { ProcessOptions } from "@/lib/process/types";
-import { OrderEvents, OrderSnap, UpdateOrderRewardsEvent } from "@/lib/rewards-v2/orders/types";
-import { ONE_MIN } from "@infinityxyz/lib/utils";
-import { Job } from "bullmq";
-import { BigNumber } from "ethers";
-import Redis from "ioredis";
-import PQueue from "p-queue";
-import { ExecutionError, redlock } from "../redis";
+import { Job } from 'bullmq';
+import { BigNumber } from 'ethers';
+import Redis from 'ioredis';
+import PQueue from 'p-queue';
+
+import { ONE_MIN } from '@infinityxyz/lib/utils';
+
+import { getDb } from '@/firestore/db';
+import { streamQueryWithRef } from '@/firestore/stream-query';
+import { CollRef } from '@/firestore/types';
+import { AbstractProcess } from '@/lib/process/process.abstract';
+import { ProcessOptions } from '@/lib/process/types';
+import { OrderEvents, OrderSnap, UpdateOrderRewardsEvent } from '@/lib/rewards-v2/orders/types';
+
+import { ExecutionError, redlock } from '../redis';
 
 interface JobData {
   id: string;
 }
-
 
 interface JobResult {
   id: string;
   status: 'completed' | 'errored' | 'skipped';
   numTriggered: number;
 }
-
 
 export class TriggerOrderRewardUpdateQueue extends AbstractProcess<JobData, JobResult> {
   constructor(id: string, redis: Redis, options?: ProcessOptions) {
@@ -47,32 +48,43 @@ export class TriggerOrderRewardUpdateQueue extends AbstractProcess<JobData, JobR
     const id = `order:reward:update:trigger:lock`;
 
     try {
-      await redlock.using([id], lockDuration, async (signal) => {
-        const ordersCollRef = db.collection('pixl').doc('orderCollections').collection('pixlOrders') as CollRef<OrderSnap>;
-        const query = ordersCollRef.where('eligibleForRewards', '==', true).where('lastRewardTimestamp', '<', Date.now() - ONE_MIN * 10).orderBy('lastRewardTimestamp', 'asc').orderBy('id', 'asc');
+      await redlock.using([id], lockDuration, async () => {
+        const ordersCollRef = db
+          .collection('pixl')
+          .doc('orderCollections')
+          .collection('pixlOrders') as CollRef<OrderSnap>;
+        const query = ordersCollRef
+          .where('eligibleForRewards', '==', true)
+          .where('lastRewardTimestamp', '<', Date.now() - ONE_MIN * 10)
+          .orderBy('lastRewardTimestamp', 'asc')
+          .orderBy('id', 'asc');
 
-        const stream = streamQueryWithRef(query, (item, ref) => [item.lastRewardTimestamp, item.id]);
+        const stream = streamQueryWithRef(query, (item) => [item.lastRewardTimestamp, item.id]);
         const createQueue = new PQueue({ concurrency: 20 });
 
         for await (const item of stream) {
           const update: UpdateOrderRewardsEvent = {
-            kind: "UPDATE_ORDER_REWARDS",
+            kind: 'UPDATE_ORDER_REWARDS',
             id: BigNumber.from(item.data.mostRecentEvent.id).add(1).toString(),
             mostRecentEventId: item.data.mostRecentEvent.id,
             orderId: item.data.id,
             timestamp: Date.now() - ONE_MIN,
-            processed: false,
-          }
+            processed: false
+          };
 
           const orderEventsRef = item.ref.collection('pixlOrderEvents') as CollRef<OrderEvents>;
-          createQueue.add(async () => {
-            try {
-              numTriggered += 1;
-              await orderEventsRef.doc(update.id).create(update);
-            } catch (err) {
-              console.warn(`Failed to trigger an update for order ${item.data.id}`, err);
-            }
-          });
+          createQueue
+            .add(async () => {
+              try {
+                numTriggered += 1;
+                await orderEventsRef.doc(update.id).create(update);
+              } catch (err) {
+                console.warn(`Failed to trigger an update for order ${item.data.id}`, err);
+              }
+            })
+            .catch((err) => {
+              console.error(err);
+            });
           if (createQueue.size > 300) {
             await createQueue.onIdle();
           }

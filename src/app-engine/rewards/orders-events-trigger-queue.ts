@@ -65,7 +65,7 @@ export class OrderEventsTriggerQueue extends AbstractProcess<
         const ref = db.collectionGroup('pixlOrderEvents') as CollGroupRef<OrderEvents>;
         const cache = new QuickLRU({ maxSize: 200 });
         const query = ref.where('processed', '==', false).orderBy('timestamp', 'asc').orderBy('orderId', 'asc');
-        const stream = streamQueryWithRef(query, (item, ref) => [item.timestamp, item.orderId]);
+        const stream = streamQueryWithRef(query, (item) => [item.timestamp, item.orderId]);
         let batch: string[] = [];
         for await (const { data } of stream) {
           checkAbort();

@@ -177,7 +177,7 @@ export class AggregateOrdersQueue extends AbstractProcess<JobData, JobResult> {
           .where('processed', '==', false)
           .orderBy('timestamp', 'asc')
           .orderBy('id', 'asc');
-        const stream = streamQueryPageWithRef(query, (item, ref) => [item.timestamp, item.id], { pageSize: 50 });
+        const stream = streamQueryPageWithRef(query, (item) => [item.timestamp, item.id], { pageSize: 50 });
 
         for await (const page of stream) {
           if (page.length === 0) {

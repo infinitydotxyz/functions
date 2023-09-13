@@ -21,14 +21,14 @@ import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
 import { AggregateBuysQueue } from './rewards/aggregate-buys-queue';
-import { IngestOrderEventsQueue } from './rewards/ingest-order-events-queue';
-import { RewardEventsQueue } from './rewards/rewards-queue';
-import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
-import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
 import { AggregateOrdersQueue } from './rewards/aggregate-orders-queue';
+import { IngestOrderEventsQueue } from './rewards/ingest-order-events-queue';
 import { OrderEventsTriggerQueue } from './rewards/orders-events-trigger-queue';
 import { ProcessOrderEventsQueue } from './rewards/process-order-events-queue';
+import { RewardEventsQueue } from './rewards/rewards-queue';
 import { TriggerOrderRewardUpdateQueue } from './rewards/trigger-order-reward-update-queue';
+import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
+import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
 
 let _supportedCollectionsProvider: SupportedCollectionsProvider;
 const getSupportedCollectionsProvider = async () => {
@@ -229,7 +229,7 @@ async function main() {
 
   if (config.components.ingestOrderEvents.enabled) {
     logger.log('ingest-order-events', `Starting order event ingestion!`);
-    let ingestOrderEventQueues: IngestOrderEventsQueue[] = [];
+    const ingestOrderEventQueues: IngestOrderEventsQueue[] = [];
     for (const chainId of config.supportedChains) {
       for (const type of ['ask', 'bid'] as const) {
         const queue = new IngestOrderEventsQueue(`ingest-order-events`, chainId, type, redis, {
@@ -289,7 +289,6 @@ async function main() {
       attempts: 1
     });
 
-
     const orderEventsQueue = new ProcessOrderEventsQueue('process-order-events-queue', redis, {
       enableMetrics: false,
       concurrency: 10,
@@ -318,7 +317,6 @@ async function main() {
       attempts: 1
     });
 
-
     const trigger = async () => {
       const rewardEventsQueuePromise = rewardEventsQueue.add({
         id: nanoid()
@@ -333,11 +331,16 @@ async function main() {
         id: nanoid()
       });
       const orderEventsTriggerPromise = orderEventsTriggerQueue.add({
-        id: nanoid(),
+        id: nanoid()
       });
-      await Promise.allSettled([rewardEventsQueuePromise, userRewardsTriggerQueuePromise, aggregateBuysPromise, aggregateOrdersPromise, orderEventsTriggerPromise]);
+      await Promise.allSettled([
+        rewardEventsQueuePromise,
+        userRewardsTriggerQueuePromise,
+        aggregateBuysPromise,
+        aggregateOrdersPromise,
+        orderEventsTriggerPromise
+      ]);
     };
-
 
     cron.schedule('*/15 * * * * *', async () => {
       logger.log('rewards', `Triggering rewards event processing!`);
@@ -345,16 +348,18 @@ async function main() {
     });
 
     const triggerFiveMinQueue = async () => {
-      const promises = [triggerOrderRewardUpdate.add({
-        id: nanoid(),
-      })];
+      const promises = [
+        triggerOrderRewardUpdate.add({
+          id: nanoid()
+        })
+      ];
       await Promise.all(promises);
-    }
+    };
 
     cron.schedule('*/5 * * * *', async () => {
       logger.log('rewards', `Triggering order reward update!`);
       await triggerFiveMinQueue();
-    })
+    });
     await trigger();
     await triggerFiveMinQueue();
     promises.push(
@@ -365,7 +370,7 @@ async function main() {
       aggregateOrdersQueue.run(),
       orderEventsQueue.run(),
       orderEventsTriggerQueue.run(),
-      triggerOrderRewardUpdate.run(),
+      triggerOrderRewardUpdate.run()
     );
   }
 

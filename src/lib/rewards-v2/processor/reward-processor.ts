@@ -3,13 +3,14 @@ import PQueue from 'p-queue';
 
 import { ERC20ABI } from '@infinityxyz/lib/abi';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { getTokenAddress, ONE_MIN } from '@infinityxyz/lib/utils';
+import { ONE_MIN, getTokenAddress } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { DocRef } from '@/firestore/types';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { getBonusLevel } from '../bonus';
+import { OrderRewardEvent } from '../orders/types';
 import { getReferralPoints } from '../referrals/points';
 import {
   AirdropEvent,
@@ -20,13 +21,12 @@ import {
   UserAirdropBoostEvent,
   UserAirdropRewardEvent,
   UserBuyRewardEvent,
+  UserOrderRewardEvent,
   UserRewardEvent,
   getUserReferrers,
   saveReferrals,
-  saveUserRewardEvents,
-  UserOrderRewardEvent
+  saveUserRewardEvents
 } from '../referrals/sdk';
-import { OrderRewardEvent } from '../orders/types';
 
 const getXFLContract = () => {
   const provider = getProvider(ChainId.Mainnet);
@@ -192,7 +192,7 @@ const handleOrderReward = async (firestore: FirebaseFirestore.Firestore, event: 
       chainId: event.chainId,
       orderId: event.orderId,
       start: event.start,
-      end: event.end,
+      end: event.end
     },
     blockNumber,
     balance: xflBalance.toString(),
@@ -200,13 +200,13 @@ const handleOrderReward = async (firestore: FirebaseFirestore.Firestore, event: 
     preBonusPoints: basePoints,
     totalPoints,
     timestamp: Date.now(),
-    processed: false,
+    processed: false
   };
 
   return (batch: FirebaseFirestore.WriteBatch) => {
     saveUserRewardEvents(firestore, [reward], batch);
   };
-}
+};
 
 export async function* process(stream: AsyncGenerator<{ data: RewardsEvent; ref: DocRef<RewardsEvent> }>) {
   let numProcessed = 0;

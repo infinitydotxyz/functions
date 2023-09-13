@@ -24,7 +24,7 @@ export async function* streamEvents(
   const limit = 1000;
   const getPageOptions = (sync: SyncMetadata) => {
     const pageOptions = {
-      sortDirection: 'asc' as 'asc',
+      sortDirection: 'asc' as const,
       limit,
       startTimestamp: sync.data.startTimestamp > 0 ? Math.floor(sync.data.startTimestamp / 1000) : 0,
       continuation: sync.data.continuation ? sync.data.continuation : undefined

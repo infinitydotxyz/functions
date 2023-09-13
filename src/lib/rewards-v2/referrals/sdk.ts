@@ -1,4 +1,4 @@
-import { OrderRewardEvent } from "../orders/types";
+import { OrderRewardEvent } from '../orders/types';
 
 interface ReferralCode {
   code: string;
@@ -142,7 +142,7 @@ export interface UserReferralRewardEvent {
 
 export interface UserOrderRewardEvent {
   user: string;
-  kind: "order";
+  kind: 'order';
   order: {
     chainId: string;
     orderId: string;
@@ -158,7 +158,7 @@ export interface UserOrderRewardEvent {
       timestamp: number;
       floorPriceUsd: number;
     };
-  }
+  };
   blockNumber: number;
   balance: string;
   bonusMultiplier: number;
@@ -558,14 +558,14 @@ export const getDefaultChainUserOrderStats = (data: { user: string; chainId: str
 
 export const toDaily = <
   T extends
-  | ChainStats
-  | UserStats
-  | ChainUserStats
-  | TotalStats
-  | ChainOrderStats
-  | UserOrderStats
-  | ChainUserOrderStats
-  | TotalOrderStats
+    | ChainStats
+    | UserStats
+    | ChainUserStats
+    | TotalStats
+    | ChainOrderStats
+    | UserOrderStats
+    | ChainUserOrderStats
+    | TotalOrderStats
 >(
   timestamp: number,
   stats: T

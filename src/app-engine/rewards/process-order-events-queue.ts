@@ -95,7 +95,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
           return event.priceUsd >= event.floorPriceUsd * 0.9 && event.priceUsd <= event.floorPriceUsd * 1.1;
         };
 
-        let saves: ((batch: BatchHandler) => Promise<void>)[] = [];
+        const saves: ((batch: BatchHandler) => Promise<void>)[] = [];
         for (let i = 0; i < orderEvents.length; i += 1) {
           const event = orderEvents[i];
           const data = event.data;
@@ -106,7 +106,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             saves.push(async (batchHandler: BatchHandler) => {
               await batchHandler.addAsync(event.ref, { processed: true }, { merge: true });
             });
-            this.log(`Skipping update ${event.ref.id}`)
+            this.log(`Skipping update ${event.ref.id}`);
             continue;
           }
 
@@ -115,7 +115,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             saves.push(async (batchHandler: BatchHandler) => {
               await batchHandler.addAsync(event.ref, { processed: true }, { merge: true });
             });
-            this.log(`Skipping update ${event.ref.id}`)
+            this.log(`Skipping update ${event.ref.id}`);
             continue;
           }
 
@@ -145,7 +145,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
                 maker: order.mostRecentEvent.maker,
                 isCollectionBid: order.mostRecentEvent.isCollectionBid
               } as OrderActiveEvent | OrderInactiveEvent,
-              lastRewardTimestamp: timestamp,
+              lastRewardTimestamp: timestamp
             };
           } else {
             nextOrder = {
@@ -206,7 +206,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
           // new order
           if (!order) {
             if (isUpdate) {
-              throw new Error(`Attempted to save a NEW_ORDER event for an update. Order ${nextOrder.id}`)
+              throw new Error(`Attempted to save a NEW_ORDER event for an update. Order ${nextOrder.id}`);
             }
             // new order
             const newOrderEvent: OrderStatEvent = {
@@ -230,7 +230,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
           // inactive order
           if (order && order.mostRecentEvent.status === 'active' && nextOrder.mostRecentEvent.status !== 'active') {
             if (isUpdate) {
-              throw new Error(`Attempted to save an ORDER_INACTIVE event for an update. Order ${nextOrder.id}`)
+              throw new Error(`Attempted to save an ORDER_INACTIVE event for an update. Order ${nextOrder.id}`);
             }
             const orderInactive: OrderStatEvent = {
               kind: 'ORDER_INACTIVE',
@@ -253,7 +253,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
           // active order
           if (order && order.mostRecentEvent.status !== 'active' && nextOrder.mostRecentEvent.status === 'active') {
             if (isUpdate) {
-              throw new Error(`Attempted to save an ORDER_ACTIVE event for an update. Order ${nextOrder.id}`)
+              throw new Error(`Attempted to save an ORDER_ACTIVE event for an update. Order ${nextOrder.id}`);
             }
             const orderActive: OrderStatEvent = {
               kind: 'ORDER_ACTIVE',
@@ -276,7 +276,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
           // cancelled order
           if (order && order.mostRecentEvent.status === 'cancelled') {
             if (isUpdate) {
-              throw new Error(`Attempted to save an ORDER_CANCELLED event for an update. Order ${nextOrder.id}`)
+              throw new Error(`Attempted to save an ORDER_CANCELLED event for an update. Order ${nextOrder.id}`);
             }
             const orderInactive: OrderStatEvent = {
               kind: 'ORDER_CANCELLED',

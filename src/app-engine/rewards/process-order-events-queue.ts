@@ -164,7 +164,6 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             };
           }
 
-          // TODO should we ensure the price is greater than the floor price here?
           if (!!order && (order.eligibleForRewards || nextOrder.eligibleForRewards)) {
             // calculate rewards since last event and save a reward event
             const startTime = order.lastRewardTimestamp;
@@ -175,32 +174,35 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
 
             const endPrice = nextOrder.mostRecentEvent.priceUsd;
             const endFloor = nextOrder.mostRecentEvent.floorPriceUsd;
-            const reward: OrderRewardEvent = {
-              kind: 'ORDER_REWARD',
-              chainId: order.chainId,
-              collection: order.collection,
-              orderId: order.id,
-              id: order.mostRecentEvent.id,
-              start: {
-                priceUsd: startPrice,
-                blockNumber: order.mostRecentEvent.blockNumber,
-                timestamp: startTime,
-                floorPriceUsd: startFloor
-              },
-              end: {
-                priceUsd: endPrice,
-                blockNumber: nextOrder.mostRecentEvent.blockNumber,
-                timestamp: endTime,
-                floorPriceUsd: endFloor
-              },
-              user: order.maker,
-              timestamp: Date.now(),
-              processed: false
-            };
-            saves.push(async (batch: BatchHandler) => {
-              const ref = db.collection('pixl').doc('pixlRewards').collection('pixlRewardEvents').doc(reward.id);
-              await batch.addAsync(ref, reward, { merge: true });
-            });
+
+            if (startPrice > startFloor || endPrice > endFloor) {
+              const reward: OrderRewardEvent = {
+                kind: 'ORDER_REWARD',
+                chainId: order.chainId,
+                collection: order.collection,
+                orderId: order.id,
+                id: order.mostRecentEvent.id,
+                start: {
+                  priceUsd: startPrice,
+                  blockNumber: order.mostRecentEvent.blockNumber,
+                  timestamp: startTime,
+                  floorPriceUsd: startFloor
+                },
+                end: {
+                  priceUsd: endPrice,
+                  blockNumber: nextOrder.mostRecentEvent.blockNumber,
+                  timestamp: endTime,
+                  floorPriceUsd: endFloor
+                },
+                user: order.maker,
+                timestamp: Date.now(),
+                processed: false
+              };
+              saves.push(async (batch: BatchHandler) => {
+                const ref = db.collection('pixl').doc('pixlRewards').collection('pixlRewardEvents').doc(reward.id);
+                await batch.addAsync(ref, reward, { merge: true });
+              });
+            }
           }
 
           // new order

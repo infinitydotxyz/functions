@@ -412,7 +412,7 @@ export type DailyStats = DailyChainStats | DailyUserStats | DailyChainUserStats 
 
 export type SalesStats = ChainStats | UserStats | ChainUserStats | TotalStats | DailyStats;
 
-interface OrderStats {
+export interface OrderStats {
   numListings: number;
   numListingsBelowFloor: number;
   numListingsNearFloor: number;
@@ -558,14 +558,14 @@ export const getDefaultChainUserOrderStats = (data: { user: string; chainId: str
 
 export const toDaily = <
   T extends
-    | ChainStats
-    | UserStats
-    | ChainUserStats
-    | TotalStats
-    | ChainOrderStats
-    | UserOrderStats
-    | ChainUserOrderStats
-    | TotalOrderStats
+  | ChainStats
+  | UserStats
+  | ChainUserStats
+  | TotalStats
+  | ChainOrderStats
+  | UserOrderStats
+  | ChainUserOrderStats
+  | TotalOrderStats
 >(
   timestamp: number,
   stats: T

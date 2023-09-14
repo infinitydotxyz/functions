@@ -558,14 +558,14 @@ export const getDefaultChainUserOrderStats = (data: { user: string; chainId: str
 
 export const toDaily = <
   T extends
-  | ChainStats
-  | UserStats
-  | ChainUserStats
-  | TotalStats
-  | ChainOrderStats
-  | UserOrderStats
-  | ChainUserOrderStats
-  | TotalOrderStats
+    | ChainStats
+    | UserStats
+    | ChainUserStats
+    | TotalStats
+    | ChainOrderStats
+    | UserOrderStats
+    | ChainUserOrderStats
+    | TotalOrderStats
 >(
   timestamp: number,
   stats: T

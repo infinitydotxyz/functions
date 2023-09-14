@@ -180,8 +180,10 @@ const handleOrderReward = async (firestore: FirebaseFirestore.Firestore, event: 
   const xflBalance = await getBalance(contract, event.user, { blockTag: blockNumber });
   const bonus = getBonusLevel(xflBalance);
   const minutesActive = (event.end.timestamp - event.start.timestamp) / ONE_MIN;
-  const startBasePoints = event.start.priceUsd <= event.start.floorPriceUsd ? Math.floor(event.start.priceUsd * minutesActive) : 0;
-  const endBasePoints = event.end.priceUsd <= event.end.floorPriceUsd ? Math.floor(event.end.priceUsd * minutesActive) : 0;
+  const startBasePoints =
+    event.start.priceUsd <= event.start.floorPriceUsd ? Math.floor(event.start.priceUsd * minutesActive) : 0;
+  const endBasePoints =
+    event.end.priceUsd <= event.end.floorPriceUsd ? Math.floor(event.end.priceUsd * minutesActive) : 0;
 
   // give the user the best of the start and end
   const basePoints = Math.max(startBasePoints, endBasePoints);

@@ -179,7 +179,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             const endPrice = nextOrder.mostRecentEvent.priceUsd;
             const endFloor = nextOrder.mostRecentEvent.floorPriceUsd;
 
-            if (startPrice > startFloor || endPrice > endFloor) {
+            if (startPrice <= startFloor || endPrice <= endFloor) {
               const reward: OrderRewardEvent = {
                 kind: 'ORDER_REWARD',
                 chainId: order.chainId,

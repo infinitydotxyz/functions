@@ -68,7 +68,7 @@ export class TriggerOrderRewardUpdateQueue extends AbstractProcess<JobData, JobR
             id: BigNumber.from(item.data.mostRecentEvent.id).add(1).toString(),
             mostRecentEventId: item.data.mostRecentEvent.id,
             orderId: item.data.id,
-            timestamp: Date.now() - ONE_MIN,
+            timestamp: Date.now() - ONE_MIN, // subtract a min so reservoir events can be up to 1 min behind
             processed: false
           };
 

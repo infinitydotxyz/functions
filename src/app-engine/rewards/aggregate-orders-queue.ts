@@ -12,6 +12,7 @@ import { OrderStatEvent } from '@/lib/rewards-v2/orders/types';
 import {
   ChainOrderStats,
   ChainUserOrderStats,
+  OrderStats,
   OrdersStats,
   TotalOrderStats,
   UserOrderStats,
@@ -33,115 +34,88 @@ interface JobResult {
   status: 'completed' | 'skipped' | 'errored';
 }
 
-const updateSource = (data: OrderStatEvent, source: OrdersStats) => {
+const getChanges = (data: OrderStatEvent) => {
   const isListing = data.isListing;
   const isNew = data.kind === 'NEW_ORDER';
-  const isActive = data.kind === 'NEW_ORDER' || data.kind === 'ORDER_ACTIVE';
-  const isInactive = data.kind === 'ORDER_INACTIVE';
+  const isActive = data.isActive;
+  const wasActive = data.wasActive;
+  const isCancelled = data.kind === 'ORDER_CANCELLED';
+  const wasCancelled = data.wasCancelled;
   const isNearFloor = data.isNearFloor;
   const isBelowFloor = data.isBelowFloor;
-
-  const isCancelled = data.kind === 'ORDER_CANCELLED';
+  const wasNearFloor = data.wasNearFloor;
+  const wasBelowFloor = data.wasBelowFloor;
   const isCollectionBid = data.isCollectionBid;
 
-  if (isListing) {
-    // new listings
-    if (isNew) {
-      source.numListings += 1;
-    }
-    if (isNew && isBelowFloor) {
-      source.numListingsBelowFloor += 1;
-    }
-    if (isNew && isNearFloor) {
-      source.numListingsNearFloor += 1;
-    }
+  const activeFlipped = isActive !== wasActive;
+  const floorFlipped = isBelowFloor !== wasBelowFloor;
+  const nearFloorFlipped = isNearFloor !== wasNearFloor;
 
-    // listings
-    if (isActive) {
-      source.numActiveListings += 1;
-    } else if (!isInactive) {
-      source.numActiveListings -= 1;
-    }
-    if (isActive && isBelowFloor) {
-      source.numActiveListingsBelowFloor += 1;
-    } else if (isInactive && isBelowFloor) {
-      source.numActiveListingsBelowFloor -= 1;
-    }
-    if (isActive && isNearFloor) {
-      source.numActiveListingsNearFloor += 1;
-    } else if (isInactive && isNearFloor) {
-      source.numActiveListingsNearFloor -= 1;
-    }
-  }
+  const activeFlippedPositive = activeFlipped && isActive;
+  const floorFlippedPositive = floorFlipped && isBelowFloor;
+  const nearFloorFlippedPositive = nearFloorFlipped && isNearFloor;
 
-  if (!isListing) {
-    // new bids
-    if (isNew) {
-      source.numBids += 1;
-    }
-    if (isNew && isBelowFloor) {
-      source.numBidsBelowFloor += 1;
-    }
-    if (isNew && isNearFloor) {
-      source.numBidsNearFloor += 1;
-    }
+  const activeValue = activeFlipped && activeFlippedPositive ? 1 : activeFlipped ? -1 : 0;
+  const belowFloorValue = floorFlipped && floorFlippedPositive ? 1 : floorFlipped ? -1 : 0;
+  const nearFloorValue = nearFloorFlipped && nearFloorFlippedPositive ? 1 : floorFlipped ? -1 : 0;
 
-    // bids
-    if (isActive) {
-      source.numActiveBids += 1;
-    } else if (isInactive) {
-      source.numActiveBids -= 1;
-    }
-    if (isActive && isBelowFloor) {
-      source.numActiveBidsBelowFloor += 1;
-    } else if (isInactive && isBelowFloor) {
-      source.numActiveBidsBelowFloor -= 1;
-    }
-    if (isActive && isNearFloor) {
-      source.numActiveBidsNearFloor += 1;
-    } else if (isInactive && isNearFloor) {
-      source.numActiveBidsNearFloor -= 1;
-    }
+  const wasActiveAndBelowFloor = wasActive && wasBelowFloor;
+  const isActiveAndBelowFloor = isActive && isBelowFloor;
+  const activeAndBelowFloorFlipped = isActiveAndBelowFloor !== wasActiveAndBelowFloor;
+  const activeAndBelowFloorFlippedPositive = activeAndBelowFloorFlipped && isActiveAndBelowFloor;
+  const activeAndBelowFloorValue =
+    activeAndBelowFloorFlipped && activeAndBelowFloorFlippedPositive ? 1 : activeAndBelowFloorFlipped ? -1 : 0;
 
-    // new collection bids
-    if (isNew && isCollectionBid) {
-      source.numCollectionBids += 1;
-    }
-    if (isNew && isCollectionBid && isNearFloor) {
-      source.numCollectionBidsNearFloor += 1;
-    }
-    if (isNew && isCollectionBid && isBelowFloor) {
-      source.numCollectionBidsBelowFloor += 1;
-    }
+  const wasActiveAndNearFloor = wasActive && wasNearFloor;
+  const isActiveAndNearFloor = isActive && isNearFloor;
+  const activeAndNearFloorFlipped = isActiveAndNearFloor !== wasActiveAndNearFloor;
+  const activeAndNearFloorFlippedPositive = activeAndNearFloorFlipped && isActiveAndNearFloor;
+  const activeAndNearFloorValue =
+    activeAndNearFloorFlipped && activeAndNearFloorFlippedPositive ? 1 : activeAndNearFloorFlipped ? -1 : 0;
 
-    // new active collection bids
-    if (isActive && isCollectionBid) {
-      source.numActiveCollectionBids += 1;
-    } else if (isInactive && isCollectionBid) {
-      source.numActiveCollectionBids -= 1;
-    }
-    if (isActive && isCollectionBid && isNearFloor) {
-      source.numActiveCollectionBidsNearFloor += 1;
-    } else if (isInactive && isCollectionBid && isNearFloor) {
-      source.numActiveCollectionBidsNearFloor -= 1;
-    }
-    if (isActive && isCollectionBid && isBelowFloor) {
-      source.numActiveCollectionBidsBelowFloor += 1;
-    } else if (isInactive && isCollectionBid && isBelowFloor) {
-      source.numActiveCollectionBidsBelowFloor -= 1;
-    }
-  }
+  const cancelledFlipped = wasCancelled !== isCancelled;
+  const cancelledFlippedPositive = isCancelled && cancelledFlipped;
+  const cancelledValue = cancelledFlipped && cancelledFlippedPositive ? 1 : cancelledFlipped ? -1 : 0;
 
-  if (isCancelled) {
-    source.numCancelledOrders += 1;
-    if (isListing) {
-      source.numCancelledListings += 1;
-    } else {
-      source.numCancelledBids += 1;
-      if (isCollectionBid) {
-        source.numCancelledCollectionBids += 1;
-      }
-    }
+  const stat: OrderStats = {
+    numListings: isListing && isNew ? 1 : 0,
+    numListingsBelowFloor: isListing ? belowFloorValue : 0,
+    numListingsNearFloor: isListing ? nearFloorValue : 0,
+
+    numActiveListings: isListing ? activeValue : 0,
+    numActiveListingsBelowFloor: isListing ? activeAndBelowFloorValue : 0,
+    numActiveListingsNearFloor: isListing ? activeAndNearFloorValue : 0,
+
+    numBids: !isListing && isNew ? 1 : 0,
+    numBidsBelowFloor: !isListing ? belowFloorValue : 0,
+    numBidsNearFloor: !isListing ? nearFloorValue : 0,
+
+    numActiveBids: !isListing ? activeValue : 0,
+    numActiveBidsBelowFloor: !isListing ? activeAndBelowFloorValue : 0,
+    numActiveBidsNearFloor: !isListing ? activeAndNearFloorValue : 0,
+
+    numCollectionBids: !isListing && isCollectionBid ? activeValue : 0,
+    numCollectionBidsBelowFloor: !isListing && isCollectionBid ? activeAndBelowFloorValue : 0,
+    numCollectionBidsNearFloor: !isListing && isCollectionBid ? activeAndNearFloorValue : 0,
+
+    numActiveCollectionBids: !isListing && isCollectionBid ? activeValue : 0,
+    numActiveCollectionBidsBelowFloor: !isListing && isCollectionBid ? activeAndBelowFloorValue : 0,
+    numActiveCollectionBidsNearFloor: !isListing && isCollectionBid ? activeAndNearFloorValue : 0,
+
+    numCancelledListings: isListing ? cancelledValue : 0,
+    numCancelledBids: !isListing ? cancelledValue : 0,
+    numCancelledCollectionBids: !isListing && isCollectionBid ? cancelledValue : 0,
+    numCancelledOrders: cancelledValue
+  };
+
+  return stat;
+};
+
+const updateSource = (data: OrderStatEvent, source: OrdersStats) => {
+  const changes = getChanges(data);
+
+  for (const key of Object.keys(changes) as (keyof typeof changes)[]) {
+    source[key] += changes[key];
   }
 };
 

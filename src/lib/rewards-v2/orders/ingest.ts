@@ -100,7 +100,7 @@ export async function* streamEvents(
 function transformEvent(chainId: string, event: AskEventV3 | BidEventV3, blockNumber: number) {
   const isBid = 'bid' in event;
   const order = isBid ? event.bid : event.order;
-  const price = order.price?.netAmount ?? order.price?.amount;
+  const price = order.price?.amount ?? order.price?.netAmount;
   const priceUsd = price?.usd;
 
   if (!priceUsd) {
@@ -210,8 +210,8 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     const floorAsk = response.data.stats?.market?.floorAsk;
     const topBid = response.data.stats?.market?.topBid;
 
-    const floorPrice = floorAsk?.price?.netAmount ?? floorAsk?.price?.amount;
-    const topBidPrice = topBid?.price?.netAmount ?? topBid?.price?.amount;
+    const floorPrice = floorAsk?.price?.amount ?? floorAsk?.price?.netAmount;
+    const topBidPrice = topBid?.price?.amount ?? topBid?.price?.netAmount;
 
     const floorPriceUsd = floorPrice?.usd ?? 0;
     const topBidPriceUsd = topBidPrice?.usd ?? 0;

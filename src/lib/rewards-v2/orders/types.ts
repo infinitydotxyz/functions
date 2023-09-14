@@ -74,6 +74,10 @@ export interface OrderSnap {
   chainId: string;
   isListing: boolean;
   expiresAt: number;
+  isCancelled: boolean;
+  isBelowFloor: boolean;
+  isNearFloor: boolean;
+  isActive: boolean;
   priceUsd: number;
   maker: string;
   collection: string;
@@ -87,12 +91,18 @@ export interface OrderSnap {
 // new orders are assumed to be active
 export interface OrderStatEvent {
   kind: 'NEW_ORDER' | 'ORDER_ACTIVE' | 'ORDER_INACTIVE' | 'ORDER_CANCELLED';
+  isActive: boolean;
+  wasActive: boolean;
   chainId: string;
   user: string;
   id: string;
+  orderId: string;
   isListing: boolean;
+  wasBelowFloor: boolean;
   isBelowFloor: boolean;
+  wasNearFloor: boolean;
   isNearFloor: boolean;
+  wasCancelled: boolean;
   isCollectionBid: boolean;
   timestamp: number;
   processed: boolean;

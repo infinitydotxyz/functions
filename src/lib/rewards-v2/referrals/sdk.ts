@@ -413,7 +413,7 @@ export type DailyStats = DailyChainStats | DailyUserStats | DailyChainUserStats 
 export type SalesStats = ChainStats | UserStats | ChainUserStats | TotalStats | DailyStats;
 
 export interface OrderStats {
-  numListings: number;
+  numListings: number; //
   numListingsBelowFloor: number;
   numListingsNearFloor: number;
 
@@ -421,7 +421,7 @@ export interface OrderStats {
   numActiveListingsBelowFloor: number;
   numActiveListingsNearFloor: number;
 
-  numBids: number;
+  numBids: number; //
   numBidsBelowFloor: number;
   numBidsNearFloor: number;
 
@@ -430,8 +430,8 @@ export interface OrderStats {
   numActiveBidsNearFloor: number;
 
   numCollectionBids: number;
-  numCollectionBidsNearFloor: number;
   numCollectionBidsBelowFloor: number;
+  numCollectionBidsNearFloor: number;
 
   numActiveCollectionBids: number;
   numActiveCollectionBidsBelowFloor: number;

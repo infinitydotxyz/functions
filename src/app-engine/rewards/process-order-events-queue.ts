@@ -61,7 +61,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
         };
         const orderEventsQuery = orderEventsRef.where('processed', '==', false);
         const orderSnap = await orderRef.get();
-        let order = orderSnap.data();
+        let order: OrderSnap | undefined = orderSnap.data();
         const orderEventsSnap = await orderEventsQuery.get();
         checkAbort();
         const orderEvents = orderEventsSnap.docs
@@ -119,7 +119,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             continue;
           }
 
-          let nextOrder;
+          let nextOrder: OrderSnap;
           if (isUpdate) {
             if (!order) {
               throw new Error(`Received UPDATE_ORDER_REWARDS event before order has been created`);
@@ -155,6 +155,10 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               expiresAt: data.expiresAt,
               priceUsd: data.priceUsd,
               collection: data.collection,
+              isCancelled: order?.isCancelled || data.status === 'cancelled',
+              isBelowFloor: isBelowFloor(data),
+              isNearFloor: isNearFloor(data),
+              isActive: data.status === 'active',
               isFillable: isFillable(data.status),
               status: data.status,
               mostRecentEvent: data,
@@ -214,10 +218,16 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             const newOrderEvent: OrderStatEvent = {
               kind: 'NEW_ORDER',
               id: nextOrder.id,
+              orderId: nextOrder.id,
               chainId: nextOrder.chainId,
               user: nextOrder.maker,
+              isActive: true,
+              wasActive: false,
+              wasCancelled: false,
               isListing: nextOrder.isListing,
+              wasBelowFloor: false,
               isBelowFloor: isBelowFloor(nextOrder.mostRecentEvent),
+              wasNearFloor: false,
               isNearFloor: isNearFloor(nextOrder.mostRecentEvent),
               isCollectionBid: nextOrder.mostRecentEvent.isCollectionBid,
               timestamp: Date.now(),
@@ -238,8 +248,14 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               kind: 'ORDER_INACTIVE',
               chainId: nextOrder.chainId,
               user: nextOrder.maker,
+              orderId: nextOrder.id,
               id: nextOrder.mostRecentEvent.id,
               isListing: nextOrder.isListing,
+              isActive: nextOrder.isActive,
+              wasActive: order.isActive,
+              wasCancelled: order.isCancelled,
+              wasBelowFloor: isBelowFloor(order.mostRecentEvent),
+              wasNearFloor: isNearFloor(order.mostRecentEvent),
               isBelowFloor: isBelowFloor(nextOrder.mostRecentEvent),
               isNearFloor: isNearFloor(nextOrder.mostRecentEvent),
               isCollectionBid: nextOrder.mostRecentEvent.isCollectionBid,
@@ -261,8 +277,14 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               kind: 'ORDER_ACTIVE',
               chainId: nextOrder.chainId,
               user: nextOrder.maker,
+              orderId: nextOrder.id,
               id: nextOrder.mostRecentEvent.id,
               isListing: nextOrder.isListing,
+              isActive: nextOrder.isActive,
+              wasActive: order.isActive,
+              wasCancelled: order.isCancelled,
+              wasBelowFloor: isBelowFloor(order.mostRecentEvent),
+              wasNearFloor: isNearFloor(order.mostRecentEvent),
               isBelowFloor: isBelowFloor(nextOrder.mostRecentEvent),
               isNearFloor: isNearFloor(nextOrder.mostRecentEvent),
               isCollectionBid: nextOrder.mostRecentEvent.isCollectionBid,
@@ -284,8 +306,14 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               kind: 'ORDER_CANCELLED',
               chainId: nextOrder.chainId,
               user: nextOrder.maker,
+              orderId: nextOrder.id,
               id: nextOrder.mostRecentEvent.id,
               isListing: nextOrder.isListing,
+              isActive: nextOrder.isActive,
+              wasActive: order.isActive,
+              wasCancelled: order.isCancelled,
+              wasBelowFloor: isBelowFloor(order.mostRecentEvent),
+              wasNearFloor: isNearFloor(order.mostRecentEvent),
               isBelowFloor: isBelowFloor(nextOrder.mostRecentEvent),
               isNearFloor: isNearFloor(nextOrder.mostRecentEvent),
               isCollectionBid: nextOrder.mostRecentEvent.isCollectionBid,

@@ -21,7 +21,12 @@ import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
 import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
 import { AggregateBuysQueue } from './rewards/aggregate-buys-queue';
+import { AggregateOrdersQueue } from './rewards/aggregate-orders-queue';
+import { IngestOrderEventsQueue } from './rewards/ingest-order-events-queue';
+import { OrderEventsTriggerQueue } from './rewards/orders-events-trigger-queue';
+import { ProcessOrderEventsQueue } from './rewards/process-order-events-queue';
 import { RewardEventsQueue } from './rewards/rewards-queue';
+import { TriggerOrderRewardUpdateQueue } from './rewards/trigger-order-reward-update-queue';
 import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
 import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
 
@@ -37,7 +42,7 @@ const getSupportedCollectionsProvider = async () => {
 
 async function main() {
   const db = getDb();
-  const promises = [];
+  const promises: Promise<unknown>[] = [];
 
   if (config.components.validateOrderbook.enabled) {
     await start();
@@ -219,9 +224,41 @@ async function main() {
      * Initialize on chain event processing - these are not chain specific
      */
     const eventProcessorsPromises = initializeIndexerEventProcessors();
-    promises.push(eventProcessorsPromises);
+    promises.push(...eventProcessorsPromises);
   }
 
+  if (config.components.ingestOrderEvents.enabled) {
+    logger.log('ingest-order-events', `Starting order event ingestion!`);
+    const ingestOrderEventQueues: IngestOrderEventsQueue[] = [];
+    for (const chainId of config.supportedChains) {
+      for (const type of ['ask', 'bid'] as const) {
+        const queue = new IngestOrderEventsQueue(`ingest-order-events`, chainId, type, redis, {
+          enableMetrics: false,
+          concurrency: 1,
+          debug: true,
+          attempts: 1
+        });
+        ingestOrderEventQueues.push(queue);
+      }
+    }
+
+    const trigger = async () => {
+      const ingestOrderEventPromises = ingestOrderEventQueues.map((queue) => {
+        return queue.add({
+          id: nanoid()
+        });
+      });
+
+      await Promise.all(ingestOrderEventPromises);
+    };
+
+    cron.schedule('*/15 * * * * *', async () => {
+      logger.log('ingest-order-events', `Triggering order event ingestion!`);
+      await trigger();
+    });
+    await trigger();
+    promises.push(...ingestOrderEventQueues.map((item) => item.run()));
+  }
   if (config.components.rewards.enabled) {
     logger.log('rewards', `Starting rewards event processing!`);
     const rewardEventsQueue = new RewardEventsQueue('reward-events-queue', redis, {
@@ -252,6 +289,34 @@ async function main() {
       attempts: 1
     });
 
+    const orderEventsQueue = new ProcessOrderEventsQueue('process-order-events-queue', redis, {
+      enableMetrics: false,
+      concurrency: 10,
+      debug: true,
+      attempts: 1
+    });
+
+    const orderEventsTriggerQueue = new OrderEventsTriggerQueue('order-events-trigger-queue', orderEventsQueue, redis, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+
+    const aggregateOrdersQueue = new AggregateOrdersQueue('aggregate-orders-queue', redis, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+
+    const triggerOrderRewardUpdate = new TriggerOrderRewardUpdateQueue('trigger-order-reward-update-queue', redis, {
+      enableMetrics: false,
+      concurrency: 1,
+      debug: true,
+      attempts: 1
+    });
+
     const trigger = async () => {
       const rewardEventsQueuePromise = rewardEventsQueue.add({
         id: nanoid()
@@ -262,19 +327,50 @@ async function main() {
       const aggregateBuysPromise = aggregateBuysQueue.add({
         id: nanoid()
       });
-      await Promise.allSettled([rewardEventsQueuePromise, userRewardsTriggerQueuePromise, aggregateBuysPromise]);
+      const aggregateOrdersPromise = aggregateOrdersQueue.add({
+        id: nanoid()
+      });
+      const orderEventsTriggerPromise = orderEventsTriggerQueue.add({
+        id: nanoid()
+      });
+      await Promise.allSettled([
+        rewardEventsQueuePromise,
+        userRewardsTriggerQueuePromise,
+        aggregateBuysPromise,
+        aggregateOrdersPromise,
+        orderEventsTriggerPromise
+      ]);
     };
 
     cron.schedule('*/15 * * * * *', async () => {
       logger.log('rewards', `Triggering rewards event processing!`);
       await trigger();
     });
+
+    const triggerFiveMinQueue = async () => {
+      const promises = [
+        triggerOrderRewardUpdate.add({
+          id: nanoid()
+        })
+      ];
+      await Promise.all(promises);
+    };
+
+    cron.schedule('*/5 * * * *', async () => {
+      logger.log('rewards', `Triggering order reward update!`);
+      await triggerFiveMinQueue();
+    });
     await trigger();
+    await triggerFiveMinQueue();
     promises.push(
       rewardEventsQueue.run(),
       userRewardsTriggerQueue.run(),
       userRewardsQueue.run(),
-      aggregateBuysQueue.run()
+      aggregateBuysQueue.run(),
+      aggregateOrdersQueue.run(),
+      orderEventsQueue.run(),
+      orderEventsTriggerQueue.run(),
+      triggerOrderRewardUpdate.run()
     );
   }
 

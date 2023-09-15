@@ -67,6 +67,7 @@
     "nanoid": "^3.3.4",
     "node-cron": "^3.0.2",
     "p-queue": "^6.6.2",
+    "p-throttle": "4.1.1",
     "pg-promise": "^11.0.2",
     "phin": "^3.6.1",
     "quick-lru": "^5.1.1",

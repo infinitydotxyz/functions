@@ -3,7 +3,7 @@ import { BigNumber } from 'ethers';
 import Redis from 'ioredis';
 import PQueue from 'p-queue';
 
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { ONE_HOUR, ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { streamQueryWithRef } from '@/firestore/stream-query';
@@ -55,7 +55,7 @@ export class TriggerOrderRewardUpdateQueue extends AbstractProcess<JobData, JobR
           .collection('pixlOrders') as CollRef<OrderSnap>;
         const query = ordersCollRef
           .where('eligibleForRewards', '==', true)
-          .where('lastRewardTimestamp', '<', Date.now() - ONE_MIN * 10)
+          .where('lastRewardTimestamp', '<', Date.now() - ONE_HOUR)
           .orderBy('lastRewardTimestamp', 'asc')
           .orderBy('id', 'asc');
 

@@ -1,7 +1,7 @@
 import { Job } from 'bullmq';
 import Redis from 'ioredis';
 
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { ONE_HOUR, ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
 import { DocRef } from '@/firestore/types';
@@ -73,8 +73,8 @@ export class IngestOrderEventsQueue extends AbstractProcess<IngestOrderEventsJob
           },
           data: {
             continuation: '',
-            startTimestamp: Date.now(),
-            mostRecentEventId: '0'
+            startTimestamp: Date.now() - ONE_HOUR,
+            mostRecentEventId: 0
           }
         };
         await ingestOrderEvents(sync, checkAbort, this.logger);

@@ -7,6 +7,6 @@ export interface SyncMetadata {
   data: {
     continuation: string;
     startTimestamp: number;
-    mostRecentEventId: string;
+    mostRecentEventId: number;
   };
 }

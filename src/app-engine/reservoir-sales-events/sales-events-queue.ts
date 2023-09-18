@@ -31,8 +31,6 @@ export type SalesJobResult = WithTiming<{
 
 const transformRealtimeEvent = (chainId: string, item: SaleResponse): FlattenedNFTSale => {
   const amount = item.data.price?.amount ?? item.data.price?.netAmount;
-  console.log(`Received realtime event`, JSON.stringify(item, null, 2));
-
   return {
     id: item.data.id,
     txhash: item.data.txHash,

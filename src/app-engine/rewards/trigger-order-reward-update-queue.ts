@@ -1,5 +1,4 @@
 import { Job } from 'bullmq';
-import { BigNumber } from 'ethers';
 import Redis from 'ioredis';
 import PQueue from 'p-queue';
 

@@ -2,12 +2,11 @@ import EventEmitter from 'events';
 import WS from 'ws';
 
 import { Logger, getComponentLogger } from '@/lib/logger';
+import { sleep } from '@/lib/utils';
 
 import { getClientUrl } from '../api/get-client';
 import { ResponseByEvent, Responses } from './response';
 import { Subscriptions } from './subscription';
-import { sleep } from '@/lib/utils';
-
 
 export type Handler<T extends Subscriptions> = (data: ResponseByEvent[T['event']]) => void;
 
@@ -38,11 +37,10 @@ export class ReservoirWebsocketClient {
     this.url = baseUrl;
     this.ws = new WS(this.url);
     this.isConnected = false;
-    this.emitter = new EventEmitter;
+    this.emitter = new EventEmitter();
   }
 
   public connect = async <T extends Subscriptions>(sub: Sub<T>, attemptReconnect = true, attempt = 0) => {
-
     if (this.isConnected) {
       throw new Error(`Cannot connect a client more than once`);
     }
@@ -54,7 +52,7 @@ export class ReservoirWebsocketClient {
     }
 
     this.isConnected = true;
-    await new Promise<void>((resolve, reject,) => {
+    await new Promise<void>((resolve, reject) => {
       this.subscription = sub as unknown as Sub<Subscriptions>;
       let hasResolved = false;
 
@@ -101,7 +99,9 @@ export class ReservoirWebsocketClient {
         this.ws = new WS(this.url);
         this.connect(this.subscription, attemptReconnect, attempt + 1).then(() => {
           this.logger.info(`Reconnected!`);
-        });
+        }).catch((err) => {
+          this.logger.error(`Failed to reconnect ${err}`);
+        })
       });
 
       this.ws.on('error', (err) => {
@@ -129,7 +129,7 @@ export class ReservoirWebsocketClient {
     this.emitter.on(event, handler);
     return () => {
       this.emitter.off(event, handler);
-    }
+    };
   }
 
   protected onDisconnect() {
@@ -173,5 +173,5 @@ export class ReservoirWebsocketClient {
       this.shutdown = true;
     }
     this.ws.close();
-  }
+  };
 }

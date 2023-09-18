@@ -1,6 +1,8 @@
 import { BigNumber } from 'ethers';
 import pThrottle from 'p-throttle';
 
+import { ONE_MIN } from '@infinityxyz/lib/utils';
+
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
 import { getDb } from '@/firestore/db';
@@ -10,14 +12,13 @@ import { getEvents as getReservoirAskEvents } from '@/lib/reservoir/api/events/a
 import { getEvents as getReservoirBidEvents } from '@/lib/reservoir/api/events/bid-events';
 import { AskEventV3, BidEventV3 } from '@/lib/reservoir/api/events/types';
 import { ReservoirClient } from '@/lib/reservoir/api/get-client';
+import { ReservoirWebsocketClient } from '@/lib/reservoir/ws/client';
+import { AskResponse, BidResponse } from '@/lib/reservoir/ws/response';
+import { AskSubMessage, BidSubMessage } from '@/lib/reservoir/ws/subscription';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
 import { SyncMetadata } from './sync';
 import { OrderActiveEvent, OrderInactiveEvent } from './types';
-import { ONE_MIN } from '@infinityxyz/lib/utils';
-import { ReservoirWebsocketClient } from '@/lib/reservoir/ws/client';
-import { AskSubMessage, BidSubMessage } from '@/lib/reservoir/ws/subscription';
-import { AskResponse, BidResponse } from '@/lib/reservoir/ws/response';
 
 export async function* streamEvents(
   client: ReservoirClient,
@@ -51,7 +52,10 @@ export async function* streamEvents(
 
       const hasNextPage = !!page.data.continuation;
       const continuation = !page.data.continuation ? sync.data.continuation : page.data.continuation;
-      const mostRecentEventId = events.length > 0 ? new Date(events[events.length - 1].event.createdAt || sync.data.mostRecentEventId).getTime() : sync.data.mostRecentEventId;
+      const mostRecentEventId =
+        events.length > 0
+          ? new Date(events[events.length - 1].event.createdAt || sync.data.mostRecentEventId).getTime()
+          : sync.data.mostRecentEventId;
       return {
         events,
         sync: {
@@ -90,7 +94,11 @@ export async function* streamEvents(
     pageNum += 1;
     numEvents += events.length;
     sync = updatedSync;
-    logger.info(`Page ${pageNum}. Events ${numEvents} Curr Event: ${sync.data.mostRecentEventId}. Behind by ${Math.floor((Date.now() - sync.data.mostRecentEventId) / 1000)} seconds`);
+    logger.info(
+      `Page ${pageNum}. Events ${numEvents} Curr Event: ${sync.data.mostRecentEventId}. Behind by ${Math.floor(
+        (Date.now() - sync.data.mostRecentEventId) / 1000
+      )} seconds`
+    );
 
     // load next page while current page is being processed
     nextPage = getPage(sync);
@@ -156,7 +164,7 @@ function transformEvent(chainId: string, event: AskEventV3 | BidEventV3, blockNu
   return orderInactiveEvent;
 }
 
-type BatchItem = (Omit<OrderInactiveEvent, 'floorPriceUsd'> | Omit<OrderActiveEvent, 'floorPriceUsd'>);
+type BatchItem = Omit<OrderInactiveEvent, 'floorPriceUsd'> | Omit<OrderActiveEvent, 'floorPriceUsd'>;
 type Batch = {
   events: BatchItem[];
   sync: SyncMetadata;
@@ -200,7 +208,11 @@ export async function* streamBatches(
   }
 }
 
-export const transformRealtimeEvent = (chainId: string, blockNumber: number, response: AskResponse | BidResponse): null | BatchItem => {
+export const transformRealtimeEvent = (
+  chainId: string,
+  blockNumber: number,
+  response: AskResponse | BidResponse
+): null | BatchItem => {
   const order = response.data;
   const isBid = order.side === 'buy';
   const price = order.price?.amount ?? order.price?.netAmount;
@@ -250,7 +262,7 @@ export const transformRealtimeEvent = (chainId: string, blockNumber: number, res
     maker: order.maker.toLowerCase()
   };
   return orderInactiveEvent;
-}
+};
 
 export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => void, logger: Logger) {
   const db = getDb();
@@ -259,11 +271,14 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
   let blockNumber = await provider.getBlockNumber();
 
   setInterval(() => {
-    provider.getBlockNumber().then((num) => {
-      blockNumber = num;
-    }).catch((err) => {
-      logger.warn(`Failed to get next block number ${err}`);
-    })
+    provider
+      .getBlockNumber()
+      .then((num) => {
+        blockNumber = num;
+      })
+      .catch((err) => {
+        logger.warn(`Failed to get next block number ${err}`);
+      });
   }, 15_000);
 
   const getCollectionStats = async (collection: string) => {
@@ -345,7 +360,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     sync = batch.sync;
   };
 
-  let BATCH_SIZE = 500;
+  const BATCH_SIZE = 500;
   while (sync.data.startTimestamp < Date.now() - 3 * ONE_MIN) {
     const endTimestamp = Date.now();
     const stream = streamBatches(sync, endTimestamp, blockNumber, BATCH_SIZE, checkAbort, logger);
@@ -362,7 +377,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
   }
 
   const wsClient = new ReservoirWebsocketClient(sync.metadata.chainId, config.reservoir.apiKey, { logger });
-  const getSub = (type: "ask" | 'bid') => {
+  const getSub = (type: 'ask' | 'bid') => {
     if (type === 'ask') {
       const sub: AskSubMessage = {
         type: 'subscribe',
@@ -380,10 +395,9 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       filters: {
         source: 'pixl.so'
       }
-    }
+    };
     return sub;
-  }
-
+  };
 
   const disconnectPromise = new Promise<number>((resolve) => {
     wsClient.on('disconnect', ({ timestamp }) => {
@@ -397,13 +411,11 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     });
   });
 
-
   let hasBackfilled = false;
   const realtimeBatch: Batch = {
     events: [],
     sync
   };
-
 
   let timer: NodeJS.Timer | null = null;
   const saveRealtimeItem = async (startTimestamp: number, event: BatchItem) => {
@@ -443,13 +455,13 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
             ...realtimeBatch.sync.data
           }
         }
-      }
+      };
       realtimeBatch.events = [];
 
       let successful = true;
       try {
         logger.log('Saving realtime batch...');
-        await saveBatch(batchCopy)
+        await saveBatch(batchCopy);
         logger.log('Saved realtime batch!');
       } catch (err) {
         logger.error(`Failed to save batch ${err}`);
@@ -458,8 +470,8 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       return {
         successful,
         batch: batchCopy
-      }
-    }
+      };
+    };
 
     if (hasBackfilled) {
       if (realtimeBatch.events.length > BATCH_SIZE) {
@@ -470,27 +482,32 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
         await save();
       } else if (!timer) {
         timer = setTimeout(async () => {
-          timer = null
+          timer = null;
           await save();
         }, 15_000);
       }
     }
-  }
+  };
 
   type Batch = {
     events: (Omit<OrderInactiveEvent, 'floorPriceUsd'> | Omit<OrderActiveEvent, 'floorPriceUsd'>)[];
     sync: SyncMetadata;
   };
-  await wsClient.connect({
-    event: getSub(sync.metadata.type),
-    handler: (item) => {
-      logger.log(`Received event! ${item.published_at}`);
-      const event = transformRealtimeEvent(sync.metadata.chainId, blockNumber, item);
-      if (event) {
-        saveRealtimeItem(item.published_at - ONE_MIN, event);
+  await wsClient.connect(
+    {
+      event: getSub(sync.metadata.type),
+      handler: (item) => {
+        logger.log(`Received event! ${item.published_at}`);
+        const event = transformRealtimeEvent(sync.metadata.chainId, blockNumber, item);
+        if (event) {
+          saveRealtimeItem(item.published_at - ONE_MIN, event).catch((err) => {
+            logger.error(`Failed to process realtime event ${err}`);
+          })
+        }
       }
-    }
-  }, false);
+    },
+    false
+  );
 
   const connectTimestamp = await connectPromise;
   // sync any events up to the timestamp we connected

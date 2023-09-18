@@ -106,15 +106,6 @@ export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = {
   59144: 'Linea'
 };
 
-const getBaseUrl = (chainId: number | string) => {
-  chainId = typeof chainId === 'string' ? parseInt(chainId) : chainId;
-  const networkName = chainIdToNetwork[chainId];
-  if (!networkName) {
-    return null;
-  }
-  return BASE_URL[networkName] || null;
-};
-
 export type ReservoirClient = <P extends Paths, M extends Methods<P>>(
   endpoint: P,
   method: M

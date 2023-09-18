@@ -203,7 +203,11 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
                 processed: false
               };
               saves.push(async (batch: BatchHandler) => {
-                const ref = db.collection('pixl').doc('pixlRewards').collection('pixlRewardEvents').doc(reward.id.toString());
+                const ref = db
+                  .collection('pixl')
+                  .doc('pixlRewards')
+                  .collection('pixlRewardEvents')
+                  .doc(reward.id.toString());
                 await batch.addAsync(ref, reward, { merge: true });
               });
             }

@@ -7,18 +7,15 @@ import { getDb } from '@/firestore/db';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders/validate-orders';
-import { AbstractProcess } from '@/lib/process/process.abstract';
 
 import { config } from '../config';
-import { Reservoir } from '../lib';
 import { start } from './api';
 import { initializeIndexerEventSyncing } from './indexer';
 import { initializeIndexerEventProcessors } from './indexer/initialize-event-processors';
 import { FirestoreDeletionProcess } from './purge-firestore-v2/process';
-import { JobData, QueueOfQueues } from './queue-of-queues';
 import { redis } from './redis';
 import { ReservoirOrderCacheQueue } from './reservoir-order-cache-queue';
-import { SalesEventsQueue, SalesJobData, SalesJobResult } from './reservoir-sales-events/sales-events-queue';
+import { SalesEventsQueue } from './reservoir-sales-events/sales-events-queue';
 import { AggregateBuysQueue } from './rewards/aggregate-buys-queue';
 import { AggregateOrdersQueue } from './rewards/aggregate-orders-queue';
 import { IngestOrderEventsQueue } from './rewards/ingest-order-events-queue';
@@ -118,42 +115,23 @@ async function main() {
   }
 
   if (config.components.syncSales.enabled) {
-    const initQueue = (id: string, queue: AbstractProcess<JobData<SalesJobData>, { id: string }>) => {
-      const salesEventsQueue = new SalesEventsQueue(id, redis, {
+    const initQueue = (chainId: string) => {
+      const salesEventsQueue = new SalesEventsQueue(chainId, redis, {
         enableMetrics: false,
         concurrency: 1,
         debug: true,
         attempts: 1
       });
-      salesEventsQueue.enqueueOnComplete(queue);
       return salesEventsQueue;
     };
 
-    const queue = new QueueOfQueues<SalesJobData, SalesJobResult>(redis, 'reservoir-sales-events-sync', initQueue, {
-      enableMetrics: false,
-      concurrency: 1,
-      debug: true,
-      attempts: 3
-    });
+    const salesQueues = config.supportedChains.map(initQueue);
 
     const trigger = async () => {
-      const syncsRef = Reservoir.Sales.SyncMetadata.getSaleEventSyncsRef(db);
-      const syncsQuery = syncsRef.where('metadata.isPaused', '==', false);
-      const syncs = await syncsQuery.get();
-
-      for (const doc of syncs.docs) {
-        const syncMetadata = doc.data();
-        if (syncMetadata) {
-          await queue.add({
-            id: `reservoir-sale-event-sync:${doc.ref.id}`,
-            queueId: `reservoir-sale-event-sync:${doc.ref.id}`,
-            job: {
-              id: `reservoir-sale-event-sync:${doc.ref.id}`,
-              syncMetadata: syncMetadata.metadata,
-              syncDocPath: doc.ref.path
-            }
-          });
-        }
+      for (const queue of salesQueues) {
+        await queue.add({
+          id: nanoid()
+        });
       }
     };
 
@@ -161,7 +139,7 @@ async function main() {
     cron.schedule('*/2 * * * *', async () => {
       await trigger();
     });
-    promises.push(queue.run());
+    promises.push(...salesQueues.map((item) => item.run()));
   }
 
   if (config.components.indexerEventSyncing.enabled) {

@@ -57,7 +57,7 @@ const getChanges = (data: OrderStatEvent) => {
 
   const activeValue = activeFlipped && activeFlippedPositive ? 1 : activeFlipped ? -1 : 0;
   const belowFloorValue = floorFlipped && floorFlippedPositive ? 1 : floorFlipped ? -1 : 0;
-  const nearFloorValue = nearFloorFlipped && nearFloorFlippedPositive ? 1 : floorFlipped ? -1 : 0;
+  const nearFloorValue = nearFloorFlipped && nearFloorFlippedPositive ? 1 : nearFloorFlipped ? -1 : 0;
 
   const wasActiveAndBelowFloor = wasActive && wasBelowFloor;
   const isActiveAndBelowFloor = isActive && isBelowFloor;

@@ -370,7 +370,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       logger.log(`Saved batch`);
 
       if (!hasNextPage) {
-        logger.log(`Fully synced!`);
+        logger.log(`Completed backfill part 1!`);
         break;
       }
     }
@@ -517,7 +517,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     await saveBatch(batch);
     logger.log(`Saved batch`);
     if (!hasNextPage) {
-      logger.log(`Fully synced!`);
+      logger.log(`Completed backfilling part 2!`);
       break;
     }
   }

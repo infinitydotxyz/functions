@@ -38,6 +38,7 @@ export class ReservoirWebsocketClient {
     this.ws = new WS(this.url);
     this.isConnected = false;
     this.emitter = new EventEmitter();
+    this.mostRecentEventTimestamp = 0
   }
 
   public connect = async <T extends Subscriptions>(sub: Sub<T>, attemptReconnect = true, attempt = 0) => {

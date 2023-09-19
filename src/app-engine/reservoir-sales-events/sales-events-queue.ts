@@ -235,7 +235,7 @@ export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResu
               })
             }
           }
-        });
+        }, false);
         await connectPromise;
         this.log('Starting backfilling process...');
         const result = await syncPage(db, sync, checkAbort);

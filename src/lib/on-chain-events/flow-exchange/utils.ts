@@ -15,7 +15,7 @@ export type ArrayifiedFlowOrder = [
   string
 ];
 export const decodeArrayifiedOrder = (chainId: ChainId, item: ArrayifiedFlowOrder): Flow.Order => {
-  const [isSellOrder, signer, constraints, arrayifiedNfts, [complication, currency], extraParams, sig] = item;
+  const [isSellOrder, signer, constraints, arrayifiedNfts, [complication, currency], extraParams] = item;
 
   const nfts: Flow.Types.OrderNFTs[] = arrayifiedNfts.map(
     ([collection, arrayifiedTokens]: [string, [BigNumberish, BigNumberish][]]) => {

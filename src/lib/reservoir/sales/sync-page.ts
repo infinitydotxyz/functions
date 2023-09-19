@@ -6,7 +6,7 @@ import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils
 
 import { BatchHandler } from '@/firestore/batch-handler';
 import { CollRef } from '@/firestore/types';
-import { logger } from '@/lib/logger';
+import { Logger, logger } from '@/lib/logger';
 import { BuyEvent } from '@/lib/rewards-v2/referrals/sdk';
 import { getProvider } from '@/lib/utils/ethersUtils';
 
@@ -17,16 +17,14 @@ import { SyncMetadata } from './types';
 export async function syncPage(
   db: FirebaseFirestore.Firestore,
   sync: SyncMetadata,
-  checkAbort: () => { abort: boolean }
+  checkAbort: () => { abort: boolean },
+  options?: { logger?: Logger }
 ) {
-  if (sync.metadata.isPaused) {
-    throw new Error('Paused');
-  }
-
   const { lastItemProcessed, numSales, lastItemProcessedTimestamp } = await processSales(
     db,
     { data: sync },
-    checkAbort
+    checkAbort,
+    options
   );
 
   if (!lastItemProcessed) {
@@ -116,14 +114,14 @@ export async function* getSales(
   }
 }
 
-const batchSaveToFirestore = async (
+export const batchSaveToFirestore = async (
   db: Firestore,
-  data: { saleData: Partial<FlattenedNFTSale>; chainId: ChainId }[]
+  data: { saleData: Partial<FlattenedNFTSale>; chainId: string }[]
 ) => {
   const nftSales = data.map(({ saleData: item, chainId }) => {
     const nftSaleEventV2: NftSaleEventV2 = {
       data: {
-        chainId: chainId,
+        chainId: chainId as ChainId,
         txHash: item.txhash ?? '',
         blockNumber: item.block_number ?? 0,
         collectionAddress: item.collection_address ?? '',
@@ -241,39 +239,36 @@ const batchSaveToFirestore = async (
 const processSales = async (
   db: Firestore,
   currentSync: { data: SyncMetadata },
-  checkAbort: () => { abort: boolean }
+  checkAbort: () => { abort: boolean },
+  options?: { logger?: Logger }
 ) => {
   let numSales = 0;
   const iterator = getSales(
     {
       lastIdProcessed: currentSync.data.data.lastItemProcessed,
-      startTimestamp: currentSync.data.data.endTimestamp,
-      collection: currentSync.data.metadata.collection
+      startTimestamp: currentSync.data.data.endTimestamp
     },
-    currentSync.data.metadata.chainId,
+    currentSync.data.metadata.chainId as ChainId,
     checkAbort
   );
   for await (const page of iterator) {
-    logger.log('sync-sale-events', `Sync - processing page with ${page.sales.length} sales`);
+    options?.logger?.info?.(`Sync - processing page with ${page.sales.length} sales`);
 
     const data = page.sales.map((item) => {
       return { saleData: item, chainId: currentSync.data.metadata.chainId };
     });
     const firstSaleBlockNumber = data[0].saleData.block_number;
     const lastSaleBlockNumber = data[data.length - 1].saleData.block_number;
-    logger.log(
-      'sync-sale-events',
-      `Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`
-    );
+    options?.logger?.info?.(`Saving ${data.length} sales from block ${firstSaleBlockNumber} to ${lastSaleBlockNumber}`);
     await batchSaveToFirestore(db, data);
-    logger.log('sync-sale-events', 'Saved to firestore');
+    options?.logger?.info?.('Saved to firestore');
 
     numSales += page.sales.length;
     if (page.complete) {
-      logger.log('sync-sale-events', `Hit end of page, waiting for all events to to saved`);
+      options?.logger?.info?.(`Hit end of page, waiting for all events to to saved`);
       return { lastItemProcessed: page.firstItemId, lastItemProcessedTimestamp: page.firstItemTimestamp, numSales };
     }
-    logger.log('sync-sale-events', `Not at end of page, continuing`);
+    options?.logger?.info?.(`Not at end of page, continuing`);
   }
 
   throw new Error('Failed to complete sync');

@@ -38,7 +38,8 @@
     "merge-sales": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=prod node -r dotenv/config ./dist/scripts/merge-sales.js",
     "update-order-status-events": "npm run clean && npm run build && npx cross-env node -r dotenv/config ./dist/scripts/update-order-status-events.js",
     "purge-firestore": "npm run clean && npm run build && INFINITY_NODE_ENV=prod node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js",
-    "purge-firestore:dev": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=dev node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js"
+    "purge-firestore:dev": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=dev node -r dotenv/config ./dist/scripts/purge-firestore-v2/index.js",
+    "sales": "npm run clean && npm run build && npx cross-env INFINITY_NODE_ENV=dev node -r dotenv/config ./dist/scripts/sales.js"
   },
   "engines": {
     "node": "16"
@@ -67,6 +68,7 @@
     "nanoid": "^3.3.4",
     "node-cron": "^3.0.2",
     "p-queue": "^6.6.2",
+    "p-throttle": "4.1.1",
     "pg-promise": "^11.0.2",
     "phin": "^3.6.1",
     "quick-lru": "^5.1.1",
@@ -92,7 +94,7 @@
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.1",
     "typescript": "^4.9.5",
-    "ws": "^8.13.0"
+    "ws": "^8.14.1"
   },
   "private": true,
   "_moduleAliases": {
@@ -100,5 +102,9 @@
     "@/config": "dist/config",
     "@/lib": "dist/lib",
     "@/app-engine": "dist/app-engine"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.7",
+    "utf-8-validate": "^5.0.10"
   }
 }

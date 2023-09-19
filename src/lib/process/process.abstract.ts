@@ -2,7 +2,7 @@ import { BulkJobOptions, Job, MetricsTime, Queue, QueueEvents, Worker } from 'bu
 import EventEmitter from 'events';
 import Redis from 'ioredis';
 
-import { logger } from '../logger';
+import { getComponentLogger, logger } from '../logger';
 import { JobDataType, ProcessJobResult, ProcessOptions, WithTiming } from './types';
 
 export abstract class AbstractProcess<T extends { id: string }, U> extends EventEmitter {
@@ -27,6 +27,10 @@ export abstract class AbstractProcess<T extends { id: string }, U> extends Event
   }
   warn(message: string) {
     logger.warn(this.queueName, message);
+  }
+
+  get logger() {
+    return getComponentLogger(this.queueName);
   }
 
   constructor(protected _db: Redis, protected queueName: string, options?: ProcessOptions) {

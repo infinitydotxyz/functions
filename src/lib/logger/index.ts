@@ -1,4 +1,4 @@
-import { Logger, LoggerOptions, createLogger, format, transports } from 'winston';
+import { LoggerOptions, Logger as WinstonLogger, createLogger, format, transports } from 'winston';
 
 const log = (level: 'error' | 'info' | 'warn') => {
   const options: LoggerOptions = {
@@ -14,7 +14,7 @@ const log = (level: 'error' | 'info' | 'warn') => {
 
   const logger = createLogger(options);
 
-  return (component: string, message: string, ...optionalParams: any[]): Logger => {
+  return (component: string, message: string, ...optionalParams: any[]): WinstonLogger => {
     const m = `${component} ${message} ${optionalParams.map((p) => JSON.stringify(p)).join(' ')}`;
     return logger.log(level, m, {
       component,
@@ -36,6 +36,8 @@ export const getComponentLogger = (component: string) => ({
   info: (message: string) => logger.info(component, message),
   warn: (message: string) => logger.warn(component, message)
 });
+
+export type Logger = ReturnType<typeof getComponentLogger>;
 
 process.on('unhandledRejection', (error) => {
   logger.error('process', `Unhandled rejection: ${error}`);

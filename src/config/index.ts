@@ -116,6 +116,9 @@ export const config = {
     rewards: {
       enabled: Number(getEnvVariable('PROCESS_REWARDS', false)) === 1
     },
+    ingestOrderEvents: {
+      enabled: Number(getEnvVariable('INGEST_ORDER_EVENTS', false)) === 1
+    },
     syncOrders: {
       enabled: Number(getEnvVariable('SYNC_ORDERS', false)) === 1
     },

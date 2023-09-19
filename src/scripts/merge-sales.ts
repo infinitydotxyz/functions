@@ -1,11 +1,11 @@
-import { getDb } from "../firestore/db";
-import { streamQueryWithRef } from "../firestore/stream-query";
-import { config } from "../config";
+import { config } from '../config';
+import { getDb } from '../firestore/db';
+import { streamQueryWithRef } from '../firestore/stream-query';
 
 async function main() {
   const db = getDb();
 
-  console.log(`Merging sales events. ENV: ${config.isDev ? "DEV" : "PROD"}`);
+  console.log(`Merging sales events. ENV: ${config.isDev ? 'DEV' : 'PROD'}`);
   const salesEvents = db.collection('pixl').doc('salesCollections').collection('salesEvents');
 
   const stream = streamQueryWithRef(salesEvents);

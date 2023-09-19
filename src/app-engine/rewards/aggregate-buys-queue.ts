@@ -80,7 +80,7 @@ export class AggregateBuysQueue extends AbstractProcess<AggregateBuysJobData, Ag
           .orderBy('timestamp', 'asc')
           .orderBy(FieldPath.documentId());
 
-        const stream = streamQueryPageWithRef(query, (item, ref) => [item.timestamp, ref]);
+        const stream = streamQueryPageWithRef(query, (item, ref) => [item.timestamp, ref], { pageSize: 50 });
         for await (const page of stream) {
           if (page.length === 0) {
             return;

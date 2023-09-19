@@ -203,7 +203,11 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
                 processed: false
               };
               saves.push(async (batch: BatchHandler) => {
-                const ref = db.collection('pixl').doc('pixlRewards').collection('pixlRewardEvents').doc(reward.id);
+                const ref = db
+                  .collection('pixl')
+                  .doc('pixlRewards')
+                  .collection('pixlRewardEvents')
+                  .doc(reward.id.toString());
                 await batch.addAsync(ref, reward, { merge: true });
               });
             }
@@ -217,7 +221,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
             // new order
             const newOrderEvent: OrderStatEvent = {
               kind: 'NEW_ORDER',
-              id: nextOrder.id,
+              id: nextOrder.mostRecentEvent.id,
               orderId: nextOrder.id,
               chainId: nextOrder.chainId,
               user: nextOrder.maker,
@@ -234,7 +238,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               processed: false
             };
             saves.push(async (batch: BatchHandler) => {
-              const ref = orderStatsCollRef.doc(newOrderEvent.id);
+              const ref = orderStatsCollRef.doc(newOrderEvent.id.toString());
               await batch.addAsync(ref, newOrderEvent, { merge: true });
             });
           }
@@ -263,7 +267,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               processed: false
             };
             saves.push(async (batch: BatchHandler) => {
-              const ref = orderStatsCollRef.doc(orderInactive.id);
+              const ref = orderStatsCollRef.doc(orderInactive.id.toString());
               await batch.addAsync(ref, orderInactive, { merge: true });
             });
           }
@@ -292,13 +296,13 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               processed: false
             };
             saves.push(async (batch: BatchHandler) => {
-              const ref = orderStatsCollRef.doc(orderActive.id);
+              const ref = orderStatsCollRef.doc(orderActive.id.toString());
               await batch.addAsync(ref, orderActive, { merge: true });
             });
           }
 
           // cancelled order
-          if (order && order.mostRecentEvent.status === 'cancelled') {
+          if (order && order.isCancelled === false && nextOrder.isCancelled === true) {
             if (isUpdate) {
               throw new Error(`Attempted to save an ORDER_CANCELLED event for an update. Order ${nextOrder.id}`);
             }
@@ -321,7 +325,7 @@ export class ProcessOrderEventsQueue extends AbstractProcess<ProcessOrderEventsJ
               processed: false
             };
             saves.push(async (batch: BatchHandler) => {
-              const ref = orderStatsCollRef.doc(orderInactive.id);
+              const ref = orderStatsCollRef.doc(orderInactive.id.toString());
               await batch.addAsync(ref, orderInactive, { merge: true });
             });
           }

@@ -2,7 +2,7 @@ export interface OrderInactiveEvent {
   kind: 'ORDER_INACTIVE';
   status: 'inactive' | 'expired' | 'cancelled' | 'filled';
   isListing: boolean;
-  id: string;
+  id: number;
   orderId: string;
   blockNumber: number;
   timestamp: number;
@@ -20,7 +20,7 @@ export interface OrderActiveEvent {
   kind: 'ORDER_ACTIVE';
   status: 'active';
   isListing: boolean;
-  id: string;
+  id: number;
   orderId: string;
   expiresAt: number;
   blockNumber: number;
@@ -36,9 +36,8 @@ export interface OrderActiveEvent {
 
 export interface UpdateOrderRewardsEvent {
   kind: 'UPDATE_ORDER_REWARDS';
-  id: string; // set to the order id of the most recent event + 1
-
-  mostRecentEventId: string;
+  id: number; // set to the order id of the most recent event + 1
+  mostRecentEventId: number;
   orderId: string;
   timestamp: number;
   processed: boolean;
@@ -48,7 +47,7 @@ export type OrderEvents = OrderActiveEvent | OrderInactiveEvent | UpdateOrderRew
 
 export interface OrderRewardEvent {
   kind: 'ORDER_REWARD';
-  id: string;
+  id: number;
   orderId: string;
   chainId: string;
   collection: string;
@@ -95,7 +94,7 @@ export interface OrderStatEvent {
   wasActive: boolean;
   chainId: string;
   user: string;
-  id: string;
+  id: number;
   orderId: string;
   isListing: boolean;
   wasBelowFloor: boolean;

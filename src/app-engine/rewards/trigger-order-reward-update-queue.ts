@@ -1,5 +1,4 @@
 import { Job } from 'bullmq';
-import { BigNumber } from 'ethers';
 import Redis from 'ioredis';
 import PQueue from 'p-queue';
 
@@ -65,7 +64,7 @@ export class TriggerOrderRewardUpdateQueue extends AbstractProcess<JobData, JobR
         for await (const item of stream) {
           const update: UpdateOrderRewardsEvent = {
             kind: 'UPDATE_ORDER_REWARDS',
-            id: BigNumber.from(item.data.mostRecentEvent.id).add(1).toString(),
+            id: item.data.mostRecentEvent.id + 1,
             mostRecentEventId: item.data.mostRecentEvent.id,
             orderId: item.data.id,
             timestamp: Date.now() - ONE_MIN, // subtract a min so reservoir events can be up to 1 min behind
@@ -77,7 +76,7 @@ export class TriggerOrderRewardUpdateQueue extends AbstractProcess<JobData, JobR
             .add(async () => {
               try {
                 numTriggered += 1;
-                await orderEventsRef.doc(update.id).create(update);
+                await orderEventsRef.doc(update.id.toString()).create(update);
               } catch (err) {
                 console.warn(`Failed to trigger an update for order ${item.data.id}`, err);
               }

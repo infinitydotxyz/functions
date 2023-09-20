@@ -4,12 +4,12 @@ import { ServiceAccount } from 'firebase-admin';
 import Redis from 'ioredis';
 import Redlock from 'redlock';
 
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 import * as serviceAccountDev from '../creds/nftc-dev-firebase-creds.json';
 import * as serviceAccountProd from '../creds/nftc-infinity-firebase-creds.json';
 import { parseSupportedChains } from './parse-supported-chains';
-import { ChainId } from '@infinityxyz/lib/types/core';
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -168,9 +168,7 @@ export const config = {
       ['5']: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null
     },
     indexer: {
-      ['1']: mainnetProviderUrl
-        ? new ethers.providers.StaticJsonRpcProvider(mainnetIndexerProviderUrl, 1)
-        : null,
+      ['1']: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetIndexerProviderUrl, 1) : null,
       ['5']: null
     }
   },

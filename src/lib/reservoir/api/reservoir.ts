@@ -4,9 +4,9 @@ import { sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 
+import { getClientUrl } from './get-client';
 import { gotErrorHandler } from './got';
 import { ReservoirSales, SaleOptions } from './sales/types';
-import { getClientUrl } from './get-client';
 
 const reservoirClients: { [chainId: string]: Got } = {};
 
@@ -85,7 +85,7 @@ export async function fetchSalesFromReservoir(chainId: string, options: Partial<
 async function errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
   let attempt = 0;
 
-  for (; ;) {
+  for (;;) {
     attempt += 1;
 
     try {

@@ -3,6 +3,7 @@ import { join, normalize } from 'path';
 import qs from 'qs';
 
 import { paths } from '@reservoir0x/reservoir-kit-client';
+
 import { config } from '@/config/index';
 
 export type Paths = keyof paths;
@@ -28,7 +29,11 @@ export type Response<
 > = StatusCodeResponse<P, M, K>;
 
 const BASE_URL = config.reservoir.baseUrls;
-export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = Object.fromEntries((Object.entries(BASE_URL) as [keyof typeof BASE_URL, (typeof BASE_URL[keyof typeof BASE_URL])][]).map(([name, value]) => [value.chainId, name]));
+export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = Object.fromEntries(
+  (Object.entries(BASE_URL) as [keyof typeof BASE_URL, (typeof BASE_URL)[keyof typeof BASE_URL]][]).map(
+    ([name, value]) => [value.chainId, name]
+  )
+);
 
 export type ReservoirClient = <P extends Paths, M extends Methods<P>>(
   endpoint: P,

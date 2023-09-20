@@ -506,7 +506,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
         if (event) {
           saveRealtimeItem(item.published_at - ONE_MIN, event).catch((err) => {
             logger.error(`Failed to process realtime event ${err}`);
-          })
+          });
         }
       }
     },

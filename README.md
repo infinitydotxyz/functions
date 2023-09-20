@@ -28,3 +28,16 @@
     * This process is designed to only utilize a single instance - if increased throughput is required, we can split the query based on user addresses and run multiple queries at once
 * When processing is triggered for a user's reward event it will load the aggregated rewards, and update them based on any unprocessed event.
     * This process is designed to support a high concurrency - and we only need to increase the concurrency setting on the queue and ensure the server has enough resources to handle the load
+
+
+## Adding support for new chains
+* All processes that are chain specific should be configured such that the queue is chain specific and should utilize the `SUPPORTED_CHAINS` env variable to deteremine which chains to start a queue for.
+    * This means that starting/stopping a chain will require redeploying the service.
+* Tasks should be configured such that processing can begin automatically for new chains and reasonable defaults are selected when a new chain is encountered.
+    * This usually means we perform limited backfilling
+
+### Configuration
+* There are currently three changes required to add support for a new chain
+    1. The `SUPPORTED_CHAINS` environment variable should be updated. This variable takes a comma separated list of chain ids that should be started. i.e. `1,5` would start processing for eth mainnet and eth goerli
+    2. Ensure that a Reservoir base url has been configured in the `config.reservoir.baseUrls` object in `functions/src/config/index.ts`
+    3. Ensure that a provider url has been configured for the chain in the `config.providers` object in `functions/src/config/index.ts`

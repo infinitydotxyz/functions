@@ -266,15 +266,19 @@ export const transformRealtimeEvent = (
 
 export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => void, logger: Logger) {
   const db = getDb();
-  const provider = getProvider('1');
+
+  // the client is chain specific
   const client = getClient(sync.metadata.chainId, config.reservoir.apiKey);
-  let blockNumber = await provider.getBlockNumber();
+
+  // the block number used for all chains should be eth mainnet
+  const ethMainnetProvider = getProvider('1');
+  let ethMainnetBlockNumber = await ethMainnetProvider.getBlockNumber();
 
   setInterval(() => {
-    provider
+    ethMainnetProvider
       .getBlockNumber()
       .then((num) => {
-        blockNumber = num;
+        ethMainnetBlockNumber = num;
       })
       .catch((err) => {
         logger.warn(`Failed to get next block number ${err}`);
@@ -363,7 +367,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
   const BATCH_SIZE = 500;
   while (sync.data.startTimestamp < Date.now() - 3 * ONE_MIN) {
     const endTimestamp = Date.now();
-    const stream = streamBatches(sync, endTimestamp, blockNumber, BATCH_SIZE, checkAbort, logger);
+    const stream = streamBatches(sync, endTimestamp, ethMainnetBlockNumber, BATCH_SIZE, checkAbort, logger);
     for await (const { batch, hasNextPage } of stream) {
       logger.log(`Saving batch of ${batch.events.length} events`);
       await saveBatch(batch);
@@ -498,7 +502,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       event: getSub(sync.metadata.type),
       handler: (item) => {
         logger.log(`Received event! ${item.published_at}`);
-        const event = transformRealtimeEvent(sync.metadata.chainId, blockNumber, item);
+        const event = transformRealtimeEvent(sync.metadata.chainId, ethMainnetBlockNumber, item);
         if (event) {
           saveRealtimeItem(item.published_at - ONE_MIN, event).catch((err) => {
             logger.error(`Failed to process realtime event ${err}`);
@@ -511,7 +515,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
 
   const connectTimestamp = await connectPromise;
   // sync any events up to the timestamp we connected
-  const stream = streamBatches(sync, connectTimestamp, blockNumber, 500, checkAbort, logger);
+  const stream = streamBatches(sync, connectTimestamp, ethMainnetBlockNumber, 500, checkAbort, logger);
   for await (const { batch, hasNextPage } of stream) {
     logger.log(`Saving batch of ${batch.events.length} events`);
     await saveBatch(batch);

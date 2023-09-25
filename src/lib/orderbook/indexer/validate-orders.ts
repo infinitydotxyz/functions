@@ -1,7 +1,6 @@
 import { BulkWriter } from 'firebase-admin/firestore';
 
 import {
-  ChainId,
   OrderApprovalChangeEvent,
   OrderBalanceChangeEvent,
   OrderEventKind,
@@ -41,7 +40,7 @@ export async function validateOrders(
 
   const promises: Promise<boolean>[] = [];
   for await (const { data: orderData, ref: orderRef } of stream) {
-    const provider = getProvider(orderData.metadata.chainId, 'indexer');
+    const provider = getProvider(orderData.metadata.chainId);
     const timestamp = Date.now();
     const getMetadata = <T extends OrderEventKind>(type: T) => {
       return {
@@ -93,8 +92,8 @@ export async function validateOrders(
         const _contractEvent = contractEvent as ContractEvent<Erc721TransferEventData>;
         const ownerAddress = _contractEvent.metadata.reorged
           ? await new Common.Helpers.Erc721(provider, _contractEvent.baseParams.address).getOwner(
-              _contractEvent.event.tokenId
-            )
+            _contractEvent.event.tokenId
+          )
           : _contractEvent.event.to;
         const ownerRef = getDb()
           .collection('users')
@@ -157,7 +156,7 @@ export async function getOrderStatus(order: Flow.Order | null): Promise<OrderSta
   if (!order) {
     return 'expired';
   }
-  const provider = getProvider(order.chainId.toString() as ChainId, 'indexer');
+  const provider = getProvider(order.chainId.toString());
   const now = Date.now();
   const hasStarted = order.startTime * 1000 < now;
   const hasEnded = order.endTime * 1000 < now;

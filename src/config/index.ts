@@ -36,10 +36,9 @@ loadEnv({ path: env, override: true });
 const DEV_SERVER_BASE_URL = isDeployed ? '' : 'http://localhost:9090';
 const PROD_SERVER_BASE_URL = 'https://sv.pixl.so/';
 
-const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', false);
+const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', true);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
-
-const mainnetIndexerProviderUrl = getEnvVariable('INDEXER_JSON_RPC_ETH_MAINNET', false) || mainnetProviderUrl;
+const polygonProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_POLYGON', true);
 
 const redisConnectionUrl = getEnvVariable('REDIS_URL', false);
 let redis: Redis;
@@ -163,14 +162,9 @@ export const config = {
     }
   },
   providers: {
-    default: {
-      ['1']: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetProviderUrl, 1) : null,
-      ['5']: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null
-    },
-    indexer: {
-      ['1']: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetIndexerProviderUrl, 1) : null,
-      ['5']: null
-    }
+    ['1']: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetProviderUrl, 1) : null,
+    ['5']: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null,
+    ['137']: polygonProviderUrl ? new ethers.providers.StaticJsonRpcProvider(polygonProviderUrl, 5) : null
   },
   orderbook: {
     gasSimulationAccount: {

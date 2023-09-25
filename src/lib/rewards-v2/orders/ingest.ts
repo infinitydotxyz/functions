@@ -228,7 +228,7 @@ export const transformRealtimeEvent = (
     const activeEvent: Omit<OrderActiveEvent, 'floorPriceUsd'> = {
       isListing: !isBid,
       isCollectionBid,
-      id: response.published_at, // TODO!
+      id: response.published_at,
       orderId: order.id,
       blockNumber,
       status,
@@ -247,7 +247,7 @@ export const transformRealtimeEvent = (
 
   const orderInactiveEvent: Omit<OrderInactiveEvent, 'floorPriceUsd'> = {
     isListing: !isBid,
-    id: response.published_at, // TODO!
+    id: response.published_at,
     isCollectionBid,
     orderId: order.id,
     blockNumber,

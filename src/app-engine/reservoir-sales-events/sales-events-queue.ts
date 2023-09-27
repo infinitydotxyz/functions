@@ -222,20 +222,23 @@ export class SalesEventsQueue extends AbstractProcess<SalesJobData, SalesJobResu
           }
         };
 
-        await wsClient.connect({
-          event: {
-            type: 'subscribe',
-            event: 'sale.created'
-          },
-          handler: (response) => {
-            const sale = transformRealtimeEvent(chainId, response);
-            if (sale) {
-              saveRealtimeItem(response.published_at - ONE_MIN, sale).catch((err) => {
-                this.error(`Failed to save realtime event ${err}`);
-              })
+        await wsClient.connect(
+          {
+            event: {
+              type: 'subscribe',
+              event: 'sale.created'
+            },
+            handler: (response) => {
+              const sale = transformRealtimeEvent(chainId, response);
+              if (sale) {
+                saveRealtimeItem(response.published_at - ONE_MIN, sale).catch((err) => {
+                  this.error(`Failed to save realtime event ${err}`);
+                });
+              }
             }
-          }
-        }, false);
+          },
+          false
+        );
         await connectPromise;
         this.log('Starting backfilling process...');
         const result = await syncPage(db, sync, checkAbort);

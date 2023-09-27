@@ -134,7 +134,7 @@ export abstract class AbstractEvent<T> {
       const traceString = await redis.get(txTraceCacheKey);
       trace = JSON.parse(traceString ?? '') as CallTrace;
     } catch (err) {
-      const provider = getProvider(this._chainId, 'indexer');
+      const provider = getProvider(this._chainId);
       trace = await this.getTxTrace({ hash: params.txHash }, provider);
 
       await redis.set(txTraceCacheKey, JSON.stringify(trace), 'PX', ONE_HOUR);

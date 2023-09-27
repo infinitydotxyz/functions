@@ -1,7 +1,6 @@
 import { Firestore } from 'firebase-admin/firestore';
 import { NftSaleEventV2 } from 'functions/aggregate-sales-stats/types';
 
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -46,7 +45,7 @@ export async function syncPage(
 
 export async function* getSales(
   _syncData: { lastIdProcessed: string; startTimestamp: number; collection?: string },
-  chainId: ChainId,
+  chainId: string,
   checkAbort: () => { abort: boolean }
 ) {
   let continuation: string | undefined;
@@ -121,7 +120,7 @@ export const batchSaveToFirestore = async (
   const nftSales = data.map(({ saleData: item, chainId }) => {
     const nftSaleEventV2: NftSaleEventV2 = {
       data: {
-        chainId: chainId as ChainId,
+        chainId: chainId as NftSaleEventV2['data']['chainId'],
         txHash: item.txhash ?? '',
         blockNumber: item.block_number ?? 0,
         collectionAddress: item.collection_address ?? '',
@@ -162,7 +161,7 @@ export const batchSaveToFirestore = async (
   const salesCollectionRef = db.collection(firestoreConstants.SALES_COLL);
 
   // currentEthBlockNumber is lazily set below
-  let currentEthBlockNumber: null | number = null;
+  let currentEthMainnetBlockNumber: null | number = null;
 
   for (const { saleV2, id } of nftSales) {
     if (!id) {
@@ -192,10 +191,10 @@ export const batchSaveToFirestore = async (
     }
 
     if (isNativeBuy || isNativeFill) {
-      if (currentEthBlockNumber == null) {
-        const provider = getProvider(ChainId.Mainnet);
-        const blockNumber = await provider.getBlockNumber();
-        currentEthBlockNumber = blockNumber;
+      if (currentEthMainnetBlockNumber == null) {
+        const ethMainnetProvider = getProvider('1');
+        const ethMainnetBlockNumber = await ethMainnetProvider.getBlockNumber();
+        currentEthMainnetBlockNumber = ethMainnetBlockNumber;
       }
       // save to stats and rewards if the sale is filled or from pixl.so
       const buyEvent: BuyEvent = {
@@ -204,7 +203,7 @@ export const batchSaveToFirestore = async (
         isNativeFill,
         user: saleV2.data.buyer,
         chainId: saleV2.data.chainId,
-        blockNumber: currentEthBlockNumber,
+        blockNumber: currentEthMainnetBlockNumber,
         sale: {
           blockNumber: saleV2.data.blockNumber,
           buyer: saleV2.data.buyer,
@@ -248,7 +247,7 @@ const processSales = async (
       lastIdProcessed: currentSync.data.data.lastItemProcessed,
       startTimestamp: currentSync.data.data.endTimestamp
     },
-    currentSync.data.metadata.chainId as ChainId,
+    currentSync.data.metadata.chainId,
     checkAbort
   );
   for await (const page of iterator) {

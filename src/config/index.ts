@@ -164,7 +164,7 @@ export const config = {
   providers: {
     ['1']: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetProviderUrl, 1) : null,
     ['5']: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null,
-    ['137']: polygonProviderUrl ? new ethers.providers.StaticJsonRpcProvider(polygonProviderUrl, 5) : null
+    ['137']: polygonProviderUrl ? new ethers.providers.StaticJsonRpcProvider(polygonProviderUrl, 137) : null
   },
   orderbook: {
     gasSimulationAccount: {

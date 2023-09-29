@@ -38,7 +38,7 @@ export class ReservoirWebsocketClient {
     this.ws = new WS(this.url);
     this.isConnected = false;
     this.emitter = new EventEmitter();
-    this.mostRecentEventTimestamp = 0
+    this.mostRecentEventTimestamp = 0;
   }
 
   public connect = async <T extends Subscriptions>(sub: Sub<T>, attemptReconnect = true, attempt = 0) => {
@@ -98,11 +98,13 @@ export class ReservoirWebsocketClient {
         }
         this.logger.info(`Attempting to reconnect`);
         this.ws = new WS(this.url);
-        this.connect(this.subscription, attemptReconnect, attempt + 1).then(() => {
-          this.logger.info(`Reconnected!`);
-        }).catch((err) => {
-          this.logger.error(`Failed to reconnect ${err}`);
-        })
+        this.connect(this.subscription, attemptReconnect, attempt + 1)
+          .then(() => {
+            this.logger.info(`Reconnected!`);
+          })
+          .catch((err) => {
+            this.logger.error(`Failed to reconnect ${err}`);
+          });
       });
 
       this.ws.on('error', (err) => {

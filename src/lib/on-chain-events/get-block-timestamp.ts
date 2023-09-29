@@ -7,7 +7,7 @@ import { logger } from '../logger';
 import { getProvider } from '../utils/ethersUtils';
 
 export async function getBlockTimestamp(chainId: ChainId, blockNumber: number) {
-  const provider = getProvider(chainId, 'indexer');
+  const provider = getProvider(chainId);
 
   const key = `chain:${chainId}:block:${blockNumber}:timestamp:cache`;
   const timestampStr = await redis.get(key);

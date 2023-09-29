@@ -1,24 +1,21 @@
 import got, { Got, Response } from 'got/dist/source';
 
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 
+import { getClientUrl } from './get-client';
 import { gotErrorHandler } from './got';
 import { ReservoirSales, SaleOptions } from './sales/types';
 
-const reservoirClients: { [chainId: number]: Got } = {};
+const reservoirClients: { [chainId: string]: Got } = {};
 
-function getReservoirClient(chainId: ChainId) {
+function getReservoirClient(chainId: string) {
   if (reservoirClients[chainId]) {
     return reservoirClients[chainId];
   }
 
-  const baseUrl = config.reservoir.baseUrls[chainId];
-  if (!baseUrl) {
-    throw new Error(`Unsupported chainId ${chainId}`);
-  }
+  const baseUrl = getClientUrl(chainId).api;
 
   const apiKey = config.reservoir.apiKey;
   const client = got.extend({
@@ -48,7 +45,7 @@ function getReservoirClient(chainId: ChainId) {
   return client;
 }
 
-export async function fetchSalesFromReservoir(chainId: ChainId, options: Partial<SaleOptions>) {
+export async function fetchSalesFromReservoir(chainId: string, options: Partial<SaleOptions>) {
   try {
     const client = getReservoirClient(chainId);
 

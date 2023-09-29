@@ -1,10 +1,10 @@
 import { constants } from 'ethers';
 
-import { ChainId, OrderSource } from '@infinityxyz/lib/types/core';
+import { OrderSource } from '@infinityxyz/lib/types/core';
 import * as Sdk from '@reservoir0x/sdk';
 
-export const getMarketplaceAddress = (chainId: ChainId, orderKind?: OrderSource) => {
-  const chainIdInt = parseInt(chainId);
+export const getMarketplaceAddress = (chainId: string, orderKind?: OrderSource) => {
+  const chainIdInt = parseInt(chainId, 10);
   switch (orderKind) {
     case 'blur':
       return Sdk.Blur.Addresses.Exchange[chainIdInt];

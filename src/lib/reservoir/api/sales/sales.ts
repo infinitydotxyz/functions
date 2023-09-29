@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { formatUnits } from 'ethers/lib/utils';
 
-import { ChainId, OrderSource } from '@infinityxyz/lib/types/core';
+import { OrderSource } from '@infinityxyz/lib/types/core';
 
 import { getMarketplaceAddress } from '@/lib/utils/get-marketplace-address';
 
@@ -9,7 +9,7 @@ import { fetchSalesFromReservoir } from '../reservoir';
 import { FlattenedNFTSale, SaleOptions } from './types';
 
 export async function getReservoirSales(
-  chainId: ChainId,
+  chainId: string,
   _options: Partial<SaleOptions>
 ): Promise<{ data: Partial<FlattenedNFTSale>[]; continuation: string } | undefined> {
   const options: SaleOptions = {

@@ -274,7 +274,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
   const ethMainnetProvider = getProvider('1');
   let ethMainnetBlockNumber = await ethMainnetProvider.getBlockNumber();
 
-  setInterval(() => {
+  let interval = setInterval(() => {
     ethMainnetProvider
       .getBlockNumber()
       .then((num) => {
@@ -493,10 +493,90 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     }
   };
 
+
+  let timeout: NodeJS.Timeout | null = null;
+  let cancelled = false;
+  const pollSyncMetadata = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+    if (cancelled) {
+      return () => { };
+    }
+    const updateSyncMetadata = async () => {
+      if (cancelled) {
+        return;
+      }
+      try {
+        logger.log(`Polling sync metadata!`);
+        const client = getClient(sync.metadata.chainId, config.reservoir.apiKey);
+        const pageOptions = {
+          sortDirection: 'desc' as const,
+          limit: 1,
+        };
+        const getEvents = sync.metadata.type === 'ask' ? getReservoirAskEvents : getReservoirBidEvents;
+        const page = await getEvents(client, pageOptions);
+        const events = page.data.events;
+        const mostRecentEventId =
+          events.length > 0
+            ? new Date(events[events.length - 1].event.createdAt || sync.data.mostRecentEventId).getTime()
+            : sync.data.mostRecentEventId;
+        const updatedSync: SyncMetadata = {
+          metadata: {
+            ...sync.metadata,
+            updatedAt: Date.now()
+          },
+          data: {
+            continuation: '',
+            startTimestamp: mostRecentEventId,
+            mostRecentEventId
+          }
+        };
+
+        if (updatedSync.data.startTimestamp < sync.data.startTimestamp) {
+          throw new Error(`Start timestamp is older than current cursor start timestamp!`);
+        } else if (updatedSync.data.mostRecentEventId < sync.data.mostRecentEventId) {
+          throw new Error(`Most recent event id is older than current cursor most recent event id!`);
+        } else if (mostRecentEventId > Date.now()) {
+          throw new Error(`Most recent event id is greater than the current time!`);
+        }
+        const syncRef = db
+          .collection('pixl')
+          .doc('orderCollections')
+          .collection('pixlOrderSyncs')
+          .doc(`${sync.metadata.chainId}: ${sync.metadata.type}`);
+
+        await syncRef.set(updatedSync, { merge: true });
+        sync = updatedSync;
+      } catch (err) {
+        logger.warn(`Failed to update sync metadata! ${err}`);
+      }
+    }
+
+    timeout = setTimeout(() => {
+      timeout = null;
+      updateSyncMetadata().catch((err) => {
+        logger.error(`Failed to handle error ${err}`);
+      }).finally(() => {
+        pollSyncMetadata();
+      });
+    }, ONE_MIN);
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = null;
+      cancelled = true;
+    }
+  }
+
   type Batch = {
     events: (Omit<OrderInactiveEvent, 'floorPriceUsd'> | Omit<OrderActiveEvent, 'floorPriceUsd'>)[];
     sync: SyncMetadata;
   };
+
   await wsClient.connect(
     {
       event: getSub(sync.metadata.type),
@@ -506,6 +586,9 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
         if (event) {
           saveRealtimeItem(item.published_at - ONE_MIN, event).catch((err) => {
             logger.error(`Failed to process realtime event ${err}`);
+          }).finally(() => {
+            // reset polling
+            pollSyncMetadata();
           });
         }
       }
@@ -526,7 +609,12 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     }
   }
   hasBackfilled = true;
+  // start polling
+  const cancel = pollSyncMetadata();
   await disconnectPromise;
+
+  cancel();
+  clearInterval(interval);
 
   logger.log(`Disconnected from realtime events`);
 }

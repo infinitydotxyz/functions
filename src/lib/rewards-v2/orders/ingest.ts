@@ -274,7 +274,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
   const ethMainnetProvider = getProvider('1');
   let ethMainnetBlockNumber = await ethMainnetProvider.getBlockNumber();
 
-  let interval = setInterval(() => {
+  const interval = setInterval(() => {
     ethMainnetProvider
       .getBlockNumber()
       .then((num) => {
@@ -493,7 +493,6 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     }
   };
 
-
   let timeout: NodeJS.Timeout | null = null;
   let cancelled = false;
   const pollSyncMetadata = () => {
@@ -502,7 +501,9 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       timeout = null;
     }
     if (cancelled) {
-      return () => { };
+      return () => {
+        return;
+      };
     }
     const updateSyncMetadata = async () => {
       if (cancelled) {
@@ -513,7 +514,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
         const client = getClient(sync.metadata.chainId, config.reservoir.apiKey);
         const pageOptions = {
           sortDirection: 'desc' as const,
-          limit: 1,
+          limit: 1
         };
         const getEvents = sync.metadata.type === 'ask' ? getReservoirAskEvents : getReservoirBidEvents;
         const page = await getEvents(client, pageOptions);
@@ -552,15 +553,17 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       } catch (err) {
         logger.warn(`Failed to update sync metadata! ${err}`);
       }
-    }
+    };
 
     timeout = setTimeout(() => {
       timeout = null;
-      updateSyncMetadata().catch((err) => {
-        logger.error(`Failed to handle error ${err}`);
-      }).finally(() => {
-        pollSyncMetadata();
-      });
+      updateSyncMetadata()
+        .catch((err) => {
+          logger.error(`Failed to handle error ${err}`);
+        })
+        .finally(() => {
+          pollSyncMetadata();
+        });
     }, ONE_MIN);
 
     return () => {
@@ -569,8 +572,8 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       }
       timeout = null;
       cancelled = true;
-    }
-  }
+    };
+  };
 
   type Batch = {
     events: (Omit<OrderInactiveEvent, 'floorPriceUsd'> | Omit<OrderActiveEvent, 'floorPriceUsd'>)[];
@@ -584,12 +587,14 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
         logger.log(`Received event! ${item.published_at}`);
         const event = transformRealtimeEvent(sync.metadata.chainId, ethMainnetBlockNumber, item);
         if (event) {
-          saveRealtimeItem(item.published_at - ONE_MIN, event).catch((err) => {
-            logger.error(`Failed to process realtime event ${err}`);
-          }).finally(() => {
-            // reset polling
-            pollSyncMetadata();
-          });
+          saveRealtimeItem(item.published_at - ONE_MIN, event)
+            .catch((err) => {
+              logger.error(`Failed to process realtime event ${err}`);
+            })
+            .finally(() => {
+              // reset polling
+              pollSyncMetadata();
+            });
         }
       }
     },

@@ -92,8 +92,8 @@ export async function validateOrders(
         const _contractEvent = contractEvent as ContractEvent<Erc721TransferEventData>;
         const ownerAddress = _contractEvent.metadata.reorged
           ? await new Common.Helpers.Erc721(provider, _contractEvent.baseParams.address).getOwner(
-            _contractEvent.event.tokenId
-          )
+              _contractEvent.event.tokenId
+            )
           : _contractEvent.event.to;
         const ownerRef = getDb()
           .collection('users')

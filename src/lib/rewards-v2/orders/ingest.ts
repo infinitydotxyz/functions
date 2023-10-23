@@ -358,7 +358,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
       .collection('pixl')
       .doc('orderCollections')
       .collection('pixlOrderSyncs')
-      .doc(`${sync.metadata.chainId}: ${sync.metadata.type}`);
+      .doc(`${sync.metadata.chainId}:${sync.metadata.type}`);
     await batchHandler.addAsync(syncRef, batch.sync, { merge: true });
     await batchHandler.flush();
     sync = batch.sync;
@@ -546,7 +546,7 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
           .collection('pixl')
           .doc('orderCollections')
           .collection('pixlOrderSyncs')
-          .doc(`${sync.metadata.chainId}: ${sync.metadata.type}`);
+          .doc(`${sync.metadata.chainId}:${sync.metadata.type}`);
 
         await syncRef.set(updatedSync, { merge: true });
         sync = updatedSync;

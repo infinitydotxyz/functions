@@ -52,18 +52,29 @@ export class IngestOrderEventsQueue extends AbstractProcess<IngestOrderEventsJob
         .collection('pixlOrderSyncs') as CollRef<SyncMetadata>;
       await db.runTransaction(async (txn) => {
         const snap = await txn.get(syncs);
+
+        const migrations: { oldRef: DocRef<SyncMetadata>, newRef: DocRef<SyncMetadata>, data: SyncMetadata }[] = [];
+
         for (const doc of snap.docs) {
           const [chainId, type] = doc.id.split(':');
           if (type.startsWith(' ')) {
             const migratedDocRef = syncs.doc(`${chainId}:${type.trim()}`);
             const migratedDoc = await txn.get(migratedDocRef);
             if (!migratedDoc.exists) {
-              txn.create(migratedDocRef, doc.data());
-              txn.delete(doc.ref);
+              migrations.push({
+                oldRef: doc.ref,
+                newRef: migratedDocRef,
+                data: doc.data()
+              });
             }
           }
         }
-      })
+
+        for (const migration of migrations) {
+          txn.create(migration.newRef, migration.data);
+          txn.delete(migration.oldRef);
+        }
+      });
     }
 
 

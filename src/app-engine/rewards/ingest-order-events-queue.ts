@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import { ONE_HOUR, ONE_MIN } from '@infinityxyz/lib/utils';
 
 import { getDb } from '@/firestore/db';
-import { DocRef, CollRef } from '@/firestore/types';
+import { DocRef } from '@/firestore/types';
 import { AbstractProcess } from '@/lib/process/process.abstract';
 import { ProcessOptions } from '@/lib/process/types';
 import { ingestOrderEvents } from '@/lib/rewards-v2/orders/ingest';
@@ -41,44 +41,6 @@ export class IngestOrderEventsQueue extends AbstractProcess<IngestOrderEventsJob
   ): Promise<IngestOrderEventsJobResult> {
     const db = getDb();
     const lockDuration = 5000;
-
-    /**
-    * fixes a bug where the type portion of the doc id had a leading space
-    */
-    const migrateSyncRefs = async () => {
-      const syncs = db
-        .collection('pixl')
-        .doc('orderCollections')
-        .collection('pixlOrderSyncs') as CollRef<SyncMetadata>;
-      await db.runTransaction(async (txn) => {
-        const snap = await txn.get(syncs);
-
-        const migrations: { oldRef: DocRef<SyncMetadata>, newRef: DocRef<SyncMetadata>, data: SyncMetadata }[] = [];
-
-        for (const doc of snap.docs) {
-          const [chainId, type] = doc.id.split(':');
-          if (type.startsWith(' ')) {
-            const migratedDocRef = syncs.doc(`${chainId}:${type.trim()}`);
-            const migratedDoc = await txn.get(migratedDocRef);
-            if (!migratedDoc.exists) {
-              migrations.push({
-                oldRef: doc.ref,
-                newRef: migratedDocRef,
-                data: doc.data()
-              });
-            }
-          }
-        }
-
-        for (const migration of migrations) {
-          txn.create(migration.newRef, migration.data);
-          txn.delete(migration.oldRef);
-        }
-      });
-    }
-
-
-    await migrateSyncRefs();
 
     const syncRef = db
       .collection('pixl')

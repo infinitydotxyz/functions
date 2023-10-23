@@ -25,6 +25,8 @@ import { RewardEventsQueue } from './rewards/rewards-queue';
 import { TriggerOrderRewardUpdateQueue } from './rewards/trigger-order-reward-update-queue';
 import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
 import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
+import { CollRef, DocRef } from '@/firestore/types';
+import { SyncMetadata } from '@/lib/reservoir/order-events/types';
 
 let _supportedCollectionsProvider: SupportedCollectionsProvider;
 const getSupportedCollectionsProvider = async () => {
@@ -158,6 +160,39 @@ async function main() {
 
   if (config.components.ingestOrderEvents.enabled) {
     logger.log('ingest-order-events', `Starting order event ingestion!`);
+    /**
+     * fixes a bug where the type portion of the doc id had a leading space
+     */
+    const migrateSyncRefs = async () => {
+      const syncs = db.collection('pixl').doc('orderCollections').collection('pixlOrderSyncs') as CollRef<SyncMetadata>;
+      await db.runTransaction(async (txn) => {
+        const snap = await txn.get(syncs);
+
+        const migrations: { oldRef: DocRef<SyncMetadata>; newRef: DocRef<SyncMetadata>; data: SyncMetadata }[] = [];
+
+        for (const doc of snap.docs) {
+          const [chainId, type] = doc.id.split(':');
+          if (type.startsWith(' ')) {
+            const migratedDocRef = syncs.doc(`${chainId}:${type.trim()}`);
+            const migratedDoc = await txn.get(migratedDocRef);
+            if (!migratedDoc.exists) {
+              migrations.push({
+                oldRef: doc.ref,
+                newRef: migratedDocRef,
+                data: doc.data()
+              });
+            }
+          }
+        }
+
+        for (const migration of migrations) {
+          txn.create(migration.newRef, migration.data);
+          txn.delete(migration.oldRef);
+        }
+      });
+    };
+    await migrateSyncRefs();
+
     const ingestOrderEventQueues: IngestOrderEventsQueue[] = [];
     for (const chainId of config.supportedChains) {
       for (const type of ['ask', 'bid'] as const) {

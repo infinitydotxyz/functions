@@ -56,6 +56,7 @@ export async function* streamEvents(
         events.length > 0
           ? new Date(events[events.length - 1].event.createdAt || sync.data.mostRecentEventId).getTime()
           : sync.data.mostRecentEventId;
+      const startTimestamp = Math.max(mostRecentEventId - ONE_MIN, sync.data.startTimestamp);
       return {
         events,
         sync: {
@@ -65,7 +66,7 @@ export async function* streamEvents(
           },
           data: {
             continuation: hasNextPage ? continuation : '',
-            startTimestamp: hasNextPage ? sync.data.startTimestamp : endTimestamp,
+            startTimestamp: hasNextPage ? startTimestamp : endTimestamp,
             mostRecentEventId
           }
         } as SyncMetadata,
@@ -181,10 +182,12 @@ export async function* streamBatches(
   const client = getClient(sync.metadata.chainId, config.reservoir.apiKey);
   const stream = streamEvents(client, sync, endTimestamp, checkAbort, logger);
 
-  const batch: Batch = {
+  let batch: Batch = {
     events: [],
     sync: sync
   };
+
+  let lastYield = Date.now();
 
   for await (const { sync: updatedSync, events: pageEvents, hasNextPage } of stream) {
     for (const item of pageEvents) {
@@ -202,8 +205,25 @@ export async function* streamBatches(
     batch.sync = updatedSync;
     if (!hasNextPage) {
       yield { batch, hasNextPage };
+      batch = {
+        events: [],
+        sync: updatedSync
+      };
+      lastYield = Date.now();
     } else if (batch.events.length > batchSize) {
       yield { batch, hasNextPage };
+      batch = {
+        events: [],
+        sync: updatedSync
+      };
+      lastYield = Date.now();
+    } else if (Date.now() - lastYield > 5 * ONE_MIN) {
+      yield { batch, hasNextPage };
+      batch = {
+        events: [],
+        sync: updatedSync
+      };
+      lastYield = Date.now();
     }
   }
 }

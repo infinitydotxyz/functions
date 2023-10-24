@@ -4,9 +4,11 @@ import cron from 'node-cron';
 import { ChainId, EventType } from '@infinityxyz/lib/types/core';
 
 import { getDb } from '@/firestore/db';
+import { CollRef, DocRef } from '@/firestore/types';
 import { SupportedCollectionsProvider } from '@/lib/collections/supported-collections-provider';
 import { logger } from '@/lib/logger';
 import { ValidateOrdersProcessor } from '@/lib/orderbook/process/validate-orders/validate-orders';
+import { SyncMetadata } from '@/lib/reservoir/order-events/types';
 
 import { config } from '../config';
 import { start } from './api';
@@ -25,8 +27,6 @@ import { RewardEventsQueue } from './rewards/rewards-queue';
 import { TriggerOrderRewardUpdateQueue } from './rewards/trigger-order-reward-update-queue';
 import { UserRewardsEventsQueue } from './rewards/user-rewards-queue';
 import { UserRewardsTriggerQueue } from './rewards/user-rewards-trigger-queue';
-import { CollRef, DocRef } from '@/firestore/types';
-import { SyncMetadata } from '@/lib/reservoir/order-events/types';
 
 let _supportedCollectionsProvider: SupportedCollectionsProvider;
 const getSupportedCollectionsProvider = async () => {

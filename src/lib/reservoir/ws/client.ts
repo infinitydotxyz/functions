@@ -136,10 +136,7 @@ export class ReservoirWebsocketClient {
   }
 
   protected onDisconnect() {
-    if (this.mostRecentEventTimestamp) {
-      this.emitter.emit('disconnect', { timestamp: this.mostRecentEventTimestamp });
-      this.mostRecentEventTimestamp = 0;
-    }
+    this.emitter.emit('disconnect');
   }
 
   protected onEvent(timestamp: number) {

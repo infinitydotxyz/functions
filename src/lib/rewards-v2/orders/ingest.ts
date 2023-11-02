@@ -1,7 +1,7 @@
 import { BigNumber } from 'ethers';
 import pThrottle from 'p-throttle';
 
-import { ONE_MIN } from '@infinityxyz/lib/utils';
+import { ONE_MIN, sleep } from '@infinityxyz/lib/utils';
 
 import { config } from '@/config/index';
 import { BatchHandler } from '@/firestore/batch-handler';
@@ -621,7 +621,14 @@ export async function ingestOrderEvents(sync: SyncMetadata, checkAbort: () => vo
     false
   );
 
-  const connectTimestamp = await connectPromise;
+  const delay = 5 * ONE_MIN;
+  // If the connectPromise doesn't resolve in 5 min, continue the program and backfill events since 2.5 min ago to ensure no events were missed.
+  const connectTimestamp = await Promise.race([
+    connectPromise,
+    sleep(delay).then(() => {
+      return Date.now() - delay / 2;
+    })
+  ]);
   // sync any events up to the timestamp we connected
   const stream = streamBatches(sync, connectTimestamp, ethMainnetBlockNumber, 500, checkAbort, logger);
   for await (const { batch, hasNextPage } of stream) {

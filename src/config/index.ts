@@ -4,12 +4,17 @@ import { ServiceAccount } from 'firebase-admin';
 import Redis from 'ioredis';
 import Redlock from 'redlock';
 
+
+
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
+
+
 
 import * as serviceAccountDev from '../creds/nftc-dev-firebase-creds.json';
 import * as serviceAccountProd from '../creds/nftc-infinity-firebase-creds.json';
 import { parseSupportedChains } from './parse-supported-chains';
+
 
 const getEnvVariable = (key: string, required = true): string => {
   if (key in process.env && process.env[key] != null && typeof process.env[key] === 'string') {
@@ -39,6 +44,10 @@ const PROD_SERVER_BASE_URL = 'https://sv.pixl.so/';
 const mainnetProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_MAINNET', true);
 const goerliProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_GOERLI', false);
 const polygonProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_POLYGON', true);
+const arbitrumProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_ARBITRUM', true);
+const baseProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_BASE', true);
+const optimismProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_OPTIMISM', true);
+const polygonZKEVMProviderUrl = getEnvVariable('ALCHEMY_JSON_RPC_ETH_POLYGON_ZKEVM', true);
 
 const redisConnectionUrl = getEnvVariable('REDIS_URL', false);
 let redis: Redis;
@@ -104,6 +113,11 @@ export const config = {
         api: 'https://api-polygon.reservoir.tools',
         ws: 'wss://ws-polygon.reservoir.tools'
       },
+      PolygonZKEVM: {
+        chainId: 1101,
+        api: 'https://api-polygon-zkevm.reservoir.tools',
+        ws: 'wss://ws-polygon-zkevm.reservoir.tools'
+      },
       Mumbai: {
         chainId: 80001,
         api: 'https://api-mumbai.reservoir.tools',
@@ -164,7 +178,11 @@ export const config = {
   providers: {
     ['1']: mainnetProviderUrl ? new ethers.providers.StaticJsonRpcProvider(mainnetProviderUrl, 1) : null,
     ['5']: goerliProviderUrl ? new ethers.providers.StaticJsonRpcProvider(goerliProviderUrl, 5) : null,
-    ['137']: polygonProviderUrl ? new ethers.providers.StaticJsonRpcProvider(polygonProviderUrl, 137) : null
+    ['137']: polygonProviderUrl ? new ethers.providers.StaticJsonRpcProvider(polygonProviderUrl, 137) : null,
+    ['42161']: arbitrumProviderUrl ? new ethers.providers.StaticJsonRpcProvider(arbitrumProviderUrl, 42161) : null,
+    ['8453']: baseProviderUrl ? new ethers.providers.StaticJsonRpcProvider(baseProviderUrl, 8453) : null,
+    ['10']: optimismProviderUrl ? new ethers.providers.StaticJsonRpcProvider(optimismProviderUrl, 10) : null,
+    ['1101']: polygonZKEVMProviderUrl ? new ethers.providers.StaticJsonRpcProvider(polygonZKEVMProviderUrl, 1101) : null
   },
   orderbook: {
     gasSimulationAccount: {
